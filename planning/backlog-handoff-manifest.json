@@ -1,6 +1,6 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-1064", "SPE-3338", "SPE-3337"],
+  "inProgress": ["SPE-1064", "SPE-3338"],
   "recentlyShipped": [
     "SPE-2197",
     "SPE-2166",
@@ -156,7 +156,7 @@
     "planning/spe-3337-codex-environment-slice.md": "Done",
     "planning/spe-3337-linear-diagnostics-slice.md": "Done",
     "planning/spe-3337-designation-provenance-slice.md": "Done",
-    "planning/spe-3337-portable-followups-slice.md": "In Progress",
+    "planning/spe-3337-portable-followups-slice.md": "Done",
     "planning/spe-2910-workshop-disorder-consequences-slice.md": "Done",
     "planning/spe-2197-entity-encounter-statblock-packet-slice.md": "Recently shipped",
     "planning/spe-2166-operational-status-expansion-registry-slice.md": "Recently shipped",

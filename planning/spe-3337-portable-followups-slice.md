@@ -2,7 +2,7 @@
 
 | Field      | Value                                                                              |
 | ---------- | ---------------------------------------------------------------------------------- |
-| **Status** | **In Progress**                                                                    |
+| **Status** | **Done**                                                                           |
 | Owner      | SPE-3337; shared-system-owned, Containment Protocol Tooling / Developer Experience |
 | Branch     | `codex/spe-3337-portable-followups`                                                |
 | Base main  | `e37dbbe6982dbd015ed4b22425d97ec306ede93b`                                         |
@@ -26,3 +26,7 @@ Selected backlog, environment, lint, requirements-model, preflight and bundle ch
 Parent acceptance audit must combine this slice with PR #4630 (source freshness, branch/base/session preflight), #4874 (environment and Copilot adapter), #4875 (MCP diagnostics), and #4876 (designation provenance). Confirm independent review/current-head CI, clean synchronized main and this slice's machine/human evidence before marking SPE-3337 complete. No gameplay evidence is claimed because the entire boundary is developer tooling outside campaign state.
 
 Prior unsupported Hermes mapping retains documented direct fallback; short checks run directly. Freebuff remains disabled. No new issue, relationship or durable scope is created by this plan.
+
+## Final merge and parent acceptance
+
+PR #4877 merged at `9567e838a65947c2940f3972fb102ad54ce74119`; final-head Codex review was clean and Amazon Q found no blocking defects. CI 42207353841 passed every selected required validator, all 1,007 application test files, bundle and browser checks. Main was clean and synchronized in-session. The combined acceptance audit verified all five delivery PRs against the original and extended issue boundary; SPE-3337 is Done in Linear with the full source/validation/limitations record. No remaining implementation acceptance or in-boundary deferral was identified. The caller still revalidates authoritative observations; no new transport, approval engine, writer or gameplay state is claimed.

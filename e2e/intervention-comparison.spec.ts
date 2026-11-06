@@ -1,5 +1,6 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import type { GameState } from '../src/domain/models'
+import { getFrontDeskHubView } from '../src/features/operations/frontDeskView'
 import { CAMPAIGN_COMPARISON_TIMEOUT_MS, expectCampaignStateBudget } from './support/campaignBudget'
 import {
   advanceOperationalWeek,
@@ -17,6 +18,29 @@ async function readSavedGame(page: Page): Promise<GameState> {
     (key) => JSON.parse(localStorage.getItem(key)!).state.game,
     CP_GAME_STORAGE_KEY
   )
+}
+
+async function waitForFrontDeskObservation(page: Page, week: number) {
+  await expect(
+    page.getByRole('heading', { name: 'Operations Overview', exact: true })
+  ).toBeVisible()
+  await expect
+    .poll(async () => {
+      const game = await readSavedGame(page)
+      const routes = getFrontDeskHubView(game).briefing.debug
+      const last = game.runtimeState?.ui.debug.eventLog?.at(-1)
+      return (
+        game.week === week &&
+        last?.week === week &&
+        last.type === 'route.selected' &&
+        last.contextId === 'frontdesk' &&
+        (last.details?.directorRouteId ?? null) === (routes.directorMessageRouteId ?? null) &&
+        JSON.stringify(last.details?.noticeRouteIds ?? []) ===
+          JSON.stringify(routes.noticeRouteIds) &&
+        JSON.stringify(last.details?.choiceIds ?? []) === JSON.stringify(routes.choiceIds)
+      )
+    })
+    .toBe(true)
 }
 
 async function selectCase(page: Page, title: string) {
@@ -38,6 +62,51 @@ async function inspectArchiveDossier(page: Page) {
   expect(await readSavedGame(page)).toEqual(before)
 }
 
+async function exerciseConcurrentOutbreaks(page: Page, outbreakIds: string[]) {
+  expect(outbreakIds).toHaveLength(3)
+  const before = await readSavedGame(page)
+  const triage = page.getByRole('list', { name: 'Triage list', exact: true })
+  for (const id of outbreakIds) {
+    await expect(triage.getByTestId('case-title-link-' + id)).toHaveText('Campus Outbreak')
+    expect(before.cases[id].assignedTeamIds).toEqual([])
+  }
+  for (const id of outbreakIds) {
+    const row = triage
+      .getByRole('listitem')
+      .filter({ has: page.getByTestId('case-title-link-' + id) })
+    await row.getByTestId('case-title-link-' + id).click()
+    const available = page.getByRole('region', { name: 'Available team odds', exact: true })
+    await expect(available).toBeVisible()
+    await expect(available.getByRole('button', { name: /^Assign / })).toHaveCount(0)
+    const plannerLink = available.getByRole('link', { name: 'Open incident planner', exact: true })
+    await expect(plannerLink).toHaveAttribute('href', '/cases?case=' + id)
+    await plannerLink.focus()
+    await expect(plannerLink).toBeFocused()
+    await plannerLink.press('Enter')
+    const detail = page.getByRole('region', {
+      name: 'Case triage detail: Campus Outbreak',
+      exact: true,
+    })
+    await expect(detail).toBeVisible()
+    await expect(detail).toContainText('Requires 3 teams before launch.')
+    await expect(
+      row.getByRole('button', { name: 'Select Campus Outbreak for triage detail', exact: true })
+    ).toHaveAttribute('aria-pressed', 'true')
+  }
+  await page.reload()
+  await expect(
+    page.getByRole('region', { name: 'Case triage detail: Campus Outbreak', exact: true })
+  ).toBeVisible()
+  const reloaded = await readSavedGame(page)
+  expect(Object.keys(reloaded.cases).sort()).toEqual(Object.keys(before.cases).sort())
+  for (const id of outbreakIds) expect(reloaded.cases[id]).toEqual(before.cases[id])
+  expect(reloaded.teams).toEqual(before.teams)
+  expect(reloaded.reports).toEqual(before.reports)
+  for (const id of outbreakIds) {
+    await expect(triage.getByTestId('case-title-link-' + id)).toHaveText('Campus Outbreak')
+  }
+}
+
 async function runComparisonPath(browser: Browser, intervene: boolean, readIntel = false) {
   const context = await browser.newContext({
     baseURL: 'http://127.0.0.1:5173',
@@ -48,6 +117,7 @@ async function runComparisonPath(browser: Browser, intervene: boolean, readIntel
   const probe = attachPageErrorProbe(page)
   try {
     await clearCampaignStorage(page)
+    await waitForFrontDeskObservation(page, 1)
     await openPrimaryNav(page, 'Cases')
     const vampire = await selectCase(page, 'Vampire Nest in the Stockyards')
     await vampire.getByRole('button', { name: 'Assign Night Watch', exact: true }).click()
@@ -60,13 +130,18 @@ async function runComparisonPath(browser: Browser, intervene: boolean, readIntel
       await archive.getByRole('button', { name: 'Assign Green Tape', exact: true }).click()
 
     await openPrimaryNav(page, 'Operations Desk')
+    await waitForFrontDeskObservation(page, 1)
     await advanceOperationalWeek(page)
+    await waitForFrontDeskObservation(page, 2)
     if (readIntel) {
       await inspectArchiveDossier(page)
       await openPrimaryNav(page, 'Operations Desk')
+      await waitForFrontDeskObservation(page, 2)
     }
     await page.reload()
+    await waitForFrontDeskObservation(page, 2)
     await advanceOperationalWeek(page)
+    await waitForFrontDeskObservation(page, 3)
     await page
       .getByRole('region', { name: 'Latest report' })
       .getByRole('link', { name: 'Week 2', exact: true })
@@ -125,6 +200,7 @@ async function runComparisonPath(browser: Browser, intervene: boolean, readIntel
       body: await nextChoice.screenshot(),
       contentType: 'image/png',
     })
+    if (!intervene) await exerciseConcurrentOutbreaks(page, outcome.outbreakIds)
     expectNoPageErrors(probe)
     const savedGame = await readSavedGame(page)
     await expectCampaignStateBudget(

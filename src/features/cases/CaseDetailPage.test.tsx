@@ -64,6 +64,32 @@ it('renders a local not-found state for an unknown case', () => {
   expect(screen.getByRole('link', { name: /back to cases/i })).toBeInTheDocument()
 })
 
+it.each(['open', 'in_progress', 'resolved'] as const)(
+  'routes %s major incidents through their canonical planner instead of ordinary assignment',
+  (status) => {
+    const game = createStartingState()
+    game.cases['case-003'] = {
+      ...game.cases['case-003'],
+      kind: 'raid',
+      stage: 5,
+      status,
+      assignedTeamIds: status === 'in_progress' ? ['t_greentape'] : [],
+    }
+    useGameStore.setState({ game })
+    renderCaseDetail('/cases/case-003?status=resolved&q=unrelated&case=case-001')
+
+    expect(screen.queryByRole('button', { name: /^assign /i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^remove green tape$/i })).not.toBeInTheDocument()
+    const link = screen.queryByRole('link', { name: 'Open incident planner' })
+    if (status === 'resolved') {
+      expect(link).not.toBeInTheDocument()
+    } else {
+      expect(link).toHaveAttribute('href', '/cases?case=case-003')
+      expect(screen.getByText(/requires a coordinated response/i)).toBeInTheDocument()
+    }
+  }
+)
+
 it('renders assignment timeline events for the selected case only', () => {
   const game = createStartingState()
 

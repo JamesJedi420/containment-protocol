@@ -103,7 +103,7 @@ describe('internal validation trace analysis (SPE-1119)', () => {
     expect(
       analyzeSimulationValidationTelemetry([], { scenarioId: 'baseline', weeksSimulated: 0 })
     ).toEqual({
-      schemaVersion: 6,
+      schemaVersion: 7,
       audience: 'internal-validation',
       scenarioId: 'baseline',
       weeksObserved: 0,

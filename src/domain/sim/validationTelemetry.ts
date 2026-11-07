@@ -122,7 +122,7 @@ export function analyzeSimulationValidationTelemetry(
 
   const history = events.map((event, index) => {
     requireTrace(
-      event.schemaVersion === 6 &&
+      event.schemaVersion === 7 &&
         event.audience === 'internal-validation' &&
         event.source === 'simulation-validation-weekly-snapshot' &&
         event.phase === 'after-week-close' &&
@@ -221,6 +221,8 @@ export function analyzeSimulationValidationTelemetry(
       actionBudgetBeforeAdvance: structuredClone(advanceInput.actionBudget),
       missionIntakeBeforeAdvance: structuredClone(advanceInput.missionIntake),
       staffTimeBeforeAdvance: structuredClone(advanceInput.staffTime),
+      informationReportsBeforeAdvance: structuredClone(advanceInput.informationReports),
+      informationReportsAfterClose: structuredClone(event.informationReports),
       missionResultsAfterClose: structuredClone(event.missionResults),
       unresolvedCasesAfterClose: snapshot.unresolvedCaseCount,
       budgetPressureAfterClose: snapshot.budgetPressure,
@@ -228,7 +230,7 @@ export function analyzeSimulationValidationTelemetry(
   })
 
   return {
-    schemaVersion: 6 as const,
+    schemaVersion: 7 as const,
     audience: 'internal-validation' as const,
     scenarioId: expected.scenarioId,
     weeksObserved: events.length,

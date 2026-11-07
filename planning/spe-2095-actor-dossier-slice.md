@@ -26,3 +26,7 @@ Modern Web Guidance is inapplicable to pure domain work. No dependency changes. 
 ## Final local validation
 
 Final focused run: 17 tests (1.75s). Required validation passed: 11,110 tests / 1,029 files (112.97s), full lint, backlog and production bundle (1.90s). Paired compiler capture had zero diagnostics; literal `npm run build` passed (Vite 8.81s). Touched formatting and diff whitespace checks pass. The sole remaining local advisory is the verified pre-existing five-link architecture-index omission on unchanged main. Local browser advisory omitted because this pure helper has no runtime consumer; hosted browser checks remain enabled. No checks were weakened. All six passes completed with no in-boundary gap found; independent review/hosted CI remain required.
+
+## Review clarification
+
+Initial Codex review clean at `7edfd1328f36658333b66122ba8a20283df9cba8`. Amazon Q requested unique weeks; the approved snapshot contract has no such constraint, and append order preserves multiple legitimate changes in one coarse week. Added explicit same-week baseline/assignment coverage and documentation; backdated appends still reject. Seventeen focused tests pass (2.23s) with touched lint. No production semantics changed or assertions weakened. CodeRabbit initial free review cooldown five minutes; independent final-head review and hosted CI pending.

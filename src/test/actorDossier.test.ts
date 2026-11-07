@@ -70,6 +70,22 @@ describe('actor dossier institutional contract', () => {
       access: publicAccess,
     })
     if (captured.status !== 'appended') throw new Error('initial snapshot failed')
+    const sameWeek = appendActorDossierSnapshot(captured.record, {
+      week: 2,
+      recordPatch: { currentAssignment: field('training') },
+      reasonCode: 'assignment-update',
+      access: publicAccess,
+    })
+    if (sameWeek.status !== 'appended') throw new Error('same-week update rejected')
+    expect(
+      sameWeek.record.snapshots.map((snapshot) => [snapshot.week, snapshot.reasonCode])
+    ).toEqual([
+      [2, 'service-record'],
+      [2, 'assignment-update'],
+    ])
+    expect(projectActorDossier(sameWeek.record, high).fields.currentAssignment).toMatchObject({
+      value: 'training',
+    })
     const former = appendActorDossierSnapshot(captured.record, {
       week: 5,
       recordPatch: {

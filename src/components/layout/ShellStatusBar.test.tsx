@@ -163,6 +163,14 @@ beforeEach(() => {
 })
 
 describe('ShellStatusBar', () => {
+  it('keeps Settings enabled after game over without exposing a navigation link', () => {
+    useGameStore.setState({ game: { ...createBaseGame(), gameOver: true } })
+    renderShellStatusBar('/')
+    expect(screen.getByRole('button', { name: /^Settings$/ })).toBeEnabled()
+    expect(screen.queryByRole('link', { name: /^Settings$/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
   it('renders all required summary fields and compact status signals', () => {
     renderShellStatusBar('/')
 

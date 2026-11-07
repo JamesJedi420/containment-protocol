@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType, type MouseEvent } from 'react'
+import { lazy, Suspense, useEffect, type ComponentType, type MouseEvent } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import Logo from '../components/Logo'
 import {
@@ -26,6 +26,7 @@ import { useGameStore } from './store/gameStore'
 import { APP_ROUTES } from './routes'
 import { getShellMeta } from './shellView'
 import { NavigationHistoryControls } from './NavigationHistoryControls'
+import { installInputRuntime } from './inputRuntime'
 import {
   FUTURE_EXPANSION_APP_SYSTEMS,
   PRIMARY_APP_SYSTEMS,
@@ -69,6 +70,7 @@ function handleSkipToMain(event: MouseEvent<HTMLAnchorElement>) {
 }
 
 export default function AppShell() {
+  useEffect(installInputRuntime, [])
   const { pathname, search } = useLocation()
   const { game, gameReplacementRevision } = useGameStore()
   const meta = getShellMeta(pathname, search, game)

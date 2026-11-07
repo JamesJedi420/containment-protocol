@@ -1,5 +1,9 @@
 # Event Schema Registry
 
+## Device-local input preferences (SPE-3395)
+
+`containment-protocol-input-preferences` is an application preference record, not campaign or event state. Version 1 contains bounded semantic-action binding overrides; `src/app/inputActions.ts` validates and normalizes them. Missing actions inherit authored defaults, explicit empty arrays retain clearing, removed IDs are discarded, and unknown versions or invalid/conflicting mappings restore safe defaults. Renaming a stable action requires an explicit migration; labels never establish identity. `src/app/inputRuntime.ts` owns storage and reports write failure while retaining session controls. No GameState, save-envelope or OperationEvent version change. See `planning/spe-3395-input-actions-slice.md` for device profiles and fallback limits.
+
 ## Partial-resolution mission rule (SPE-20)
 
 Optional `CaseTemplate.onPartial` and persisted `CaseInstance.onPartial` contain only a nonnegative integer `stageDelta`. Omission means zero; partial resolution leaves the case open without automatic escalation or follow-ups. Constructors copy the authored rule. Hydration preserves valid saved values and normalizes absent/malformed rules to zero without borrowing current template/starter consequences. Older saves without the field therefore use stable partial behavior on their next resolution, replacing the former unconditional `+1`; historical events and reports are retained. Direct resolution and post-success downgrade share this rule, with the existing stage-five cap. No save-envelope or event-schema version change; this is not a cross-ruleset replay-equivalence guarantee or closure of SPE-3403.

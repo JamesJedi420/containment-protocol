@@ -25,6 +25,7 @@ import { DASHBOARD_HEADLINE, GAME_OVER_REASONS, SHELL_UI_TEXT } from '../data/co
 import { useGameStore } from './store/gameStore'
 import { APP_ROUTES } from './routes'
 import { getShellMeta } from './shellView'
+import { NavigationHistoryControls } from './NavigationHistoryControls'
 import {
   FUTURE_EXPANSION_APP_SYSTEMS,
   PRIMARY_APP_SYSTEMS,
@@ -69,7 +70,7 @@ function handleSkipToMain(event: MouseEvent<HTMLAnchorElement>) {
 
 export default function AppShell() {
   const { pathname, search } = useLocation()
-  const { game } = useGameStore()
+  const { game, gameReplacementRevision } = useGameStore()
   const meta = getShellMeta(pathname, search, game)
 
   return (
@@ -105,6 +106,8 @@ export default function AppShell() {
             </p>
           ) : null}
         </header>
+
+        <NavigationHistoryControls key={gameReplacementRevision} />
 
         <nav aria-label="Primary operations" className="nav-primary flex flex-wrap gap-3">
           {PRIMARY_APP_SYSTEMS.map((route) => {

@@ -12,6 +12,7 @@ import {
 import { buildMissionTriageShellExtensionSignals } from '../../features/cases/missionTriageShellExtensionView'
 import { IconAdvance, IconReports, IconVolumeOff, IconVolumeOn } from '../shellIcons'
 import { SettingsAccess } from './SettingsAccess'
+import { ReferenceAccess } from '../reference/ReferenceAccess'
 import { buildShellStatusBarView, type ShellStatusSignalView } from './shellStatusBarView'
 
 function isCasesRoute(pathname: string) {
@@ -132,15 +133,7 @@ export function ShellStatusBar() {
 
         <div className="topbar-right" data-testid="topbar-right-actions">
           <div className="topbar-utility-group" data-testid="topbar-utility-group">
-            <Link
-              to={APP_ROUTES.help}
-              className="btn btn-xs btn-ghost topbar-icon-btn"
-              aria-label="Help"
-              title="TODO: player-facing help surface."
-              data-topbar-action="help"
-            >
-              ?
-            </Link>
+            <ReferenceAccess />
 
             <button
               type="button"

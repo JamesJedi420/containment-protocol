@@ -38,7 +38,7 @@ describe('input runtime and device-local preferences', () => {
     const stored = localStorage.getItem(INPUT_PREFERENCES_KEY)
     act(() => {
       startInputCapture({ id: 'settings.open', device: 'controller' })
-      captureInput({ device: 'controller', button: 8 })
+      captureInput({ device: 'controller', button: 10 })
     })
     expect(result.current.preferences).toBe(before)
     expect(localStorage.getItem(INPUT_PREFERENCES_KEY)).toBe(stored)

@@ -1,4 +1,76 @@
 @layer components {
+  .settings-dialog.reference-dialog {
+    width: min(46rem, calc(100% - 2rem));
+    padding: min(1.5rem, 24px);
+    overflow-wrap: anywhere;
+  }
+  .reference-dialog .settings-control {
+    max-width: 100%;
+    white-space: normal;
+  }
+  .reference-library {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .reference-filters {
+    display: grid;
+    gap: 0.5rem;
+    margin-block: 1rem;
+  }
+  .reference-filters input,
+  .reference-filters select {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    font: inherit;
+    color: var(--text-strong);
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    padding: 0.5rem;
+  }
+  .reference-library .btn {
+    min-height: 3rem;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: start;
+  }
+  .reference-results,
+  .reference-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-block: 1rem;
+  }
+  .reference-results li {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .reference-detail {
+    border-top: 1px solid var(--border-strong);
+    padding-block: 1rem;
+  }
+  .reference-detail h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .reference-detail p,
+  .reference-detail dl > div {
+    margin-block: 0.75rem;
+  }
+  .reference-detail dt {
+    font-weight: 600;
+  }
+  .reference-detail dd {
+    margin-inline-start: 1rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reference-library .btn,
+    .reference-library .btn:active {
+      transition: none;
+      transform: none;
+    }
+  }
   .controls-settings fieldset {
     min-inline-size: 0;
   }

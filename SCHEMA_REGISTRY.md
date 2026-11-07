@@ -2,7 +2,11 @@
 
 ## Device-local input preferences (SPE-3395)
 
-`containment-protocol-input-preferences` is an application preference record, not campaign or event state. Version 1 contains bounded semantic-action binding overrides; `src/app/inputActions.ts` validates and normalizes them. Missing actions inherit authored defaults, explicit empty arrays retain clearing, removed IDs are discarded, and unknown versions or invalid/conflicting mappings restore safe defaults. Renaming a stable action requires an explicit migration; labels never establish identity. `src/app/inputRuntime.ts` owns storage and reports write failure while retaining session controls. No GameState, save-envelope or OperationEvent version change. See `planning/spe-3395-input-actions-slice.md` for device profiles and fallback limits.
+`containment-protocol-input-preferences` is an application preference record, not campaign or event state. Version 1 contains bounded semantic-action binding overrides; `src/app/inputActions.ts` validates and normalizes them. Missing actions inherit authored defaults, explicit empty arrays retain clearing, removed IDs are discarded, and unknown versions or invalid/conflicting explicit mappings restore safe defaults. SPE-3419 adds reference actions: valid saved overrides take precedence over conflicting defaults introduced by newer versions, retaining the remaining default bindings as explicit overrides. This migration is idempotent and preserves existing remaps. Live capture still rejects conflicts; reset restores authored defaults. Renaming a stable action requires an explicit migration; labels never establish identity. `src/app/inputRuntime.ts` owns storage and reports write failure while retaining session controls. No GameState, save-envelope or OperationEvent version change. See `planning/spe-3395-input-actions-slice.md` for device profiles and fallback limits.
+
+## Reference library (SPE-3419)
+
+Stable authored entry/category IDs and aliases live in `src/app/referenceLibrary.ts`; canonical public projections live in `src/app/referenceLibraryView.ts`. Search indexes, selected entry, query and category are derived or session-only UI state. No reference data, copied rules, read flags or pins are persisted. No campaign, tutorial or event schema migration is required. See `planning/spe-3419-reference-library-slice.md` for the bounded public catalogue and visibility contract.
 
 ## Partial-resolution mission rule (SPE-20)
 

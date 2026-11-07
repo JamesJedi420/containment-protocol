@@ -140,7 +140,7 @@ export function useInputConsumer(consumer: InputConsumer) {
   }, [consumer])
 }
 
-export function dispatchInputAction(id: InputActionId): boolean {
+export function dispatchInputAction(id: InputActionId, targetId?: string): boolean {
   if (readSnapshot().capture) return false
   const modal = document.querySelector('dialog[open]') !== null
   const consumer = resolveSemanticAction(
@@ -148,7 +148,7 @@ export function dispatchInputAction(id: InputActionId): boolean {
     modal
   )
   if (!consumer) return false
-  consumer.execute()
+  consumer.execute(targetId)
   return true
 }
 

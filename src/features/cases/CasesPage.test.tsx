@@ -77,7 +77,7 @@ it('sanitizes invalid query params and preserves canonical case links', async ()
 
   expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
   expect(screen.getByLabelText('Status')).toHaveValue('all')
-  expect(screen.getByLabelText('Mode')).toHaveValue('all')
+  expect(screen.getByRole('button', { name: 'All modes', pressed: true })).toBeInTheDocument()
   expect(screen.getByLabelText('Stage')).toHaveValue('all')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 
@@ -564,7 +564,7 @@ it('rehydrates case filters from URL after remount', async () => {
   await waitFor(() => {
     expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
     expect(screen.getByLabelText('Status')).toHaveValue('open')
-    expect(screen.getByLabelText('Mode')).toHaveValue('threshold')
+    expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
     expect(screen.getByLabelText('Sort')).toHaveValue('title')
   })
 
@@ -575,7 +575,7 @@ it('rehydrates case filters from URL after remount', async () => {
   await waitFor(() => {
     expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
     expect(screen.getByLabelText('Status')).toHaveValue('open')
-    expect(screen.getByLabelText('Mode')).toHaveValue('threshold')
+    expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
     expect(screen.getByLabelText('Sort')).toHaveValue('title')
   })
 })
@@ -595,7 +595,7 @@ it('restores case filters after back navigation from detail and supports forward
   await waitFor(() => {
     expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
     expect(screen.getByLabelText('Status')).toHaveValue('open')
-    expect(screen.getByLabelText('Mode')).toHaveValue('threshold')
+    expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
     expect(screen.getByLabelText('Sort')).toHaveValue('title')
   })
 

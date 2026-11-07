@@ -36,6 +36,7 @@ import {
   IconStageWarn,
 } from '../../components/icons'
 import { FilterInput } from '../../components/FilterInput'
+import { FilterTagGroup } from '../../components/FilterTagGroup'
 import { FilterSelect } from '../../components/FilterSelect'
 import {
   MODE_LABELS,
@@ -406,10 +407,20 @@ export default function CasesPage() {
       <article
         id="cases-filters"
         tabIndex={-1}
-        className="panel panel-primary space-y-4"
+        className="panel panel-primary filter-facet-panel space-y-4"
         role="region"
         aria-label="Case filters"
       >
+        <FilterTagGroup
+          id="case-mode"
+          label="Mode"
+          value={filters.mode}
+          onChange={(mode) => updateFilters({ ...filters, mode: mode as CaseListFilters['mode'] })}
+          options={CASE_MODE_FILTERS.map((mode) => ({
+            value: mode,
+            label: mode === 'all' ? 'All modes' : MODE_LABELS[mode],
+          }))}
+        />
         <div className="flex flex-wrap items-end gap-3">
           <FilterInput
             id="case-search"
@@ -440,24 +451,6 @@ export default function CasesPage() {
             options={CASE_STATUS_FILTERS.map((value) => ({
               value,
               label: value === 'all' ? 'All statuses' : STATUS_LABELS[value],
-            }))}
-            containerClassName="form-row form-row-compact"
-            labelClassName="form-label opacity-85"
-            selectClassName="form-select"
-          />
-          <FilterSelect
-            id="case-mode"
-            label="Mode"
-            value={filters.mode}
-            onChange={(value) =>
-              updateFilters({
-                ...filters,
-                mode: value as CaseListFilters['mode'],
-              })
-            }
-            options={CASE_MODE_FILTERS.map((value) => ({
-              value,
-              label: value === 'all' ? 'All modes' : MODE_LABELS[value],
             }))}
             containerClassName="form-row form-row-compact"
             labelClassName="form-label opacity-85"

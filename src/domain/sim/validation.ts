@@ -115,7 +115,7 @@ export interface SimulationValidationScenarioDefinition {
 
 /** Internal inspection only; this is not filtered player knowledge. */
 export interface SimulationValidationTelemetryEvent {
-  schemaVersion: 6
+  schemaVersion: 7
   audience: 'internal-validation'
   source: 'simulation-validation-weekly-snapshot'
   phase: 'after-week-close'
@@ -128,6 +128,30 @@ export interface SimulationValidationTelemetryEvent {
   snapshot: SimulationValidationWeekSnapshot
   /** Recorded mission-result components only; null means snapshots are unavailable. */
   missionResults: ReturnType<typeof captureSimulationValidationMissionResults>
+  /** Existing report verification state after close, not reconciled player truth. */
+  informationReports: ReturnType<typeof captureSimulationValidationInformationReports>
+}
+
+/** Copy the intake owner's provenance and verification state without interpreting it. */
+export function captureSimulationValidationInformationReports(state: GameState) {
+  if (state.informationIntakeReports === undefined) return null
+  return structuredClone(
+    Object.values(state.informationIntakeReports)
+      .map((report) => ({
+        id: report.id,
+        topicRef: report.topicRef,
+        initialSourceClass: report.initialSourceClass,
+        credibility: report.credibility,
+        plausibility: report.plausibility,
+        rumorRisk: report.rumorRisk,
+        verificationStatus: report.verificationStatus,
+        confidenceScore: report.confidenceScore,
+        corroborationHistory: report.corroborationHistory,
+        contradictionHistory: report.contradictionHistory,
+        retainedDespiteContradiction: report.retainedDespiteContradiction,
+      }))
+      .sort((left, right) => compareTelemetryIds(left.id, right.id))
+  )
 }
 
 /** Copy recorded result components without recalculating rewards or consequences. */
@@ -164,6 +188,7 @@ export function captureSimulationValidationAdvanceInput(state: GameState) {
     difficulty: structuredClone(getResolvedDifficultyRunConfiguration(state)),
     missionIntake: captureValidationMissionIntake(state),
     staffTime: captureValidationStaffTime(state),
+    informationReports: captureSimulationValidationInformationReports(state),
     committedOperations: Object.values(state.cases)
       .filter(
         (currentCase) =>
@@ -898,7 +923,7 @@ export function runSimulationValidationScenario(
     weekly.push(snapshot)
     if (onSnapshot && advanceInput) {
       onSnapshot({
-        schemaVersion: 6,
+        schemaVersion: 7,
         audience: 'internal-validation',
         source: 'simulation-validation-weekly-snapshot',
         phase: 'after-week-close',
@@ -907,6 +932,7 @@ export function runSimulationValidationScenario(
         advanceInput,
         snapshot: structuredClone(snapshot),
         missionResults: captureSimulationValidationMissionResults(state.reports.at(-1)),
+        informationReports: captureSimulationValidationInformationReports(state),
       })
     }
 

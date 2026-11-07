@@ -18,7 +18,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 | Theme contracts | `npm run verify:theme-contracts` |
 | Req. validators | `npm run verify:requirements` |
 
-`npm run build` has known baseline TS drift — do not treat as a green deployment gate; do not expand that drift in-slice.
+`npm run build` is current acceptance: SPE-3375 cleared the previous baseline TypeScript drift, with paired compiler and literal production-build evidence in `docs/typecheck/green-build-2026-11-04/`. Re-run it rather than relying on an older recorded result, and do not introduce new build failures in-slice. CI gate activation remains owned by SPE-3348.
 
 ## Architecture (hard)
 
@@ -43,7 +43,7 @@ Lifecycle/evidence updates never require ChatGPT phases. Cursor backlog-shape wr
 
 ## Review bar
 
-Same as `AGENTS.md` Review guidelines. Flag P0/P1: correctness, determinism, hydration, layer boundaries, week-close order, hidden UI truth, migrations, missing required tests, security. Do not flag style nits, drive-by refactors, scope expansion, or pre-existing `build` TS drift unless this change worsens it.
+Same as `AGENTS.md` Review guidelines. Flag P0/P1: correctness, determinism, hydration, layer boundaries, week-close order, hidden UI truth, migrations, missing required tests, security. Do not flag style nits, drive-by refactors, scope expansion, or pre-existing diagnostics in untouched code unless this change worsens them.
 
 AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.yaml`, and this file (`CLAUDE.md`).
 

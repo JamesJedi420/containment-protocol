@@ -7,6 +7,7 @@ export const INPUT_ACTIONS = [
   { id: 'reference.open', label: 'Open reference', context: 'global' },
   { id: 'reference.previous', label: 'Previous reference entry', context: 'focused' },
   { id: 'reference.next', label: 'Next reference entry', context: 'focused' },
+  { id: 'recovery.reload', label: 'Reload after render failure', context: 'global' },
 ] as const
 
 export type InputActionId = (typeof INPUT_ACTIONS)[number]['id']
@@ -45,6 +46,7 @@ export const DEFAULT_BINDINGS: Record<InputActionId, readonly InputBinding[]> = 
   'reference.open': [keyboardBinding('h'), { device: 'controller', button: 8 }],
   'reference.previous': [keyboardBinding('ArrowUp'), { device: 'controller', button: 12 }],
   'reference.next': [keyboardBinding('ArrowDown'), { device: 'controller', button: 13 }],
+  'recovery.reload': [keyboardBinding('r'), { device: 'controller', button: 3 }],
 }
 
 const contexts: Record<InputContext, number> = { global: 0, route: 1, focused: 2, modal: 3 }

@@ -1,4 +1,38 @@
 @layer components {
+  .render-recovery {
+    max-width: 38rem;
+    margin: 2rem auto;
+    padding: min(1.5rem, 24px);
+    border: 1px solid var(--border-strong);
+    background: var(--panel);
+    color: var(--text-strong);
+    border-radius: var(--radius-lg);
+    overflow-wrap: anywhere;
+  }
+  .render-recovery p {
+    margin-block: 1rem;
+  }
+  .render-recovery-action {
+    min-height: 48px;
+    max-width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    background: var(--panel);
+    color: var(--text-strong);
+    font: inherit;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+  .render-recovery-action:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 4px;
+  }
+  .render-recovery-action:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
   .settings-dialog.reference-dialog {
     width: min(46rem, calc(100% - 2rem));
     padding: min(1.5rem, 24px);

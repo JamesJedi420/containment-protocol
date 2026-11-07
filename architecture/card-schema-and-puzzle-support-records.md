@@ -60,3 +60,13 @@ Covers compact card schemas, utility card types, collection numbering, and close
 ## Expected use
 
 Use this doc when defining any compact carded representation, utility-reference layer, numbered collection, learned-media storage format, or shared schema family intended to stay readable across multiple asset categories.
+
+## Implemented compact contract (SPE-382)
+
+`src/domain/compactCards.ts` exports `CompactCardRecord`, `validateCompactCard` and `projectCompactCard`. Actors, anomalies, items, vehicles, locations and effects share qualified name/reference/hook, bounded source tags and ordered operational fields. Browse and inspect are separate sections: consumers retain the browse identity when showing inspect details. Authored field order is preserved; source/provenance sets use deterministic code-unit ordering. Actor personnel summaries use a fixed order and are optional; non-actor cards reject actor modes and personnel data.
+
+Sources supply already-authorized public projections, including safe IDs, labels, tags and record references. This layer is not a clearance engine and cannot verify a source's historical authenticity. Each value retains known, estimated, redacted or unavailable state; suppressed values discard any attached payload and provenance. Estimated values retain their explicit state and optional confidence. Projection copies and freezes admitted public data, never looks up live entities, and returns error codes for malformed input.
+
+Actors explicitly select live, historical, memorial/former, or unavailable modes. Historical and memorial records require a week, public record reference and snapshot/versioned reconstruction qualifier. Former personnel use memorial mode with the appropriate supplied personnel-status field; memorial does not imply death. Unavailable legacy/missing records allow identity metadata but reject operational fields, hooks and personnel summaries. A caller must not combine current personnel values with an archived record; snapshot generation and dossier persistence belong to their existing owners.
+
+`src/test/compactCards.test.ts` demonstrates actor/item/anomaly variation, an equipment card with power, estimated range and a provenance hook, redaction, deterministic copies and archived/live separation. These are constructed contract fixtures, not observed gameplay. SPE-2736 owns quick-reference interaction and screen integration; SPE-2095 owns dossier helpers. No overlay, input, simulation calculation, save schema, card economy or utility-card implementation is introduced here.

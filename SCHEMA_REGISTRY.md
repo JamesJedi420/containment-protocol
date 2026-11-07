@@ -671,3 +671,7 @@ This slice adds no `GameState` field, scheduler, procedure-instance ledger, regi
 ### Filter-tag presentation (SPE-2712)
 
 Cases and Intel mode facets remain owned by their existing URL filter readers/writers. The shared wrapping filter group adds no campaign fields, event schema or save version. Its focused input actions use the existing version-1 device preference contract and explicit-override compatibility; selection is not copied into device preferences or a second store.
+
+### Compact presentation records (SPE-382)
+
+`src/domain/compactCards.ts` defines transient read-only presentation records, not persisted entity state. Source owners provide visibility-filtered fields and explicit historical references; projection never hydrates from a current actor. Redacted/unavailable values contain no projected payload. No GameState, OperationEvent or save-envelope migration is introduced. Future persisted dossier or snapshot contracts remain with their existing owners.

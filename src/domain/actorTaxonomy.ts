@@ -122,11 +122,13 @@ function uniqueList(values: readonly string[]): string[] {
 
 /**
  * Shared declaration constructor used for all actor classes.
- * Normalizes list-like fields for deterministic comparisons.
+ * Normalizes lists and snapshots capabilities so caller edits cannot silently
+ * change the declared actor's interaction legality.
  */
 export function declareActor(input: UnifiedActorDeclaration): UnifiedActorDeclaration {
   return {
     ...input,
+    capabilities: { ...input.capabilities },
     movementModes: uniqueList(input.movementModes),
     sensingChannels: uniqueList(input.sensingChannels),
     needs: uniqueList(input.needs),

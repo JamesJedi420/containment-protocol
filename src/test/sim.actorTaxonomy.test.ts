@@ -11,6 +11,36 @@ import {
 } from '../domain/actorTaxonomy'
 
 describe('actorTaxonomy slice 1', () => {
+  it('keeps declared interaction legality stable when the caller edits capabilities', () => {
+    const input = structuredClone(PROOF_HUMAN_ACTOR)
+    const declared = declareActor(input)
+    expect(isInteractionAllowed(declared, 'interview')).toBe(true)
+
+    input.capabilities.canInterview = false
+    input.capabilities.canWard = true
+
+    expect(isInteractionAllowed(declared, 'interview')).toBe(true)
+    expect(isInteractionAllowed(declared, 'ward')).toBe(false)
+    expect(declared.capabilities).toEqual(PROOF_HUMAN_ACTOR.capabilities)
+  })
+
+  it('isolates capabilities between declarations built from the same input', () => {
+    const input = structuredClone(PROOF_HUMAN_ACTOR)
+    const before = structuredClone(input)
+    const first = declareActor(input)
+    const second = declareActor(input)
+
+    first.capabilities.canInterview = false
+    first.capabilities.canWard = true
+
+    expect(isInteractionAllowed(first, 'interview')).toBe(false)
+    expect(isInteractionAllowed(first, 'ward')).toBe(true)
+    expect(isInteractionAllowed(second, 'interview')).toBe(true)
+    expect(isInteractionAllowed(second, 'ward')).toBe(false)
+    expect(second.capabilities).toEqual(before.capabilities)
+    expect(input).toEqual(before)
+  })
+
   it.each([PROOF_HUMAN_ACTOR, { ...PROOF_SPIRIT_ACTOR, id: 'another-spirit' }])(
     'rejects another actor ($id) as a source of confirmed knowledge',
     (otherActor) => {

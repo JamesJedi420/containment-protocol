@@ -71,6 +71,22 @@ describe('profile-segmented contract outcome fixtures (SPE-1119)', () => {
         expect(result.spawnedConsequences).toEqual(source?.spawnedConsequences)
       }
       expect(captured.analysis.resultComponents.recordedResults).toBe(observedResults.length)
+      const matched = captured.events.flatMap((event) => {
+        const contract = event.advanceInput.committedOperations.find(
+          (operation) => operation.caseId === contractCase.id
+        )?.contract
+        return contract
+          ? (event.missionResults ?? []).filter((result) => result.caseId === contractCase.id)
+          : []
+      })
+      expect(matched.length).toBeGreaterThan(0)
+      expect(captured.analysis.contractResultGroups).toContainEqual(
+        expect.objectContaining({
+          templateId: offer.templateId,
+          riskLevel: offer.riskLevel,
+          resultComponents: expect.objectContaining({ recordedResults: matched.length }),
+        })
+      )
       expect(captured.analysis.outcomes).toEqual(captured.run.summary.missionOutcomeCounts)
       expect(startingState).toEqual(before)
       expect(captured).toEqual(capture())

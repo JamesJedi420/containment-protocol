@@ -226,6 +226,8 @@ function compareTelemetryIds(left: string, right: string) {
 }
 
 export interface SimulationValidationOptions {
+  /** Detached typed fixture input before scenario setup; not a save import or player-action replay. */
+  startingState?: GameState
   /** Explicit harness configuration; omission preserves the existing starting-state binding. */
   difficulty?: DifficultyResolveInput
   /** Opt-in synchronous observer. Errors propagate to the validation caller. */
@@ -314,7 +316,14 @@ function applyCampaignEscalationPressure(state: GameState): GameState {
 }
 
 function applyCampaignAttritionPressure(state: GameState): GameState {
-  const agentIdsToStress = ['a_ava', 'a_kellan', 'a_sato']
+  const preferredAgentIds = ['a_ava', 'a_kellan', 'a_sato']
+  const eligibleAgentIds = Object.keys(state.agents)
+    .filter((id) => !['dead', 'resigned'].includes(state.agents[id].status))
+    .sort(compareTelemetryIds)
+  const agentIdsToStress = [
+    ...preferredAgentIds.filter((id) => eligibleAgentIds.includes(id)),
+    ...eligibleAgentIds.filter((id) => !preferredAgentIds.includes(id)),
+  ].slice(0, 3)
 
   return {
     ...mapUnresolvedCases(
@@ -340,6 +349,9 @@ function applyCampaignAttritionPressure(state: GameState): GameState {
     ),
     agents: Object.fromEntries(
       Object.entries(state.agents).map(([agentId, agent]) => {
+        if (agent.status === 'dead' || agent.status === 'resigned') {
+          return [agentId, agent]
+        }
         if (!agentIdsToStress.includes(agentId)) {
           return [agentId, { ...agent, fatigue: Math.min(100, agent.fatigue + 10) }]
         }
@@ -843,7 +855,18 @@ export function runSimulationValidationScenario(
 ): SimulationValidationRun {
   const onSnapshot = options.onSnapshot
   const scenario = getScenarioById(scenarioId)
-  let state = createStartingState()
+  if (options.startingState !== undefined && options.difficulty !== undefined) {
+    throw new Error(
+      'Validation starting state: explicit difficulty cannot override a supplied campaign'
+    )
+  }
+  if (options.startingState?.gameOver) {
+    throw new Error('Validation starting state: terminal campaigns cannot continue')
+  }
+  let state =
+    options.startingState === undefined
+      ? createStartingState()
+      : structuredClone(options.startingState)
 
   if (options.difficulty !== undefined) {
     const input = structuredClone(options.difficulty)
@@ -868,7 +891,8 @@ export function runSimulationValidationScenario(
     state = applyDirectiveSelection(state, scenario, weekIndex)
     state = driveValidationAssignments(state)
     const advanceInput = onSnapshot ? captureSimulationValidationAdvanceInput(state) : undefined
-    state = advanceWeek(state, VALIDATION_NOTE_BASE + weekIndex)
+    // Keep note identity tied to campaign time across separate harness invocations.
+    state = advanceWeek(state, VALIDATION_NOTE_BASE + state.week - 1)
 
     const snapshot = captureWeeklySnapshot(state)
     weekly.push(snapshot)
@@ -904,6 +928,8 @@ export function runSimulationValidationScenario(
 export function runSimulationValidationSuite(options: SimulationValidationOptions = {}) {
   const suiteOptions = {
     ...options,
+    startingState:
+      options.startingState === undefined ? undefined : structuredClone(options.startingState),
     difficulty: options.difficulty === undefined ? undefined : structuredClone(options.difficulty),
   }
   return INTERNAL_SCENARIOS.map((scenario) =>

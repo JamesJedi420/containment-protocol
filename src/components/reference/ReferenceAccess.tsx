@@ -39,7 +39,10 @@ export function ReferenceAccess() {
         aria-label="Help"
         aria-haspopup="dialog"
         data-topbar-action="help"
-        onClick={() => dispatchInputAction('reference.open')}
+        onClick={(event) => {
+          event.currentTarget.focus()
+          dispatchInputAction('reference.open')
+        }}
       >
         Help
       </button>

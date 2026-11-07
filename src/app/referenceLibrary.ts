@@ -1,3 +1,5 @@
+import { ROLE_LABELS, ROLE_COVERAGE_LABELS } from '../data/copy'
+
 /** Reference identity and lookup only. Publication is authored, never inferred from campaign truth. */
 export interface ReferenceCategory {
   id: string
@@ -66,7 +68,7 @@ export const REFERENCE_ENTRIES: readonly ReferenceEntry[] = [
     id: 'reference.specializations',
     categoryId: 'personnel',
     label: 'Agent specializations',
-    aliases: ['agent specialisations', 'classes', 'specialists'],
+    aliases: ['agent specialisations', 'classes', 'specialists', ...Object.values(ROLE_LABELS)],
     publication: 'public',
     summary: 'Read the public specialization names used by the Agents catalogue.',
     paragraphs: [
@@ -80,7 +82,7 @@ export const REFERENCE_ENTRIES: readonly ReferenceEntry[] = [
     id: 'reference.coverage',
     categoryId: 'personnel',
     label: 'Team coverage roles',
-    aliases: ['team roles', 'coverage', 'composition'],
+    aliases: ['team roles', 'coverage', 'composition', ...Object.values(ROLE_COVERAGE_LABELS)],
     publication: 'public',
     summary: 'Distinguish team coverage labels from individual specialization names.',
     paragraphs: [

@@ -28,6 +28,12 @@ test('contextual reference preserves the agent workflow, canonical content and f
   await expect(dialog.getByRole('heading', { name: 'Team coverage roles' })).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(contextual).toBeFocused()
+  // Emulate activation without browser click-to-focus (for example, macOS Safari).
+  await page.getByRole('main').focus()
+  await contextual.evaluate((button) => (button as HTMLButtonElement).click())
+  await expect(dialog.getByRole('heading', { name: 'Agent specializations' })).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(contextual).toBeFocused()
   await expect(page).toHaveURL(url)
   await expect(search).toHaveValue('Ava')
   await expect(
@@ -38,7 +44,7 @@ test('contextual reference preserves the agent workflow, canonical content and f
   )
   await page.keyboard.press('Alt+Shift+h')
   await expect(dialog).toBeVisible()
-  await dialog.getByRole('searchbox').fill('specialisations')
+  await dialog.getByRole('searchbox').fill('Medic')
   await expect(dialog.getByRole('status')).toHaveText('1 reference entry')
   await dialog.getByRole('list', { name: 'Reference entries' }).getByRole('button').click()
   await dialog.getByRole('button', { name: 'Return to results' }).click()

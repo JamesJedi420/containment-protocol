@@ -141,7 +141,10 @@ export default function AgentsPage() {
               type="button"
               className="btn btn-ghost settings-control"
               aria-haspopup="dialog"
-              onClick={() => dispatchInputAction('reference.open', 'reference.specializations')}
+              onClick={(event) => {
+                event.currentTarget.focus()
+                dispatchInputAction('reference.open', 'reference.specializations')
+              }}
             >
               Specialization reference
             </button>

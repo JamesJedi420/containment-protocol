@@ -40,6 +40,16 @@ describe('reference identity and public projection', () => {
       'reference.specializations'
     )
     expect(searchReferenceEntries(index, 'specializashuns')).toEqual([])
+    for (const label of Object.values(ROLE_LABELS)) {
+      expect(searchReferenceEntries(index, label).map((entry) => entry.id)).toContain(
+        'reference.specializations'
+      )
+    }
+    for (const label of Object.values(ROLE_COVERAGE_LABELS)) {
+      expect(searchReferenceEntries(index, label).map((entry) => entry.id)).toContain(
+        'reference.coverage'
+      )
+    }
     expect(searchReferenceEntries(index, '', 'missing')).toEqual([])
   })
   it('normalizes only configured lookup variants while preserving collisions and authored text', () => {
@@ -91,6 +101,12 @@ describe('reference identity and public projection', () => {
     const duplicate = buildReferenceIndex([REFERENCE_ENTRIES[0], REFERENCE_ENTRIES[0]])
     expect(duplicate.entries).toEqual([])
     expect(duplicate.unavailable).toBe(true)
+    expect(
+      buildReferenceIndex([
+        REFERENCE_ENTRIES[0],
+        { ...REFERENCE_ENTRIES[0], publication: 'withheld' },
+      ]).entries
+    ).toEqual([])
     expect(
       buildReferenceIndex([{ ...REFERENCE_ENTRIES[0], categoryId: 'missing' }]).unavailable
     ).toBe(true)

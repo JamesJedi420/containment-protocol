@@ -236,6 +236,13 @@ describe('input runtime and device-local preferences', () => {
       pressed = [4]
       tick()
       expect(back).toHaveBeenCalledTimes(3)
+      // Recovery may dispose its runtime synchronously from the winning controller action.
+      pressed = []
+      tick()
+      back.mockImplementationOnce(stop)
+      pressed = [4]
+      tick()
+      expect(callback).toBeUndefined()
     } finally {
       act(stop)
       dialog.remove()

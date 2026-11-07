@@ -8,6 +8,10 @@
 
 Stable authored entry/category IDs and aliases live in `src/app/referenceLibrary.ts`; canonical public projections live in `src/app/referenceLibraryView.ts`. Search indexes, selected entry, query and category are derived or session-only UI state. No reference data, copied rules, read flags or pins are persisted. No campaign, tutorial or event schema migration is required. See `planning/spe-3419-reference-library-slice.md` for the bounded public catalogue and visibility contract.
 
+## Render-failure recovery (SPE-2717)
+
+The isolated application recovery screen does not read, mutate, repair or certify campaign/save state. Reload re-enters the existing startup/hydration path; unsaved changes may be lost. No GameState, event or save-envelope version changes. The shared input preference registry adds `recovery.reload`; the existing version-1 default/override compatibility normalization applies. No crash flag or automatic retry state is persisted.
+
 ## Partial-resolution mission rule (SPE-20)
 
 Optional `CaseTemplate.onPartial` and persisted `CaseInstance.onPartial` contain only a nonnegative integer `stageDelta`. Omission means zero; partial resolution leaves the case open without automatic escalation or follow-ups. Constructors copy the authored rule. Hydration preserves valid saved values and normalizes absent/malformed rules to zero without borrowing current template/starter consequences. Older saves without the field therefore use stable partial behavior on their next resolution, replacing the former unconditional `+1`; historical events and reports are retained. Direct resolution and post-success downgrade share this rule, with the existing stage-five cap. No save-envelope or event-schema version change; this is not a cross-ruleset replay-equivalence guarantee or closure of SPE-3403.

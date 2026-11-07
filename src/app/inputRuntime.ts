@@ -130,14 +130,17 @@ export function clearInputBinding(id: InputActionId, device: InputBinding['devic
   })
 }
 
+/** Also supports isolated non-React recovery UI; callers must dispose their registration. */
+export function registerInputConsumer(consumer: InputConsumer) {
+  const token = Symbol(consumer.id)
+  consumers.set(token, consumer)
+  return () => {
+    consumers.delete(token)
+  }
+}
+
 export function useInputConsumer(consumer: InputConsumer) {
-  useLayoutEffect(() => {
-    const token = Symbol(consumer.id)
-    consumers.set(token, consumer)
-    return () => {
-      consumers.delete(token)
-    }
-  }, [consumer])
+  useLayoutEffect(() => registerInputConsumer(consumer), [consumer])
 }
 
 export function dispatchInputAction(id: InputActionId, targetId?: string): boolean {
@@ -249,7 +252,7 @@ export function installInputRuntime(): () => void {
     for (const binding of pressed) {
       if (activate(binding, editingTarget(document.activeElement))) break
     }
-    frame = pads.some((pad) => pad?.connected) ? window.requestAnimationFrame(poll) : 0
+    frame = !stopped && pads.some((pad) => pad?.connected) ? window.requestAnimationFrame(poll) : 0
   }
   function wake(event: GamepadEvent) {
     // A reconnect may reuse an index before a frame observes the disconnection.
@@ -264,8 +267,7 @@ export function installInputRuntime(): () => void {
   window.addEventListener('gamepadconnected', wake)
   window.addEventListener('blur', suspend)
   document.addEventListener('visibilitychange', suspend)
-  frame = window.requestAnimationFrame(poll)
-  return () => {
+  function dispose() {
     stopped = true
     window.removeEventListener('keydown', keydown)
     window.removeEventListener('gamepadconnected', wake)
@@ -274,4 +276,11 @@ export function installInputRuntime(): () => void {
     window.cancelAnimationFrame(frame)
     startInputCapture(null)
   }
+  try {
+    frame = window.requestAnimationFrame(poll)
+  } catch (error) {
+    dispose()
+    throw error
+  }
+  return dispose
 }

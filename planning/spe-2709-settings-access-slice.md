@@ -29,6 +29,7 @@ Hermes: direct bounded fallback reuses the session's rejected local synthesis ev
 - Visual review caught desktop status-strip overlap. Constraining its grid track and wrapping controls below 640px preserves access; no broader shell redesign. Earlier broad validation runs were canceled during lint while these findings were addressed and are not acceptance evidence.
 - Complete SPE-3348 selection passed: backlog-handoff, lint, 27 Chromium tests (4.0m), 11,044 Vitest tests / 1,018 files (88.40s), Vite bundle and advisory TypeScript census (zero diagnostics). Literal `npm run build`, touched-file Prettier and `git diff --check` passed. The build initially caught a test-only unsupported Testing Library `exact` option; anchored name expressions fixed it before the full unit run, with touched-file lint rechecked.
 - Independent PR review pending. Browser focus assertions do not substitute for a human screen-reader or physical controller test; Safari scroll containment and mobile back gestures remain unverified.
+- SonarCloud review requested an explicit close-button type. It is now `type="submit"` because the native `method="dialog"` form owns closing; this makes the existing default behavior explicit.
 
 ## Six-pass pre-ship audit
 

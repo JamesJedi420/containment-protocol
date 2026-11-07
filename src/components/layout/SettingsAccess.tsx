@@ -24,7 +24,7 @@ export function SettingsAccess() {
         </h2>
         <p className="my-4">There are no adjustable settings available yet.</p>
         <form method="dialog">
-          <button className="btn settings-control" autoFocus>
+          <button type="submit" className="btn settings-control" autoFocus>
             Close settings
           </button>
         </form>

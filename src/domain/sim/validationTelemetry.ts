@@ -111,6 +111,14 @@ export function analyzeSimulationValidationTelemetry(
   >()
   const outcomes = { success: 0, partial: 0, fail: 0, unresolved: 0 }
   const resultComponents = createResultComponents()
+  const contractResultGroups = new Map<
+    string,
+    Contract & {
+      outcomes: typeof outcomes
+      resultComponents: ReturnType<typeof createResultComponents>
+    }
+  >()
+  let resultsWithoutCommittedContract = 0
 
   const history = events.map((event, index) => {
     requireTrace(
@@ -154,6 +162,7 @@ export function analyzeSimulationValidationTelemetry(
       'invalid outcome or unresolved-case count'
     )
     const weekCases = new Set<string>()
+    const weekContracts = new Map<string, Contract>()
     for (const operation of advanceInput.committedOperations) {
       requireTrace(!weekCases.has(operation.caseId), 'duplicate committed case within a week')
       weekCases.add(operation.caseId)
@@ -166,6 +175,7 @@ export function analyzeSimulationValidationTelemetry(
       group.committedCaseWeeks += 1
       templates.set(operation.templateId, group)
       if (operation.contract) {
+        weekContracts.set(operation.caseId, operation.contract)
         const key = JSON.stringify([operation.contract.templateId, operation.contract.riskLevel])
         const contractGroup = contractGroups.get(key) ?? {
           ...operation.contract,
@@ -186,6 +196,25 @@ export function analyzeSimulationValidationTelemetry(
     outcomes.fail += snapshot.missionFailures
     outcomes.unresolved += snapshot.missionUnresolved
     accumulateResultComponents(resultComponents, event.missionResults)
+    for (const result of event.missionResults ?? []) {
+      // Same-week source only: past or future observations cannot establish the
+      // authored contract context of this recorded result occurrence.
+      const contract = weekContracts.get(result.caseId)
+      if (!contract) {
+        resultsWithoutCommittedContract += 1
+        continue
+      }
+      const key = JSON.stringify([contract.templateId, contract.riskLevel])
+      const group = contractResultGroups.get(key) ?? {
+        ...contract,
+        outcomes: { success: 0, partial: 0, fail: 0, unresolved: 0 },
+        resultComponents: createResultComponents(),
+      }
+      requireTrace(Object.hasOwn(group.outcomes, result.outcome), 'invalid recorded outcome')
+      group.outcomes[result.outcome] += 1
+      accumulateResultComponents(group.resultComponents, [result])
+      contractResultGroups.set(key, group)
+    }
     return {
       week: advanceInput.week,
       fundingBeforeAdvance: advanceInput.funding,
@@ -199,7 +228,7 @@ export function analyzeSimulationValidationTelemetry(
   })
 
   return {
-    schemaVersion: 5 as const,
+    schemaVersion: 6 as const,
     audience: 'internal-validation' as const,
     scenarioId: expected.scenarioId,
     weeksObserved: events.length,
@@ -230,6 +259,10 @@ export function analyzeSimulationValidationTelemetry(
         committedCaseWeeks: group.committedCaseWeeks,
       })),
     resultComponents,
+    contractResultGroups: [...contractResultGroups]
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .map(([, group]) => group),
+    resultsWithoutCommittedContract,
     history,
   }
 }

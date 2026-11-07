@@ -83,6 +83,30 @@ describe('supplied validation starting state (SPE-1119)', () => {
     )
   })
 
+  it.each(['high-attrition', 'mixed-pressure'] as const)(
+    'preserves terminal agents and stresses eligible supplied roster members in %s',
+    (scenario) => {
+      const state = createStartingState()
+      state.agents.a_ava.status = 'dead'
+      state.agents.a_kellan.status = 'resigned'
+      const before = structuredClone(state)
+      const run = runSimulationValidationScenario(scenario, { startingState: state })
+      for (const id of ['a_ava', 'a_kellan']) {
+        expect(run.initialState.agents[id].status).toBe(before.agents[id].status)
+        expect(run.finalState.agents[id].status).toBe(before.agents[id].status)
+      }
+      const eligible = Object.keys(before.agents).filter(
+        (id) => !['dead', 'resigned'].includes(before.agents[id].status)
+      )
+      expect(
+        eligible.filter((id) =>
+          run.initialState.agents[id].trauma?.traumaTags.includes('validation-stress')
+        )
+      ).toHaveLength(Math.min(3, eligible.length))
+      expect(state).toEqual(before)
+    }
+  )
+
   it('preserves omitted-option behavior and the ordinary starting campaign', () => {
     const baseline = runSimulationValidationScenario('baseline')
     expect(runSimulationValidationScenario('baseline', { startingState: undefined })).toEqual(

@@ -316,7 +316,14 @@ function applyCampaignEscalationPressure(state: GameState): GameState {
 }
 
 function applyCampaignAttritionPressure(state: GameState): GameState {
-  const agentIdsToStress = ['a_ava', 'a_kellan', 'a_sato']
+  const preferredAgentIds = ['a_ava', 'a_kellan', 'a_sato']
+  const eligibleAgentIds = Object.keys(state.agents)
+    .filter((id) => !['dead', 'resigned'].includes(state.agents[id].status))
+    .sort(compareTelemetryIds)
+  const agentIdsToStress = [
+    ...preferredAgentIds.filter((id) => eligibleAgentIds.includes(id)),
+    ...eligibleAgentIds.filter((id) => !preferredAgentIds.includes(id)),
+  ].slice(0, 3)
 
   return {
     ...mapUnresolvedCases(
@@ -342,6 +349,9 @@ function applyCampaignAttritionPressure(state: GameState): GameState {
     ),
     agents: Object.fromEntries(
       Object.entries(state.agents).map(([agentId, agent]) => {
+        if (agent.status === 'dead' || agent.status === 'resigned') {
+          return [agentId, agent]
+        }
         if (!agentIdsToStress.includes(agentId)) {
           return [agentId, { ...agent, fatigue: Math.min(100, agent.fatigue + 10) }]
         }

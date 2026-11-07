@@ -1,7 +1,43 @@
 @layer components {
+  .settings-control {
+    min-height: 44px;
+    min-width: 44px;
+    align-self: flex-start;
+  }
+
+  .settings-dialog {
+    margin: auto;
+    width: min(30rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    padding: 1.5rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    color: var(--text-strong);
+    overflow: auto;
+  }
+
+  .settings-dialog:modal {
+    overscroll-behavior: contain;
+  }
+
+  .settings-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.65);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .settings-control.btn,
+    .settings-control.btn:active {
+      transition: none;
+      transform: none;
+    }
+  }
+
   .topbar-shell {
     display: grid;
-    grid-template-columns: minmax(180px, 1fr) auto minmax(320px, 1fr);
+    grid-template-columns: minmax(180px, 1fr) minmax(0, 2fr) auto;
     align-items: center;
     gap: 0.7rem;
     min-height: 3rem;
@@ -357,6 +393,24 @@
   @media (min-width: 1180px) {
     .topbar-utility-label {
       display: inline;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .topbar-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .topbar-right {
+      justify-self: stretch;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .topbar-utility-group {
+      flex-wrap: wrap;
+      min-width: 0;
     }
   }
 }

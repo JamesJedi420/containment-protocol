@@ -10,7 +10,8 @@ import {
   writeCaseListFilters,
 } from '../../features/cases/caseView'
 import { buildMissionTriageShellExtensionSignals } from '../../features/cases/missionTriageShellExtensionView'
-import { IconAdvance, IconReports, IconSettings, IconVolumeOff, IconVolumeOn } from '../shellIcons'
+import { IconAdvance, IconReports, IconVolumeOff, IconVolumeOn } from '../shellIcons'
+import { SettingsAccess } from './SettingsAccess'
 import { buildShellStatusBarView, type ShellStatusSignalView } from './shellStatusBarView'
 
 function isCasesRoute(pathname: string) {
@@ -168,15 +169,7 @@ export function ShellStatusBar() {
               {view.weeklyReportLabel}
             </Link>
 
-            <Link
-              to={APP_ROUTES.agency}
-              className="btn btn-xs btn-ghost topbar-icon-btn"
-              aria-label="Settings"
-              title="Settings"
-              data-topbar-action="settings"
-            >
-              <IconSettings className="h-3.5 w-3.5" aria-hidden="true" />
-            </Link>
+            <SettingsAccess />
           </div>
 
           <span className="topbar-divider" aria-hidden="true" />

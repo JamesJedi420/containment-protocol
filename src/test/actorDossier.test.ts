@@ -31,6 +31,40 @@ const base = (): ActorDossierRecord => ({
 })
 
 describe('actor dossier institutional contract', () => {
+  it('preserves public and read-in fields as a viewer accumulates grants', () => {
+    const grants = Array.from({ length: 40 }, (_, index) => `grant-${index}`)
+    const viewer = { clearance: 4, needToKnow: [...grants, 'case-read-in'] }
+    expect(projectActorDossier(base(), viewer).fields.displayName).toMatchObject({
+      state: 'known',
+      value: 'River',
+    })
+    expect(projectActorDossier(base(), viewer).fields.clearanceCeiling).toMatchObject({
+      state: 'known',
+      value: 3,
+    })
+    expect(
+      projectActorDossier(base(), { ...viewer, needToKnow: [...grants, ''] }).fields.displayName
+    ).toEqual({ state: 'redacted' })
+  })
+
+  it('preserves maximum-length Agent IDs in projected provenance', () => {
+    const id = 'a'.repeat(320)
+    const record = buildActorDossierFromAgent(
+      { id, name: 'River', status: 'active', assignment: { state: 'idle' } },
+      publicAccess
+    )!
+    const projected = projectActorDossier(record, low)
+    expect(projected.actorId).toBe(id)
+    expect(projected.fields.displayName).toMatchObject({
+      state: 'known',
+      value: 'River',
+      provenance: [`Agent:${id}:name`],
+    })
+    expect(projected.fields.currentAssignment).toMatchObject({
+      state: 'known',
+      provenance: [`Agent:${id}:assignment.state`],
+    })
+  })
   it.each(ACTOR_DOSSIER_ROLES)('retains the distinct %s category', (roleCategory) => {
     const result = projectActorDossier(
       { ...base(), fields: { roleCategory: field(roleCategory) } },
@@ -62,7 +96,7 @@ describe('actor dossier institutional contract', () => {
   })
 
   it('preserves prior role and clearance through append-only former-personnel snapshots', () => {
-    const initial = base()
+    const initial = { ...base(), fields: { ...base().fields, currentAssignment: field('idle') } }
     const captured = appendActorDossierSnapshot(initial, {
       week: 2,
       recordPatch: initial.fields,
@@ -86,6 +120,9 @@ describe('actor dossier institutional contract', () => {
     expect(projectActorDossier(sameWeek.record, high).fields.currentAssignment).toMatchObject({
       value: 'training',
     })
+    expect(
+      sameWeek.record.snapshots.map((snapshot) => snapshot.recordPatch.currentAssignment?.value)
+    ).toEqual(['idle', 'training'])
     const former = appendActorDossierSnapshot(captured.record, {
       week: 5,
       recordPatch: {

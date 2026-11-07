@@ -110,8 +110,10 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
 const text = (value: unknown, limit = 320): value is string =>
   typeof value === 'string' && value.trim().length > 0 && value.length <= limit
-const strings = (value: unknown, count = 32): value is string[] =>
-  Array.isArray(value) && value.length <= count && Array.from(value).every((entry) => text(entry))
+const strings = (value: unknown, count = 32, limit = 320): value is string[] =>
+  Array.isArray(value) &&
+  value.length <= count &&
+  Array.from(value).every((entry) => text(entry, limit))
 const sorted = (values: readonly string[]) => Object.freeze([...new Set(values)].sort(compareText))
 const confidenceValues = new Set(['confirmed', 'supported', 'uncertain', 'unknown'])
 const roles = new Set<string>(ACTOR_DOSSIER_ROLES)
@@ -127,7 +129,7 @@ function canRead(access: DossierAccess | undefined, viewer: DossierViewer): bool
   if (
     !Number.isSafeInteger(viewer.clearance) ||
     viewer.clearance < access.minimumClearance ||
-    !strings(viewer.needToKnow)
+    !strings(viewer.needToKnow, Number.MAX_SAFE_INTEGER)
   )
     return false
   const grants = new Set(viewer.needToKnow)
@@ -144,7 +146,7 @@ function projectField<T>(
   if (
     !confidenceValues.has(field.confidence) ||
     field.confidence === 'unknown' ||
-    !strings(field.provenance)
+    !strings(field.provenance, 32, 512)
   )
     return Object.freeze({ state: 'unavailable' })
   const value = copy(field.value)

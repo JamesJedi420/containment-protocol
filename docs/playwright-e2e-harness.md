@@ -68,9 +68,11 @@ Existing Vitest/lint/governance gates run through the shared `verify:requirement
 
 | Package            | Version  | License    | Notes                                                     |
 | ------------------ | -------- | ---------- | --------------------------------------------------------- |
-| `@playwright/test` | `1.64.1` | Apache-2.0 | DevDependency only; Chromium via `npx playwright install` |
+| `@playwright/test` | `1.65.0` | Apache-2.0 | DevDependency only; Chromium via `npx playwright install` |
 
 Sonatype MCP was unavailable during install (`mcp_auth` timeout). npm registry metadata: maintained Apache-2.0 Playwright Test. Optional Snyk package health was not authenticated. Re-run Sonatype `/check-dependency` when MCP is ready; do not weaken lockfile discipline.
+
+`1.65.0` is the declared and locked version. The 1.64.1 → 1.65.0 review is recorded in [the SPE-3737 slice](../planning/spe-3737-dependency-upgrades-slice.md): exact registry metadata plus OSV queries found no advisory on the changed packages or on the seven changed bundled identities, while two unchanged bundled identities (`minimatch 10.2.5`, `ip-address 10.7.2`) remain unresolved moderate findings — present at the same versions in 1.64.1. This table records review provenance and version state only; it does not assert an absence of vulnerabilities.
 
 ## Optional Cursor Playwright MCP
 

@@ -8,6 +8,9 @@ export const INPUT_ACTIONS = [
   { id: 'reference.previous', label: 'Previous reference entry', context: 'focused' },
   { id: 'reference.next', label: 'Next reference entry', context: 'focused' },
   { id: 'recovery.reload', label: 'Reload after render failure', context: 'global' },
+  { id: 'filters.previous', label: 'Previous filter tag', context: 'focused' },
+  { id: 'filters.next', label: 'Next filter tag', context: 'focused' },
+  { id: 'filters.activate', label: 'Apply focused filter tag', context: 'focused' },
 ] as const
 
 export type InputActionId = (typeof INPUT_ACTIONS)[number]['id']
@@ -47,6 +50,9 @@ export const DEFAULT_BINDINGS: Record<InputActionId, readonly InputBinding[]> = 
   'reference.previous': [keyboardBinding('ArrowUp'), { device: 'controller', button: 12 }],
   'reference.next': [keyboardBinding('ArrowDown'), { device: 'controller', button: 13 }],
   'recovery.reload': [keyboardBinding('r'), { device: 'controller', button: 3 }],
+  'filters.previous': [keyboardBinding('j'), { device: 'controller', button: 14 }],
+  'filters.next': [keyboardBinding('k'), { device: 'controller', button: 15 }],
+  'filters.activate': [keyboardBinding('l'), { device: 'controller', button: 0 }],
 }
 
 const contexts: Record<InputContext, number> = { global: 0, route: 1, focused: 2, modal: 3 }

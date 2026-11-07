@@ -61,6 +61,15 @@ describe('canonical input contract', () => {
     ])
       expect(normalizeInputPreferences({ version: 1, overrides })).toEqual(defaults)
   })
+  it('preserves saved controller overrides when new filter defaults overlap', () => {
+    const saved = normalizeInputPreferences({
+      version: 1,
+      overrides: { 'navigation.back': [{ device: 'controller', button: 0 }] },
+    })
+    expect(activeBindings(saved, 'navigation.back')).toEqual([{ device: 'controller', button: 0 }])
+    expect(activeBindings(saved, 'filters.activate')).toEqual([keyboardBinding('l')])
+    expect(normalizeInputPreferences(saved)).toEqual(saved)
+  })
   it('preserves multiple valid bindings and gives downstream consumers current labels', () => {
     const preferences = normalizeInputPreferences({
       version: 1,

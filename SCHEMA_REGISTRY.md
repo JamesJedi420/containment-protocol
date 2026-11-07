@@ -667,3 +667,7 @@ Readiness is typed as `permitted`, `degraded`, or an explicit blocked result. Re
 Duplicate decisions for the same prerequisite class and owner retain every supplied reason: any blocked decision blocks execution; otherwise any degraded decision degrades readiness, regardless of input order. A satisfied decision cannot erase adverse owner evidence. Scene-device and environmental requirements must be represented by the caller's applicable owner/class requirements and decisions, including missing/blocked decisions; carrying an item with a matching device tag does not override them. Fingerprints normalize tag sets and canonical identity/name and do not depend on object property insertion order. Receipts normalize execution keys when created and matched; receipt fingerprints describe their evaluation, rather than limiting suppression of an already committed consequence to that evaluation.
 
 This slice adds no `GameState` field, scheduler, procedure-instance ledger, registry, `OperationEvent` kind, `GAME_STORE_VERSION`, or `GAME_SAVE_VERSION` change.
+
+### Filter-tag presentation (SPE-2712)
+
+Cases and Intel mode facets remain owned by their existing URL filter readers/writers. The shared wrapping filter group adds no campaign fields, event schema or save version. Its focused input actions use the existing version-1 device preference contract and explicit-override compatibility; selection is not copied into device preferences or a second store.

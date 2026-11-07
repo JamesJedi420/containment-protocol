@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
+import { FilterTagGroup } from '../../components/FilterTagGroup'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
 import { INTEL_UI_TEXT, MODE_LABELS, ROLE_COVERAGE_LABELS } from '../../data/copy'
@@ -58,8 +59,22 @@ export default function IntelPage() {
         </div>
       </article>
 
-      <article className="panel panel-primary space-y-4" role="region" aria-label="Intel filters">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <article
+        className="panel panel-primary filter-facet-panel space-y-4"
+        role="region"
+        aria-label="Intel filters"
+      >
+        <FilterTagGroup
+          id="intel-mode"
+          label={INTEL_UI_TEXT.modeLabel}
+          value={filters.mode}
+          onChange={(mode) => updateFilters({ mode: mode as IntelFilters['mode'] })}
+          options={INTEL_MODE_FILTERS.map((mode) => ({
+            value: mode,
+            label: mode === 'all' ? INTEL_UI_TEXT.allModes : MODE_LABELS[mode],
+          }))}
+        />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <FilterInput
             id="intel-search"
             label={INTEL_UI_TEXT.searchLabel}
@@ -70,20 +85,6 @@ export default function IntelPage() {
             containerClassName="space-y-2"
             labelClassName="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
             inputClassName="form-input"
-          />
-
-          <FilterSelect
-            id="intel-mode"
-            label={INTEL_UI_TEXT.modeLabel}
-            value={filters.mode}
-            onChange={(value) => updateFilters({ mode: value as IntelFilters['mode'] })}
-            options={INTEL_MODE_FILTERS.map((option) => ({
-              value: option,
-              label: option === 'all' ? INTEL_UI_TEXT.allModes : MODE_LABELS[option],
-            }))}
-            containerClassName="space-y-2"
-            labelClassName="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
-            selectClassName="form-select"
           />
 
           <FilterSelect
@@ -129,7 +130,6 @@ export default function IntelPage() {
             selectClassName="form-select"
           />
         </div>
-
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <label htmlFor="intel-raid-capable" className="inline-flex items-center gap-2 opacity-70">
             <input

@@ -1,4 +1,66 @@
 @layer components {
+  .panel.filter-facet-panel {
+    padding-inline: min(1rem, 12px);
+  }
+  @media (max-width: 480px) {
+    .panel.filter-facet-panel {
+      margin-inline: -12px;
+    }
+  }
+  .filter-tag-group {
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .filter-tag-group legend {
+    max-inline-size: 100%;
+    margin-block-end: 0.5rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .filter-tag-layout {
+    display: flex;
+    flex-wrap: wrap;
+    flex-wrap: balance;
+    gap: 0.5rem;
+    align-items: safe center;
+  }
+  .filter-tag {
+    flex: 0 1 auto;
+    min-inline-size: 48px;
+    max-inline-size: 100%;
+    min-block-size: 48px;
+    padding: 0.5rem min(0.75rem, 12px);
+    border: 2px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--panel);
+    color: var(--text-strong);
+    font: inherit;
+    line-height: 1.5;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: start;
+    cursor: pointer;
+  }
+  .filter-tag[aria-pressed='true'] {
+    border-color: var(--accent);
+    box-shadow: inset 0 -3px var(--accent);
+    font-weight: 700;
+  }
+  .filter-tag:hover:not(:disabled) {
+    background: var(--panel-elevated, var(--panel));
+    text-decoration: underline;
+  }
+  .filter-tag:focus-visible {
+    outline: 3px solid var(--accent);
+    outline-offset: 3px;
+  }
+  .filter-tag:disabled {
+    opacity: 0.5;
+    border-style: dashed;
+    cursor: not-allowed;
+  }
   .render-recovery {
     max-width: 38rem;
     margin: 2rem auto;

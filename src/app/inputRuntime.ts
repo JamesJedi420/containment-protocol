@@ -3,6 +3,7 @@ import {
   activeBindings,
   bindingConflict,
   INPUT_ACTIONS,
+  MAX_BINDINGS_PER_ACTION,
   isValidBinding,
   normalizeInputPreferences,
   resolveInputAction,
@@ -99,11 +100,20 @@ export function captureInput(binding: InputBinding): boolean {
     return true
   }
   const previous = activeBindings(current.preferences, current.capture.id)
+  const retained = previous.filter((item) => item.device !== binding.device)
+  if (retained.length >= MAX_BINDINGS_PER_ACTION) {
+    publish({
+      ...current,
+      message:
+        'Clear the other device’s bindings before adding this one. No controls were changed.',
+    })
+    return true
+  }
   saveInputPreferences({
     version: 1,
     overrides: {
       ...current.preferences.overrides,
-      [current.capture.id]: [...previous.filter((item) => item.device !== binding.device), binding],
+      [current.capture.id]: [...retained, binding],
     },
   })
   return true
@@ -218,28 +228,32 @@ export function installInputRuntime(): () => void {
     const next = new Set<string>()
     const connected = new Set<number>()
     const focused = document.visibilityState === 'visible' && document.hasFocus()
-    let pressed: InputBinding | undefined
-    for (const pad of pads.slice(0, 4)) {
-      if (!pad?.connected || pad.mapping !== 'standard') continue
+    const pressed: InputBinding[] = []
+    const supported = pads
+      .filter((pad): pad is Gamepad => !!pad?.connected && pad.mapping === 'standard')
+      .slice(0, 4)
+    for (const pad of supported) {
       connected.add(pad.index)
       for (let button = 0; button < Math.min(pad.buttons.length, 17); button += 1) {
         if (!pad.buttons[button].pressed) continue
         const key = `${pad.index}:${button}`
         next.add(key)
-        if (!pressed && focused && wasFocused && knownPads.has(pad.index) && !held.has(key))
-          pressed = { device: 'controller', button }
+        if (focused && wasFocused && knownPads.has(pad.index) && !held.has(key))
+          pressed.push({ device: 'controller', button })
       }
     }
     held = next
     knownPads = connected
     wasFocused = focused
     // Consume a simultaneous edge batch once, before a dismissal can expose background commands.
-    if (pressed) activate(pressed, editingTarget(document.activeElement))
+    for (const binding of pressed) {
+      if (activate(binding, editingTarget(document.activeElement))) break
+    }
     frame = pads.some((pad) => pad?.connected) ? window.requestAnimationFrame(poll) : 0
   }
-  function wake() {
+  function wake(event: GamepadEvent) {
     // A reconnect may reuse an index before a frame observes the disconnection.
-    knownPads = new Set()
+    knownPads.delete(event.gamepad.index)
     if (!frame && !stopped) frame = window.requestAnimationFrame(poll)
   }
   function suspend() {

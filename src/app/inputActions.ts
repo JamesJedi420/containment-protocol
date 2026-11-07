@@ -19,6 +19,7 @@ export type InputBinding =
     }
   | { device: 'controller'; button: number }
 export type BindingOverrides = Partial<Record<InputActionId, InputBinding[]>>
+export const MAX_BINDINGS_PER_ACTION = 4
 export interface InputPreferences {
   version: 1
   overrides: BindingOverrides
@@ -146,7 +147,7 @@ export function normalizeInputPreferences(raw: unknown): InputPreferences {
     if (value === undefined) continue
     if (
       !Array.isArray(value) ||
-      value.length > 4 ||
+      value.length > MAX_BINDINGS_PER_ACTION ||
       !value.every(isValidBinding) ||
       new Set(value.map(bindingKey)).size !== value.length
     )

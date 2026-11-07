@@ -131,17 +131,21 @@ test('navigation shortcuts respect modal barriers, text editing and composition'
   await page.keyboard.press('Alt+Shift+ArrowLeft')
   await expect(page).toHaveURL(/agents/)
   await page.getByRole('button', { name: 'Settings', exact: true }).focus()
-  await page.evaluate(() =>
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', {
+  const dispatchBack = (isComposing: boolean) =>
+    page.evaluate((composing) => {
+      const event = new KeyboardEvent('keydown', {
         key: 'ArrowLeft',
+        code: 'ArrowLeft',
         altKey: true,
         shiftKey: true,
-        isComposing: true,
+        isComposing: composing,
         bubbles: true,
+        cancelable: true,
       })
-    )
-  )
+      window.dispatchEvent(event)
+      return event.defaultPrevented
+    }, isComposing)
+  expect(await dispatchBack(true)).toBe(false)
   await expect(page).toHaveURL(/agents/)
   await page.keyboard.press('Alt+Shift+s')
   const dialog = page.getByRole('dialog', { name: 'Settings', exact: true })
@@ -158,6 +162,13 @@ test('navigation shortcuts respect modal barriers, text editing and composition'
   await page.keyboard.press('Alt+Shift+ArrowRight')
   await expect(page).toHaveURL(/agents/)
   expect(page.url().startsWith(agents)).toBe(true)
+  await expect(
+    page
+      .getByRole('navigation', { name: 'Navigation history' })
+      .getByRole('button', { name: 'Back', exact: true })
+  ).toBeEnabled()
+  expect(await dispatchBack(false)).toBe(true)
+  await expect(page).not.toHaveURL(/agents/)
 })
 
 test('standard controller edges use the same actions and remapping; unsupported devices do not fire', async ({

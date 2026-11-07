@@ -23,6 +23,28 @@ afterEach(() => {
 })
 
 describe('input runtime and device-local preferences', () => {
+  it('rejects an over-limit capture without resetting existing preferences', () => {
+    const { result } = renderHook(useInputPreferences)
+    act(() =>
+      saveInputPreferences({
+        version: 1,
+        overrides: {
+          'settings.open': ['q', 'w', 'e', 'r'].map(keyboardBinding),
+          'navigation.back': [],
+        },
+      })
+    )
+    const before = result.current.preferences
+    const stored = localStorage.getItem(INPUT_PREFERENCES_KEY)
+    act(() => {
+      startInputCapture({ id: 'settings.open', device: 'controller' })
+      captureInput({ device: 'controller', button: 8 })
+    })
+    expect(result.current.preferences).toBe(before)
+    expect(localStorage.getItem(INPUT_PREFERENCES_KEY)).toBe(stored)
+    expect(result.current.message).toContain('No controls were changed')
+    expect(result.current.capture).not.toBeNull()
+  })
   it('uses physical positions across layouts and leaves native commands unconsumed during capture', () => {
     const execute = vi.fn()
     renderHook(() =>
@@ -105,9 +127,11 @@ describe('input runtime and device-local preferences', () => {
   })
   it('does not replay held controller input, fire two commands across a modal boundary, or fire on focus return', () => {
     const previous = Object.getOwnPropertyDescriptor(navigator, 'getGamepads')
-    let callback: FrameRequestCallback = () => undefined
+    let callback: FrameRequestCallback | undefined
     let pressed: number[] = []
     let connected = true
+    let padIndex = 0
+    let secondPad = false
     let focused = true
     const dismiss = vi.fn(() => dialog.removeAttribute('open'))
     const back = vi.fn()
@@ -119,14 +143,18 @@ describe('input runtime and device-local preferences', () => {
       value: () =>
         connected
           ? [
+              ...Array<null>(padIndex).fill(null),
               {
-                index: 0,
+                index: padIndex,
                 mapping: 'standard',
                 connected: true,
                 buttons: Array.from({ length: 17 }, (_, index) => ({
                   pressed: pressed.includes(index),
                 })),
               },
+              ...(secondPad
+                ? [{ index: padIndex + 1, mapping: 'standard', connected: true, buttons: [] }]
+                : []),
             ]
           : [],
     })
@@ -152,7 +180,14 @@ describe('input runtime and device-local preferences', () => {
       })
     })
     const stop = installInputRuntime()
-    const tick = () => act(() => callback(0))
+    const tick = () => {
+      if (!callback) throw new Error('No animation frame was scheduled')
+      const next = callback
+      callback = undefined
+      act(() => next(0))
+    }
+    const connect = (index: number) =>
+      window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: { index } }))
     try {
       tick()
       pressed = [1, 4]
@@ -177,15 +212,30 @@ describe('input runtime and device-local preferences', () => {
       pressed = []
       tick()
       pressed = [4]
-      window.dispatchEvent(new Event('gamepadconnected'))
+      connect(padIndex)
       tick()
       expect(back).toHaveBeenCalledOnce()
       connected = false
       tick()
       connected = true
-      window.dispatchEvent(new Event('gamepadconnected'))
+      connect(padIndex)
       tick()
       expect(back).toHaveBeenCalledOnce()
+      // Sparse API indices count connected devices, not array slots.
+      pressed = []
+      padIndex = 4
+      tick()
+      pressed = [0, 4]
+      tick()
+      expect(back).toHaveBeenCalledTimes(2)
+      // A different controller joining must not discard an established device's new edge.
+      pressed = []
+      tick()
+      secondPad = true
+      connect(padIndex + 1)
+      pressed = [4]
+      tick()
+      expect(back).toHaveBeenCalledTimes(3)
     } finally {
       act(stop)
       dialog.remove()

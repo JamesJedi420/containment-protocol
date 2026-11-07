@@ -28,10 +28,17 @@ export function renderRecoveryScreen(
     if (reloading) return
     reloading = true
     button.disabled = true
-    button.textContent = 'Reloading…'
+    button.textContent = 'Reload requested'
+    alert.textContent =
+      'Reload requested. If this screen remains, use your browser’s Reload command to try again.'
     disposeInput()
     unregister()
-    reload()
+    try {
+      reload()
+    } catch (error) {
+      console.error(error)
+      alert.textContent = 'Reload could not start. Use your browser’s Reload command to try again.'
+    }
   }
   try {
     unregister = registerInputConsumer({

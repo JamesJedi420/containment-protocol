@@ -118,8 +118,28 @@ test('persistent failure does not auto-reload and recovery remains touch usable 
     await reload.tap()
     await expect.poll(() => attempts).toBe(initial + 1)
     await expect(reload).toBeFocused()
+    await page.waitForTimeout(1000)
     expect(attempts).toBe(initial + 1)
   } finally {
     await context.close()
   }
+})
+
+test('a reload response that keeps the document leaves explicit browser recovery instructions', async ({
+  page,
+}) => {
+  await page.route(appModule, (route) =>
+    route.fulfill({ contentType: 'application/javascript', body: brokenApp })
+  )
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Reload application' })).toBeFocused()
+  await page.route('**/*', (route) => {
+    if (route.request().isNavigationRequest()) return route.fulfill({ status: 204 })
+    return route.fallback()
+  })
+  const response = page.waitForResponse((response) => response.request().isNavigationRequest())
+  await page.getByRole('button', { name: 'Reload application' }).click()
+  expect((await response).status()).toBe(204)
+  await expect(page.getByRole('alert')).toContainText('use your browser’s Reload command')
+  await expect(page.getByRole('button', { name: 'Reload requested' })).toBeDisabled()
 })

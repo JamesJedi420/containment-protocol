@@ -56,4 +56,23 @@ describe('isolated recovery screen', () => {
       container.remove()
     }
   })
+  it('retains browser instructions and diagnostics when reload throws', () => {
+    const failure = new Error('reload unavailable')
+    const report = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const container = document.createElement('div')
+    document.body.append(container)
+    const cleanup = renderRecoveryScreen(container, () => {
+      throw failure
+    })
+    try {
+      container.querySelector('button')!.click()
+      expect(container.querySelector('[role="alert"]')).toHaveTextContent(
+        'Reload could not start. Use your browser’s Reload command to try again.'
+      )
+      expect(report).toHaveBeenCalledWith(failure)
+    } finally {
+      cleanup()
+      container.remove()
+    }
+  })
 })

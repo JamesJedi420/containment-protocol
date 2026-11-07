@@ -72,6 +72,7 @@ describe('profile-segmented contract outcome fixtures (SPE-1119)', () => {
       }
       expect(captured.analysis.resultComponents.recordedResults).toBe(observedResults.length)
       expect(captured.analysis.outcomes).toEqual(captured.run.summary.missionOutcomeCounts)
+      expect(startingState).toEqual(before)
       expect(captured).toEqual(capture())
       expect(startingState).toEqual(before)
       return captured.analysis

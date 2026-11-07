@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "a5a537b8a39e2e38e6e888b2a523eb466df5b1e9",
+  "assessments": [
+    {
+      "id": "owner-telemetry",
+      "result": "warning",
+      "rationale": "Clean-subject execution verifies expanded internal telemetry, including supplied campaigns, canonical profile/contract captures, same-week contract result attribution and information-report provenance across week-close. Actual domain/harness evidence is distinguished from constructed attribution and intake fixtures. Conditional queue/cadence/selector diagnostics, full information-model coverage, exhaustive consequence delivery and deeper profile-sensitive producer integration remain incomplete or unverified. This is complementary evidence, not an integrated release census or whole-owner completion.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/a5a537b8/telemetry-assessment.md",
+          "revision": "a5a537b8a39e2e38e6e888b2a523eb466df5b1e9",
+          "scope": "Fresh clean-subject execution: 65 tests across eleven existing telemetry files, Node22 vmThreads with CI/STRICT_TEST_CONSOLE unset. Assessment records source anchors, actual versus constructed evidence, limitations and exact original log hash. No unrelated release-dimension execution or current full-build observation is supplied."
+        }
+      ]
+    }
+  ]
+}

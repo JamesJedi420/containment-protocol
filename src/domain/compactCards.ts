@@ -79,8 +79,8 @@ export interface CompactCardProjection {
   readonly inspect: readonly CompactCardField[]
 }
 
-const categories = ['actor', 'anomaly', 'item', 'vehicle', 'location', 'effect']
-const confidences = ['confirmed', 'supported', 'limited', 'unknown']
+const categories = new Set(['actor', 'anomaly', 'item', 'vehicle', 'location', 'effect'])
+const confidences = new Set(['confirmed', 'supported', 'limited', 'unknown'])
 const text = (value: unknown, limit: number): value is string =>
   typeof value === 'string' && value.trim().length > 0 && value.length <= limit
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -100,10 +100,84 @@ function validValue(value: unknown): boolean {
       typeof value.value === 'boolean' ||
       (typeof value.value === 'number' && Number.isFinite(value.value))) &&
     (value.confidence === undefined ||
-      (typeof value.confidence === 'string' && confidences.includes(value.confidence))) &&
+      (typeof value.confidence === 'string' && confidences.has(value.confidence))) &&
     (value.provenance === undefined || stringList(value.provenance, 8))
     // Estimates must retain an explicit qualification; their state is always projected.
   )
+}
+
+function validField(field: unknown): field is CompactCardField {
+  return (
+    object(field) &&
+    text(field.id, 80) &&
+    text(field.label, 120) &&
+    validValue(field.value) &&
+    (field.depth === 'browse' || field.depth === 'inspect')
+  )
+}
+
+function validateFields(fields: unknown, issues: string[]): void {
+  if (!Array.isArray(fields) || fields.length > 24) {
+    issues.push('fields-invalid')
+    return
+  }
+  const ids = new Set<string>()
+  for (const field of fields) {
+    if (!validField(field)) {
+      issues.push('field-invalid')
+      continue
+    }
+    if (ids.has(field.id) || field.id.startsWith('actor.')) issues.push('field-id-conflict')
+    ids.add(field.id)
+  }
+}
+
+function validateMode(record: Record<string, unknown>, issues: string[]): void {
+  const mode = record.mode
+  if (!object(mode)) {
+    issues.push('actor-mode-required')
+    return
+  }
+  if (mode.kind === 'historical' || mode.kind === 'memorial') {
+    if (
+      !Number.isSafeInteger(mode.week) ||
+      Number(mode.week) < 0 ||
+      !text(mode.recordRef, 160) ||
+      (mode.reconstruction !== 'snapshot' && mode.reconstruction !== 'versioned')
+    )
+      issues.push('historical-source-required')
+    return
+  }
+  if (mode.kind === 'unavailable') {
+    if (mode.reason !== 'missing' && mode.reason !== 'legacy')
+      issues.push('unavailable-reason-required')
+    if (
+      !Array.isArray(record.fields) ||
+      record.fields.length > 0 ||
+      record.personnel !== undefined ||
+      record.hook !== undefined
+    )
+      issues.push('unavailable-operational-data-forbidden')
+    return
+  }
+  if (mode.kind !== 'live') issues.push('actor-mode-invalid')
+}
+
+function validateActor(record: Record<string, unknown>, issues: string[]): void {
+  if (record.category !== 'actor') {
+    if (record.mode !== undefined || record.personnel !== undefined)
+      issues.push('actor-fields-on-non-actor')
+    return
+  }
+  validateMode(record, issues)
+  if (
+    record.personnel !== undefined &&
+    (!object(record.personnel) ||
+      Object.entries(record.personnel).some(
+        ([key, value]) => !Object.hasOwn(COMPACT_ACTOR_FIELDS, key) || !validValue(value)
+      ))
+  )
+    issues.push('personnel-invalid')
 }
 
 /** Structural admission only. Source owners perform clearance, historical and knowledge filtering. */
@@ -111,7 +185,7 @@ export function validateCompactCard(record: unknown): readonly string[] {
   if (!object(record)) return Object.freeze(['record-required'])
   const issues: string[] = []
   if (!text(record.id, 160)) issues.push('public-id-required')
-  if (typeof record.category !== 'string' || !categories.includes(record.category))
+  if (typeof record.category !== 'string' || !categories.has(record.category))
     issues.push('category-invalid')
   if (!validValue(record.name)) issues.push('name-invalid')
   if (record.hook !== undefined && !validValue(record.hook)) issues.push('hook-invalid')
@@ -119,58 +193,15 @@ export function validateCompactCard(record: unknown): readonly string[] {
     issues.push('subject-invalid')
   if (record.sourceTags !== undefined && !stringList(record.sourceTags, 12))
     issues.push('source-tags-invalid')
-  if (!Array.isArray(record.fields) || record.fields.length > 24) issues.push('fields-invalid')
-  else {
-    const ids = new Set<string>()
-    for (const field of record.fields) {
-      if (
-        !object(field) ||
-        !text(field.id, 80) ||
-        !text(field.label, 120) ||
-        !validValue(field.value) ||
-        (field.depth !== 'browse' && field.depth !== 'inspect')
-      ) {
-        issues.push('field-invalid')
-        continue
-      }
-      if (ids.has(field.id) || field.id.startsWith('actor.')) issues.push('field-id-conflict')
-      ids.add(field.id)
-    }
-  }
-  if (record.category === 'actor') {
-    const mode = record.mode
-    if (!object(mode)) issues.push('actor-mode-required')
-    else if (mode.kind === 'historical' || mode.kind === 'memorial') {
-      if (
-        !Number.isSafeInteger(mode.week) ||
-        Number(mode.week) < 0 ||
-        !text(mode.recordRef, 160) ||
-        (mode.reconstruction !== 'snapshot' && mode.reconstruction !== 'versioned')
-      )
-        issues.push('historical-source-required')
-    } else if (mode.kind === 'unavailable') {
-      if (mode.reason !== 'missing' && mode.reason !== 'legacy')
-        issues.push('unavailable-reason-required')
-      if (
-        (Array.isArray(record.fields) && record.fields.length) ||
-        record.personnel !== undefined ||
-        record.hook !== undefined
-      ) {
-        issues.push('unavailable-operational-data-forbidden')
-      }
-    } else if (mode.kind !== 'live') issues.push('actor-mode-invalid')
-    if (record.personnel !== undefined) {
-      if (
-        !object(record.personnel) ||
-        Object.entries(record.personnel).some(
-          ([key, value]) => !Object.hasOwn(COMPACT_ACTOR_FIELDS, key) || !validValue(value)
-        )
-      )
-        issues.push('personnel-invalid')
-    }
-  } else if (record.mode !== undefined || record.personnel !== undefined)
-    issues.push('actor-fields-on-non-actor')
+  validateFields(record.fields, issues)
+  validateActor(record, issues)
   return Object.freeze([...new Set(issues)])
+}
+// Code-unit ordering is stable across browser locales.
+const compareText = (a: string, b: string): number => {
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
 }
 
 function projectValue(value: CompactCardValue): CompactCardValue {
@@ -183,7 +214,7 @@ function projectValue(value: CompactCardValue): CompactCardValue {
     ...(value.provenance === undefined
       ? {}
       : {
-          provenance: Object.freeze([...new Set(value.provenance)].sort()),
+          provenance: Object.freeze([...new Set(value.provenance)].sort(compareText)),
         }),
   })
 }
@@ -200,6 +231,34 @@ function projectMode(mode: CompactActorMode): CompactActorMode {
   })
 }
 
+function actorQualifier(mode: CompactActorMode): string {
+  if (mode.kind === 'live') return 'Current operative record'
+  if (mode.kind === 'unavailable')
+    return `Unavailable ${mode.reason} record — no current-state substitution`
+  const label =
+    mode.kind === 'memorial' ? 'Final or archived personnel record' : 'Historical personnel record'
+  return `${label} — week ${mode.week} (${mode.reconstruction})`
+}
+
+function appendPersonnel(
+  personnel: Extract<CompactCardRecord, { category: 'actor' }>['personnel'],
+  fields: CompactCardField[]
+): void {
+  if (!personnel) return
+  for (const key of Object.keys(COMPACT_ACTOR_FIELDS) as (keyof typeof COMPACT_ACTOR_FIELDS)[]) {
+    if (!Object.hasOwn(personnel, key)) continue
+    const value = personnel[key]
+    if (value !== undefined)
+      fields.push(
+        Object.freeze({
+          id: `actor.${key}`,
+          label: COMPACT_ACTOR_FIELDS[key],
+          depth: 'browse',
+          value: projectValue(value),
+        })
+      )
+  }
+}
 /** Copies only admitted public fields; invalid data returns codes, never raw input or hidden values. */
 export function projectCompactCard(
   record: unknown
@@ -221,25 +280,8 @@ export function projectCompactCard(
   let qualifier: string | undefined
   if (input.category === 'actor') {
     mode = projectMode(input.mode)
-    qualifier =
-      mode.kind === 'live'
-        ? 'Current operative record'
-        : mode.kind === 'unavailable'
-          ? `Unavailable ${mode.reason} record — no current-state substitution`
-          : `${mode.kind === 'memorial' ? 'Final or archived personnel record' : 'Historical personnel record'} — week ${mode.week} (${mode.reconstruction})`
-    for (const key of Object.keys(COMPACT_ACTOR_FIELDS) as (keyof typeof COMPACT_ACTOR_FIELDS)[]) {
-      const value =
-        input.personnel && Object.hasOwn(input.personnel, key) ? input.personnel[key] : undefined
-      if (value !== undefined)
-        fields.push(
-          Object.freeze({
-            id: `actor.${key}`,
-            label: COMPACT_ACTOR_FIELDS[key],
-            depth: 'browse',
-            value: projectValue(value),
-          })
-        )
-    }
+    qualifier = actorQualifier(mode)
+    appendPersonnel(input.personnel, fields)
   }
   const card: CompactCardProjection = Object.freeze({
     id: input.id,
@@ -247,7 +289,7 @@ export function projectCompactCard(
     name: projectValue(input.name),
     ...(input.subjectRef === undefined ? {} : { subjectRef: projectValue(input.subjectRef) }),
     ...(input.hook === undefined ? {} : { hook: projectValue(input.hook) }),
-    sourceTags: Object.freeze([...new Set(input.sourceTags ?? [])].sort()),
+    sourceTags: Object.freeze([...new Set(input.sourceTags ?? [])].sort(compareText)),
     ...(mode ? { mode, qualifier } : {}),
     browse: Object.freeze(fields.filter((field) => field.depth === 'browse')),
     inspect: Object.freeze(fields.filter((field) => field.depth === 'inspect')),

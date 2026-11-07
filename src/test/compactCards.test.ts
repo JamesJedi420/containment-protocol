@@ -95,6 +95,10 @@ describe('compact card contract', () => {
     }
     expect(ready(unavailable).browse).toEqual([])
     expect(ready(unavailable).qualifier).toContain('Unavailable legacy')
+    expect(projectCompactCard({ ...unavailable, fields: 'malformed' })).toEqual({
+      status: 'invalid',
+      issues: ['fields-invalid', 'unavailable-operational-data-forbidden'],
+    })
     expect(
       validateCompactCard({ ...unavailable, personnel: { readiness: known('Ready') } })
     ).toContain('unavailable-operational-data-forbidden')

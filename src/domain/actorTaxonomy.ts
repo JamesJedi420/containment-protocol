@@ -241,6 +241,7 @@ export function buildKnownProfile(
  * Deterministically updates a known profile toward the true declaration.
  * Rejects another actor's truth before confirming any knowledge. Identity is
  * matched by canonical ID, not by classification, appearance, or object reference.
+ * Returned before/after profiles are detached snapshots of the correction.
  */
 export function correctKnownProfile(
   known: KnownActorProfile,
@@ -276,7 +277,7 @@ export function correctKnownProfile(
 
   return {
     changed,
-    before: known,
+    before: structuredClone(known),
     after: next,
     reason,
   }

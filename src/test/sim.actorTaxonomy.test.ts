@@ -37,10 +37,34 @@ describe('actorTaxonomy slice 1', () => {
     expect(correction.changed).toBe(true)
     expect(correction.after.actorId).toBe(PROOF_SPIRIT_ACTOR.id)
     expect(correction.after.provisionalClass).toBe('spirit_manifestation')
-    expect(correction.after.provisionalCapabilities.canWard).toBe(true)
+    expect(correction.after.provisionalCapabilities).toEqual(truth.capabilities)
     expect(correction.after.confidence).toBe('confirmed')
     expect(correction.after.correctionCount).toBe(1)
     expect({ known, truth }).toEqual(before)
+  })
+
+  it('retains independent before and after snapshots when the caller changes known state', () => {
+    const known = buildKnownProfile(PROOF_SPIRIT_ACTOR, {
+      provisionalMovementModes: ['walking'],
+      provisionalSensingChannels: ['visual'],
+      provisionalCapabilities: { canWard: false },
+    })
+    const original = structuredClone(known)
+    const correction = correctKnownProfile(known, { declaration: PROOF_SPIRIT_ACTOR }, 'observed')
+    const after = structuredClone(correction.after)
+
+    known.confidence = 'unknown'
+    known.provisionalMovementModes.push('swimming')
+    known.provisionalSensingChannels.push('audio')
+    known.provisionalCapabilities.canWard = true
+
+    expect(correction.before).toEqual(original)
+    expect(correction.after).toEqual(after)
+    const changedCaller = structuredClone(known)
+    correction.before.provisionalMovementModes.push('climbing')
+    correction.before.provisionalSensingChannels.push('fear')
+    correction.before.provisionalCapabilities.canInterview = true
+    expect(known).toEqual(changedCaller)
   })
 
   it('uses the same declaration schema for human and spirit classes', () => {

@@ -675,3 +675,7 @@ Cases and Intel mode facets remain owned by their existing URL filter readers/wr
 ### Compact presentation records (SPE-382)
 
 `src/domain/compactCards.ts` defines transient read-only presentation records, not persisted entity state. Source owners provide visibility-filtered fields and explicit historical references; projection never hydrates from a current actor. Redacted/unavailable values contain no projected payload. No GameState, OperationEvent or save-envelope migration is introduced. Future persisted dossier or snapshot contracts remain with their existing owners.
+
+### Actor dossier helper (SPE-2095)
+
+`ActorDossierRecord` and append-only dated `ActorDossierSnapshot` patches in `src/domain/actorDossier.ts` are transient institutional helper contracts. No GameState, save-envelope or event schema changes. The Agent adapter retains the Agent ID and does not infer missing clearance/history. Field and snapshot metadata access is explicit; player annotations are separate non-authoritative typed values with no persistence/edit workflow. Snapshot generation and durable storage remain deferred to their existing owners.

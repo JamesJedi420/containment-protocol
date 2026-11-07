@@ -14,6 +14,16 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Provenance and contract telemetry assessment at `a5a537b8`
+
+The [telemetry manifest](../planning/spe-3352-telemetry-evidence.a5a537b8.v1.json) and [source assessment](../planning/release-evidence/a5a537b8/telemetry-assessment.md) assess `a5a537b8a39e2e38e6e888b2a523eb466df5b1e9`. Clean-subject execution passed 65 tests across eleven existing files. Evidence now includes supplied-state continuation, actual profile/contract fixtures, same-week result attribution and information-report provenance across week-close. Constructed fixture inputs and actual harness observations remain explicitly distinguished.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-telemetry-evidence.a5a537b8.v1.json --format json
+```
+
+This complementary report remains **incomplete**: one telemetry warning and 28 unavailable rows. Conditional upstream diagnostics, full information-model coverage and deeper profile-sensitive producer integration remain unverified. It is not an integrated release census or whole-owner completion; prior snapshots retain their own revisions and results.
+
 ## Expanded telemetry assessment at `72888c52`
 
 The [operational telemetry manifest](../planning/spe-3352-telemetry-evidence.72888c52.v1.json) and [source assessment](../planning/release-evidence/72888c52/telemetry-assessment.md) assess `72888c52ca35012141909321fbd2aa7771020074`. Clean-subject execution passed 49 tests across seven existing files. This extends evidence to recorded intake/results, staff-time allocation, authored contract-risk groups and bounded pressure examples, distinguishing actual harness/source-command observations from constructed fixtures.

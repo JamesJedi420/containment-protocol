@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useNavigationType } from 'react-router'
 import { useGameStore } from './store/gameStore'
+import { dispatchInputAction, useInputConsumer } from './inputRuntime'
 import {
   findNavigationDelta,
   isNavigationDestinationAvailable,
@@ -44,6 +45,19 @@ export function NavigationHistoryControls() {
     void navigate(delta)
   }
 
+  useInputConsumer({
+    id: 'navigation.back',
+    context: 'route',
+    available: () => !pendingRef.current && back !== null,
+    execute: () => travel(back),
+  })
+  useInputConsumer({
+    id: 'navigation.forward',
+    context: 'route',
+    available: () => !pendingRef.current && forward !== null,
+    execute: () => travel(forward),
+  })
+
   return (
     <nav aria-label="Navigation history" className="flex flex-wrap items-center gap-3">
       <button
@@ -51,7 +65,7 @@ export function NavigationHistoryControls() {
         className="btn min-h-11 min-w-11"
         disabled={pending || back === null}
         aria-describedby={descriptionId}
-        onClick={() => travel(back)}
+        onClick={() => dispatchInputAction('navigation.back')}
       >
         Back
       </button>
@@ -60,7 +74,7 @@ export function NavigationHistoryControls() {
         className="btn min-h-11 min-w-11"
         disabled={pending || forward === null}
         aria-describedby={descriptionId}
-        onClick={() => travel(forward)}
+        onClick={() => dispatchInputAction('navigation.forward')}
       >
         Forward
       </button>

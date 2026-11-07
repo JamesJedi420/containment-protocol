@@ -1,4 +1,22 @@
 @layer components {
+  .controls-settings fieldset {
+    min-inline-size: 0;
+  }
+  .controls-settings .btn {
+    min-height: 3rem;
+    max-inline-size: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    scroll-margin-block: 15rem 1rem;
+  }
+  .controls-feedback {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--panel);
+    max-height: 40vh;
+    overflow: auto;
+  }
   .settings-control {
     min-height: 44px;
     min-width: 44px;

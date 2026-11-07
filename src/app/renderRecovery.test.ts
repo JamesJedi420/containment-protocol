@@ -12,6 +12,7 @@ describe('isolated recovery screen', () => {
   it('focuses one native action, preserves storage and reloads only on explicit activation', () => {
     const container = document.createElement('div')
     document.body.append(container)
+    container.innerHTML = '<dialog open>Failed application dialog</dialog>'
     localStorage.setItem('containment-protocol-game-state', 'stored campaign bytes')
     const reload = vi.fn()
     const cleanup = renderRecoveryScreen(container, reload)
@@ -23,7 +24,10 @@ describe('isolated recovery screen', () => {
       expect(container.textContent).toContain('Unsaved changes may be lost')
       expect(container.textContent).toContain('integrity has not been checked')
       expect(reload).not.toHaveBeenCalled()
-      expect(dispatchInputAction('recovery.reload')).toBe(true)
+      expect(document.querySelector('dialog[open]')).toBeNull()
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { code: 'KeyR', altKey: true, shiftKey: true, bubbles: true })
+      )
       button.click()
       expect(dispatchInputAction('recovery.reload')).toBe(false)
       expect(reload).toHaveBeenCalledTimes(1)

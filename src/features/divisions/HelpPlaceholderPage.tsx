@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { ReferenceLibrary } from '../../components/reference/ReferenceLibrary'
 
 const CORE_COMMAND_SURFACES = [
   { href: APP_ROUTES.operationsDesk, label: 'Operations Desk' },
@@ -30,6 +31,7 @@ export default function HelpPlaceholderPage() {
           ))}
         </ul>
       </nav>
+      <ReferenceLibrary />
     </section>
   )
 }

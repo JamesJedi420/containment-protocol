@@ -207,13 +207,13 @@ test('standard controller edges use the same actions and remapping; unsupported 
   await expect(dialog).toBeVisible()
   await press(-1)
   await dialog
-    .getByRole('button', { name: 'Change dismiss settings controller', exact: true })
+    .getByRole('button', { name: 'Change dismiss dialog controller', exact: true })
     .click()
-  await press(8)
+  await press(10)
   await expect(dialog.getByRole('status')).toHaveText('Controls saved on this device.')
   await expect(dialog).toBeVisible()
   await press(-1)
-  await press(8)
+  await press(10)
   await expect(dialog).not.toBeVisible()
   await press(-1)
   await page.evaluate(() => {

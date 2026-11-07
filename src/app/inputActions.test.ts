@@ -56,7 +56,7 @@ describe('canonical input contract', () => {
       { 'settings.open': 'bad' },
       { 'settings.open': [keyboardBinding('Escape')] },
       { 'settings.open': [keyboardBinding('q'), keyboardBinding('q')] },
-      { 'settings.open': [keyboardBinding('ArrowLeft')] },
+      { 'settings.open': [keyboardBinding('q')], 'navigation.back': [keyboardBinding('q')] },
       { 'settings.open': Array.from({ length: 5 }, (_, index) => keyboardBinding(String(index))) },
     ])
       expect(normalizeInputPreferences({ version: 1, overrides })).toEqual(defaults)

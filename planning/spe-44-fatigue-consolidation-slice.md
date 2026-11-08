@@ -48,7 +48,7 @@ Rejected alternatives:
 
 | Alternative                                         | Why rejected                                                                                                                                                                                  |
 | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Make `recoveryFatigue.ts`'s existing body canonical | Omits SPE-99 scaling and the `recoveryRateBonus` resting branch; adopting it changes live numbers for every resting agent and every field-base deployment.                                    |
+| Make `recoveryFatigue.ts`'s existing body canonical | Omits SPE-99 deployed-recovery scaling; adopting it drops that multiplier for every field-base deployment. Its resting/training arithmetic already matches the live branch.                   |
 | Make `fatiguePipeline.ts` canonical                 | No production consumer for the weekly batch; adopting it turns training recovery from `-bonus` to `0` and adds channel/energy writes to the live tick — a gameplay change, not an extraction. |
 | New `src/domain/weeklyFatigue.ts`                   | Fourth name for the same rule; contradicts the "consolidate, not duplicate" review ask.                                                                                                       |
 
@@ -58,7 +58,9 @@ Rejected alternatives:
 
 - `getMissionFatigue(config: GameState['config']): number`
 - `getRecoveryFatigue(config: GameState['config']): number`
-- `applyAgentFatigue(agents, teams, config, activeTeamIds, cases, activeTeamStressModifiers = {}, deployedRecoveryLookup?)` — the six-parameter shape plus optional lookup that `advanceWeek.ts` already calls with; the existing two-call-site-free exported signature has no consumers and can change.
+- `classifyWeeklyFatigue(agentId, activeAgentIds, trainingAgentIds): WeeklyFatigueContext` — the only classifier; both consumers call it instead of re-deriving the branch.
+- `getWeeklyFatigueDelta(agent, context, config, stressModifier, deployedRecoveryMode?): number` — the only delta computation, implementing the table in Decision 2. It returns the unclamped delta; each consumer applies `clamp` at its own write.
+- `applyAgentFatigue(agents, teams, config, activeTeamIds, cases, activeTeamStressModifiers = {}, deployedRecoveryLookup?)` — the seven-argument shape `advanceWeek.ts` already calls with; it delegates to the two functions above, and the existing exported signature has no consumers and can change.
 - `getAverageRosterFatigue(agents: GameState['agents']): number` — unfiltered, as shipped today (see Decision 3).
 
 New imports in that module: `clamp` from `./math`, `getTeamMemberIds` from `./teamSimulation`, `buildDeployedRecoveryModeByAgentId` and `scaleDeployedMissionFatigueDelta` from `./sim/expeditionRecoveryNode`, and `GameState` from `./models`. Confirm `expeditionRecoveryNode.ts` does not import `recoveryFatigue.ts` before wiring (no cycle was observed in static inspection, but the implementer should re-check after the edit).
@@ -71,7 +73,7 @@ One arithmetic, two consumers. Export the per-agent classification alongside the
 type WeeklyFatigueContext = 'deployed' | 'training' | 'resting'
 ```
 
-`applyAgentFatigue` applies the delta to `fatigue` only. `fatiguePipeline.applyWeeklyAgentFatigue` calls the same delta computation, keeps its channel/overdrive/energy layer, and loses its private constants. `getMissionFatigue` / `getRecoveryFatigue` are then declared once, in `recoveryFatigue.ts`.
+`applyAgentFatigue` classifies each agent, applies `getWeeklyFatigueDelta`, and clamps the result into `fatigue`. `fatiguePipeline.applyWeeklyAgentFatigue` calls the same classifier and delta function, keeps its channel/overdrive/energy layer, and loses its private constants. `getMissionFatigue` / `getRecoveryFatigue` are then declared once, in `recoveryFatigue.ts`.
 
 Reconciled branch semantics (these are the values that must exist after the slice):
 
@@ -128,13 +130,13 @@ Suggested commit subject: `SPE-44: extract weekly fatigue arithmetic into recove
 
 ## Determinism fixtures
 
-| Fixture            | File                                                                                                                                | What it pins                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unit matrix        | new `src/test/recoveryFatigue.contract.test.ts`                                                                                     | Exact deltas for `durationModel` × `attritionPerWeek` × branch × `recoveryRateBonus` × stress × SPE-99 mode. Table-driven, no RNG.                                                                                                                                                                                                                                                                                 |
-| Consumer parity    | new case in `src/test/recoveryFatigue.contract.test.ts`                                                                             | `applyWeeklyAgentFatigue` and `applyAgentFatigue` produce the **same** `fatigue` value for the same inputs, across all branches; the pipeline still writes channels/overdrive/energy.                                                                                                                                                                                                                              |
-| Same-seed equality | `src/test/sim.determinism.test.ts`                                                                                                  | Extend the existing 10-week two-run comparison to also assert identical `agents[id].fatigue` maps and identical `reports[i].avgFatigue` sequences. The current test compares RNG state, report notes and case keys — it would not notice a fatigue regression.                                                                                                                                                     |
-| Save/replay        | `src/test/goldenPressureCampaign.integration.test.ts`                                                                               | Add `avgFatigue` and one recovering agent's `fatigue` to `summarize()` so `advanceWeek → serialize → load → advanceWeek` must reproduce them exactly.                                                                                                                                                                                                                                                              |
-| Static guardrail   | new `test/fatigue-consolidation.test.ts` (`test/` already hosts `test/boundary-enforcement.test.ts`, which reads sources from disk) | Fails if `src/domain/sim/advanceWeek.ts` declares `getMissionFatigue`, `getRecoveryFatigue`, `applyAgentFatigue` or `getAverageRosterFatigue`; fails if `fatiguePipeline.ts` declares the two constants; fails if any file other than `src/domain/recoveryFatigue.ts` contains the `Math.max(1, Math.floor(config.attritionPerWeek / 2))` expression. This is the guardrail the April review explicitly asked for. |
+| Fixture            | File                                                                                                                                | What it pins                                                                                                                                                                                                                                                                                                                              |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit matrix        | new `src/test/recoveryFatigue.contract.test.ts`                                                                                     | Exact deltas for `durationModel` × `attritionPerWeek` × branch × `recoveryRateBonus` × stress × SPE-99 mode. Table-driven, no RNG.                                                                                                                                                                                                        |
+| Consumer parity    | new case in `src/test/recoveryFatigue.contract.test.ts`                                                                             | `applyWeeklyAgentFatigue` and `applyAgentFatigue` produce the **same** `fatigue` value for the same inputs, across all branches; the pipeline still writes channels/overdrive/energy.                                                                                                                                                     |
+| Same-seed equality | `src/test/sim.determinism.test.ts`                                                                                                  | Extend the existing 10-week two-run comparison to also assert identical `agents[id].fatigue` maps and identical `reports[i].avgFatigue` sequences. The current test compares RNG state, report notes and case keys — it would not notice a fatigue regression.                                                                            |
+| Save/replay        | `src/test/goldenPressureCampaign.integration.test.ts`                                                                               | Add `avgFatigue` and one recovering agent's `fatigue` to `summarize()`; assert the pre-change baseline literals captured in step 1, then require `advanceWeek → serialize → load → advanceWeek` to reproduce them exactly.                                                                                                                |
+| Static guardrail   | new `test/fatigue-consolidation.test.ts` (`test/` already hosts `test/boundary-enforcement.test.ts`, which reads sources from disk) | Scans every tracked `.ts`/`.tsx` file under `src/` and `test/`, ignoring comments, for declarations of the four helpers, the two constants and the `Math.max(1, Math.floor(config.attritionPerWeek / 2))` expression; only `src/domain/recoveryFatigue.ts` may contain them. This is the guardrail the April review explicitly asked for. |
 
 Matrix values worth covering at minimum: `attritionPerWeek` 1, 2, 4, 6, 9; `durationModel` `attrition` and `capacity`; `recoveryRateBonus` 0 and 3; `activeTeamStressModifiers` 0 and 0.25; `deployedRecoveryLookup` omitted versus supplied with a `sanctuary_recovery` field base. Assert exact integers, not ranges.
 
@@ -146,10 +148,11 @@ git grep -n 'function \(getMissionFatigue\|getRecoveryFatigue\|applyAgentFatigue
   src/domain/sim/advanceWeek.ts src/domain/sim/fatiguePipeline.ts
 # expected: no output (git grep exits 1)
 
-# 2. Exactly one unfiltered roster average outside the test-only builder.
+# 2. Exactly one canonical roster average; the filtered test-only helper remains.
 git grep -n 'function getAverageRosterFatigue' -- src/domain
-# expected: src/domain/recoveryFatigue.ts only after step 5
-#           (weeklyReport.ts must have been repointed, not left with a copy)
+# expected: src/domain/recoveryFatigue.ts (canonical, unfiltered) and
+#           src/domain/sim/rosterFatigue.ts (filtered, intentionally retained)
+#           no advanceWeek.ts or weeklyReport.ts definitions
 
 # 2b. No anonymous copy of the unfiltered roster-average body outside the canonical module.
 git grep -nE 'Object\.values\(agents\)\.reduce|const values = Object\.values\(agents\)$' -- src/domain
@@ -184,7 +187,7 @@ The full suite and build are required here, not optional: this is a non-trivial 
 - **Silent behaviour change via the pipeline.** Unifying the delta alters three test expectations. If a reviewer sees only "tests updated", the slice looks like it weakened coverage. The PR description must state which expectations moved, why they were the divergent branch, and that no production consumer reads that path.
 - **Losing the SPE-99 snapshot split.** The most likely regression is passing `nextState` teams/cases into `buildDeployedRecoveryModeByAgentId`. The determinism fixture with a field-base case is the thing that catches it.
 - **Import cycle.** `recoveryFatigue.ts` now imports from `./sim/expeditionRecoveryNode`; verify the direction stays one-way.
-- **Guardrail false positives.** A regex guardrail must not match comments in this planning doc or the new module's own docstring; scope it to the two source paths.
+- **Guardrail false positives.** Scan source files under `src/` and `test/` only, and strip comments before matching, so this planning doc and the canonical module's docstring cannot satisfy or trip the check.
 - **Generated evidence.** The `docs/typecheck/**/census.json` files list every domain module and will make the new module look referenced; they are not consumers.
 
 ## Bookkeeping

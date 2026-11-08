@@ -151,6 +151,10 @@ git grep -n 'function getAverageRosterFatigue' -- src/domain
 # expected: src/domain/recoveryFatigue.ts only after step 5
 #           (weeklyReport.ts must have been repointed, not left with a copy)
 
+# 2b. No anonymous copy of the unfiltered roster-average body outside the canonical module.
+git grep -nE 'Object\.values\(agents\)\.reduce|const values = Object\.values\(agents\)$' -- src/domain
+# expected: src/domain/recoveryFatigue.ts only after step 5
+
 # 3. advanceWeek imports the canonical module.
 git grep -n "from '../recoveryFatigue'" -- src/domain/sim/advanceWeek.ts
 

@@ -350,8 +350,10 @@ export function validateMultidimensionalTransportNetworkRecord(
             `unknown layer ref ${normalized.layerRefId}`
           )
         )
+      } else {
+        // Only known-layer rules participate in conflict detection.
+        normalizedRules.push(normalized)
       }
-      normalizedRules.push(normalized)
     } catch (error) {
       issues.push(
         issue(

@@ -117,6 +117,39 @@ describe('multidimensionalTransportNetworkRegistry (SPE-2149 slice 1)', () => {
     expect(result.issues.some((issue) => issue.code === 'unknown_layer_ref')).toBe(true)
   })
 
+  it('does not overlap-check fare rules that reference unknown layers', () => {
+    const result = validateMultidimensionalTransportNetworkRecord({
+      id: 'transport-network:unknown-layer-overlap',
+      label: 'Unknown layer overlap',
+      networkLayerRefs: [{ id: 'layer:surface-rail', label: 'Surface rail', ordinal: 0 }],
+      fareAccessRules: [
+        {
+          id: 'fare:ghost-open',
+          layerRefId: 'layer:missing',
+          mode: 'open',
+          stationBandStart: 0,
+          stationBandEnd: 50,
+        },
+        {
+          id: 'fare:ghost-denied',
+          layerRefId: 'layer:missing',
+          mode: 'denied',
+          stationBandStart: 40,
+          stationBandEnd: 80,
+        },
+      ],
+      stationRiskBands: [],
+      lostPersonQueue: [],
+      owner: MULTIDIMENSIONAL_TRANSPORT_NETWORK_OWNER,
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.filter((issue) => issue.code === 'unknown_layer_ref')).toHaveLength(2)
+    expect(result.issues.some((issue) => issue.code === 'overlapping_contradictory_access')).toBe(
+      false
+    )
+  })
+
   it('allows compatible overlapping rules with the same mode', () => {
     const record = createMultidimensionalTransportNetworkRecord({
       id: 'transport-network:compatible-overlap',

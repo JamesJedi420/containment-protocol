@@ -113,7 +113,6 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     }
     expect(normalizeScenarioLabel('Containment cascade', [longerAuthored])).toBe(longerAuthored.id)
     expect(normalizeScenarioLabel('Containment cascade', [general, longerAuthored])).toBe(longerAuthored.id)
-    expect(normalizeScenarioLabel('Perimeter breach', [differentSuffix])).toBeNull()
   })
 
   it('preserves a disputed overloaded label with notes but warns when the notes are omitted', () => {

@@ -112,6 +112,10 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
   it('keeps compound-with references separate rather than merging the classes', () => {
     expect(first.compoundWithClassIds).toEqual([second.id])
     expect(validateScenarioClassEntry(first).valid).toBe(true)
+    // This per-entry validator does not pretend to verify cross-catalog existence.
+    expect(
+      validateScenarioClassEntry({ ...first, compoundWithClassIds: ['scenario-class:unresolved'] }).valid
+    ).toBe(true)
     expect(validateScenarioClassEntry({ ...first, compoundWithClassIds: [first.id] }).valid).toBe(false)
     const paddedSelf = validateScenarioClassEntry({
       ...first,

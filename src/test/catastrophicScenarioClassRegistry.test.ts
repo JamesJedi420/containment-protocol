@@ -169,6 +169,17 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     })
     expect(unsupportedConfidence.valid).toBe(true)
     expect(unsupportedConfidence.issues.some((issue) => issue.code === 'confidence_without_recurrence')).toBe(true)
+    const missingSourceHistory = validateScenarioClassEntry({
+      ...first,
+      confidence: 0.8,
+      sourceCounts: undefined,
+    })
+    expect(missingSourceHistory.issues).toEqual(
+      expect.arrayContaining([
+        { code: 'missing_source_counts', severity: 'error', field: 'sourceCounts' },
+        { code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' },
+      ])
+    )
     expect(validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }).valid).toBe(false)
     const paddedCosmological = validateScenarioClassEntry({
       ...first,

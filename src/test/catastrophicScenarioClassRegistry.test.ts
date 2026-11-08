@@ -62,6 +62,15 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Lanternfall', [noAlias])).toBeNull()
   })
 
+  it('does not resolve obsolete classes as current aliases', () => {
+    const obsolete: CatastrophicScenarioClassEntry = { ...first, status: 'obsolete' }
+    expect(validateScenarioClassEntry(obsolete).valid).toBe(true)
+    expect(normalizeScenarioLabel('Lanternfall', [obsolete])).toBeNull()
+    expect(normalizeScenarioLabel('Containment cascade', [obsolete])).toBeNull()
+    const active: CatastrophicScenarioClassEntry = { ...second, aliases: ['Lanternfall'] }
+    expect(normalizeScenarioLabel('Lanternfall', [obsolete, active])).toBe(active.id)
+  })
+
   it('uses exact matches before stripping generic suffixes and fails on ambiguous aliases', () => {
     const other: CatastrophicScenarioClassEntry = {
       ...second,

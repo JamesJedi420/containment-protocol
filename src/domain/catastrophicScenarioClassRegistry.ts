@@ -381,7 +381,11 @@ export function normalizeScenarioLabel(
     if (nextKey === candidateKey) break
     candidateKey = nextKey
   }
-  // Only then permit a generic suffix on a catalog label or alias.
+  // Do not equate two different explicit event suffixes by stripping
+  // both sides. A suffix-bearing query must match an authored label/alias
+  // exactly after its own suffixes are removed; otherwise fail closed.
+  if (candidateKey !== key) return null
+  // A bare root may still match one unambiguous authored generic variant.
   const variants = matchingIds(candidateKey, true)
   return variants.length === 1 ? variants[0]! : null
 }

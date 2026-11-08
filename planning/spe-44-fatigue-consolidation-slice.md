@@ -103,7 +103,7 @@ None of these are cosmetic in a seeded weekly sim: fatigue gates mission resolut
 
 Ship `getAverageRosterFatigue` from `advanceWeek.ts:1068` verbatim (unfiltered) into `recoveryFatigue.ts`; have `advanceWeek.ts` and `src/domain/sim/weeklyReport.ts:136` import it. That collapses three copies to one **without changing a single value**.
 
-`src/domain/sim/rosterFatigue.ts` is **not** adopted in this slice. Its filtered definition is arguably the more correct one, but switching would change `WeeklyReport.avgFatigue` for every campaign, which feeds the weekly score, the report card the player reads, and hydrated historical reports. That is a balance/product decision with no owner today, and bundling it into an extraction is how the April review's "not behaviour-preserving" blocker repeats. Leave `rosterFatigue.ts` in place and record the open decision on SPE-44 (see Deferred).
+`src/domain/sim/rosterFatigue.ts` is **not** adopted in this slice. Its filtered definition is arguably the more correct one, but switching would change `WeeklyReport.avgFatigue` for every campaign: the field is displayed in the weekly report and on the dashboard card, persisted in hydrated historical reports, and — checked at `f0099457` — read by no simulation or scoring consumer (`calcWeekScore` counts case buckets only). That makes it a product decision rather than a behaviour-preserving extraction, which is how the April review's "not behaviour-preserving" blocker would repeat. Leave `rosterFatigue.ts` in place; the open choice, its save impact and the recommendation are in [the roster-fatigue decision note](spe-44-roster-fatigue-average-decision.md).
 
 ## Behaviour-preservation contract
 

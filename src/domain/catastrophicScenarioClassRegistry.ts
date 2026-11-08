@@ -157,6 +157,7 @@ function validateTextList(
     }
     if (allowed && !allowed.has(token(item))) {
       issues.push({ code: 'unknown_list_value', severity: 'error', field })
+      continue
     }
     if (seen.has(token(item))) {
       issues.push({ code: 'duplicate_list_value', severity: 'warning', field })
@@ -349,7 +350,7 @@ export function normalizeScenarioLabel(
     for (const entry of entries) {
       if (!token(entry.id) || !STATUS_SET.has(entry.status) || !Array.isArray(entry.aliases)) continue
       for (const label of [entry.id, entry.label, ...entry.aliases]) {
-        if (IMPORTED_CLASS_CODE.test(label)) continue
+        if (typeof label !== 'string' || IMPORTED_CLASS_CODE.test(token(label))) continue
         const candidate = labelKey(label)
         if ((stripSuffixes ? withoutGenericSuffix(candidate) : candidate) === lookup) {
           matches.add(entry.id)

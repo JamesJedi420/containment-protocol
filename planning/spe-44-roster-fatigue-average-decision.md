@@ -87,7 +87,7 @@ That last row is the reason not to bundle the change into an extraction, and it 
 
 - A campaign whose deployable roster empties renders the message for that week and every later one, and never shows `0 / steady`.
 - A save written before the change loads unchanged: every historical zero still renders as `0`.
-- For reports written after the change, `avgFatigue === 0` implies `deployableCount === 0`, and both come from the same filtered set in the same tick.
+- For reports written after the change, `deployableCount === 0` means `avgFatigue === 0`; the converse does not hold, because a fully rested nonempty deployable set also averages `0`. Both values come from the same filtered set in the same tick.
 
 **What this does not decide.** Whether the average should be filtered at all. The slice-level deferral stands as written: the extraction ships unfiltered, `rosterFatigue.ts` stays untouched, SPE-44 stays in Backlog, and adopting Option B remains a separate call. This decision only means that call no longer carries an unanswered presentation question.
 

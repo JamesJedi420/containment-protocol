@@ -98,6 +98,9 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     }
     expect(normalizeScenarioLabel('Containment cascade crisis', [first, general])).toBe(first.id)
     expect(normalizeScenarioLabel('Containment cascade crisis event', [first, general])).toBe(first.id)
+    expect(normalizeScenarioLabel('Containment', [first])).toBeNull()
+    expect(normalizeScenarioLabel('Containment', [first, general])).toBe(general.id)
+    expect(normalizeScenarioLabel('Containment cascade', [first])).toBe(first.id)
   })
 
   it('preserves a disputed overloaded label with notes but warns when the notes are omitted', () => {

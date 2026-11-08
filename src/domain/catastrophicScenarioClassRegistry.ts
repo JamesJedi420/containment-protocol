@@ -374,24 +374,27 @@ export function normalizeScenarioLabel(
     return [...matches].sort(compareStrings)
   }
 
-  // Prefer the most specific exact label or alias. Remove generic query
-  // suffixes one at a time so "Containment cascade crisis" resolves to
-  // "Containment cascade" before the unrelated "Containment" class.
+  // Exact authorship wins. A catalog label with one extra generic suffix
+  // may match the ORIGINAL query, never a query that was already reduced:
+  // "X cascade" can match "X cascade event", but "X incident" must not
+  // match the unrelated catalog label "X breach".
+  const exact = matchingIds(key, false)
+  if (exact.length > 0) return exact.length === 1 ? exact[0]! : null
+  const authoredVariant = matchingIds(key, true)
+  if (authoredVariant.length > 0) {
+    return authoredVariant.length === 1 ? authoredVariant[0]! : null
+  }
+
+  // For query-side generic suffixes, progressively seek exact authored keys,
+  // keeping "Containment cascade" more specific than "Containment".
   let candidateKey = key
   while (true) {
-    const exact = matchingIds(candidateKey, false)
-    if (exact.length > 0) return exact.length === 1 ? exact[0]! : null
     const nextKey = withoutGenericSuffix(candidateKey)
-    if (nextKey === candidateKey) break
+    if (nextKey === candidateKey) return null
     candidateKey = nextKey
+    const normalized = matchingIds(candidateKey, false)
+    if (normalized.length > 0) return normalized.length === 1 ? normalized[0]! : null
   }
-  // Do not equate two different explicit event suffixes by stripping
-  // both sides. A suffix-bearing query must match an authored label/alias
-  // exactly after its own suffixes are removed; otherwise fail closed.
-  if (candidateKey !== key) return null
-  // A bare root may still match one unambiguous authored generic variant.
-  const variants = matchingIds(candidateKey, true)
-  return variants.length === 1 ? variants[0]! : null
 }
 
 /**

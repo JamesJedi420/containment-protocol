@@ -214,7 +214,14 @@ export function validateScenarioClassEntry(
     if (typeof input.confidence !== 'number' || !Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1) {
       issues.push({ code: 'invalid_confidence', severity: 'error', field: 'confidence' })
     }
-    if (!RECURRENCE_SET.has(token(input.recurrenceStrength))) {
+    // Valid recurrence labels still need usage evidence; a bare confidence
+    // score plus an empty source history is not evidence of recurrence.
+    const missingRecurrence = !RECURRENCE_SET.has(token(input.recurrenceStrength))
+    const sourceCounts = input.sourceCounts
+    const emptySourceHistory =
+      isPlainRecord(sourceCounts) &&
+      SCENARIO_SOURCE_TYPES.every((type) => sourceCounts[type] === 0)
+    if (missingRecurrence || emptySourceHistory) {
       issues.push({ code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' })
     }
   }
@@ -305,12 +312,12 @@ export function appendScenarioIncidentBackfill(
   if (incidentIds.some((id) => !token(id) || token(id) !== id)) {
     throw new Error('incidentIds must contain nonempty references')
   }
-  const already = new Set(entry.linkedIncidentIds)
-  const additions = [...new Set(incidentIds.filter((id) => !already.has(id)))].sort(compareStrings)
-  if (additions.length === 0) return entry
+  const combined = [...new Set([...entry.linkedIncidentIds, ...incidentIds])].sort(compareStrings)
+  if (combined.length === entry.linkedIncidentIds.length &&
+      combined.every((id, index) => id === entry.linkedIncidentIds[index])) return entry
   return {
     ...entry,
-    linkedIncidentIds: [...entry.linkedIncidentIds, ...additions],
+    linkedIncidentIds: combined,
   }
 }
 

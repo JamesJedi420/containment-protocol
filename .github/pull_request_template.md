@@ -46,6 +46,12 @@
 Use "none" when empty.
 -->
 
+## Linear status automation
+
+- [ ] This PR is implementation-final for the named issue; a closing link is appropriate.
+- [ ] This PR is documentation/bookkeeping only: the branch and title contain no implementation issue ID, and the body uses `Refs SPE-####`.
+- [ ] I will verify the issue after merge and set Done only when full acceptance is satisfied.
+
 ## Linear updated
 
 - [ ] Approved slice issue linked in this PR body when this is an owned implementation slice

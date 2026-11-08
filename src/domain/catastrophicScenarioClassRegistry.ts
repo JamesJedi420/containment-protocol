@@ -204,7 +204,7 @@ function validateScopeAndReferences(
   }
   if (
     Array.isArray(input.scopeTiers) &&
-    input.scopeTiers.includes('cosmological') &&
+    input.scopeTiers.some((scope) => token(scope) === 'cosmological') &&
     !options.allowCosmologicalScope
   ) {
     issues.push({ code: 'cosmological_scope_requires_mode', severity: 'error', field: 'scopeTiers' })
@@ -217,7 +217,7 @@ function validateScopeAndReferences(
   }
   if (
     Array.isArray(input.compoundWithClassIds) &&
-    input.compoundWithClassIds.includes(input.id)
+    input.compoundWithClassIds.some((id) => token(id) === token(input.id))
   ) {
     issues.push({ code: 'self_compound_class', severity: 'error', field: 'compoundWithClassIds' })
   }

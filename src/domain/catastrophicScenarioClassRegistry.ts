@@ -111,7 +111,9 @@ const GENERIC_EVENT_SUFFIXES = new Set(['breach', 'incident', 'event', 'scenario
 const IMPORTED_CLASS_CODE = /\b(?:[a-z]{0,2}k[\s_-]*class|scp[\s_-]*\d+|scp)\b/i
 
 function compareStrings(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0
+  if (a < b) return -1
+  if (a > b) return 1
+  return 0
 }
 
 function token(value: unknown): string {
@@ -163,18 +165,17 @@ function validateTextList(
   }
 }
 
-/** Validate external/editorial data before treating it as a planning class. */
-export function validateScenarioClassEntry(
-  input: unknown,
-  options: ScenarioClassValidationOptions = {}
-): ScenarioClassValidationResult {
-  if (!isPlainRecord(input)) {
-    return issuesResult([{ code: 'invalid_entry', severity: 'error', field: 'entry' }])
+/** The class ID and textual fields are metadata, not verified world facts. */
+function validateCoreFields(
+  input: Record<string, unknown>,
+  issues: ScenarioClassValidationIssue[]
+): void {
+  if (!token(input.id)) {
+    issues.push({ code: 'missing_id', severity: 'error', field: 'id' })
   }
-
-  const issues: ScenarioClassValidationIssue[] = []
-  if (!token(input.id)) issues.push({ code: 'missing_id', severity: 'error', field: 'id' })
-  if (!token(input.label)) issues.push({ code: 'missing_label', severity: 'error', field: 'label' })
+  if (!token(input.label)) {
+    issues.push({ code: 'missing_label', severity: 'error', field: 'label' })
+  }
   for (const field of ['id', 'label'] as const) {
     if (IMPORTED_CLASS_CODE.test(token(input[field]))) {
       issues.push({ code: 'imported_franchise_class_code', severity: 'error', field })
@@ -187,72 +188,134 @@ export function validateScenarioClassEntry(
   validateTextList(input.inconsistentUseNotes, 'inconsistentUseNotes', issues)
   validateTextList(input.linkedIncidentIds, 'linkedIncidentIds', issues)
   validateTextList(input.compoundWithClassIds, 'compoundWithClassIds', issues)
+}
 
+/** Check type, scope and link restrictions without implying runtime eligibility. */
+function validateScopeAndReferences(
+  input: Record<string, unknown>,
+  options: ScenarioClassValidationOptions,
+  issues: ScenarioClassValidationIssue[]
+): void {
   if (Array.isArray(input.affectedDomains) && input.affectedDomains.length === 0) {
     issues.push({ code: 'empty_affected_domains', severity: 'error', field: 'affectedDomains' })
   }
   if (Array.isArray(input.scopeTiers) && input.scopeTiers.length === 0) {
     issues.push({ code: 'empty_scope_tiers', severity: 'error', field: 'scopeTiers' })
   }
-  if (Array.isArray(input.scopeTiers) && input.scopeTiers.includes('cosmological') && !options.allowCosmologicalScope) {
+  if (
+    Array.isArray(input.scopeTiers) &&
+    input.scopeTiers.includes('cosmological') &&
+    !options.allowCosmologicalScope
+  ) {
     issues.push({ code: 'cosmological_scope_requires_mode', severity: 'error', field: 'scopeTiers' })
   }
-  if (Array.isArray(input.aliases) && input.aliases.some((alias) => IMPORTED_CLASS_CODE.test(token(alias)))) {
+  if (
+    Array.isArray(input.aliases) &&
+    input.aliases.some((alias) => IMPORTED_CLASS_CODE.test(token(alias)))
+  ) {
     issues.push({ code: 'imported_franchise_class_code', severity: 'error', field: 'aliases' })
   }
-  if (Array.isArray(input.compoundWithClassIds) && input.compoundWithClassIds.includes(input.id)) {
+  if (
+    Array.isArray(input.compoundWithClassIds) &&
+    input.compoundWithClassIds.includes(input.id)
+  ) {
     issues.push({ code: 'self_compound_class', severity: 'error', field: 'compoundWithClassIds' })
   }
+}
 
-  if (!RECURRENCE_SET.has(token(input.recurrenceStrength))) {
+/** Schema errors and unsupported-confidence warnings are distinct diagnostics. */
+function validateClaimEvidence(
+  input: Record<string, unknown>,
+  issues: ScenarioClassValidationIssue[]
+): void {
+  const missingRecurrence = !RECURRENCE_SET.has(token(input.recurrenceStrength))
+  if (missingRecurrence) {
     issues.push({ code: 'missing_or_invalid_recurrence', severity: 'error', field: 'recurrenceStrength' })
   }
   if (!STATUS_SET.has(token(input.status))) {
     issues.push({ code: 'missing_or_invalid_status', severity: 'error', field: 'status' })
   }
-  if (input.confidence !== undefined) {
-    if (typeof input.confidence !== 'number' || !Number.isFinite(input.confidence) || input.confidence < 0 || input.confidence > 1) {
-      issues.push({ code: 'invalid_confidence', severity: 'error', field: 'confidence' })
-    }
-    // Valid recurrence labels still need usage evidence; a bare confidence
-    // score plus an empty source history is not evidence of recurrence.
-    const missingRecurrence = !RECURRENCE_SET.has(token(input.recurrenceStrength))
-    const sourceCounts = input.sourceCounts
-    const emptySourceHistory =
-      isPlainRecord(sourceCounts) &&
-      SCENARIO_SOURCE_TYPES.every((type) => sourceCounts[type] === 0)
-    if (missingRecurrence || emptySourceHistory) {
-      issues.push({ code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' })
-    }
-  }
+  if (input.confidence === undefined) return
 
-  if (!isPlainRecord(input.sourceCounts)) {
+  if (
+    typeof input.confidence !== 'number' ||
+    !Number.isFinite(input.confidence) ||
+    input.confidence < 0 ||
+    input.confidence > 1
+  ) {
+    issues.push({ code: 'invalid_confidence', severity: 'error', field: 'confidence' })
+  }
+  const sourceCounts = input.sourceCounts
+  const emptySourceHistory =
+    isPlainRecord(sourceCounts) &&
+    SCENARIO_SOURCE_TYPES.every((type) => sourceCounts[type] === 0)
+  // SPE-2100 explicitly requires a warning for confidence without recurrence
+  // metadata, even when the missing required field also produces an error.
+  // Valid recurrence labels also require source evidence to ground confidence.
+  if (missingRecurrence || emptySourceHistory) {
+    issues.push({ code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' })
+  }
+}
+
+/** Source counts are evidence about use, not a deterministic crisis rule. */
+function validateSourceCounts(
+  counts: unknown,
+  issues: ScenarioClassValidationIssue[]
+): void {
+  if (!isPlainRecord(counts)) {
     issues.push({ code: 'missing_source_counts', severity: 'error', field: 'sourceCounts' })
-  } else {
-    for (const sourceType of SCENARIO_SOURCE_TYPES) {
-      if (!isNonNegativeInteger(input.sourceCounts[sourceType])) {
-        issues.push({ code: 'invalid_source_count', severity: 'error', field: `sourceCounts.${sourceType}` })
-      }
-    }
-    for (const field of Object.keys(input.sourceCounts)) {
-      if (!SOURCE_SET.has(field)) {
-        issues.push({ code: 'unknown_source_type', severity: 'error', field: `sourceCounts.${field}` })
-      }
+    return
+  }
+  for (const sourceType of SCENARIO_SOURCE_TYPES) {
+    if (!isNonNegativeInteger(counts[sourceType])) {
+      issues.push({ code: 'invalid_source_count', severity: 'error', field: `sourceCounts.${sourceType}` })
     }
   }
+  for (const field of Object.keys(counts)) {
+    if (!SOURCE_SET.has(field)) {
+      issues.push({ code: 'unknown_source_type', severity: 'error', field: `sourceCounts.${field}` })
+    }
+  }
+}
 
-  // Record a contested label explicitly; a disputed finding need not imply an overloaded *label*.
+/** Explicitly record overloaded labels and reject truth-collapsing shortcuts. */
+function validateUseConflicts(
+  input: Record<string, unknown>,
+  issues: ScenarioClassValidationIssue[]
+): void {
   if (input.overloadedLabel !== undefined && typeof input.overloadedLabel !== 'boolean') {
     issues.push({ code: 'invalid_overloaded_label_flag', severity: 'error', field: 'overloadedLabel' })
   }
-  if (input.overloadedLabel === true && Array.isArray(input.inconsistentUseNotes) && input.inconsistentUseNotes.length === 0) {
+  if (
+    input.overloadedLabel === true &&
+    Array.isArray(input.inconsistentUseNotes) &&
+    input.inconsistentUseNotes.length === 0
+  ) {
     issues.push({ code: 'overloaded_label_without_notes', severity: 'warning', field: 'inconsistentUseNotes' })
   }
-  if (typeof input.description === 'string' &&
-      (!STATUS_SET.has(token(input.status)) || !RECURRENCE_SET.has(token(input.recurrenceStrength)))) {
+  if (
+    typeof input.description === 'string' &&
+    (!STATUS_SET.has(token(input.status)) || !RECURRENCE_SET.has(token(input.recurrenceStrength)))
+  ) {
     issues.push({ code: 'classification_truth_collapse', severity: 'warning', field: 'description' })
   }
+}
 
+/** Validate external/editorial data before treating it as a planning class. */
+export function validateScenarioClassEntry(
+  input: unknown,
+  options: ScenarioClassValidationOptions = {}
+): ScenarioClassValidationResult {
+  if (!isPlainRecord(input)) {
+    return issuesResult([{ code: 'invalid_entry', severity: 'error', field: 'entry' }])
+  }
+
+  const issues: ScenarioClassValidationIssue[] = []
+  validateCoreFields(input, issues)
+  validateScopeAndReferences(input, options, issues)
+  validateClaimEvidence(input, issues)
+  validateSourceCounts(input.sourceCounts, issues)
+  validateUseConflicts(input, issues)
   return issuesResult(issues)
 }
 
@@ -263,7 +326,7 @@ function labelKey(raw: unknown): string {
 
 function withoutGenericSuffix(key: string): string {
   const words = key.split(' ')
-  while (words.length > 1 && GENERIC_EVENT_SUFFIXES.has(words[words.length - 1]!)) {
+  while (words.length > 1 && GENERIC_EVENT_SUFFIXES.has(words.at(-1)!)) {
     words.pop()
   }
   return words.join(' ')

@@ -435,7 +435,7 @@ export function suggestRefinement(
     const domains = [...new Set(evidence.affectedDomains)].sort(compareStrings)
     const key = `${evidence.scopeTier}|${domains.join(',')}`
     const previous = byIncident.get(evidence.incidentId)
-    if (previous && previous !== key) return null
+    if (previous !== undefined && previous !== key) return null
     byIncident.set(evidence.incidentId, key)
     const bucket = clusters.get(key) ?? { scopeTier: evidence.scopeTier, domains, ids: new Set<string>() }
     bucket.ids.add(evidence.incidentId)

@@ -3,7 +3,7 @@
 | Field                | Value                                                                                                                                       |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**           | Draft — implementation handoff. No code, test or schema change was made by this document.                                                   |
-| **Linear**           | [SPE-44](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass) (Backlog)                                   |
+| **Linear**           | [SPE-44](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass) (parent issue)                              |
 | **Related owners**   | SPE-99 (deployed-recovery scaling), SPE-1107 (responder energy budget), SPE-130 (fatigue channels)                                          |
 | **Suggested branch** | `spe-44-fatigue-consolidation`                                                                                                              |
 | **Base**             | `main` @ `64e37510` (2026-11-04)                                                                                                            |
@@ -103,7 +103,7 @@ None of these are cosmetic in a seeded weekly sim: fatigue gates mission resolut
 
 Ship `getAverageRosterFatigue` from `advanceWeek.ts:1068` verbatim (unfiltered) into `recoveryFatigue.ts`; have `advanceWeek.ts` and `src/domain/sim/weeklyReport.ts:136` import it. That collapses three copies to one **without changing a single value**.
 
-`src/domain/sim/rosterFatigue.ts` is **not** adopted in this slice. Its filtered definition is arguably the more correct one, but switching would change `WeeklyReport.avgFatigue` for every campaign: the field is displayed in the weekly report and on the dashboard card, persisted in hydrated historical reports, and — checked at `f0099457` — read by no simulation or scoring consumer (`calcWeekScore` counts case buckets only). That makes it a product decision rather than a behaviour-preserving extraction, which is how the April review's "not behaviour-preserving" blocker would repeat. Leave `rosterFatigue.ts` in place; the open choice, its save impact and the recommendation are in [the roster-fatigue decision note](spe-44-roster-fatigue-average-decision.md). The presentation question that deferral was waiting on — what a filtered average shows when nobody is deployable — is now decided there (`deployableCount` plus a "No deployable agents" render); the denominator itself remains open, so this slice's unfiltered decision is unchanged.
+`src/domain/sim/rosterFatigue.ts` is **not** adopted in this slice. Its filtered definition is arguably the more correct one, but switching would change `WeeklyReport.avgFatigue` for every campaign: the field is displayed in the weekly report and on the dashboard card, persisted in hydrated historical reports, and — checked at `f0099457` — read by no simulation or scoring consumer (`calcWeekScore` counts case buckets only). That makes it a product decision rather than a behaviour-preserving extraction, which is how the April review's "not behaviour-preserving" blocker would repeat. Leave `rosterFatigue.ts` in place. The lead accepted the filtered denominator in [the Option B proposal](spe-44-filtered-roster-fatigue-proposal.md) on 2026-11-08, but this extraction still ships unfiltered and does not implement that change. The accepted change is authorized only as a separate child slice, which has not been created; its boundary is in proposal §2 and the [final handoff](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass#comment-aff581a0-b362-42bf-b339-cbc79d0849bf). This slice's unfiltered decision is unchanged.
 
 ## Behaviour-preservation contract
 
@@ -177,7 +177,7 @@ The full suite and build are required here, not optional: this is a non-trivial 
 ## Exclusions / deferred
 
 - **Channel, overdrive and energy writes in the live tick.** `applyWeeklyAgentFatigue` already models them and `missionResolutionAgents.ts`, `deploymentReadiness.ts`, `downtimeCarryIn.ts` and `combatStim.ts` already read the fields, but the live weekly tick never accumulates mission/training channels. Adopting that is a gameplay change owned by SPE-1107 and SPE-130. Record the finding; do not implement it here.
-- **Filtered vs unfiltered roster average.** The empty-deployable-set presentation is decided in the decision note; the denominator is still a lead decision. Propose on SPE-44 and leave `rosterFatigue.ts` untouched.
+- **Filtered vs unfiltered roster average.** The lead accepted the filtered denominator on 2026-11-08, but this extraction still ships unfiltered and does not implement the filtered change. The authorized child is not created and is blocked on this extraction; do not implement it here.
 - **Deleting `fatiguePipeline.applyWeeklyAgentFatigue`.** After this slice it shares the canonical delta but is still test-only. Retiring it is a separate slice (either wire it or delete it with its tests), not a drive-by.
 - **`recoveryRateBonus` semantics during training.** The slice preserves the live credit; whether training should credit recovery at all is a balance question for the same follow-up.
 - No store, projection, UI, event-schema or save-version change. No new dependency.
@@ -192,7 +192,7 @@ The full suite and build are required here, not optional: this is a non-trivial 
 
 ## Bookkeeping
 
-- Implementation session sets SPE-44 **In Progress** before coding and leaves it open: this slice satisfies the fatigue portion of the acceptance criterion, not the whole advance-week boundary.
+- Implementation session first reconciles SPE-44's current **Done** state, then sets the active slice **In Progress**. This extraction satisfies the fatigue portion of the acceptance criterion, not the whole advance-week boundary; leave the parent open unless full completion is independently proven.
 - `SCHEMA_REGISTRY.md` is untouched (no persisted shape change).
 - Add a status line to this file (`Draft` → `In progress` → `Recently shipped`) when the slice ships; do not mark SPE-44 Done from this slice alone.
 - Cross-reference `docs/dead-module-and-duplicate-logic-inventory.md` §3.1–3.2, which holds the inventory evidence this slice is built on.

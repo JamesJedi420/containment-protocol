@@ -1,15 +1,17 @@
 # SPE-44 — Option B proposal: filtered roster fatigue average
 
-| Field         | Value                                                                                                                                         |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Date          | 2026-11-08                                                                                                                                    |
-| Revision      | `766de240` (post-#4936); every anchor below is a static read at that commit                                                                   |
-| Owner         | SPE-44 (advance-week ownership per the dead-module inventory)                                                                                 |
-| Status        | **Proposal — awaiting a lead decision.** Not approved, not started; no source, test or schema file is touched by this note                    |
-| Depends on    | [denominator/open-question note](spe-44-roster-fatigue-average-decision.md) and [the extraction slice](spe-44-fatigue-consolidation-slice.md) |
-| Approval gate | One answer to each of the three §6 questions; a yes to all three authorizes **creating** one bounded child slice, not implementing it         |
+| Field      | Value                                                                                                                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Date       | 2026-11-08                                                                                                                                                                                            |
+| Revision   | `766de240` (post-#4936); every anchor below is a static read at that commit; decision recorded at `7ef49603`                                                                                          |
+| Owner      | SPE-44 (advance-week ownership per the dead-module inventory)                                                                                                                                         |
+| Status     | **Decided — lead accepted all three recommendations on 2026-11-08.** One bounded child slice is authorized to be created; no child exists and no source, test or schema file is touched by this note. |
+| Depends on | [roster-fatigue decision note](spe-44-roster-fatigue-average-decision.md) and [the extraction slice](spe-44-fatigue-consolidation-slice.md)                                                           |
+| Authorizes | Creating **one** bounded child slice with §2 as its boundary and §4 as acceptance. It does not authorize the implementation PR, a second slice, or mission-intake changes.                            |
 
-This note asks for one decision the [roster-fatigue note](spe-44-roster-fatigue-average-decision.md) deliberately left open: **should `WeeklyReport.avgFatigue` (and the per-team rows beside it) count only deployable agents, or keep counting every agent on the roster?** The empty-set presentation is already decided — an optional `deployableCount` with a "No deployable agents" render — so that is not part of this ask.
+**Decision record:** [SPE-44 comment `607d09e5`](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass#comment-607d09e5) records the lead's **yes to all three** on 2026-11-08 — filtered deployable mean; preserve the written tick snapshot; filtered team rows plus `deployableCount`. The final creation handoff is [SPE-44 comment `aff581a0`](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass#comment-aff581a0-b362-42bf-b339-cbc79d0849bf); no child has been created.
+
+This note records the decision the [roster-fatigue note](spe-44-roster-fatigue-average-decision.md) deliberately left open: **should `WeeklyReport.avgFatigue` (and the per-team rows beside it) count only deployable agents, or keep counting every agent on the roster?** The empty-set presentation was already decided — an optional `deployableCount` with a "No deployable agents" render — so it is not re-opened here.
 
 ## 1. What ships at `766de240`
 
@@ -67,7 +69,9 @@ Nothing in the simulation reads this number. The weekly score counts case bucket
 - Removing the unfiltered helper entirely; the extraction keeps it as the historical definition.
 - Any new issue family: this is one bounded change to SPE-44.
 
-## 6. Decision requested
+## 6. Decision recorded (2026-11-08)
+
+**The lead answered yes to all three on 2026-11-08.** The accepted answers are below; the table's "Recommended" column is the rationale for those answers, not a pending choice.
 
 | #   | Question                                               | Recommended                                                            | Cost of the alternative                                                                             |
 | --- | ------------------------------------------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
@@ -75,4 +79,4 @@ Nothing in the simulation reads this number. The weekly score counts case bucket
 | 2   | What does hydration do with the current week's report? | Preserve the written tick snapshot (normalize only, no live recompute) | Recompute from the live roster: a post-tick hire silently rebases the stored report and its readers |
 | 3   | Do team rows use the same predicate?                   | Yes, plus `deployableCount`                                            | Leave them unfiltered: report and team rows contradict each other                                   |
 
-Question 2's recommendation changed in this revision: item 4 now preserves the written tick instead of recomputing the filtered agent mean from the live roster. That is a product choice within the same unapproved proposal, not an existing decision; the lead answer in §6 covers it. A lead answer of "yes" to all three authorizes creating **one** SPE-44 child slice with §2 as its boundary and §4 as acceptance. It does not authorize the implementation PR by itself, any change to mission-intake thresholds, or a second slice. A "no" leaves this note as the recorded reason the unfiltered form stays, and the slice doc's deferral remains accurate as written.
+The lead's **yes to all three** on 2026-11-08 authorizes creating **one** SPE-44 child slice with §2 as its boundary and §4 as acceptance. It does not authorize the implementation PR by itself, any change to mission-intake thresholds, or a second slice. No child has been created yet; creation is blocked on the extraction slice and on reconciling SPE-44's current Linear state.

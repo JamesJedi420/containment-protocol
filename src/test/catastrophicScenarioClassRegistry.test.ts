@@ -60,6 +60,8 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Nonexistent event', [malformed])).toBeNull()
     const noAlias = { ...malformed, aliases: [] }
     expect(normalizeScenarioLabel('Lanternfall', [noAlias])).toBeNull()
+    const missingId = { ...malformed, id: ' ' }
+    expect(normalizeScenarioLabel('Lanternfall', [missingId])).toBeNull()
   })
 
   it('does not resolve obsolete classes as current aliases', () => {

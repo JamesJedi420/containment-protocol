@@ -348,7 +348,13 @@ export function normalizeScenarioLabel(
   function matchingIds(lookup: string, stripSuffixes: boolean): string[] {
     const matches = new Set<string>()
     for (const entry of entries) {
-      if (!token(entry.id) || !STATUS_SET.has(entry.status) || !Array.isArray(entry.aliases)) continue
+      const status = token(entry.status)
+      if (
+        !token(entry.id) ||
+        !STATUS_SET.has(status) ||
+        status === 'obsolete' ||
+        !Array.isArray(entry.aliases)
+      ) continue
       for (const label of [entry.id, entry.label, ...entry.aliases]) {
         if (typeof label !== 'string' || IMPORTED_CLASS_CODE.test(token(label))) continue
         const candidate = labelKey(label)

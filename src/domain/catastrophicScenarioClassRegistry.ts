@@ -378,11 +378,13 @@ export function appendScenarioIncidentBackfill(
     throw new Error('incidentIds must contain nonempty references')
   }
   // A no-op must preserve the caller's record, even if legacy history is unsorted.
-  const existing = new Set(entry.linkedIncidentIds)
+  const existing = new Set(entry.linkedIncidentIds.map((id) => token(id)))
   const additions = incidentIds.filter((id) => !existing.has(id))
   if (additions.length === 0) return entry
   // Once a change is necessary, normalize the full history for byte-stable output.
-  const combined = [...new Set([...entry.linkedIncidentIds, ...additions])].sort(compareStrings)
+  const combined = [
+    ...new Set([...entry.linkedIncidentIds.map((id) => token(id)), ...additions]),
+  ].sort(compareStrings)
   return {
     ...entry,
     linkedIncidentIds: combined,

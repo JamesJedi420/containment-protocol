@@ -30,6 +30,8 @@ const second: CatastrophicScenarioClassEntry = {
   aliases: ['Forgotten sky'],
   affectedDomains: ['consciousness', 'public_knowledge'],
   scopeTiers: ['site', 'world'],
+  recurrenceStrength: 'repeated',
+  status: 'operational_shorthand',
   sourceCounts: { case: 2, design: 2, test: 1, contradiction_check: 1 },
   linkedIncidentIds: [],
   compoundWithClassIds: [],
@@ -54,7 +56,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Nonexistent event', catalog)).toBeNull()
   })
 
-  it('skips malformed catalog labels while preserving legitimately matched aliases', () => {
+  it('keeps valid aliases when labels are malformed but rejects blank class IDs', () => {
     const malformed = { ...first, label: undefined } as unknown as CatastrophicScenarioClassEntry
     expect(normalizeScenarioLabel('Lanternfall', [malformed, second])).toBe(first.id)
     expect(normalizeScenarioLabel('Nonexistent event', [malformed])).toBeNull()
@@ -148,6 +150,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(bad.issues.some((issue) => issue.code === 'imported_franchise_class_code')).toBe(true)
     expect(normalizeScenarioLabel('XK-Class', [first])).toBeNull()
     expect(validateScenarioClassEntry({ ...first, aliases: ['SCP-001'] }).valid).toBe(false)
+    expect(validateScenarioClassEntry({ ...first, label: 'think class' }).valid).toBe(true)
   })
 
   it('errors on missing status; warns on truth-collapse and ungrounded confidence', () => {
@@ -275,6 +278,12 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(suggestRefinement({ ...first, status: 'disputed' }, repeated)).toBeNull()
     expect(suggestRefinement(first, repeated.slice(0, 3))).toBeNull()
     expect(suggestRefinement(first, [...repeated, evidence('incident:1', 'physics')])).toBeNull()
+    const malformedEvidence = {
+      incidentId: 'incident:bad',
+      affectedDomains: ['unknown'],
+      scopeTier: 'region',
+    } as unknown as ScenarioIncidentEvidence
+    expect(suggestRefinement(first, [...repeated, malformedEvidence])).toBeNull()
   })
 
   it('keeps repeated validation byte-stable and input unmodified', () => {

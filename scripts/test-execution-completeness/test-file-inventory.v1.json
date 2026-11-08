@@ -339,6 +339,7 @@
     "src/test/caseLifecycleWeeklyOrchestration.test.ts",
     "src/test/caseResolution.abstraction.test.ts",
     "src/test/caseTemplateConcealmentMigration.test.ts",
+    "src/test/catastrophicScenarioClassRegistry.test.ts",
     "src/test/choiceSystem.test.ts",
     "src/test/civicPressureProfile.test.ts",
     "src/test/closedFacilityPermeability.contract.test.ts",

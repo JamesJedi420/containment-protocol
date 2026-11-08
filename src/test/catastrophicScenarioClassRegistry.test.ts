@@ -182,6 +182,13 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     ])
     expect(appendScenarioIncidentBackfill(unsortedHistory, [])).toBe(unsortedHistory)
     expect(appendScenarioIncidentBackfill(unsortedHistory, ['case:alpha'])).toBe(unsortedHistory)
+    const paddedHistory = { ...first, linkedIncidentIds: [' case:alpha ', 'case:charlie'] }
+    expect(appendScenarioIncidentBackfill(paddedHistory, ['case:alpha'])).toBe(paddedHistory)
+    expect(appendScenarioIncidentBackfill(paddedHistory, ['case:bravo']).linkedIncidentIds).toEqual([
+      'case:alpha',
+      'case:bravo',
+      'case:charlie',
+    ])
     expect(() => appendScenarioIncidentBackfill(first, [' '])).toThrow()
   })
 
@@ -193,7 +200,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(first.linkedIncidentIds).toEqual(['case:alpha'])
   })
 
-  it('returns a stable refinement hint only for replicated distinct evidence clusters',
+  it('returns a stable refinement hint only for replicated distinct evidence clusters', () => {
     const repeated: ScenarioIncidentEvidence[] = [
       evidence('incident:4', 'physics'),
       evidence('incident:2', 'ecology'),

@@ -153,7 +153,7 @@ function validateTextList(
       issues.push({ code: 'invalid_list_value', severity: 'error', field })
       continue
     }
-    if (allowed && !allowed.has(item)) {
+    if (allowed && !allowed.has(token(item))) {
       issues.push({ code: 'unknown_list_value', severity: 'error', field })
     }
     if (seen.has(token(item))) {

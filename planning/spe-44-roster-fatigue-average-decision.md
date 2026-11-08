@@ -60,19 +60,48 @@ What it actually costs an existing save:
 | Fixtures and tests      | `weeklyReport.test.ts:265` becomes truthful about production; literal-number report fixtures in `runTransfer.test.ts` and `App.test.tsx` are unaffected because they never recompute. |
 | Empty deployable roster | **Returns 0**, which is also a legitimate "perfectly rested" value. The number silently reads as rested when everyone is dead, resigned, or in training.                              |
 
-That last row is the reason not to bundle the change into an extraction. `0` is ambiguous, so the switch needs an answer before it ships: either keep `0` and add a report note when the filtered roster is empty, or make `avgFatigue` optional and render "no deployable agents". Returning the unfiltered value as a fallback is the worst option — it reinstates the dilution exactly in the case the change exists to fix.
+That last row is the reason not to bundle the change into an extraction, and it is no longer open: the presentation is decided below. Returning the unfiltered value as a fallback stays the worst option — it reinstates the dilution exactly in the case the change exists to fix.
+
+## Empty deployable sets — decided
+
+`avgFatigue: 0` is a real measurement (a fully rested, fully deployable squad), so the number cannot also mean "nobody to measure". Both filtered definitions collide this way — roster-wide and per team — so one rule covers both.
+
+**Decision.** Keep `avgFatigue` a required number, keep writing `0` when the filtered set is empty, and add an optional count beside it:
+
+| Shape                    | Field                      | Written from                                                                                      |
+| ------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------- |
+| `WeeklyReport`           | `deployableCount?: number` | agents passing `isRosterFatigueAgent`, at `advanceWeek.ts:4515` and `weeklyReport.ts:307`         |
+| `WeeklyReportTeamStatus` | `deployableCount?: number` | members passing the same predicate, in `buildReportTeamStatusEntry` (`reportTeamStatus.ts:57-78`) |
+
+**Rendering rule.** `deployableCount === 0` → the report line and the team row read "No deployable agents" and omit the band. `deployableCount > 0` → current behaviour. **Field absent → current behaviour**, which is what every save written before the change and every existing fixture has.
+
+**Why a count and not a special value.**
+
+- Making `avgFatigue` optional touches five readers and cannot describe old saves: they store `0`, so absence would have to be invented at load.
+- Extending `FatigueBand` with `'unavailable'` leaks into agent surfaces — it is the shared type at `agent/models.ts:657`, filtered on in `agentListView.ts:135` and rendered at `agentView.ts:380` — and hydration recomputes the band from the number at `runTransfer.ts:5139`, which would erase the marker on the next load.
+- A sentinel such as `-1` collides with the 0–100 clamp and `WEEKLY_REPORT_AVG_FATIGUE_MAX` normalization at `runTransfer.ts:403,1746`.
+
+**Cost.** One new optional number on two persisted shapes, so a `SCHEMA_REGISTRY.md` row plus a normalization rule that accepts absence and clamps a present value to the set it counted. No `GAME_SAVE_VERSION` bump, because absence is the legacy default and no stored value is rewritten. Nothing in the simulation reads it; it is a display fact about the same set the average uses.
+
+**Acceptance for this decision.**
+
+- A campaign whose deployable roster empties renders the message for that week and every later one, and never shows `0 / steady`.
+- A save written before the change loads unchanged: every historical zero still renders as `0`.
+- For reports written after the change, `avgFatigue === 0` implies `deployableCount === 0`, and both come from the same filtered set in the same tick.
+
+**What this does not decide.** Whether the average should be filtered at all. The slice-level deferral stands as written: the extraction ships unfiltered, `rosterFatigue.ts` stays untouched, SPE-44 stays in Backlog, and adopting Option B remains a separate call. This decision only means that call no longer carries an unanswered presentation question.
 
 ## Recommendation
 
 1. **Ship the extraction with Option A.** `getAverageRosterFatigue` moves into `recoveryFatigue.ts` unfiltered, both builders import it, and no number moves. This keeps the April review's "not behaviour-preserving" blocker closed.
-2. **Then land Option B as its own small PR under SPE-44**, in the same two-file footprint: switch `advanceWeek.ts:4515` and `weeklyReport.ts:307` to the filtered helper, add the empty-roster presentation, and rebaseline only the fixtures that pin the weekly report.
+2. **Then land Option B as its own small PR under SPE-44**, in the same two-file footprint: switch `advanceWeek.ts:4515` and `weeklyReport.ts:307` to the filtered helper, write `deployableCount` and render the empty-set message decided above, and rebaseline only the fixtures that pin the weekly report.
 3. **Keep them separate PRs.** A bisect can then distinguish "the extraction broke numbers" from "we deliberately chose new numbers" — the exact confusion that made the original SPE-44 closure indefensible.
 
 ## Acceptance if Option B is taken
 
 - Both builders import the filtered helper; no local definition remains (the slice's static guardrail already covers `getAverageRosterFatigue` declarations and its body expression).
 - A test proves exclusion **end to end** through `settleWeekState`, not just against the helper: dead, resigned, training and attrition-unavailable agents must not move `WeeklyReport.avgFatigue`.
-- An empty deployable roster yields 0 **plus** the presentation decided above.
+- An empty deployable roster yields 0 **plus** the `deployableCount` presentation decided above.
 - One save/replay fixture spans the change and asserts the expected step, so the discontinuity is recorded rather than discovered by a player.
 - `planning/spe-44-fatigue-consolidation-slice.md` and the inventory row are updated to say the unfiltered form is historical-only.
 

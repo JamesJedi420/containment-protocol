@@ -218,6 +218,17 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
         { code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' },
       ])
     )
+    const malformedSourceHistory = validateScenarioClassEntry({
+      ...first,
+      confidence: 0.8,
+      sourceCounts: { case: undefined, design: undefined, test: undefined, contradiction_check: undefined },
+    })
+    expect(malformedSourceHistory.issues).toEqual(
+      expect.arrayContaining([
+        { code: 'invalid_source_count', severity: 'error', field: 'sourceCounts.case' },
+        { code: 'confidence_without_recurrence', severity: 'warning', field: 'recurrenceStrength' },
+      ])
+    )
     expect(validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }).valid).toBe(false)
     const paddedCosmological = validateScenarioClassEntry({
       ...first,
@@ -258,6 +269,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(appendScenarioIncidentBackfill(unsortedHistory, ['case:alpha'])).toBe(unsortedHistory)
     const paddedHistory = { ...first, linkedIncidentIds: [' case:alpha ', 'case:charlie'] }
     expect(appendScenarioIncidentBackfill(paddedHistory, ['case:alpha'])).toBe(paddedHistory)
+    expect(() => appendScenarioIncidentBackfill(paddedHistory, [' case:alpha '])).toThrow()
     expect(appendScenarioIncidentBackfill(paddedHistory, ['case:bravo']).linkedIncidentIds).toEqual([
       'case:alpha',
       'case:bravo',

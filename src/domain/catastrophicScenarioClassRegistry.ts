@@ -327,7 +327,7 @@ function labelKey(raw: unknown): string {
 
 function withoutGenericSuffix(key: string): string {
   const words = key.split(' ')
-  while (words.length > 1 && GENERIC_EVENT_SUFFIXES.has(words.at(-1)!)) {
+  if (words.length > 1 && GENERIC_EVENT_SUFFIXES.has(words.at(-1)!)) {
     words.pop()
   }
   return words.join(' ')
@@ -352,7 +352,7 @@ export function normalizeScenarioLabel(
       for (const label of [entry.id, entry.label, ...entry.aliases]) {
         if (typeof label !== 'string' || IMPORTED_CLASS_CODE.test(token(label))) continue
         const candidate = labelKey(label)
-        if ((stripSuffixes ? withoutGenericSuffix(candidate) : candidate) === lookup) {
+        if (candidate === lookup || (stripSuffixes && withoutGenericSuffix(candidate) === lookup)) {
           matches.add(entry.id)
         }
       }
@@ -360,12 +360,19 @@ export function normalizeScenarioLabel(
     return [...matches].sort(compareStrings)
   }
 
-  // Exact match first: a class literally named "Perimeter Breach" must not be
-  // shadowed by a distinct class named "Perimeter".
-  const exact = matchingIds(key, false)
-  if (exact.length > 0) return exact.length === 1 ? exact[0]! : null
-  const simplified = withoutGenericSuffix(key)
-  const variants = matchingIds(simplified, true)
+  // Prefer the most specific exact label or alias. Remove generic query
+  // suffixes one at a time so "Containment cascade crisis" resolves to
+  // "Containment cascade" before the unrelated "Containment" class.
+  let candidateKey = key
+  while (true) {
+    const exact = matchingIds(candidateKey, false)
+    if (exact.length > 0) return exact.length === 1 ? exact[0]! : null
+    const nextKey = withoutGenericSuffix(candidateKey)
+    if (nextKey === candidateKey) break
+    candidateKey = nextKey
+  }
+  // Only then permit a generic suffix on a catalog label or alias.
+  const variants = matchingIds(candidateKey, true)
   return variants.length === 1 ? variants[0]! : null
 }
 

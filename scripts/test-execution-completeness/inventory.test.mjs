@@ -45,6 +45,25 @@ test('readDiscoveryFromConfig reads the live app.vite.config.ts contract', () =>
   assert.deepEqual(readDiscoveryFromConfig(source), DISCOVERY)
 })
 
+test('readDiscoveryFromConfig ignores include arrays outside the test block', () => {
+  const source = `export default {
+    plugins: [{ include: ['wrong/**'] }],
+    test: { include: ['src/**/*.test.ts'], exclude: [] },
+  }`
+  assert.deepEqual(readDiscoveryFromConfig(source), {
+    include: ['src/**/*.test.ts'],
+    exclude: [],
+  })
+})
+
+test('readDiscoveryFromConfig ignores a nested coverage exclude', () => {
+  const source = `test: {
+    include: ['src/**/*.test.ts'],
+    coverage: { exclude: ['docs/**'] },
+  }`
+  assert.throws(() => readDiscoveryFromConfig(source), /test.exclude/)
+})
+
 test('readDiscoveryFromConfig fails closed on a missing exclude array', () => {
   assert.throws(
     () => readDiscoveryFromConfig("test: { include: ['src/**/*.test.ts'] }"),

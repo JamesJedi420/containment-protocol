@@ -19,6 +19,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   FAILURE_CODES,
+  completenessExitCode,
   evaluateCompleteness,
   normalizeRepoPath,
   toRepoRelative,
@@ -172,7 +173,7 @@ const child = runVitest([
   ...passthrough,
   '--reporter=default',
   '--reporter=json',
-  `--outputFile=${reportPath}`,
+  `--outputFile.json=${reportPath}`,
 ])
 
 if (child.error) {
@@ -283,7 +284,7 @@ if (!evaluation.ok) {
     failures: evaluation.failures,
     reportPath,
   })
-  process.exit(child.status !== 0 ? child.status : 1)
+  process.exit(completenessExitCode(child.status))
 }
 
 console.error(

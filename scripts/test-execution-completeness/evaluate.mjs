@@ -21,6 +21,14 @@ export const FAILURE_CODES = Object.freeze({
 })
 
 /**
+ * Exit code for a completeness failure: preserve a genuine runner failure,
+ * but fail closed when the runner status is missing or zero.
+ */
+export function completenessExitCode(status) {
+  return typeof status === 'number' && status !== 0 ? status : 1
+}
+
+/**
  * Canonical inventory/report identity: POSIX separators, no leading `./`,
  * repository-relative, no absolute paths, drive letters or `..` segments.
  * Returns null when the value cannot be a repository-relative test identity.

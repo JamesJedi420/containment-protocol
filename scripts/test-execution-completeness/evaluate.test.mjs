@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   FAILURE_CODES,
+  completenessExitCode,
   discoveryDrift,
   evaluateCompleteness,
   normalizeRepoPath,
@@ -199,6 +200,17 @@ test('normalizes Windows separators in report names', () => {
     root: 'C:\\repo',
   })
   assert.equal(result.ok, true)
+})
+
+test('preserves a genuine runner failure exit code', () => {
+  assert.equal(completenessExitCode(3), 3)
+  assert.equal(completenessExitCode(1), 1)
+})
+
+test('fails closed when the runner status is zero or missing', () => {
+  assert.equal(completenessExitCode(0), 1)
+  assert.equal(completenessExitCode(null), 1)
+  assert.equal(completenessExitCode(undefined), 1)
 })
 
 test('normalizeRepoPath rejects absolute, parent and drive-letter identities', () => {

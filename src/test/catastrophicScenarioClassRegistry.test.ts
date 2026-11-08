@@ -159,6 +159,11 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('XK-Class', [first])).toBeNull()
     expect(validateScenarioClassEntry({ ...first, aliases: ['SCP-001'] }).valid).toBe(false)
     expect(validateScenarioClassEntry({ ...first, label: 'think class' }).valid).toBe(true)
+    expect(validateScenarioClassEntry({ ...first, label: 'ＸＫ-Ｃlass' }).valid).toBe(false)
+    expect(validateScenarioClassEntry({ ...first, aliases: ['ＳＣＰ-００１'] }).valid).toBe(false)
+    const disguised = { ...first, label: 'ＸＫ-Ｃlass', aliases: [] }
+    expect(normalizeScenarioLabel('ＸＫ-Ｃlass', [disguised])).toBeNull()
+    expect(normalizeScenarioLabel('XK-Class', [disguised])).toBeNull()
   })
 
   it('errors on missing status; warns on truth-collapse and ungrounded confidence', () => {

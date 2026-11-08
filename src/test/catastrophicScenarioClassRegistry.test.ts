@@ -81,6 +81,15 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Perimeter', [first, other])).toBe(other.id)
     expect(normalizeScenarioLabel('Lanternfall', [first, other])).toBeNull()
     expect(normalizeScenarioLabel('Lanternfall breach', [first, other])).toBeNull()
+    const differentSuffix: CatastrophicScenarioClassEntry = {
+      ...second,
+      id: 'scenario-class:perimeter-incident',
+      label: 'Perimeter incident',
+      aliases: [],
+    }
+    expect(normalizeScenarioLabel('Perimeter breach', [differentSuffix])).toBeNull()
+    expect(normalizeScenarioLabel('Perimeter', [differentSuffix])).toBe(differentSuffix.id)
+    expect(normalizeScenarioLabel('Perimeter incident', [differentSuffix])).toBe(differentSuffix.id)
     const general: CatastrophicScenarioClassEntry = {
       ...second,
       id: 'scenario-class:containment',

@@ -256,7 +256,8 @@ export function validateScenarioClassEntry(
   return issuesResult(issues)
 }
 
-function labelKey(raw: string): string {
+function labelKey(raw: unknown): string {
+  if (typeof raw !== 'string') return ''
   return raw.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().replace(/\s+/g, ' ')
 }
 
@@ -312,9 +313,12 @@ export function appendScenarioIncidentBackfill(
   if (incidentIds.some((id) => !token(id) || token(id) !== id)) {
     throw new Error('incidentIds must contain nonempty references')
   }
-  const combined = [...new Set([...entry.linkedIncidentIds, ...incidentIds])].sort(compareStrings)
-  if (combined.length === entry.linkedIncidentIds.length &&
-      combined.every((id, index) => id === entry.linkedIncidentIds[index])) return entry
+  // A no-op must preserve the caller's record, even if legacy history is unsorted.
+  const existing = new Set(entry.linkedIncidentIds)
+  const additions = incidentIds.filter((id) => !existing.has(id))
+  if (additions.length === 0) return entry
+  // Once a change is necessary, normalize the full history for byte-stable output.
+  const combined = [...new Set([...entry.linkedIncidentIds, ...additions])].sort(compareStrings)
   return {
     ...entry,
     linkedIncidentIds: combined,

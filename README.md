@@ -75,7 +75,7 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run lint`                            | Run ESLint across the repository.                                                                                                                                |
 | `npm run test:run`                        | Run the full Vitest suite once using the local `vmThreads` pool.                                                                                                 |
 | `npm run test`                            | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.                                                                                      |
-| `npm run test:run:ci`                     | Run the CI test command using the `forks` pool (PR and main).                                                                                                    |
+| `npm run test:run:ci`                     | Run the CI test command using the `forks` pool (PR and main), then verify every expected test file was collected and reported (SPE-3427).                        |
 | `npm run coverage`                        | Run tests with coverage output (local `vmThreads` pool).                                                                                                         |
 | `npm run coverage:ci`                     | Coverage with the `forks` pool — CI runs this on pushes to `main` only, not on PRs.                                                                              |
 | `npm run format`                          | Rewrite files with Prettier.                                                                                                                                     |
@@ -85,6 +85,7 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:theme-contracts`          | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`.                                                                            |
 | `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                                                                                   |
 | `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks).                                                     |
+| `npm run verify:test-completeness`        | Fast unit fixtures for the SPE-3427 test-execution completeness evaluator.                                                                                       |
 | `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                                                                             |
 | `npm run session:preflight`               | Evaluate a versioned SPE-3337 evidence envelope from stdin and return `ready`/`blocked`/`unknown`; see [`docs/session-preflight.md`](docs/session-preflight.md). |
 | `npm run verify:session-preflight`        | Run the focused read-only preflight test suite.                                                                                                                  |

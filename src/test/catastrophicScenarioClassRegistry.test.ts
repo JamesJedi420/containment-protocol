@@ -4,8 +4,10 @@ import {
   normalizeScenarioLabel,
   suggestRefinement,
   validateScenarioClassEntry,
-  type CatastrophicScenarioClassEntry,
-  type ScenarioIncidentEvidence,
+} from '../domain/catastrophicScenarioClassRegistry'
+import type {
+  CatastrophicScenarioClassEntry,
+  ScenarioIncidentEvidence,
 } from '../domain/catastrophicScenarioClassRegistry'
 
 const first: CatastrophicScenarioClassEntry = {
@@ -118,6 +120,13 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(validateScenarioClassEntry({ ...first, sourceCounts: { case: -1 } }).valid).toBe(false)
     expect(validateScenarioClassEntry({ ...first, status: undefined }).valid).toBe(false)
     expect(validateScenarioClassEntry({ ...first, scopeTiers: [' region '] }).valid).toBe(true)
+    const unsupportedConfidence = validateScenarioClassEntry({
+      ...first,
+      confidence: 0.8,
+      sourceCounts: { case: 0, design: 0, test: 0, contradiction_check: 0 },
+    })
+    expect(unsupportedConfidence.valid).toBe(true)
+    expect(unsupportedConfidence.issues.some((issue) => issue.code === 'confidence_without_recurrence')).toBe(true)
     expect(validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }).valid).toBe(false)
     expect(
       validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }, { allowCosmologicalScope: true }).valid
@@ -133,6 +142,16 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(next.compoundWithClassIds).toBe(first.compoundWithClassIds)
     expect(JSON.stringify(first)).toBe(original)
     expect(appendScenarioIncidentBackfill(next, ['case:charlie'])).toBe(next)
+    const unsortedHistory = { ...first, linkedIncidentIds: ['case:charlie', 'case:alpha'] }
+    expect(appendScenarioIncidentBackfill(unsortedHistory, ['case:bravo']).linkedIncidentIds).toEqual([
+      'case:alpha',
+      'case:bravo',
+      'case:charlie',
+    ])
+    expect(appendScenarioIncidentBackfill(unsortedHistory, []).linkedIncidentIds).toEqual([
+      'case:alpha',
+      'case:charlie',
+    ])
     expect(() => appendScenarioIncidentBackfill(first, [' '])).toThrow()
   })
 

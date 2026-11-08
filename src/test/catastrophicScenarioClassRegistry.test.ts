@@ -117,6 +117,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
   it('rejects malformed counts, missing metadata, and unapproved cosmological scope', () => {
     expect(validateScenarioClassEntry({ ...first, sourceCounts: { case: -1 } }).valid).toBe(false)
     expect(validateScenarioClassEntry({ ...first, status: undefined }).valid).toBe(false)
+    expect(validateScenarioClassEntry({ ...first, scopeTiers: [' region '] }).valid).toBe(true)
     expect(validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }).valid).toBe(false)
     expect(
       validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }, { allowCosmologicalScope: true }).valid
@@ -151,7 +152,7 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
         { affectedDomains: ['physics'], scopeTier: 'region', incidentIds: ['incident:3', 'incident:4'] },
       ],
     })
-    expect(JSON.stringify(suggestRefinement(first, repeated.reverse()))).toBe(JSON.stringify(hint))
+    expect(JSON.stringify(suggestRefinement(first, [...repeated].reverse()))).toBe(JSON.stringify(hint))
     expect(suggestRefinement({ ...first, recurrenceStrength: 'one_off' }, repeated)).toBeNull()
     expect(suggestRefinement({ ...first, status: 'disputed' }, repeated)).toBeNull()
     expect(suggestRefinement(first, repeated.slice(0, 3))).toBeNull()

@@ -302,7 +302,11 @@ function validateUseConflicts(
   }
 }
 
-/** Validate external/editorial data before treating it as a planning class. */
+/**
+ * Validate one class's fields and self-references without promoting claims
+ * to objective truth. Cross-class existence/cycle checks require a separately
+ * authorized catalog-level resolver and are not implied by this result.
+ */
 export function validateScenarioClassEntry(
   input: unknown,
   options: ScenarioClassValidationOptions = {}
@@ -382,7 +386,13 @@ export function normalizeScenarioLabel(
   return variants.length === 1 ? variants[0]! : null
 }
 
-/** Add incident references without mutating or rewriting the class definition. */
+/**
+ * Add incident references without mutating the caller or rewriting the class
+ * definition. A no-op preserves the exact input object, including any unsorted
+ * or padded legacy incident refs. On a genuine addition, the *returned* record
+ * canonicalizes all existing incident refs by trimming, deduplication and
+ * stable sorting; this does not mutate the source entry.
+ */
 export function appendScenarioIncidentBackfill(
   entry: CatastrophicScenarioClassEntry,
   incidentIds: readonly string[]

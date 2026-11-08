@@ -249,7 +249,9 @@ function validateClaimEvidence(
   const sourceCounts = input.sourceCounts
   const emptySourceHistory =
     !isPlainRecord(sourceCounts) ||
-    SCENARIO_SOURCE_TYPES.every((type) => sourceCounts[type] === 0)
+    SCENARIO_SOURCE_TYPES.every(
+      (type) => !isNonNegativeInteger(sourceCounts[type]) || sourceCounts[type] === 0
+    )
   // SPE-2100 explicitly requires a warning for confidence without recurrence
   // metadata, even when the missing required field also produces an error.
   // Valid recurrence labels also require source evidence to ground confidence.

@@ -56,6 +56,16 @@ test('readDiscoveryFromConfig ignores include arrays outside the test block', ()
   })
 })
 
+test('readDiscoveryFromConfig fails closed on spread or variable include entries', () => {
+  const source = `test: { include: ['src/**/*.test.ts', ...sharedInclude], exclude: [] }`
+  assert.throws(() => readDiscoveryFromConfig(source), /test.include/)
+})
+
+test('readDiscoveryFromConfig fails closed on spread exclude entries', () => {
+  const source = `test: { include: ['src/**/*.test.ts'], exclude: ['docs/**', ...sharedExclude] }`
+  assert.throws(() => readDiscoveryFromConfig(source), /test.exclude/)
+})
+
 test('readDiscoveryFromConfig ignores a nested coverage exclude', () => {
   const source = `test: {
     include: ['src/**/*.test.ts'],

@@ -29,6 +29,24 @@ export function completenessExitCode(status) {
 }
 
 /**
+ * Drop caller-supplied report-path arguments so the JSON report always comes
+ * from the fresh path this wrapper reads, never an arbitrary override.
+ */
+export function stripWrapperOwnedArgs(args) {
+  const kept = []
+  for (let index = 0; index < args.length; index += 1) {
+    const token = args[index]
+    if (token === '--outputFile' || token === '--output-file') {
+      index += 1
+      continue
+    }
+    if (token.startsWith('--outputFile') || token.startsWith('--output-file')) continue
+    kept.push(token)
+  }
+  return kept
+}
+
+/**
  * Canonical inventory/report identity: POSIX separators, no leading `./`,
  * repository-relative, no absolute paths, drive letters or `..` segments.
  * Returns null when the value cannot be a repository-relative test identity.

@@ -6,6 +6,7 @@ import {
   discoveryDrift,
   evaluateCompleteness,
   normalizeRepoPath,
+  stripWrapperOwnedArgs,
   toRepoRelative,
   validateInventory,
 } from './evaluate.mjs'
@@ -211,6 +212,20 @@ test('fails closed when the runner status is zero or missing', () => {
   assert.equal(completenessExitCode(0), 1)
   assert.equal(completenessExitCode(null), 1)
   assert.equal(completenessExitCode(undefined), 1)
+})
+
+test('strips caller-supplied report paths but keeps unrelated arguments', () => {
+  assert.deepEqual(
+    stripWrapperOwnedArgs([
+      '--outputFile',
+      '/tmp/other.json',
+      '--outputFile.json=/tmp/other.json',
+      '--output-file=/tmp/other.json',
+      '--maxWorkers=4',
+      'src/test/math.test.ts',
+    ]),
+    ['--maxWorkers=4', 'src/test/math.test.ts']
+  )
 })
 
 test('normalizeRepoPath rejects absolute, parent and drive-letter identities', () => {

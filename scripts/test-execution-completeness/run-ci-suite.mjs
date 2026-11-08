@@ -22,6 +22,7 @@ import {
   completenessExitCode,
   evaluateCompleteness,
   normalizeRepoPath,
+  stripWrapperOwnedArgs,
   toRepoRelative,
 } from './evaluate.mjs'
 import { buildInventory, readInventory, writeInventory } from './inventory.mjs'
@@ -147,7 +148,7 @@ function loadDiscovery() {
 const argv = process.argv.slice(2)
 const jsonMode = argv.includes('--json')
 const update = argv.includes('--update')
-const passthrough = argv.filter((token) => !WRAPPER_FLAGS.has(token))
+const passthrough = stripWrapperOwnedArgs(argv.filter((token) => !WRAPPER_FLAGS.has(token)))
 const narrowing = detectNarrowing(passthrough)
 
 if (narrowing.length > 0 && isCi()) {

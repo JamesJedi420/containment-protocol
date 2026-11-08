@@ -14,6 +14,7 @@ export const INVENTORY_PATH = fileURLToPath(
 )
 
 /** Deterministic, sorted, de-duplicated inventory from observed identities. */
+/** Build a deterministic, sorted, de-duplicated inventory. */
 export function buildInventory(files, discovery) {
   const unique = [...new Set(files)].sort()
   return {
@@ -27,6 +28,7 @@ export function buildInventory(files, discovery) {
   }
 }
 
+/** Read and validate the committed inventory from disk. */
 export function readInventory(inventoryPath = INVENTORY_PATH) {
   const raw = JSON.parse(fs.readFileSync(inventoryPath, 'utf8'))
   return { inventory: raw, validation: validateInventory(raw) }
@@ -61,6 +63,7 @@ function serializeInventory(inventory) {
 }
 
 /** Refuses to persist anything that would not validate on read. */
+/** Validate, then persist the inventory in Prettier-compatible form. */
 export function writeInventory(inventory, inventoryPath = INVENTORY_PATH) {
   const validation = validateInventory(inventory)
   if (!validation.ok) {

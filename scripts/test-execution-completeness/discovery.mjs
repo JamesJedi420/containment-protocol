@@ -49,6 +49,7 @@ function readStringArray(source, start) {
   let quote = null
   let escaped = false
   let current = ''
+  let unsupported = false
   for (let index = start; index < source.length; index += 1) {
     const char = source[index]
     if (quote) {
@@ -77,12 +78,16 @@ function readStringArray(source, start) {
     }
     if (char === '[') {
       depth += 1
+      // Spreads, variables or nested arrays cannot be read as literal patterns.
+      if (depth === 2) unsupported = true
       continue
     }
     if (char === ']') {
       depth -= 1
-      if (depth === 0) return values
+      if (depth === 0) return unsupported ? null : values
+      continue
     }
+    if (depth === 1 && !/[\s,]/.test(char)) unsupported = true
   }
   return null
 }

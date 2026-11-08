@@ -362,7 +362,11 @@ export function normalizeScenarioLabel(
       for (const label of [entry.id, entry.label, ...entry.aliases]) {
         if (typeof label !== 'string' || IMPORTED_CLASS_CODE.test(token(label))) continue
         const candidate = labelKey(label)
-        if (candidate === lookup || (stripSuffixes && withoutGenericSuffix(candidate) === lookup)) {
+        const isStructuralCascade = candidate.endsWith(' cascade')
+        if (
+          candidate === lookup ||
+          (stripSuffixes && !isStructuralCascade && withoutGenericSuffix(candidate) === lookup)
+        ) {
           matches.add(entry.id)
         }
       }

@@ -105,6 +105,10 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Containment', [first])).toBeNull()
     expect(normalizeScenarioLabel('Containment', [first, general])).toBe(general.id)
     expect(normalizeScenarioLabel('Containment cascade', [first])).toBe(first.id)
+    // "cascade" is an allowed query suffix: absent a more specific authored
+    // label, the general class is the intentional fallback.
+    expect(normalizeScenarioLabel('Containment cascade', [general])).toBe(general.id)
+    expect(normalizeScenarioLabel('Containment cascade', [first, general])).toBe(first.id)
     const longerAuthored: CatastrophicScenarioClassEntry = {
       ...second,
       id: 'scenario-class:containment-cascade-event',

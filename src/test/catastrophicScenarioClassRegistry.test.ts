@@ -90,6 +90,15 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(first.compoundWithClassIds).toEqual([second.id])
     expect(validateScenarioClassEntry(first).valid).toBe(true)
     expect(validateScenarioClassEntry({ ...first, compoundWithClassIds: [first.id] }).valid).toBe(false)
+    const paddedSelf = validateScenarioClassEntry({
+      ...first,
+      compoundWithClassIds: [` ${first.id} `],
+    })
+    expect(paddedSelf.issues).toContainEqual({
+      code: 'self_compound_class',
+      severity: 'error',
+      field: 'compoundWithClassIds',
+    })
   })
 
   it('rejects imported franchise class codes in labels and aliases', () => {
@@ -131,6 +140,21 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(unsupportedConfidence.valid).toBe(true)
     expect(unsupportedConfidence.issues.some((issue) => issue.code === 'confidence_without_recurrence')).toBe(true)
     expect(validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }).valid).toBe(false)
+    const paddedCosmological = validateScenarioClassEntry({
+      ...first,
+      scopeTiers: [' cosmological '],
+    })
+    expect(paddedCosmological.issues).toContainEqual({
+      code: 'cosmological_scope_requires_mode',
+      severity: 'error',
+      field: 'scopeTiers',
+    })
+    expect(
+      validateScenarioClassEntry(
+        { ...first, scopeTiers: [' cosmological '] },
+        { allowCosmologicalScope: true }
+      ).valid
+    ).toBe(true)
     expect(
       validateScenarioClassEntry({ ...first, scopeTiers: ['cosmological'] }, { allowCosmologicalScope: true }).valid
     ).toBe(true)

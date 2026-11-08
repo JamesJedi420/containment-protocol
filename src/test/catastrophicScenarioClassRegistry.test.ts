@@ -51,6 +51,9 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('perimeter failure event', catalog)).toBe(first.id)
     expect(normalizeScenarioLabel('Forgotten sky incident', catalog)).toBe(second.id)
     expect(normalizeScenarioLabel('Nonexistent event', catalog)).toBeNull()
+    const malformed = { ...first, label: undefined } as unknown as CatastrophicScenarioClassEntry
+    expect(normalizeScenarioLabel('Lanternfall', [malformed, second])).toBe(first.id)
+    expect(normalizeScenarioLabel('Nonexistent event', [malformed])).toBeNull()
   })
 
   it('uses exact matches before stripping generic suffixes and fails on ambiguous aliases', () => {
@@ -148,10 +151,8 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
       'case:bravo',
       'case:charlie',
     ])
-    expect(appendScenarioIncidentBackfill(unsortedHistory, []).linkedIncidentIds).toEqual([
-      'case:alpha',
-      'case:charlie',
-    ])
+    expect(appendScenarioIncidentBackfill(unsortedHistory, [])).toBe(unsortedHistory)
+    expect(appendScenarioIncidentBackfill(unsortedHistory, ['case:alpha'])).toBe(unsortedHistory)
     expect(() => appendScenarioIncidentBackfill(first, [' '])).toThrow()
   })
 

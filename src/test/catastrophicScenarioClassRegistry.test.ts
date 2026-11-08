@@ -31,6 +31,7 @@ const second: CatastrophicScenarioClassEntry = {
   affectedDomains: ['consciousness', 'public_knowledge'],
   scopeTiers: ['site', 'world'],
   sourceCounts: { case: 2, design: 2, test: 1, contradiction_check: 1 },
+  linkedIncidentIds: [],
   compoundWithClassIds: [],
 }
 
@@ -71,6 +72,14 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('Perimeter', [first, other])).toBe(other.id)
     expect(normalizeScenarioLabel('Lanternfall', [first, other])).toBeNull()
     expect(normalizeScenarioLabel('Lanternfall breach', [first, other])).toBeNull()
+    const general: CatastrophicScenarioClassEntry = {
+      ...second,
+      id: 'scenario-class:containment',
+      label: 'Containment',
+      aliases: [],
+    }
+    expect(normalizeScenarioLabel('Containment cascade crisis', [first, general])).toBe(first.id)
+    expect(normalizeScenarioLabel('Containment cascade crisis event', [first, general])).toBe(first.id)
   })
 
   it('preserves a disputed overloaded label with notes but warns when the notes are omitted', () => {
@@ -131,6 +140,13 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
         'classification_truth_collapse',
       ])
     )
+  })
+
+  it('accepts descriptive context when status and recurrence metadata remain explicit', () => {
+    expect(validateScenarioClassEntry({ ...first, description: 'Human-readable context only' })).toEqual({
+      valid: true,
+      issues: [],
+    })
   })
 
   it('rejects malformed counts, missing metadata, and unapproved cosmological scope', () => {

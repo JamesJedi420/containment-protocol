@@ -399,7 +399,9 @@ export function normalizeScenarioLabel(
  * definition. A no-op preserves the exact input object, including any unsorted
  * or padded legacy incident refs. On a genuine addition, the *returned* record
  * canonicalizes all existing incident refs by trimming, deduplication and
- * stable sorting; this does not mutate the source entry.
+ * stable sorting; this does not mutate the source entry. Incoming IDs must
+ * already be trimmed and nonempty (otherwise an error is thrown); legacy stored
+ * IDs are accepted as-is for no-ops and normalized only on a real addition.
  */
 export function appendScenarioIncidentBackfill(
   entry: CatastrophicScenarioClassEntry,
@@ -426,6 +428,8 @@ export function appendScenarioIncidentBackfill(
  * Suggest, but never perform, a refinement when one provisional/shorthand class
  * hides two repeated, distinct evidence clusters. Conflicting duplicate incident
  * identities fail closed; one-off or disputed reports do not trigger a split.
+ * One malformed evidence item invalidates the entire suggestion; it is not
+ * silently skipped in favor of other, possibly incomplete evidence clusters.
  */
 export function suggestRefinement(
   entry: CatastrophicScenarioClassEntry,

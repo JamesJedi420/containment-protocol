@@ -178,7 +178,7 @@ function validateCoreFields(
     issues.push({ code: 'missing_label', severity: 'error', field: 'label' })
   }
   for (const field of ['id', 'label'] as const) {
-    if (IMPORTED_CLASS_CODE.test(token(input[field]))) {
+    if (IMPORTED_CLASS_CODE.test(labelKey(input[field]))) {
       issues.push({ code: 'imported_franchise_class_code', severity: 'error', field })
     }
   }
@@ -212,7 +212,7 @@ function validateScopeAndReferences(
   }
   if (
     Array.isArray(input.aliases) &&
-    input.aliases.some((alias) => IMPORTED_CLASS_CODE.test(token(alias)))
+    input.aliases.some((alias) => IMPORTED_CLASS_CODE.test(labelKey(alias)))
   ) {
     issues.push({ code: 'imported_franchise_class_code', severity: 'error', field: 'aliases' })
   }
@@ -345,9 +345,9 @@ export function normalizeScenarioLabel(
   raw: string,
   entries: readonly CatastrophicScenarioClassEntry[]
 ): CatastrophicScenarioClassId | null {
-  if (typeof raw !== 'string' || IMPORTED_CLASS_CODE.test(raw)) return null
+  if (typeof raw !== 'string') return null
   const key = labelKey(raw)
-  if (!key) return null
+  if (!key || IMPORTED_CLASS_CODE.test(key)) return null
 
   function matchingIds(lookup: string, stripSuffixes: boolean): string[] {
     const matches = new Set<string>()
@@ -360,8 +360,9 @@ export function normalizeScenarioLabel(
         !Array.isArray(entry.aliases)
       ) continue
       for (const label of [entry.id, entry.label, ...entry.aliases]) {
-        if (typeof label !== 'string' || IMPORTED_CLASS_CODE.test(token(label))) continue
+        if (typeof label !== 'string') continue
         const candidate = labelKey(label)
+        if (!candidate || IMPORTED_CLASS_CODE.test(candidate)) continue
         const isStructuralCascade = candidate.endsWith(' cascade')
         if (
           candidate === lookup ||

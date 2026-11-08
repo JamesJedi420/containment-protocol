@@ -51,9 +51,14 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(normalizeScenarioLabel('perimeter failure event', catalog)).toBe(first.id)
     expect(normalizeScenarioLabel('Forgotten sky incident', catalog)).toBe(second.id)
     expect(normalizeScenarioLabel('Nonexistent event', catalog)).toBeNull()
+  })
+
+  it('skips malformed catalog labels while preserving legitimately matched aliases', () => {
     const malformed = { ...first, label: undefined } as unknown as CatastrophicScenarioClassEntry
     expect(normalizeScenarioLabel('Lanternfall', [malformed, second])).toBe(first.id)
     expect(normalizeScenarioLabel('Nonexistent event', [malformed])).toBeNull()
+    const noAlias = { ...malformed, aliases: [] }
+    expect(normalizeScenarioLabel('Lanternfall', [noAlias])).toBeNull()
   })
 
   it('uses exact matches before stripping generic suffixes and fails on ambiguous aliases', () => {
@@ -180,7 +185,15 @@ describe('catastrophicScenarioClassRegistry (SPE-2100 slice 1)', () => {
     expect(() => appendScenarioIncidentBackfill(first, [' '])).toThrow()
   })
 
-  it('returns a stable refinement hint only for replicated distinct evidence clusters', () => {
+  it('does not allocate for already-known duplicate incident IDs, but deduplicates genuine additions', () => {
+    expect(appendScenarioIncidentBackfill(first, ['case:alpha', 'case:alpha'])).toBe(first)
+    const added = appendScenarioIncidentBackfill(first, ['case:delta', 'case:delta'])
+    expect(added).not.toBe(first)
+    expect(added.linkedIncidentIds).toEqual(['case:alpha', 'case:delta'])
+    expect(first.linkedIncidentIds).toEqual(['case:alpha'])
+  })
+
+  it('returns a stable refinement hint only for replicated distinct evidence clusters',
     const repeated: ScenarioIncidentEvidence[] = [
       evidence('incident:4', 'physics'),
       evidence('incident:2', 'ecology'),

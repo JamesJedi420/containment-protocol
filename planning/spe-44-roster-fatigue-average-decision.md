@@ -50,15 +50,15 @@ Because the dashboard card is the same unfiltered mean, a report-only switch wou
 
 What it actually costs an existing save:
 
-| Concern                 | Impact                                                                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Save schema / version   | **None.** The field is a `number` clamped to 0–100 with a 0 default (`runTransfer.ts:403,1746`). No `SCHEMA_REGISTRY.md` entry, no migration, no event schema change.                 |
-| Agent state and RNG     | **None.** The field is derived from agents and never written back; no seeded input reads it.                                                                                          |
-| Deterministic replay    | Agents, RNG cursor and case outcomes identical; `avgFatigue` differs on every week written after the switch.                                                                          |
-| Historical reports      | **Unchanged.** Stored values are kept (only clamped), so old reports keep their old numbers — the campaign shows a visible step at the change week rather than a rewritten past.      |
-| Hydrated current week   | Same code path; the two formulas now agree instead of quietly diverging, so a reload stops moving the number.                                                                         |
-| Fixtures and tests      | `weeklyReport.test.ts:265` becomes truthful about production; literal-number report fixtures in `runTransfer.test.ts` and `App.test.tsx` are unaffected because they never recompute. |
-| Empty deployable roster | **Returns 0**, which is also a legitimate "perfectly rested" value. The number silently reads as rested when everyone is dead, resigned, or in training.                              |
+| Concern                 | Impact                                                                                                                                                                                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Save schema / version   | **Denominator-only:** none; `avgFatigue` stays a `number` clamped to 0–100, with no registry entry or migration. **Complete child:** one optional `deployableCount` on both report shapes, a `SCHEMA_REGISTRY.md` normalization rule, and no `GAME_SAVE_VERSION` bump. |
+| Agent state and RNG     | **None.** The field is derived from agents and never written back; no seeded input reads it.                                                                                                                                                                           |
+| Deterministic replay    | Agents, RNG cursor and case outcomes identical; `avgFatigue` differs on every week written after the switch.                                                                                                                                                           |
+| Historical reports      | **Unchanged.** Stored values are kept (only clamped), so old reports keep their old numbers — the campaign shows a visible step at the change week rather than a rewritten past.                                                                                       |
+| Hydrated current week   | Same code path; the two formulas now agree instead of quietly diverging, so a reload stops moving the number.                                                                                                                                                          |
+| Fixtures and tests      | `weeklyReport.test.ts:265` becomes truthful about production; literal-number report fixtures in `runTransfer.test.ts` and `App.test.tsx` are unaffected because they never recompute.                                                                                  |
+| Empty deployable roster | **Returns 0**, which is also a legitimate "perfectly rested" value. The number silently reads as rested when everyone is dead, resigned, or in training.                                                                                                               |
 
 That last row is the reason not to bundle the change into an extraction, and it is no longer open: the presentation is decided below. Returning the unfiltered value as a fallback stays the worst option — it reinstates the dilution exactly in the case the change exists to fix.
 
@@ -94,7 +94,7 @@ That last row is the reason not to bundle the change into an extraction, and it 
 ## Accepted sequence
 
 1. **Ship the extraction unfiltered.** `getAverageRosterFatigue` moves into `recoveryFatigue.ts` unfiltered, both builders import it, and no number moves. This keeps the April review's "not behaviour-preserving" blocker closed.
-2. **Then land Option B as its own small PR under the authorized SPE-44 child**, in the same two-file footprint: switch `advanceWeek.ts:4515` and `weeklyReport.ts:307` to the filtered helper, write `deployableCount` and render the empty-set message decided above, and rebaseline only the fixtures that pin the weekly report.
+2. **Then land Option B as its own PR under the authorized SPE-44 child.** Use proposal §2 as the boundary and §4 as acceptance. Rebaseline only fixtures for reports the tick writes.
 3. **Keep them separate PRs.** A bisect can then distinguish "the extraction broke numbers" from "we deliberately chose new numbers" — the exact confusion that made the original SPE-44 closure indefensible.
 
 ## Acceptance for the authorized Option B child

@@ -58,6 +58,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
 - **New design audits:** when adding `docs/*audit*.md`, insert a dated status-table row in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
+- **Architecture decisions:** durable cross-cutting decisions live in `docs/adr/` (format and lifecycle in `docs/adr/README.md`). An ADR never grants scope or proves shipped behaviour — Linear owns lifecycle and GitHub owns implementation evidence. Because this file is an agent entry point, run `npm run verify:governance-contract` when editing it.
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
 - **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste entry point from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
 - **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.

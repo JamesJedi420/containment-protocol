@@ -685,6 +685,7 @@
     "src/test/modularReleasePackaging.test.ts",
     "src/test/moralLegalAccountabilityMatrixRegistry.test.ts",
     "src/test/multiSiteFacilityNetwork.contract.test.ts",
+    "src/test/multidimensionalTransportNetworkRegistry.test.ts",
     "src/test/mvp.scope.test.ts",
     "src/test/namingHazardDescriptorRegistry.test.ts",
     "src/test/namingHazardDescriptorRegistryPersistence.test.ts",

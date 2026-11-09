@@ -1,15 +1,15 @@
 # SPE-44 — decision note: roster fatigue average, unfiltered or filtered?
 
-| Field      | Value                                                                   |
-| ---------- | ----------------------------------------------------------------------- |
-| Date       | 2026-11-08                                                              |
-| Revision   | `f0099457` (post-#4932)                                                 |
-| Owner      | SPE-44 (advance-week ownership per the dead-module inventory)           |
-| Status     | **Open decision** — not implementation approval                         |
-| Blocks     | Nothing. The SPE-44 extraction ships unfiltered either way (Decision 3) |
-| Formalises | `planning/spe-44-fatigue-consolidation-slice.md` § Decision 3, line 106 |
+| Field      | Value                                                                                                      |
+| ---------- | ---------------------------------------------------------------------------------------------------------- |
+| Date       | 2026-11-08                                                                                                 |
+| Revision   | `f0099457` (post-#4932); anchors are static at that commit; decision recorded at `7ef49603`                |
+| Owner      | SPE-44 (advance-week ownership per the dead-module inventory)                                              |
+| Status     | **Decided — presentation settled; filtered denominator accepted 2026-11-08.** Not implementation approval. |
+| Blocks     | Nothing. The SPE-44 extraction still ships unfiltered (Decision 3).                                        |
+| Formalises | `planning/spe-44-fatigue-consolidation-slice.md` § Decision 3, line 106                                    |
 
-This note settles one question: when the weekly fatigue average is consolidated into `recoveryFatigue.ts`, which denominator is canonical? It records what ships today, what a switch costs an existing save, and a recommendation. All line anchors are static reads at `f0099457`; re-check before implementing.
+This note settles the empty-set presentation for the weekly fatigue average and records the denominator direction accepted in the [Option B proposal](spe-44-filtered-roster-fatigue-proposal.md). It records what ships today, what a switch costs an existing save, and the accepted sequence. All line anchors are static reads at `f0099457`; re-check before implementing.
 
 ## What ships today
 
@@ -50,15 +50,15 @@ Because the dashboard card is the same unfiltered mean, a report-only switch wou
 
 What it actually costs an existing save:
 
-| Concern                 | Impact                                                                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Save schema / version   | **None.** The field is a `number` clamped to 0–100 with a 0 default (`runTransfer.ts:403,1746`). No `SCHEMA_REGISTRY.md` entry, no migration, no event schema change.                 |
-| Agent state and RNG     | **None.** The field is derived from agents and never written back; no seeded input reads it.                                                                                          |
-| Deterministic replay    | Agents, RNG cursor and case outcomes identical; `avgFatigue` differs on every week written after the switch.                                                                          |
-| Historical reports      | **Unchanged.** Stored values are kept (only clamped), so old reports keep their old numbers — the campaign shows a visible step at the change week rather than a rewritten past.      |
-| Hydrated current week   | Same code path; the two formulas now agree instead of quietly diverging, so a reload stops moving the number.                                                                         |
-| Fixtures and tests      | `weeklyReport.test.ts:265` becomes truthful about production; literal-number report fixtures in `runTransfer.test.ts` and `App.test.tsx` are unaffected because they never recompute. |
-| Empty deployable roster | **Returns 0**, which is also a legitimate "perfectly rested" value. The number silently reads as rested when everyone is dead, resigned, or in training.                              |
+| Concern                 | Impact                                                                                                                                                                                                                                                                 |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Save schema / version   | **Denominator-only:** none; `avgFatigue` stays a `number` clamped to 0–100, with no registry entry or migration. **Complete child:** one optional `deployableCount` on both report shapes, a `SCHEMA_REGISTRY.md` normalization rule, and no `GAME_SAVE_VERSION` bump. |
+| Agent state and RNG     | **None.** The field is derived from agents and never written back; no seeded input reads it.                                                                                                                                                                           |
+| Deterministic replay    | Agents, RNG cursor and case outcomes identical; `avgFatigue` differs on every week written after the switch.                                                                                                                                                           |
+| Historical reports      | **Unchanged.** Stored values are kept (only clamped), so old reports keep their old numbers — the campaign shows a visible step at the change week rather than a rewritten past.                                                                                       |
+| Hydrated current week   | Same code path; the two formulas now agree instead of quietly diverging, so a reload stops moving the number.                                                                                                                                                          |
+| Fixtures and tests      | `weeklyReport.test.ts:265` becomes truthful about production; literal-number report fixtures in `runTransfer.test.ts` and `App.test.tsx` are unaffected because they never recompute.                                                                                  |
+| Empty deployable roster | **Returns 0**, which is also a legitimate "perfectly rested" value. The number silently reads as rested when everyone is dead, resigned, or in training.                                                                                                               |
 
 That last row is the reason not to bundle the change into an extraction, and it is no longer open: the presentation is decided below. Returning the unfiltered value as a fallback stays the worst option — it reinstates the dilution exactly in the case the change exists to fix.
 
@@ -89,15 +89,15 @@ That last row is the reason not to bundle the change into an extraction, and it 
 - A save written before the change loads unchanged: every historical zero still renders as `0`.
 - For reports written after the change, `deployableCount === 0` means `avgFatigue === 0`; the converse does not hold, because a fully rested nonempty deployable set also averages `0`. Both values come from the same filtered set in the same tick.
 
-**What this does not decide.** Whether the average should be filtered at all. The slice-level deferral stands as written: the extraction ships unfiltered, `rosterFatigue.ts` stays untouched, SPE-44 stays in Backlog, and adopting Option B remains a separate call. This decision only means that call no longer carries an unanswered presentation question.
+**Boundaries.** The lead accepted the filtered denominator, filtered team rows and the written-snapshot hydration rule in the proposal on 2026-11-08. This note records the presentation that goes with that direction; it does not create or implement the child, and it does not change the extraction. The extraction still ships unfiltered and `rosterFatigue.ts` stays untouched there. The final creation handoff is [SPE-44 comment `aff581a0`](https://linear.app/spectranoir/issue/SPE-44/advance-week-orchestration-isolation-pass#comment-aff581a0-b362-42bf-b339-cbc79d0849bf); no child has been created.
 
-## Recommendation
+## Accepted sequence
 
-1. **Ship the extraction with Option A.** `getAverageRosterFatigue` moves into `recoveryFatigue.ts` unfiltered, both builders import it, and no number moves. This keeps the April review's "not behaviour-preserving" blocker closed.
-2. **Then land Option B as its own small PR under SPE-44**, in the same two-file footprint: switch `advanceWeek.ts:4515` and `weeklyReport.ts:307` to the filtered helper, write `deployableCount` and render the empty-set message decided above, and rebaseline only the fixtures that pin the weekly report.
+1. **Ship the extraction unfiltered.** `getAverageRosterFatigue` moves into `recoveryFatigue.ts` unfiltered, both builders import it, and no number moves. This keeps the April review's "not behaviour-preserving" blocker closed.
+2. **Then land Option B as its own PR under the authorized SPE-44 child.** Use proposal §2 as the boundary and §4 as acceptance. Rebaseline only fixtures for reports the tick writes.
 3. **Keep them separate PRs.** A bisect can then distinguish "the extraction broke numbers" from "we deliberately chose new numbers" — the exact confusion that made the original SPE-44 closure indefensible.
 
-## Acceptance if Option B is taken
+## Acceptance for the authorized Option B child
 
 - Both builders import the filtered helper; no local definition remains (the slice's static guardrail already covers `getAverageRosterFatigue` declarations and its body expression).
 - A test proves exclusion **end to end** through `settleWeekState`, not just against the helper: dead, resigned, training and attrition-unavailable agents must not move `WeeklyReport.avgFatigue`.
@@ -105,8 +105,9 @@ That last row is the reason not to bundle the change into an extraction, and it 
 - One save/replay fixture spans the change and asserts the expected step, so the discontinuity is recorded rather than discovered by a player.
 - `planning/spe-44-fatigue-consolidation-slice.md` and the inventory row are updated to say the unfiltered form is historical-only.
 
-## Not decided here
+## Out of scope here
 
-- Whether the player's headline fatigue number _should_ track deployables at all — that is balance intent, and it belongs to whoever owns the weekly report surface.
-- Whether the dashboard card follows the report when Option B lands. It uses the identical unfiltered formula today, so leaving it behind would be a visible inconsistency rather than a neutral choice.
-- Whether `WeeklyReportTeamStatus` should drop dead members. It averages over `getTeamMemberIds` regardless of status, so definition 4 inherits the same weakness one level down. Fixing that would move hydrated numbers and is a bigger change than this decision.
+- The balance intent for a filtered headline is accepted; this note does not re-open it.
+- The dashboard card follows the written report under the accepted proposal; the projection details are in proposal §2.5 and the final child handoff.
+- The accepted Q3 answer includes filtered team rows and their written snapshot; this note does not implement that change.
+- The extraction still ships unfiltered; historical reports and the save version are unchanged.

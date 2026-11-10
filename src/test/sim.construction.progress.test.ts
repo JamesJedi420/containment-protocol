@@ -6,12 +6,18 @@ import {
   CONSTRUCTION_INCOMPLETE_FLAG,
   CONSTRUCTION_PROGRESS_MAX,
   CONSTRUCTION_READINESS_PENALTY,
+  evaluateConstructionHaulingBonus,
   evaluateConstructionLogisticsBonus,
   evaluateConstructionReadinessBurden,
   getConstructionProgressClockId,
   isCaseUnderConstruction,
   isConstructionComplete,
 } from '../domain/constructionProgress'
+import {
+  BODY_TRANSFER_CARGO_ID,
+  HANDLERS_AVAILABLE_LABOR,
+  stampFacilityHaulingLabor,
+} from '../domain/facilityHaulingLabor'
 import { advanceDefinedProgressClock, readProgressClock } from '../domain/progressClocks'
 import { buildTeamDeploymentReadinessState } from '../domain/deploymentReadiness'
 import { buildFactionStates } from '../domain/factions'
@@ -88,6 +94,157 @@ describe('construction progress — logistics bonus', () => {
     stateB.inventory['signal_jammers'] = 5
     expect(evaluateConstructionLogisticsBonus(stateA)).toBe(
       evaluateConstructionLogisticsBonus(stateB)
+    )
+  })
+})
+
+describe('construction progress — hauling-node bonus', () => {
+  it('returns +1 when handlers_available is stamped for body_transfer cargo', () => {
+    const state = createStartingState()
+    for (const key of Object.keys(state.inventory)) {
+      state.inventory[key] = 0
+    }
+    expect(evaluateConstructionLogisticsBonus(state)).toBe(0)
+    expect(evaluateConstructionHaulingBonus(state)).toBe(0)
+
+    const stamped = stampFacilityHaulingLabor(state, {
+      cargoId: BODY_TRANSFER_CARGO_ID,
+      labor: HANDLERS_AVAILABLE_LABOR,
+    })
+    expect(stamped.ok).toBe(true)
+    if (!stamped.ok) return
+
+    expect(evaluateConstructionHaulingBonus(stamped.state)).toBe(1)
+    expect(evaluateConstructionLogisticsBonus(stamped.state)).toBe(0)
+  })
+
+  it('returns 0 when facilityHaulingLabor is absent or empty', () => {
+    const state = createStartingState()
+    state.facilityHaulingLabor = undefined
+    expect(evaluateConstructionHaulingBonus(state)).toBe(0)
+  })
+
+  it('hauling bonus is independent of inventory logistics bonus', () => {
+    let state = createStartingState()
+    for (const key of Object.keys(state.inventory)) {
+      state.inventory[key] = 0
+    }
+    const stamped = stampFacilityHaulingLabor(state, {
+      cargoId: BODY_TRANSFER_CARGO_ID,
+      labor: HANDLERS_AVAILABLE_LABOR,
+    })
+    expect(stamped.ok).toBe(true)
+    if (!stamped.ok) return
+    state = stamped.state
+    state.inventory['medical_supplies'] = 3
+
+    expect(evaluateConstructionLogisticsBonus(state)).toBe(1)
+    expect(evaluateConstructionHaulingBonus(state)).toBe(1)
+  })
+
+  it('combined week-close delta uses base + inventory + hauling when interference is inactive', () => {
+    let state = createStartingState()
+    const currentCase = buildConstructionCase('case-haul-delta')
+    state.cases['case-haul-delta'] = currentCase as (typeof state.cases)[string]
+    for (const key of Object.keys(state.inventory)) {
+      state.inventory[key] = 0
+    }
+    const stamped = stampFacilityHaulingLabor(state, {
+      cargoId: BODY_TRANSFER_CARGO_ID,
+      labor: HANDLERS_AVAILABLE_LABOR,
+    })
+    expect(stamped.ok).toBe(true)
+    if (!stamped.ok) return
+    state = stamped.state
+
+    const logisticsBonus = evaluateConstructionLogisticsBonus(state)
+    const haulingBonus = evaluateConstructionHaulingBonus(state)
+    const delta = 1 + logisticsBonus + haulingBonus
+    expect(logisticsBonus).toBe(0)
+    expect(haulingBonus).toBe(1)
+    expect(delta).toBe(2)
+
+    state = advanceCaseConstructionClock(
+      state,
+      currentCase as Parameters<typeof advanceCaseConstructionClock>[1],
+      delta
+    )
+    const clock = readProgressClock(state, getConstructionProgressClockId('case-haul-delta'))
+    expect(clock!.value).toBe(2)
+  })
+
+  it('interference zeroes delta even when hauling and inventory bonuses are present', () => {
+    let state = createStartingState()
+    const currentCase = buildConstructionCase('case-haul-interfere')
+    state.cases['case-haul-interfere'] = currentCase as (typeof state.cases)[string]
+    state.inventory['medical_supplies'] = 3
+    const stamped = stampFacilityHaulingLabor(state, {
+      cargoId: BODY_TRANSFER_CARGO_ID,
+      labor: HANDLERS_AVAILABLE_LABOR,
+    })
+    expect(stamped.ok).toBe(true)
+    if (!stamped.ok) return
+    state = stamped.state
+
+    expect(evaluateConstructionLogisticsBonus(state)).toBe(1)
+    expect(evaluateConstructionHaulingBonus(state)).toBe(1)
+
+    const interferenceActive = true
+    const delta = interferenceActive
+      ? 0
+      : 1 + evaluateConstructionLogisticsBonus(state) + evaluateConstructionHaulingBonus(state)
+    state = advanceCaseConstructionClock(
+      state,
+      currentCase as Parameters<typeof advanceCaseConstructionClock>[1],
+      delta
+    )
+    const clock = readProgressClock(state, getConstructionProgressClockId('case-haul-interfere'))
+    expect(clock).not.toBeNull()
+    expect(clock!.value).toBe(0)
+  })
+
+  it('hauling bonus is deterministic for identical stamped labor', () => {
+    const stamp = (base: ReturnType<typeof createStartingState>) => {
+      const result = stampFacilityHaulingLabor(base, {
+        cargoId: BODY_TRANSFER_CARGO_ID,
+        labor: HANDLERS_AVAILABLE_LABOR,
+      })
+      expect(result.ok).toBe(true)
+      return result.ok ? result.state : base
+    }
+    const stateA = stamp(createStartingState())
+    const stateB = stamp(createStartingState())
+    expect(evaluateConstructionHaulingBonus(stateA)).toBe(evaluateConstructionHaulingBonus(stateB))
+  })
+
+  it('mitigation window: progress resumes after interference clears while hauling remains', () => {
+    let state = createStartingState()
+    const currentCase = buildConstructionCase('case-mitigate')
+    state.cases['case-mitigate'] = currentCase as (typeof state.cases)[string]
+    const stamped = stampFacilityHaulingLabor(state, {
+      cargoId: BODY_TRANSFER_CARGO_ID,
+      labor: HANDLERS_AVAILABLE_LABOR,
+    })
+    expect(stamped.ok).toBe(true)
+    if (!stamped.ok) return
+    state = stamped.state
+
+    const haulingBonus = evaluateConstructionHaulingBonus(state)
+    state = advanceCaseConstructionClock(
+      state,
+      currentCase as Parameters<typeof advanceCaseConstructionClock>[1],
+      0
+    )
+    expect(readProgressClock(state, getConstructionProgressClockId('case-mitigate'))!.value).toBe(0)
+
+    const resumedDelta = 1 + evaluateConstructionLogisticsBonus(state) + haulingBonus
+    state = advanceCaseConstructionClock(
+      state,
+      currentCase as Parameters<typeof advanceCaseConstructionClock>[1],
+      resumedDelta
+    )
+    expect(readProgressClock(state, getConstructionProgressClockId('case-mitigate'))!.value).toBe(
+      resumedDelta
     )
   })
 })
@@ -198,7 +355,7 @@ describe('construction progress — interference projection', () => {
     expect(clock!.value).toBe(0)
   })
 
-  it('without interference: delta is 1 + logistics bonus, advancing progress', () => {
+  it('without interference: delta is 1 + logistics + hauling bonuses, advancing progress', () => {
     let state = createStartingState()
     const currentCase = buildConstructionCase('case-no-interfere')
     state.cases['case-no-interfere'] = currentCase as typeof state.cases[string]
@@ -206,7 +363,8 @@ describe('construction progress — interference projection', () => {
     state.inventory['medical_supplies'] = 3
 
     const logisticsBonus = evaluateConstructionLogisticsBonus(state)
-    const delta = 1 + logisticsBonus // = 2 with adequate stock
+    const haulingBonus = evaluateConstructionHaulingBonus(state)
+    const delta = 1 + logisticsBonus + haulingBonus
     state = advanceCaseConstructionClock(state, currentCase as Parameters<typeof advanceCaseConstructionClock>[1], delta)
     const clock = readProgressClock(state, getConstructionProgressClockId('case-no-interfere'))
     expect(clock!.value).toBe(delta)

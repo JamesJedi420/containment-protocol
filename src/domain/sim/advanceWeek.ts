@@ -478,6 +478,7 @@ import {
   advanceCaseConstructionClock,
   CONSTRUCTION_INCOMPLETE_FLAG,
   CONSTRUCTION_PROGRESS_MAX,
+  evaluateConstructionHaulingBonus,
   evaluateConstructionLogisticsBonus,
   getConstructionProgressClockId,
   isCaseUnderConstruction,
@@ -4077,6 +4078,7 @@ function processRaidPressure(context: WeeklyExecutionContext, rng: SeededRng) {
 // Does not consume inventory stock — read-only logistics check.
 function advanceConstructionProgress(context: WeeklyExecutionContext) {
   const logisticsBonus = evaluateConstructionLogisticsBonus(context.nextState)
+  const haulingBonus = evaluateConstructionHaulingBonus(context.nextState)
   const factionStates = buildFactionStates(context.nextState)
   const anchorFaction = factionStates.find((f) => f.id === 'threshold_court')
   const interferenceActive =
@@ -4095,8 +4097,8 @@ function advanceConstructionProgress(context: WeeklyExecutionContext) {
     )
     if (alreadyComplete) continue
 
-    // delta: base +1, +1 if logistics adequate, 0 total if interference active
-    const delta = interferenceActive ? 0 : 1 + logisticsBonus
+    // delta: base +1, + inventory logistics, + hauling labor; 0 total if interference active
+    const delta = interferenceActive ? 0 : 1 + logisticsBonus + haulingBonus
 
     context.nextState = advanceCaseConstructionClock(context.nextState, currentCase, delta)
 

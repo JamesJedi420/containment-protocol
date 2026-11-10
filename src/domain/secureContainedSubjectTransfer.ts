@@ -9,7 +9,6 @@
  */
 
 import type { GameState } from './models'
-import { ensureNormalizedGameState } from './teamSimulation'
 import {
   evaluateContainmentCoLocationPlacement,
   type CoLocationPlacementRequest,
@@ -24,6 +23,17 @@ import {
   type ProcedureToActionAdapterInput,
   type ProcedureExecutionReadinessResult,
 } from './procedureToActionAdapter'
+import {
+  compareCodeUnitOrder,
+  freezeCoordinationRecord,
+  hasOwnEnumerableKey,
+  isNonEmptyTrimmedString,
+  isPlainRecord,
+  parseFacilityRecordMap,
+  sortUniqueCodes,
+  withSortedAppliedKey,
+  writeOptionalFacilityMapField,
+} from './facilityCoordinationHydrate'
 
 export const SECURE_TRANSFER_STAGES = [
   'requested',
@@ -129,23 +139,10 @@ const TERMINAL_STAGES: ReadonlySet<SecureTransferStage> = new Set([
 
 const PRE_RELEASE_STAGES: ReadonlySet<SecureTransferStage> = new Set(['requested', 'authorized'])
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function hasOwnEnumerableProperty(value: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.propertyIsEnumerable.call(value, key)
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function compareCodeUnit(left: string, right: string): number {
-  if (left < right) return -1
-  if (left > right) return 1
-  return 0
-}
+const isRecord = isPlainRecord
+const hasOwnEnumerableProperty = hasOwnEnumerableKey
+const isNonEmptyString = isNonEmptyTrimmedString
+const compareCodeUnit = compareCodeUnitOrder
 
 function isStage(value: unknown): value is SecureTransferStage {
   return SECURE_TRANSFER_STAGES.some((stage) => stage === value)
@@ -162,29 +159,17 @@ function isBlockReason(value: unknown): value is SecureTransferBlockReason {
 function freezeTransfer(record: SecureTransferRecord): SecureTransferRecord {
   // Omit explicit `undefined` own keys so parseTransferRecord does not reject
   // completed/authorized in-memory records when readTransfers rebuilds the map.
-  const defined = Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  ) as SecureTransferRecord
-  return Object.freeze({
-    ...defined,
-    reasonCodes: Object.freeze([...record.reasonCodes]),
-    appliedOperationKeys: Object.freeze([...record.appliedOperationKeys]),
-  })
+  return freezeCoordinationRecord(record)
 }
 
 function sortUniqueReasons(
   reasons: readonly SecureTransferBlockReason[]
 ): readonly SecureTransferBlockReason[] {
-  return Object.freeze(
-    [...new Set(reasons)].sort((a, b) => compareCodeUnit(a, b)) as SecureTransferBlockReason[]
-  )
+  return sortUniqueCodes(reasons)
 }
 
 function withAppliedKey(record: SecureTransferRecord, operationKey: string): readonly string[] {
-  if (record.appliedOperationKeys.includes(operationKey)) {
-    return record.appliedOperationKeys
-  }
-  return Object.freeze([...record.appliedOperationKeys, operationKey].sort(compareCodeUnit))
+  return withSortedAppliedKey(record.appliedOperationKeys, operationKey)
 }
 
 function parseTransferRecord(
@@ -300,18 +285,7 @@ function parseTransferRecord(
 export function parseFacilitySecureContainedSubjectTransfers(
   value: unknown
 ): FacilitySecureContainedSubjectTransfers | undefined {
-  if (value === undefined) return undefined
-  if (!isRecord(value)) return undefined
-  const out: Record<string, SecureTransferRecord> = {}
-  for (const key of Object.keys(value).sort(compareCodeUnit)) {
-    if (!hasOwnEnumerableProperty(value, key)) continue
-    if (!isNonEmptyString(key)) continue
-    const parsed = parseTransferRecord(value[key], key)
-    if (parsed === undefined) continue
-    out[key] = parsed
-  }
-  if (Object.keys(out).length === 0) return undefined
-  return Object.freeze(out)
+  return parseFacilityRecordMap(value, parseTransferRecord)
 }
 
 function readTransfers(state: GameState): FacilitySecureContainedSubjectTransfers {
@@ -321,30 +295,16 @@ function readTransfers(state: GameState): FacilitySecureContainedSubjectTransfer
   )
 }
 
-function writeTransfers(
-  state: GameState,
-  transfers: FacilitySecureContainedSubjectTransfers
-): GameState {
-  const normalized = ensureNormalizedGameState(state)
-  if (Object.keys(transfers).length === 0) {
-    if (normalized.facilitySecureContainedSubjectTransfers === undefined) return normalized
-    const rest = { ...normalized }
-    delete rest.facilitySecureContainedSubjectTransfers
-    return rest
-  }
-  return {
-    ...normalized,
-    facilitySecureContainedSubjectTransfers: Object.freeze({ ...transfers }),
-  }
-}
-
 function upsertTransfer(
   state: GameState | undefined,
   transfer: SecureTransferRecord
 ): GameState | undefined {
   if (state === undefined) return undefined
-  const transfers = { ...readTransfers(state), [transfer.transferId]: transfer }
-  return writeTransfers(state, Object.freeze(transfers))
+  return writeOptionalFacilityMapField(
+    state,
+    'facilitySecureContainedSubjectTransfers',
+    Object.freeze({ ...readTransfers(state), [transfer.transferId]: transfer })
+  )
 }
 
 /** Prefer the durable registry copy when present so idempotent replays stay consistent. */

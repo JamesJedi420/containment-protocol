@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                                   |
 | ----------------- | ------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                         |
+| **Status**        | **Shipped**                                                                                             |
 | **Issue**         | [SPE-3439](https://linear.app/spectranoir/issue/SPE-3439/secure-contained-subject-transfer-transaction) |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                |
 | **Branch**        | `jamesdyedbq/spe-3439-secure-contained-subject-transfer`                                                |

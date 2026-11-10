@@ -316,6 +316,7 @@
     "src/test/authorityGraph.test.ts",
     "src/test/authorityGraphPersistence.test.ts",
     "src/test/authorityNegotiation.test.ts",
+    "src/test/authorizedContainedSubjectExcursion.contract.test.ts",
     "src/test/baseDefenseDoctrine.contract.test.ts",
     "src/test/behaviorDisguiseValidation.test.ts",
     "src/test/beliefLockIllusion.test.ts",

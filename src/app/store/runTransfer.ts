@@ -55,6 +55,7 @@ import { parseFacilityRestrictedAssetCheckouts } from '../../domain/restrictedAs
 import { parseFacilityOutboundScreenHolds } from '../../domain/containmentZoneOutboundScreening'
 import { parseFacilitySecureContainedSubjectTransfers } from '../../domain/secureContainedSubjectTransfer'
 import { parseFacilityAuthorizedContainedSubjectExcursions } from '../../domain/authorizedContainedSubjectExcursion'
+import { parseFacilityBreachOriginRecoveries } from '../../domain/breachOriginRecovery'
 import { parseFacilitySecuredNodes } from '../../domain/facilitySecuredNodes'
 import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuarantine'
 import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
@@ -10755,6 +10756,9 @@ export function hydrateGame(
     parseFacilityAuthorizedContainedSubjectExcursions(
       game.facilityAuthorizedContainedSubjectExcursions
     )
+  const facilityBreachOriginRecoveries = parseFacilityBreachOriginRecoveries(
+    game.facilityBreachOriginRecoveries
+  )
   const facilitySecuredNodes = parseFacilitySecuredNodes(game.facilitySecuredNodes)
   const facilityStockQuarantine = parseFacilityStockQuarantine(game.facilityStockQuarantine)
   const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
@@ -10893,6 +10897,7 @@ export function hydrateGame(
     facilityOutboundScreenHolds,
     facilitySecureContainedSubjectTransfers,
     facilityAuthorizedContainedSubjectExcursions,
+    facilityBreachOriginRecoveries,
     facilitySecuredNodes,
     facilityStockQuarantine,
     facilityHaulingLabor,
@@ -11094,6 +11099,7 @@ export function hydrateGame(
     ...(facilityAuthorizedContainedSubjectExcursions
       ? { facilityAuthorizedContainedSubjectExcursions }
       : {}),
+    ...(facilityBreachOriginRecoveries ? { facilityBreachOriginRecoveries } : {}),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

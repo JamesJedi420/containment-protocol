@@ -91,3 +91,5 @@ coverage_out_*.txt
 
 # Trigger.dev local worker artifacts
 .trigger
+
+.vitest/

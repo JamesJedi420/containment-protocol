@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                                                       |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                                             |
+| **Status**        | **Shipped**                                                                                                                 |
 | **Issue**         | [SPE-3500](https://linear.app/spectranoir/issue/SPE-3500/authorized-contained-subject-excursion-and-verified-recontainment) |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                                    |
 | **Branch**        | `jamesdyedbq/spe-3500-authorized-contained-subject-excursion`                                                               |

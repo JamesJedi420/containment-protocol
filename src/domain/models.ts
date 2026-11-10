@@ -56,6 +56,7 @@ import type { FacilityRestrictedAssetCheckouts } from './restrictedAssetFieldChe
 import type { FacilityOutboundScreenHolds } from './containmentZoneOutboundScreening'
 import type { FacilitySecureContainedSubjectTransfers } from './secureContainedSubjectTransfer'
 import type { FacilityAuthorizedContainedSubjectExcursions } from './authorizedContainedSubjectExcursion'
+import type { FacilityBreachOriginRecoveries } from './breachOriginRecovery'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
@@ -3013,6 +3014,13 @@ export interface GameState {
    * Omit hydrates omitted.
    */
   facilityAuthorizedContainedSubjectExcursions?: FacilityAuthorizedContainedSubjectExcursions
+  /**
+   * SPE-3735: durable breach-origin recovery / verified-recontainment handoff
+   * transactions for already-escaped subjects. Coordination stages only; does not
+   * invent capture, movement, custody, or incident engines. Capture success,
+   * arrival, and status patches alone never complete recovery. Omit hydrates omitted.
+   */
+  facilityBreachOriginRecoveries?: FacilityBreachOriginRecoveries
   /**
    * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
    * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and

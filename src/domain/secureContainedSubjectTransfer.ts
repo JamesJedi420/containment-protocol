@@ -27,7 +27,6 @@ import {
 
 export const SECURE_TRANSFER_STAGES = [
   'requested',
-  'preflight',
   'authorized',
   'release_in_progress',
   'in_transit',
@@ -120,7 +119,6 @@ export type SecureTransferResult =
 
 const ACTIVE_STAGES: ReadonlySet<SecureTransferStage> = new Set([
   'requested',
-  'preflight',
   'authorized',
   'release_in_progress',
   'in_transit',
@@ -353,6 +351,15 @@ function upsertTransfer(state: GameState | undefined, transfer: SecureTransferRe
   return writeTransfers(state, Object.freeze(transfers))
 }
 
+/** Prefer the durable registry copy when present so idempotent replays stay consistent. */
+function resolveCurrentTransfer(
+  transfer: SecureTransferRecord,
+  state: GameState | undefined
+): SecureTransferRecord {
+  if (state === undefined) return transfer
+  return readTransfers(state)[transfer.transferId] ?? transfer
+}
+
 export type SecureTransferCreateInput = {
   readonly transferId: string
   readonly subjectRef: string
@@ -500,7 +507,8 @@ export function runSecureTransferPreflight(
   input: SecureTransferPreflightInput,
   state?: GameState
 ): SecureTransferResult & { evidence?: SecureTransferPreflightEvidence } {
-  const { transfer, operationKey, gates } = input
+  const transfer = resolveCurrentTransfer(input.transfer, state)
+  const { operationKey, gates } = input
   if (!isNonEmptyString(operationKey)) {
     return {
       ok: false,
@@ -510,7 +518,8 @@ export function runSecureTransferPreflight(
       state,
     }
   }
-  if (transfer.stage !== 'requested' && transfer.stage !== 'preflight') {
+  // Preflight is a synchronous evaluation phase (evidence below), not a durable stage.
+  if (transfer.stage !== 'requested') {
     if (transfer.appliedOperationKeys.includes(operationKey.trim())) {
       return { ok: true, transfer, state }
     }
@@ -607,10 +616,11 @@ export function runSecureTransferPreflight(
  * Begin release after authorization. Stage alone does not prove release occurred.
  */
 export function beginSecureTransferRelease(
-  transfer: SecureTransferRecord,
+  transferInput: SecureTransferRecord,
   operationKey: string,
   state?: GameState
 ): SecureTransferResult {
+  const transfer = resolveCurrentTransfer(transferInput, state)
   if (!isNonEmptyString(operationKey)) {
     return {
       ok: false,
@@ -646,10 +656,11 @@ export function beginSecureTransferRelease(
  * Confirm owner-reported release. Without commit evidence, stay fail-closed.
  */
 export function confirmSecureTransferRelease(
-  transfer: SecureTransferRecord,
+  transferInput: SecureTransferRecord,
   input: { readonly operationKey: string; readonly releaseCommitted: boolean },
   state?: GameState
 ): SecureTransferResult {
+  const transfer = resolveCurrentTransfer(transferInput, state)
   if (!isNonEmptyString(input.operationKey)) {
     return {
       ok: false,
@@ -692,10 +703,11 @@ export function confirmSecureTransferRelease(
 }
 
 export function confirmSecureTransferMovement(
-  transfer: SecureTransferRecord,
+  transferInput: SecureTransferRecord,
   input: { readonly operationKey: string; readonly movementCommitted: boolean },
   state?: GameState
 ): SecureTransferResult {
+  const transfer = resolveCurrentTransfer(transferInput, state)
   if (!isNonEmptyString(input.operationKey)) {
     return {
       ok: false,
@@ -738,7 +750,7 @@ export function confirmSecureTransferMovement(
 }
 
 export function confirmSecureTransferDestinationSecure(
-  transfer: SecureTransferRecord,
+  transferInput: SecureTransferRecord,
   input: {
     readonly operationKey: string
     readonly destinationSecured: boolean
@@ -746,6 +758,7 @@ export function confirmSecureTransferDestinationSecure(
   },
   state?: GameState
 ): SecureTransferResult {
+  const transfer = resolveCurrentTransfer(transferInput, state)
   if (!isNonEmptyString(input.operationKey)) {
     return {
       ok: false,
@@ -792,7 +805,7 @@ export function confirmSecureTransferDestinationSecure(
  * Interrupt or abort. After release, physical effects are preserved (no rollback).
  */
 export function interruptSecureTransfer(
-  transfer: SecureTransferRecord,
+  transferInput: SecureTransferRecord,
   input: {
     readonly operationKey: string
     readonly incidentOwnerHint?: string
@@ -800,6 +813,7 @@ export function interruptSecureTransfer(
   },
   state?: GameState
 ): SecureTransferResult {
+  const transfer = resolveCurrentTransfer(transferInput, state)
   if (!isNonEmptyString(input.operationKey)) {
     return {
       ok: false,

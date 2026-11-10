@@ -59,7 +59,7 @@ Coordinate one deterministic same-site secure contained-subject transfer so rele
 
 ## Acceptance
 
-- [x] Valid transfer proceeds through request → authorized → release → transit → destination securing → completed with owner commits
+- [x] Valid transfer proceeds through request → (sync preflight evaluation) → authorized → release → transit → destination securing → completed with owner commits
 - [x] Incompatible destination / gate failures block before release without physical effects
 - [x] Outbound screening hold is not transfer permission
 - [x] Post-release interrupt preserves physical effects and fails without rollback success

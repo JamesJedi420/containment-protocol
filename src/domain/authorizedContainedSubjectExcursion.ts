@@ -20,6 +20,16 @@ import {
   type ProcedureToActionAdapterInput,
   type ProcedureExecutionReadinessResult,
 } from './procedureToActionAdapter'
+import {
+  compareCodeUnitOrder,
+  freezeCoordinationRecord,
+  hasOwnEnumerableKey,
+  isFiniteNonNegativeWeek,
+  isNonEmptyTrimmedString,
+  isPlainRecord,
+  sortUniqueCodes,
+  withSortedAppliedKey,
+} from './facilityCoordinationHydrate'
 
 export const AUTHORIZED_EXCURSION_STAGES = [
   'requested',
@@ -163,29 +173,11 @@ const ON_EXCURSION_STAGES: ReadonlySet<AuthorizedExcursionStage> = new Set([
   'overdue',
 ])
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function hasOwnEnumerableProperty(value: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.propertyIsEnumerable.call(value, key)
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
-}
-
-function isFiniteWeek(value: unknown): value is number {
-  return (
-    typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) && value >= 0
-  )
-}
-
-function compareCodeUnit(left: string, right: string): number {
-  if (left < right) return -1
-  if (left > right) return 1
-  return 0
-}
+const isRecord = isPlainRecord
+const hasOwnEnumerableProperty = hasOwnEnumerableKey
+const isNonEmptyString = isNonEmptyTrimmedString
+const isFiniteWeek = isFiniteNonNegativeWeek
+const compareCodeUnit = compareCodeUnitOrder
 
 function isStage(value: unknown): value is AuthorizedExcursionStage {
   return AUTHORIZED_EXCURSION_STAGES.some((stage) => stage === value)
@@ -200,32 +192,20 @@ function isReasonCode(value: unknown): value is AuthorizedExcursionReasonCode {
 }
 
 function freezeExcursion(record: AuthorizedExcursionRecord): AuthorizedExcursionRecord {
-  const defined = Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined)
-  ) as AuthorizedExcursionRecord
-  return Object.freeze({
-    ...defined,
-    reasonCodes: Object.freeze([...record.reasonCodes]),
-    appliedOperationKeys: Object.freeze([...record.appliedOperationKeys]),
-  })
+  return freezeCoordinationRecord(record)
 }
 
 function sortUniqueReasons(
   reasons: readonly AuthorizedExcursionReasonCode[]
 ): readonly AuthorizedExcursionReasonCode[] {
-  return Object.freeze(
-    [...new Set(reasons)].sort((a, b) => compareCodeUnit(a, b)) as AuthorizedExcursionReasonCode[]
-  )
+  return sortUniqueCodes(reasons)
 }
 
 function withAppliedKey(
   record: AuthorizedExcursionRecord,
   operationKey: string
 ): readonly string[] {
-  if (record.appliedOperationKeys.includes(operationKey)) {
-    return record.appliedOperationKeys
-  }
-  return Object.freeze([...record.appliedOperationKeys, operationKey].sort(compareCodeUnit))
+  return withSortedAppliedKey(record.appliedOperationKeys, operationKey)
 }
 
 function rejectExcursion(

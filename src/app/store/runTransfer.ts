@@ -53,6 +53,7 @@ import { parseFacilityProtectionGoods } from '../../domain/facilityProtectionGoo
 import { parseFacilityRestrictedObjectRelease } from '../../domain/facilityRestrictedObjectRelease'
 import { parseFacilityRestrictedAssetCheckouts } from '../../domain/restrictedAssetFieldCheckout'
 import { parseFacilityOutboundScreenHolds } from '../../domain/containmentZoneOutboundScreening'
+import { parseFacilitySecureContainedSubjectTransfers } from '../../domain/secureContainedSubjectTransfer'
 import { parseFacilitySecuredNodes } from '../../domain/facilitySecuredNodes'
 import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuarantine'
 import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
@@ -10746,6 +10747,9 @@ export function hydrateGame(
   const facilityOutboundScreenHolds = parseFacilityOutboundScreenHolds(
     game.facilityOutboundScreenHolds
   )
+  const facilitySecureContainedSubjectTransfers = parseFacilitySecureContainedSubjectTransfers(
+    game.facilitySecureContainedSubjectTransfers
+  )
   const facilitySecuredNodes = parseFacilitySecuredNodes(game.facilitySecuredNodes)
   const facilityStockQuarantine = parseFacilityStockQuarantine(game.facilityStockQuarantine)
   const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
@@ -10882,6 +10886,7 @@ export function hydrateGame(
     facilityRestrictedObjectRelease,
     facilityRestrictedAssetCheckouts,
     facilityOutboundScreenHolds,
+    facilitySecureContainedSubjectTransfers,
     facilitySecuredNodes,
     facilityStockQuarantine,
     facilityHaulingLabor,

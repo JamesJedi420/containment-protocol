@@ -479,6 +479,50 @@ describe('SPE-3439 secure contained-subject transfer', () => {
     expect(parsed?.bad).toBeUndefined()
   })
 
+  it('keeps completed transfers in registry after authorizing another transfer', () => {
+    const first = createSecureContainedSubjectTransfer(
+      {
+        transferId: 'xfer-a',
+        subjectRef: 'subject:anomaly-a',
+        subjectKind: 'non_person',
+        originNodeId: 'room:containment_cell',
+        destinationNodeId: 'room:med_bay',
+        operationKey: 'op-a-create',
+      },
+      createStartingState()
+    )
+    expect(first.ok).toBe(true)
+    const completed = runHappyPath(first.transfer!)
+    const withCompleted = {
+      ...first.state!,
+      facilitySecureContainedSubjectTransfers: {
+        'xfer-a': completed,
+      },
+    }
+    const second = createSecureContainedSubjectTransfer(
+      {
+        transferId: 'xfer-b',
+        subjectRef: 'subject:anomaly-b',
+        subjectKind: 'non_person',
+        originNodeId: 'room:containment_cell',
+        destinationNodeId: 'room:med_bay',
+        operationKey: 'op-b-create',
+      },
+      withCompleted
+    )
+    expect(second.ok).toBe(true)
+    expect(second.state?.facilitySecureContainedSubjectTransfers?.['xfer-a']?.stage).toBe(
+      'completed'
+    )
+    expect(second.state?.facilitySecureContainedSubjectTransfers?.['xfer-b']?.stage).toBe(
+      'requested'
+    )
+
+    const loaded = hydrateGame(structuredClone(second.state!))
+    expect(Object.isFrozen(loaded.facilitySecureContainedSubjectTransfers)).toBe(true)
+    expect(loaded.facilitySecureContainedSubjectTransfers?.['xfer-a']?.stage).toBe('completed')
+  })
+
   it('does not advance on uncommitted release or destination evidence', () => {
     const created = createNonPerson()
     const preflight = runSecureTransferPreflight({

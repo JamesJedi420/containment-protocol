@@ -169,8 +169,13 @@ function isBlockReason(value: unknown): value is SecureTransferBlockReason {
 }
 
 function freezeTransfer(record: SecureTransferRecord): SecureTransferRecord {
+  // Omit explicit `undefined` own keys so parseTransferRecord does not reject
+  // completed/authorized in-memory records when readTransfers rebuilds the map.
+  const defined = Object.fromEntries(
+    Object.entries(record).filter(([, value]) => value !== undefined)
+  ) as SecureTransferRecord
   return Object.freeze({
-    ...record,
+    ...defined,
     reasonCodes: Object.freeze([...record.reasonCodes]),
     appliedOperationKeys: Object.freeze([...record.appliedOperationKeys]),
   })

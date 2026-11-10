@@ -79,6 +79,7 @@
       "tsconfck": {
         "typescript": "$typescript"
       }
-    }
+    },
+    "minimatch": "11.0.5"
   }
 }

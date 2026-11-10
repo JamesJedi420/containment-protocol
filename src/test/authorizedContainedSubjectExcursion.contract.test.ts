@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
-import type { AgentRole } from '../domain/agent/models'
-import type { CrossRoleActionParticipant } from '../domain/crossRoleActionProcedure'
-import {
-  BINDING_SIGIL,
-  PROCEDURE_DEFINITION_SCHEMA_VERSION,
-  type ProcedureDefinition,
-} from '../domain/procedureDefinition'
-import type { ProcedureExecutionPrerequisiteDecision } from '../domain/procedureToActionAdapter'
 import {
   beginAuthorizedExcursionReturn,
   confirmAuthorizedExcursionRecontainment,
@@ -24,6 +16,10 @@ import {
   type AuthorizedExcursionPreflightGates,
   type AuthorizedExcursionRecord,
 } from '../domain/authorizedContainedSubjectExcursion'
+import {
+  buildCanonicalProcedureAdapterFixture,
+  withBlockedAuthorizationDecision,
+} from './helpers/canonicalProcedureAdapterFixture'
 
 const openGates: AuthorizedExcursionPreflightGates = Object.freeze({
   purposeAuthorized: true,
@@ -34,89 +30,12 @@ const openGates: AuthorizedExcursionPreflightGates = Object.freeze({
   roomConfigSafe: true,
 })
 
-function makeProcedure(overrides: Partial<ProcedureDefinition> = {}): ProcedureDefinition {
-  return {
-    ...BINDING_SIGIL,
-    schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
+function procedureAdapter(executionKey = 'exec-excursion-1') {
+  return buildCanonicalProcedureAdapterFixture({
     procedureId: 'authorized_excursion_release',
     canonicalName: 'Authorized Excursion Release',
-    requirements: {
-      speech: 'none',
-      gesture: 'none',
-      toolTags: ['evidence_kit'],
-      reagents: [],
-      requiresDiagram: false,
-      deviceTags: [],
-    },
-    restrictions: {
-      forbiddenRoles: [],
-      requiredCertifications: [],
-      requiresSpecialistAccess: false,
-      usageCap: null,
-    },
-    availability: { rating: 'common' },
-    provenance: {
-      sourceSystem: 'field_manual',
-      acquiredViaResearch: false,
-      researchDiscipline: null,
-      restrictedFaction: null,
-    },
-    ...overrides,
-  }
-}
-
-function makeParticipant(
-  agentId: string,
-  role: AgentRole,
-  itemTags: readonly string[] = []
-): CrossRoleActionParticipant {
-  return {
-    agentId,
-    role,
-    statDomains: {},
-    itemTags,
-  }
-}
-
-function satisfied(
-  prerequisiteClass: ProcedureExecutionPrerequisiteDecision['prerequisiteClass'],
-  ownerRef: string
-): ProcedureExecutionPrerequisiteDecision {
-  return {
-    prerequisiteClass,
-    ownerRef,
-    state: 'satisfied',
-    reason: 'verified',
-  }
-}
-
-const baseDecisions: readonly ProcedureExecutionPrerequisiteDecision[] = [
-  satisfied('knowledge_readiness', 'SPE-58'),
-  satisfied('authorization', 'SPE-2078'),
-  satisfied('competency', 'SPE-1059'),
-  satisfied('compatibility_equipment', 'SPE-714'),
-  satisfied('facility_environment', 'SPE-1896'),
-  satisfied('operating_doctrine', 'SPE-874'),
-  satisfied('procedure_exhaustion', 'SPE-3308'),
-  satisfied('subject_fit', 'SPE-1907'),
-]
-
-function procedureAdapter(executionKey = 'exec-excursion-1') {
-  return {
-    definition: makeProcedure(),
-    eligibleRoles: ['investigator', 'field_recon'] as const,
-    requiredParticipantCount: 2,
-    participants: [
-      makeParticipant('agent-a', 'investigator', ['evidence_kit']),
-      makeParticipant('agent-b', 'field_recon'),
-    ],
-    requiredPrerequisites: baseDecisions.map(({ prerequisiteClass, ownerRef }) => ({
-      prerequisiteClass,
-      ownerRef,
-    })),
-    prerequisiteDecisions: baseDecisions,
     executionKey,
-  }
+  })
 }
 
 function createNonPerson(
@@ -135,30 +54,25 @@ function createNonPerson(
   })
 }
 
-function clearOutboundScreen() {
-  return {
-    direction: 'outbound',
-    boundaryZoneId: 'zone:containment',
-    actorId: 'subject:anomaly-a',
-    policies: [
-      {
-        policyId: 'policy-clear',
-        boundaryZoneId: 'zone:containment',
-      },
-    ],
+function excursionOutboundScreen(kind: 'clear' | 'hold') {
+  const zone = 'zone:containment'
+  if (kind === 'clear') {
+    return {
+      direction: 'outbound' as const,
+      boundaryZoneId: zone,
+      actorId: 'subject:anomaly-a',
+      policies: [{ policyId: 'policy-clear', boundaryZoneId: zone }],
+    }
   }
-}
-
-function holdOutboundScreen() {
   return {
-    direction: 'outbound',
-    boundaryZoneId: 'zone:containment',
+    direction: 'outbound' as const,
+    boundaryZoneId: zone,
     actorId: 'subject:anomaly-a',
     carriedClasses: ['biohazard_sample'],
     policies: [
       {
         policyId: 'policy-hold',
-        boundaryZoneId: 'zone:containment',
+        boundaryZoneId: zone,
         holdCarriedClasses: ['biohazard_sample'],
       },
     ],
@@ -237,7 +151,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       excursion: created.excursion!,
       operationKey: 'op-screen-hold',
       gates: { ...openGates, requiresOutboundScreen: true },
-      outboundScreen: holdOutboundScreen(),
+      outboundScreen: excursionOutboundScreen('hold'),
     })
     expect(blocked.ok).toBe(false)
     expect(blocked.reasonCodes).toContain('outbound_screen_blocked')
@@ -250,7 +164,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       excursion: created.excursion!,
       operationKey: 'op-preflight-ready',
       gates: { ...openGates, requiresOutboundScreen: true },
-      outboundScreen: clearOutboundScreen(),
+      outboundScreen: excursionOutboundScreen('clear'),
       procedureAdapter: procedureAdapter(),
     })
     expect(preflight.ok).toBe(true)
@@ -270,11 +184,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       recontainmentVerified: true,
       procedureAdapter: {
         ...procedureAdapter('exec-blocked'),
-        prerequisiteDecisions: baseDecisions.map((decision) =>
-          decision.prerequisiteClass === 'authorization'
-            ? { ...decision, state: 'blocked', reason: 'missing_auth' }
-            : decision
-        ),
+        prerequisiteDecisions: withBlockedAuthorizationDecision(),
       },
     })
     expect(notReady.ok).toBe(false)
@@ -383,11 +293,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       recontainmentVerified: false,
       procedureAdapter: {
         ...procedureAdapter('exec-not-ready'),
-        prerequisiteDecisions: baseDecisions.map((decision) =>
-          decision.prerequisiteClass === 'authorization'
-            ? { ...decision, state: 'blocked', reason: 'missing_auth' }
-            : decision
-        ),
+        prerequisiteDecisions: withBlockedAuthorizationDecision(),
       },
     })
     expect(failed.ok).toBe(false)

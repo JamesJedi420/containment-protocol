@@ -398,6 +398,46 @@ function resolveCurrentExcursion(
   return readExcursions(state)[excursion.excursionId] ?? excursion
 }
 
+type PreparedExcursionMutation =
+  | { kind: 'ready'; excursion: AuthorizedExcursionRecord; key: string }
+  | { kind: 'done'; result: AuthorizedExcursionResult }
+  | { kind: 'reject'; result: AuthorizedExcursionResult }
+
+function prepareExcursionMutation(
+  excursionInput: AuthorizedExcursionRecord,
+  operationKey: string,
+  state: GameState | undefined,
+  options: {
+    readonly campaignWeek?: number
+    readonly idempotentStages: readonly AuthorizedExcursionStage[]
+    readonly allowedStages: readonly AuthorizedExcursionStage[]
+  }
+): PreparedExcursionMutation {
+  const excursion = resolveCurrentExcursion(excursionInput, state)
+  const weekOk = options.campaignWeek === undefined ? true : isFiniteWeek(options.campaignWeek)
+  if (!isNonEmptyString(operationKey) || !weekOk) {
+    return { kind: 'reject', result: rejectExcursion('malformed_input', excursion, state) }
+  }
+  const key = operationKey.trim()
+  if (
+    excursion.appliedOperationKeys.includes(key) &&
+    options.idempotentStages.includes(excursion.stage)
+  ) {
+    return { kind: 'done', result: { ok: true, excursion, state } }
+  }
+  if (!options.allowedStages.includes(excursion.stage)) {
+    return { kind: 'reject', result: rejectExcursion('illegal_transition', excursion, state) }
+  }
+  return { kind: 'ready', excursion, key }
+}
+
+function commitExcursion(
+  excursion: AuthorizedExcursionRecord,
+  state: GameState | undefined
+): AuthorizedExcursionResult {
+  return { ok: true, excursion, state: upsertExcursion(state, excursion) }
+}
+
 export type AuthorizedExcursionCreateInput = {
   readonly excursionId: string
   readonly subjectRef: string
@@ -618,29 +658,26 @@ export function confirmAuthorizedExcursionRelease(
   },
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(input.operationKey) || !isFiniteWeek(input.campaignWeek)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = input.operationKey.trim()
-  if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'active_excursion') {
-    return { ok: true, excursion, state }
-  }
-  if (excursion.stage !== 'authorized' && excursion.stage !== 'released') {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
-  if (!input.releaseCommitted) {
-    return rejectExcursion('release_not_committed', excursion, state)
-  }
-  const next = freezeExcursion({
-    ...excursion,
-    stage: 'active_excursion',
-    physicalEffectsOccurred: true,
-    startWeek: excursion.startWeek ?? input.campaignWeek,
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    pendingCorrectiveAction: 'monitor_return_obligation',
+  const prepared = prepareExcursionMutation(excursionInput, input.operationKey, state, {
+    campaignWeek: input.campaignWeek,
+    idempotentStages: ['active_excursion'],
+    allowedStages: ['authorized', 'released'],
   })
-  return { ok: true, excursion: next, state: upsertExcursion(state, next) }
+  if (prepared.kind !== 'ready') return prepared.result
+  if (!input.releaseCommitted) {
+    return rejectExcursion('release_not_committed', prepared.excursion, state)
+  }
+  return commitExcursion(
+    freezeExcursion({
+      ...prepared.excursion,
+      stage: 'active_excursion',
+      physicalEffectsOccurred: true,
+      startWeek: prepared.excursion.startWeek ?? input.campaignWeek,
+      appliedOperationKeys: withAppliedKey(prepared.excursion, prepared.key),
+      pendingCorrectiveAction: 'monitor_return_obligation',
+    }),
+    state
+  )
 }
 
 /**
@@ -652,20 +689,13 @@ export function evaluateAuthorizedExcursionReturnObligation(
   input: { readonly operationKey: string; readonly campaignWeek: number },
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(input.operationKey) || !isFiniteWeek(input.campaignWeek)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = input.operationKey.trim()
-  if (
-    excursion.appliedOperationKeys.includes(key) &&
-    (excursion.stage === 'return_due' || excursion.stage === 'overdue')
-  ) {
-    return { ok: true, excursion, state }
-  }
-  if (excursion.stage !== 'active_excursion' && excursion.stage !== 'return_due') {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
+  const prepared = prepareExcursionMutation(excursionInput, input.operationKey, state, {
+    campaignWeek: input.campaignWeek,
+    idempotentStages: ['return_due', 'overdue'],
+    allowedStages: ['active_excursion', 'return_due'],
+  })
+  if (prepared.kind !== 'ready') return prepared.result
+  const { excursion, key } = prepared
   if (excursion.returnDeadlineWeek === undefined) {
     return { ok: true, excursion, state }
   }
@@ -676,25 +706,29 @@ export function evaluateAuthorizedExcursionReturnObligation(
     if (excursion.stage === 'return_due') {
       return { ok: true, excursion, state }
     }
-    const due = freezeExcursion({
-      ...excursion,
-      stage: 'return_due',
-      appliedOperationKeys: withAppliedKey(excursion, key),
-      pendingCorrectiveAction: 'begin_authorized_return',
-      reasonCodes: Object.freeze([]),
-    })
-    return { ok: true, excursion: due, state: upsertExcursion(state, due) }
+    return commitExcursion(
+      freezeExcursion({
+        ...excursion,
+        stage: 'return_due',
+        appliedOperationKeys: withAppliedKey(excursion, key),
+        pendingCorrectiveAction: 'begin_authorized_return',
+        reasonCodes: Object.freeze([]),
+      }),
+      state
+    )
   }
 
-  const overdue = freezeExcursion({
-    ...excursion,
-    stage: 'overdue',
-    reasonCodes: sortUniqueReasons(['deadline_exceeded']),
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    pendingCorrectiveAction: 'route_overdue_to_response_owner',
-    responseOwnerHint: excursion.responseOwnerHint ?? 'response',
-  })
-  return { ok: true, excursion: overdue, state: upsertExcursion(state, overdue) }
+  return commitExcursion(
+    freezeExcursion({
+      ...excursion,
+      stage: 'overdue',
+      reasonCodes: sortUniqueReasons(['deadline_exceeded']),
+      appliedOperationKeys: withAppliedKey(excursion, key),
+      pendingCorrectiveAction: 'route_overdue_to_response_owner',
+      responseOwnerHint: excursion.responseOwnerHint ?? 'response',
+    }),
+    state
+  )
 }
 
 /**
@@ -705,28 +739,20 @@ export function beginAuthorizedExcursionReturn(
   operationKey: string,
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(operationKey)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = operationKey.trim()
-  if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'return_in_progress') {
-    return { ok: true, excursion, state }
-  }
-  if (
-    excursion.stage !== 'active_excursion' &&
-    excursion.stage !== 'return_due' &&
-    excursion.stage !== 'overdue'
-  ) {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
-  const next = freezeExcursion({
-    ...excursion,
-    stage: 'return_in_progress',
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    pendingCorrectiveAction: 'await_owner_return_commit',
+  const prepared = prepareExcursionMutation(excursionInput, operationKey, state, {
+    idempotentStages: ['return_in_progress'],
+    allowedStages: ['active_excursion', 'return_due', 'overdue'],
   })
-  return { ok: true, excursion: next, state: upsertExcursion(state, next) }
+  if (prepared.kind !== 'ready') return prepared.result
+  return commitExcursion(
+    freezeExcursion({
+      ...prepared.excursion,
+      stage: 'return_in_progress',
+      appliedOperationKeys: withAppliedKey(prepared.excursion, prepared.key),
+      pendingCorrectiveAction: 'await_owner_return_commit',
+    }),
+    state
+  )
 }
 
 /**
@@ -741,31 +767,24 @@ export function confirmAuthorizedExcursionReturn(
   },
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(input.operationKey)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = input.operationKey.trim()
-  if (
-    excursion.appliedOperationKeys.includes(key) &&
-    excursion.stage === 'recontainment_verification'
-  ) {
-    return { ok: true, excursion, state }
-  }
-  if (excursion.stage !== 'return_in_progress') {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
-  if (!input.returnCommitted || !input.arrivedAtOrigin) {
-    return rejectExcursion('return_not_committed', excursion, state)
-  }
-  const next = freezeExcursion({
-    ...excursion,
-    stage: 'recontainment_verification',
-    physicalEffectsOccurred: true,
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    pendingCorrectiveAction: 'await_recontainment_verification',
+  const prepared = prepareExcursionMutation(excursionInput, input.operationKey, state, {
+    idempotentStages: ['recontainment_verification'],
+    allowedStages: ['return_in_progress'],
   })
-  return { ok: true, excursion: next, state: upsertExcursion(state, next) }
+  if (prepared.kind !== 'ready') return prepared.result
+  if (!input.returnCommitted || !input.arrivedAtOrigin) {
+    return rejectExcursion('return_not_committed', prepared.excursion, state)
+  }
+  return commitExcursion(
+    freezeExcursion({
+      ...prepared.excursion,
+      stage: 'recontainment_verification',
+      physicalEffectsOccurred: true,
+      appliedOperationKeys: withAppliedKey(prepared.excursion, prepared.key),
+      pendingCorrectiveAction: 'await_recontainment_verification',
+    }),
+    state
+  )
 }
 
 /**
@@ -780,17 +799,12 @@ export function confirmAuthorizedExcursionRecontainment(
   },
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(input.operationKey)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = input.operationKey.trim()
-  if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'completed') {
-    return { ok: true, excursion, state }
-  }
-  if (excursion.stage !== 'recontainment_verification') {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
+  const prepared = prepareExcursionMutation(excursionInput, input.operationKey, state, {
+    idempotentStages: ['completed'],
+    allowedStages: ['recontainment_verification'],
+  })
+  if (prepared.kind !== 'ready') return prepared.result
+  const { excursion, key } = prepared
 
   if (!input.recontainmentVerified) {
     const failed = freezeExcursion({
@@ -817,18 +831,20 @@ export function confirmAuthorizedExcursionRecontainment(
     }
   }
 
-  const next = freezeExcursion({
-    ...excursion,
-    stage: 'completed',
-    physicalEffectsOccurred: true,
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    pendingCorrectiveAction: undefined,
-    reasonCodes: Object.freeze([]),
-    ...(input.procedureAdapter !== undefined
-      ? { procedureExecutionKey: input.procedureAdapter.executionKey }
-      : {}),
-  })
-  return { ok: true, excursion: next, state: upsertExcursion(state, next) }
+  return commitExcursion(
+    freezeExcursion({
+      ...excursion,
+      stage: 'completed',
+      physicalEffectsOccurred: true,
+      appliedOperationKeys: withAppliedKey(excursion, key),
+      pendingCorrectiveAction: undefined,
+      reasonCodes: Object.freeze([]),
+      ...(input.procedureAdapter !== undefined
+        ? { procedureExecutionKey: input.procedureAdapter.executionKey }
+        : {}),
+    }),
+    state
+  )
 }
 
 /**
@@ -843,35 +859,32 @@ export function reportAuthorizedExcursionMissing(
   },
   state?: GameState
 ): AuthorizedExcursionResult {
-  const excursion = resolveCurrentExcursion(excursionInput, state)
-  if (!isNonEmptyString(input.operationKey)) {
-    return rejectExcursion('malformed_input', excursion, state)
-  }
-  const key = input.operationKey.trim()
   const terminal =
     input.escalateToRetrieval === true ? ('retrieval_required' as const) : ('missing' as const)
-  if (excursion.appliedOperationKeys.includes(key) && excursion.stage === terminal) {
-    return { ok: true, excursion, state }
-  }
-  if (!ON_EXCURSION_STAGES.has(excursion.stage) && excursion.stage !== 'return_in_progress') {
-    return rejectExcursion('illegal_transition', excursion, state)
-  }
-  const next = freezeExcursion({
-    ...excursion,
-    stage: terminal,
-    reasonCodes: sortUniqueReasons(['subject_missing']),
-    appliedOperationKeys: withAppliedKey(excursion, key),
-    physicalEffectsOccurred: true,
-    pendingCorrectiveAction:
-      terminal === 'retrieval_required'
-        ? 'route_retrieval_to_response_owner'
-        : 'route_missing_to_tracking_owner',
-    responseOwnerHint:
-      (isNonEmptyString(input.responseOwnerHint) ? input.responseOwnerHint.trim() : undefined) ??
-      excursion.responseOwnerHint ??
-      (terminal === 'retrieval_required' ? 'response' : 'tracking'),
+  const prepared = prepareExcursionMutation(excursionInput, input.operationKey, state, {
+    idempotentStages: [terminal],
+    allowedStages: [...ON_EXCURSION_STAGES, 'return_in_progress'],
   })
-  return { ok: true, excursion: next, state: upsertExcursion(state, next) }
+  if (prepared.kind !== 'ready') return prepared.result
+  const { excursion, key } = prepared
+  return commitExcursion(
+    freezeExcursion({
+      ...excursion,
+      stage: terminal,
+      reasonCodes: sortUniqueReasons(['subject_missing']),
+      appliedOperationKeys: withAppliedKey(excursion, key),
+      physicalEffectsOccurred: true,
+      pendingCorrectiveAction:
+        terminal === 'retrieval_required'
+          ? 'route_retrieval_to_response_owner'
+          : 'route_missing_to_tracking_owner',
+      responseOwnerHint:
+        (isNonEmptyString(input.responseOwnerHint) ? input.responseOwnerHint.trim() : undefined) ??
+        excursion.responseOwnerHint ??
+        (terminal === 'retrieval_required' ? 'response' : 'tracking'),
+    }),
+    state
+  )
 }
 
 /**

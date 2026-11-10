@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
-import type { AgentRole } from '../domain/agent/models'
-import type { CrossRoleActionParticipant } from '../domain/crossRoleActionProcedure'
 import { readProductionFacilitySectionGraph } from '../domain/facilitySectionGraph'
-import {
-  BINDING_SIGIL,
-  PROCEDURE_DEFINITION_SCHEMA_VERSION,
-  type ProcedureDefinition,
-} from '../domain/procedureDefinition'
-import type { ProcedureExecutionPrerequisiteDecision } from '../domain/procedureToActionAdapter'
 import {
   beginSecureTransferRelease,
   confirmSecureTransferDestinationSecure,
@@ -23,6 +15,7 @@ import {
   type SecureTransferPreflightGates,
   type SecureTransferRecord,
 } from '../domain/secureContainedSubjectTransfer'
+import { buildCanonicalProcedureAdapterFixture } from './helpers/canonicalProcedureAdapterFixture'
 
 const graph = readProductionFacilitySectionGraph()
 
@@ -34,90 +27,13 @@ const openGates: SecureTransferPreflightGates = Object.freeze({
   roomConfigSafe: true,
 })
 
-function makeProcedure(overrides: Partial<ProcedureDefinition> = {}): ProcedureDefinition {
-  return {
-    ...BINDING_SIGIL,
-    schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
+function procedureAdapter(executionKey = 'exec-transfer-1') {
+  return buildCanonicalProcedureAdapterFixture({
     procedureId: 'secure_transfer_release',
     canonicalName: 'Secure Transfer Release',
-    requirements: {
-      speech: 'none',
-      gesture: 'none',
-      toolTags: ['evidence_kit'],
-      reagents: [],
-      requiresDiagram: false,
-      deviceTags: [],
-      environmentalConditions: [],
-    },
-    restrictions: {
-      forbiddenRoles: [],
-      requiredCertifications: [],
-      requiresSpecialistAccess: false,
-      usageCap: null,
-    },
-    availability: { rating: 'common' },
-    provenance: {
-      sourceSystem: 'field_manual',
-      acquiredViaResearch: false,
-      researchDiscipline: null,
-      restrictedFaction: null,
-    },
-    ...overrides,
-  }
-}
-
-function makeParticipant(
-  agentId: string,
-  role: AgentRole,
-  itemTags: readonly string[] = []
-): CrossRoleActionParticipant {
-  return {
-    agentId,
-    role,
-    statDomains: {},
-    itemTags,
-  }
-}
-
-function satisfied(
-  prerequisiteClass: ProcedureExecutionPrerequisiteDecision['prerequisiteClass'],
-  ownerRef: string
-): ProcedureExecutionPrerequisiteDecision {
-  return {
-    prerequisiteClass,
-    ownerRef,
-    state: 'satisfied',
-    reason: 'verified',
-  }
-}
-
-const baseDecisions: readonly ProcedureExecutionPrerequisiteDecision[] = [
-  satisfied('knowledge_readiness', 'SPE-58'),
-  satisfied('authorization', 'SPE-2078'),
-  satisfied('competency', 'SPE-1059'),
-  satisfied('compatibility_equipment', 'SPE-714'),
-  satisfied('facility_environment', 'SPE-1896'),
-  satisfied('operating_doctrine', 'SPE-874'),
-  satisfied('procedure_exhaustion', 'SPE-3308'),
-  satisfied('subject_fit', 'SPE-1907'),
-]
-
-function procedureAdapter(executionKey = 'exec-transfer-1') {
-  return {
-    definition: makeProcedure(),
-    eligibleRoles: ['investigator', 'field_recon'] as const,
-    requiredParticipantCount: 2,
-    participants: [
-      makeParticipant('agent-a', 'investigator', ['evidence_kit']),
-      makeParticipant('agent-b', 'field_recon'),
-    ],
-    requiredPrerequisites: baseDecisions.map(({ prerequisiteClass, ownerRef }) => ({
-      prerequisiteClass,
-      ownerRef,
-    })),
-    prerequisiteDecisions: baseDecisions,
     executionKey,
-  }
+    includeEnvironmentalConditions: true,
+  })
 }
 
 function createNonPerson(

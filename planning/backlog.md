@@ -7,21 +7,21 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-2142](https://linear.app/spectranoir/issue/SPE-2142) — Ability-use biological cost registry (In Progress; High pure-domain child under SPE-1033).
+- [SPE-110](https://linear.app/spectranoir/issue/SPE-110) — Construction progress and interference (In Progress; wire facility hauling labor into construction delta).
+- [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress; umbrella-scale — not the active coding slice).
-- [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; finish live-source verification).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
 - [SPE-1051](https://linear.app/spectranoir/issue/SPE-1051) — Recoverable failure and campaign scars (Backlog; review remaining acceptance).
 - [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028) — Department workshop and processing queues (Backlog; coordinate remaining child work).
-- [SPE-110](https://linear.app/spectranoir/issue/SPE-110) — Construction progress and interference (Backlog; prerequisite SPE-395 is Done).
 - [SPE-1564](https://linear.app/spectranoir/issue/SPE-1564) — Facility lifecycle state machine (Backlog).
 - [SPE-792](https://linear.app/spectranoir/issue/SPE-792) — Facility core dependency graph (Backlog).
 
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-2142, SPE-3338.
-**Coding slice:** SPE-2142 (SPE-3338 remains live-source verification; SPE-1064 remains umbrella-scale).
+**In progress:** SPE-110 (coding); SPE-3338 remains live-source verification (blocked).
+**Coding slice:** SPE-110.
+
 
 ## Maintenance and history
 

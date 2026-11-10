@@ -52,7 +52,6 @@ export const BREACH_RECOVERY_STAGES = [
   'admission_pending',
   'containment_verification',
   'completed',
-  'blocked',
   'interrupted',
   'lost_contact',
   'capture_failed',
@@ -204,7 +203,6 @@ const ACTIVE_STAGES: ReadonlySet<BreachRecoveryStage> = new Set([
 
 const TERMINAL_STAGES: ReadonlySet<BreachRecoveryStage> = new Set([
   'completed',
-  'blocked',
   'interrupted',
   'lost_contact',
   'capture_failed',
@@ -360,6 +358,15 @@ function parseRecoveryRecord(
 
   if (value.terminalOutcomeReported === true && terminalReport === undefined) return undefined
   if (value.terminalOutcomeReported === false && terminalReport !== undefined) return undefined
+  if (ACTIVE_STAGES.has(value.stage) && value.terminalOutcomeReported) return undefined
+  if (TERMINAL_STAGES.has(value.stage) && !value.terminalOutcomeReported) return undefined
+  if (terminalReport !== undefined) {
+    if (terminalReport.subjectRef !== value.subjectRef.trim()) return undefined
+    if (terminalReport.incidentCaseRef !== value.incidentCaseRef.trim()) return undefined
+    if (terminalReport.liveRegistryEntryId !== value.escapeEvidenceRef.trim()) return undefined
+    if (value.stage === 'completed' && terminalReport.outcome !== 'completed') return undefined
+    if (value.stage !== 'completed' && terminalReport.outcome === 'completed') return undefined
+  }
 
   return freezeRecovery({
     recoveryId: value.recoveryId.trim(),
@@ -389,7 +396,7 @@ function parseRecoveryRecord(
 
 function upsertRecovery(state: GameState | undefined, recovery: BreachRecoveryRecord): GameState | undefined {
   if (state === undefined) return undefined
-  const current = parseFacilityBreachOriginRecoveries(state.facilityBreachOriginRecoveries) ?? {}
+  const current = state.facilityBreachOriginRecoveries ?? {}
   return writeOptionalFacilityMapField(
     state,
     'facilityBreachOriginRecoveries',
@@ -705,10 +712,18 @@ export function confirmCaptureSecure(
   input: {
     readonly operationKey: string
     readonly captureEvidence: CaptureSecureEvidence
-    readonly week?: number
+    readonly week: number
   },
   state?: GameState
 ): BreachRecoveryResult {
+  if (
+    typeof input.week !== 'number' ||
+    !Number.isFinite(input.week) ||
+    !Number.isInteger(input.week) ||
+    input.week < 0
+  ) {
+    return rejectRecovery('malformed_input', recoveryInput, state)
+  }
   const prepared = prepareMutation(recoveryInput, input.operationKey, state, {
     idempotentStages: ['capture_secured', 'capture_failed'],
     allowedStages: ['subject_located'],
@@ -737,7 +752,7 @@ export function confirmCaptureSecure(
         incidentOwnerHint: recovery.incidentOwnerHint ?? 'response',
       }),
       'capture_failed',
-      input.week ?? 0,
+      input.week,
       key
     )
     return {
@@ -822,10 +837,19 @@ export function confirmDestinationAdmission(
     readonly operationKey: string
     readonly admissionCommitted: boolean
     readonly coLocation: CoLocationPlacementRequest
+    readonly week: number
     readonly inboundScreen?: unknown
   },
   state?: GameState
 ): BreachRecoveryResult {
+  if (
+    typeof input.week !== 'number' ||
+    !Number.isFinite(input.week) ||
+    !Number.isInteger(input.week) ||
+    input.week < 0
+  ) {
+    return rejectRecovery('malformed_input', recoveryInput, state)
+  }
   const prepared = prepareMutation(recoveryInput, input.operationKey, state, {
     idempotentStages: ['containment_verification', 'admission_denied'],
     allowedStages: ['admission_pending'],
@@ -849,7 +873,7 @@ export function confirmDestinationAdmission(
         incidentOwnerHint: recovery.incidentOwnerHint ?? 'facility',
       }),
       'admission_denied',
-      0,
+      input.week,
       key
     )
     return {
@@ -874,7 +898,7 @@ export function confirmDestinationAdmission(
           incidentOwnerHint: recovery.incidentOwnerHint ?? 'facility',
         }),
         'admission_denied',
-        0,
+        input.week,
         key
       )
       return {
@@ -1065,7 +1089,7 @@ export function applyBreachRecoveryTerminalToLiveRegistry(
   if (recovery.stage !== 'completed' || !recovery.terminalOutcomeReported) {
     return { ok: false, code: 'illegal_transition' }
   }
-  if (recovery.terminalReport === undefined) {
+  if (recovery.terminalReport === undefined || recovery.terminalReport.outcome !== 'completed') {
     return { ok: false, code: 'malformed_input' }
   }
   if (entry.id !== recovery.escapeEvidenceRef) {
@@ -1098,7 +1122,6 @@ export function projectExplainableBreachRecovery(
   else if (recovery.stage === 'transit_interrupted') outcome = 'transit_interrupted'
   else if (recovery.stage === 'failed') outcome = 'failed'
   else if (recovery.stage === 'interrupted') outcome = 'interrupted'
-  else if (recovery.stage === 'blocked') outcome = 'failed'
 
   return Object.freeze({
     recoveryId: recovery.recoveryId,

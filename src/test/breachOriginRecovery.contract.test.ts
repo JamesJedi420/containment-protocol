@@ -238,12 +238,14 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     expect(failed.recovery?.stage).toBe('capture_failed')
     expect(failed.recovery?.terminalOutcomeReported).toBe(true)
     expect(failed.recovery?.terminalReport?.outcome).toBe('capture_failed')
+    expect(failed.recovery?.terminalReport?.week).toBe(6)
 
     const secured = confirmCaptureSecure(advanceToLocated(createRecovery({
       recoveryId: 'rec-cap-ok',
       operationKey: 'op-create-cap-ok',
     }).recovery!), {
       operationKey: 'op-capture-ok',
+      week: 6,
       captureEvidence: {
         producerOwner: 'SPE-104',
         outcomeId: 'cap-2',
@@ -260,6 +262,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     const located = advanceToLocated(createRecovery().recovery!)
     const captured = confirmCaptureSecure(located, {
       operationKey: 'op-capture',
+      week: 6,
       captureEvidence: {
         producerOwner: 'SPE-104',
         outcomeId: 'cap-3',
@@ -296,6 +299,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     // happy-path admission uses co-location without forcing an inbound screen clear.
     const admitted = confirmDestinationAdmission(arrived.recovery!, {
       operationKey: 'op-admit',
+      week: 6,
       admissionCommitted: true,
       coLocation: permittedCoLocation(),
     })
@@ -319,6 +323,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     const located = advanceToLocated(createRecovery().recovery!)
     const captured = confirmCaptureSecure(located, {
       operationKey: 'op-capture',
+      week: 6,
       captureEvidence: {
         producerOwner: 'SPE-104',
         outcomeId: 'cap-4',
@@ -338,6 +343,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     })
     const denied = confirmDestinationAdmission(arrived.recovery!, {
       operationKey: 'op-deny-colo',
+      week: 6,
       admissionCommitted: true,
       coLocation: rejectedCoLocation(),
     })
@@ -350,6 +356,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     )
     const captured2 = confirmCaptureSecure(located2, {
       operationKey: 'op-capture-2',
+      week: 6,
       captureEvidence: {
         producerOwner: 'SPE-104',
         outcomeId: 'cap-5',
@@ -370,6 +377,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     // SPE-3189 fail-closes inbound as escalate (`ingress_not_outbound`); recovery must not invent a clear.
     const screened = confirmDestinationAdmission(arrived2.recovery!, {
       operationKey: 'op-deny-screen',
+      week: 6,
       admissionCommitted: true,
       coLocation: permittedCoLocation(),
       inboundScreen: inboundScreenRequest(),
@@ -399,6 +407,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     const located = advanceToLocated(createRecovery().recovery!)
     const captured = confirmCaptureSecure(located, {
       operationKey: 'op-capture',
+      week: 6,
       captureEvidence: {
         producerOwner: 'SPE-104',
         outcomeId: 'cap-6',
@@ -418,6 +427,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     })
     const admitted = confirmDestinationAdmission(arrived.recovery!, {
       operationKey: 'op-admit',
+      week: 6,
       admissionCommitted: true,
       coLocation: permittedCoLocation(),
     })

@@ -2,8 +2,14 @@
   "schemaVersion": 1,
   "owner": "SPE-3427",
   "discovery": {
-    "include": ["src/**/*.test.{ts,tsx}", "test/**/*.test.{ts,tsx}"],
-    "exclude": ["docs/**", "**/docs/**"]
+    "include": [
+      "src/**/*.test.{ts,tsx}",
+      "test/**/*.test.{ts,tsx}"
+    ],
+    "exclude": [
+      "docs/**",
+      "**/docs/**"
+    ]
   },
   "files": [
     "src/app/App.affiliationPersonStatus.route.test.tsx",
@@ -320,7 +326,6 @@
     "src/test/baseDefenseDoctrine.contract.test.ts",
     "src/test/behaviorDisguiseValidation.test.ts",
     "src/test/beliefLockIllusion.test.ts",
-    "src/test/breachOriginRecovery.contract.test.ts",
     "src/test/biologicalMnemonicDrain.test.ts",
     "src/test/branchContinuity.test.ts",
     "src/test/branchContinuityAudit.test.ts",
@@ -328,6 +333,7 @@
     "src/test/branchContinuityHarvestReconciliation.test.ts",
     "src/test/branchContinuityProjection.test.ts",
     "src/test/branchContinuityRuntimeHooks.test.ts",
+    "src/test/breachOriginRecovery.contract.test.ts",
     "src/test/campaignCalendar.test.ts",
     "src/test/campaignLedger.test.ts",
     "src/test/campaignScarDegradedState.contract.test.ts",

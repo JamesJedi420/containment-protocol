@@ -31,7 +31,8 @@ out of this directory until it is accepted.
 Every record carries these fields as a bullet list directly under the title. A record that
 omits one is incomplete, not merely terse.
 
-- **Status** — one of `Proposed`, `Accepted`, `Superseded`, `Deprecated`.
+- **Status** — one of `Accepted`, `Superseded`, `Deprecated`. Negotiation stays in Linear or
+  `planning/` until acceptance; this directory does not hold draft or `Proposed` records.
 - **Date** — the decision date, `YYYY-MM-DD`.
 - **Decision** — the rule in one or two sentences, stated so a reader can check code against it.
 - **Context** — the situation and constraints that forced a choice.
@@ -48,10 +49,11 @@ omits one is incomplete, not merely terse.
 
 ## Lifecycle
 
-`Proposed` → `Accepted` → `Superseded` or `Deprecated`.
+`Accepted` → `Superseded` or `Deprecated`.
 
-- `Proposed` records exist only while a decision is being settled and must carry the Linear
-  issue that will settle it. Do not cite a proposed record as settled policy.
+While a decision is still being negotiated, keep it in Linear or `planning/` — not in this
+directory — and do not cite an unsettled discussion as settled policy.
+
 - `Accepted` means the decision governs current work, not that every consumer already complies.
   Compliance is what **Implementation evidence** reports.
 - `Superseded` means a later record replaced it; the superseding record is named.

@@ -30,12 +30,14 @@
   owns the audited cross-feature UI interfaces and shared projection ownership; SPE-46 owns the
   projection boundary for high-coupling surfaces.
 - **Implementation evidence:** Partially enforced, and the gap is deliberate rather than
-  assumed. `test/boundary-enforcement.test.ts` checks bare sibling feature imports and recognizes
-  stable projection interface names (`*View`, `*IntelProjection`, `*Projection`); its own header
-  states it does not comprehensively inspect deep imports. `src/test/crossFeatureImportRecovery.contract.test.ts`
-  protects the bounded SPE-3438 consumers and verifies shared projections have no back-imports.
-  `eslint.config.js` has no dedicated dependency-import restriction. Repository-wide deep-import
-  enforcement remains SPE-3437, so this record must not be read as complete enforcement.
+  assumed. `test/boundary-enforcement.test.ts` checks bare sibling feature imports only
+  (`from '../feature'`). Its import regex never matches deep paths such as
+  `from '../feature/foo'`, so those imports are unchecked by that test before any
+  projection-interface helper can classify them. `src/test/crossFeatureImportRecovery.contract.test.ts`
+  adds bounded SPE-3438 consumer checks and verifies shared projections have no back-imports;
+  it is not repository-wide deep-import coverage either. `eslint.config.js` has no dedicated
+  dependency-import restriction. Repository-wide deep-import enforcement remains SPE-3437, so
+  this record must not be read as complete enforcement.
 - **Supersedes:** none
 - **Superseded by:** none
 

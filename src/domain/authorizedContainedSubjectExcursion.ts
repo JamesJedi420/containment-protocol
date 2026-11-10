@@ -10,7 +10,6 @@
  */
 
 import type { GameState } from './models'
-import { ensureNormalizedGameState } from './teamSimulation'
 import {
   resolveOutboundScreening,
   type OutboundScreenResult,
@@ -27,8 +26,10 @@ import {
   isFiniteNonNegativeWeek,
   isNonEmptyTrimmedString,
   isPlainRecord,
+  parseFacilityRecordMap,
   sortUniqueCodes,
   withSortedAppliedKey,
+  writeOptionalFacilityMapField,
 } from './facilityCoordinationHydrate'
 
 export const AUTHORIZED_EXCURSION_STAGES = [
@@ -366,18 +367,7 @@ function parseExcursionRecord(
 export function parseFacilityAuthorizedContainedSubjectExcursions(
   value: unknown
 ): FacilityAuthorizedContainedSubjectExcursions | undefined {
-  if (value === undefined) return undefined
-  if (!isRecord(value)) return undefined
-  const out: Record<string, AuthorizedExcursionRecord> = {}
-  for (const key of Object.keys(value).sort(compareCodeUnit)) {
-    if (!hasOwnEnumerableProperty(value, key)) continue
-    if (!isNonEmptyString(key)) continue
-    const parsed = parseExcursionRecord(value[key], key)
-    if (parsed === undefined) continue
-    out[key] = parsed
-  }
-  if (Object.keys(out).length === 0) return undefined
-  return Object.freeze(out)
+  return parseFacilityRecordMap(value, parseExcursionRecord)
 }
 
 function readExcursions(state: GameState): FacilityAuthorizedContainedSubjectExcursions {
@@ -388,30 +378,16 @@ function readExcursions(state: GameState): FacilityAuthorizedContainedSubjectExc
   )
 }
 
-function writeExcursions(
-  state: GameState,
-  excursions: FacilityAuthorizedContainedSubjectExcursions
-): GameState {
-  const normalized = ensureNormalizedGameState(state)
-  if (Object.keys(excursions).length === 0) {
-    if (normalized.facilityAuthorizedContainedSubjectExcursions === undefined) return normalized
-    const rest = { ...normalized }
-    delete rest.facilityAuthorizedContainedSubjectExcursions
-    return rest
-  }
-  return {
-    ...normalized,
-    facilityAuthorizedContainedSubjectExcursions: Object.freeze({ ...excursions }),
-  }
-}
-
 function upsertExcursion(
   state: GameState | undefined,
   excursion: AuthorizedExcursionRecord
 ): GameState | undefined {
   if (state === undefined) return undefined
-  const excursions = { ...readExcursions(state), [excursion.excursionId]: excursion }
-  return writeExcursions(state, Object.freeze(excursions))
+  return writeOptionalFacilityMapField(
+    state,
+    'facilityAuthorizedContainedSubjectExcursions',
+    Object.freeze({ ...readExcursions(state), [excursion.excursionId]: excursion })
+  )
 }
 
 function resolveCurrentExcursion(

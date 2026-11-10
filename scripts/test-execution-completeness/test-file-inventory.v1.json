@@ -207,6 +207,7 @@
     "src/features/teams/TeamDetailPage.test.tsx",
     "src/features/teams/TeamsPage.test.tsx",
     "src/features/training/TrainingDivisionPage.test.tsx",
+    "src/test/abilityUseBiologicalCostRegistry.test.ts",
     "src/test/academy-upgrade.test.ts",
     "src/test/academy.test.ts",
     "src/test/accommodationAccessAudit.test.ts",

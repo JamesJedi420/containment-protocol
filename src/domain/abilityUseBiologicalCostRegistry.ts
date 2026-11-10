@@ -71,10 +71,15 @@ export const IMMEDIATE_ACTIVATION_COST_KINDS: readonly ImmediateActivationCostKi
 // Thresholds and bounds
 // ---------------------------------------------------------------------------
 
-/** Use counts above this require active or scheduled monitoring when risk is elevated+. */
+/**
+ * Use counts at/above this mark the record for biological review even when risk
+ * remains negligible. Review requires legal consent and legal monitoring state
+ * (scheduled/active, or waived when risk is not severe). Elevated+ risk always
+ * requires review regardless of use count.
+ */
 export const BIOLOGICAL_COST_REVIEW_USE_THRESHOLD = 3 as const
 
-/** Immunodeficiency bands that require consent + monitoring review. */
+/** Immunodeficiency bands that always require consent + monitoring review. */
 export const BIOLOGICAL_COST_REVIEW_RISK_BANDS: ReadonlySet<ImmunodeficiencyRiskBand> = new Set([
   'elevated',
   'high',
@@ -466,15 +471,26 @@ export function validateAbilityUseBiologicalCostRecord(
 
   if (
     SEVERITY_SET.has(record.healthDebtSeverity) &&
-    isSafeIntInRange(record.accumulatedHealthDebtUnits, 0, BIOLOGICAL_COST_MAX_ACCUMULATED_UNITS) &&
-    record.accumulatedHealthDebtUnits < MIN_DEBT_UNITS_FOR_SEVERITY[record.healthDebtSeverity]
+    isSafeIntInRange(record.accumulatedHealthDebtUnits, 0, BIOLOGICAL_COST_MAX_ACCUMULATED_UNITS)
   ) {
-    pushIssue(issues, {
-      code: 'debt_units_inconsistent_with_severity',
-      detail: `Ability-use biological cost record ${id || '(unknown)'} accumulatedHealthDebtUnits (${record.accumulatedHealthDebtUnits}) is below the minimum for severity ${record.healthDebtSeverity}.`,
-      severity: 'error',
-      relatedIds: id ? [id] : undefined,
-    })
+    if (record.healthDebtSeverity === 'none' && record.accumulatedHealthDebtUnits > 0) {
+      pushIssue(issues, {
+        code: 'debt_units_inconsistent_with_severity',
+        detail: `Ability-use biological cost record ${id || '(unknown)'} has accumulatedHealthDebtUnits (${record.accumulatedHealthDebtUnits}) but severity is none.`,
+        severity: 'error',
+        relatedIds: id ? [id] : undefined,
+      })
+    } else if (
+      record.healthDebtSeverity !== 'none' &&
+      record.accumulatedHealthDebtUnits < MIN_DEBT_UNITS_FOR_SEVERITY[record.healthDebtSeverity]
+    ) {
+      pushIssue(issues, {
+        code: 'debt_units_inconsistent_with_severity',
+        detail: `Ability-use biological cost record ${id || '(unknown)'} accumulatedHealthDebtUnits (${record.accumulatedHealthDebtUnits}) is below the minimum for severity ${record.healthDebtSeverity}.`,
+        severity: 'error',
+        relatedIds: id ? [id] : undefined,
+      })
+    }
   }
 
   if (
@@ -566,7 +582,7 @@ export function validateAbilityUseBiologicalCostRecord(
 
 export interface AbilityUseAccumulationInput {
   readonly previous: AbilityUseBiologicalCostRecord
-  /** Additional successful uses this step (1–100). */
+  /** Additional successful uses this step (0–100; 0 allowed for debt-only updates). */
   readonly additionalUses: number
   /** Immediate activation cost applied on this step. */
   readonly immediateActivationCostKind: ImmediateActivationCostKind

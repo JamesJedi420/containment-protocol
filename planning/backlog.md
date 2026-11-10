@@ -20,7 +20,8 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-2142.
+**In progress:** SPE-2142, SPE-3338.
+**Coding slice:** SPE-2142 (SPE-3338 remains live-source verification; SPE-1064 remains umbrella-scale).
 
 ## Maintenance and history
 

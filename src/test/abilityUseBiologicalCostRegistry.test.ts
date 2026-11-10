@@ -58,9 +58,9 @@ describe('abilityUseBiologicalCostRegistry (SPE-2142 slice 1)', () => {
       baseRecord({
         id: 'ability-bio-cost:missing-monitoring',
         useCount: 4,
-        immunodeficiencyRisk: 'elevated',
-        healthDebtSeverity: 'moderate',
-        accumulatedHealthDebtUnits: 15,
+        immunodeficiencyRisk: 'negligible',
+        healthDebtSeverity: 'low',
+        accumulatedHealthDebtUnits: 3,
         consentState: 'granted',
         monitoringState: 'overdue',
       })
@@ -69,6 +69,21 @@ describe('abilityUseBiologicalCostRegistry (SPE-2142 slice 1)', () => {
     expect(result.valid).toBe(false)
     expect(
       result.issues.some((issue) => issue.code === 'monitoring_required_above_review_threshold')
+    ).toBe(true)
+  })
+
+  it('rejects severity none when accumulated health debt units are positive', () => {
+    const result = validateAbilityUseBiologicalCostRecord(
+      baseRecord({
+        id: 'ability-bio-cost:none-with-debt',
+        healthDebtSeverity: 'none',
+        accumulatedHealthDebtUnits: 12,
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.issues.some((issue) => issue.code === 'debt_units_inconsistent_with_severity')
     ).toBe(true)
   })
 

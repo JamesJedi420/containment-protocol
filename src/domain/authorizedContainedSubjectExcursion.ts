@@ -228,6 +228,80 @@ function withAppliedKey(
   return Object.freeze([...record.appliedOperationKeys, operationKey].sort(compareCodeUnit))
 }
 
+function rejectExcursion(
+  code: AuthorizedExcursionReasonCode,
+  excursion: AuthorizedExcursionRecord | undefined,
+  state: GameState | undefined
+): AuthorizedExcursionResult {
+  return {
+    ok: false,
+    ...(excursion !== undefined ? { excursion } : {}),
+    state,
+    code,
+    reasonCodes: Object.freeze([code] as const),
+  }
+}
+
+const OPTIONAL_STRING_KEYS = [
+  'originZoneRef',
+  'authorizationRef',
+  'controllingAuthorityRef',
+  'custodyStatusId',
+  'formerRoleCategory',
+  'procedureExecutionKey',
+  'pendingCorrectiveAction',
+  'responseOwnerHint',
+] as const
+
+type OptionalStringKey = (typeof OPTIONAL_STRING_KEYS)[number]
+
+function readOptionalStringBag(
+  value: Record<string, unknown>
+): Partial<Record<OptionalStringKey, string>> | undefined {
+  const out: Partial<Record<OptionalStringKey, string>> = {}
+  for (const key of OPTIONAL_STRING_KEYS) {
+    if (!hasOwnEnumerableProperty(value, key)) continue
+    const raw = value[key]
+    if (!isNonEmptyString(raw)) return undefined
+    out[key] = raw.trim()
+  }
+  return out
+}
+
+function readOptionalWeekField(
+  value: Record<string, unknown>,
+  key: 'startWeek' | 'returnDeadlineWeek'
+): number | undefined | null {
+  if (!hasOwnEnumerableProperty(value, key)) return undefined
+  if (!isFiniteWeek(value[key])) return null
+  return value[key]
+}
+
+function stageEvidenceValid(
+  stage: AuthorizedExcursionStage,
+  physicalEffectsOccurred: boolean,
+  reasonCodes: readonly AuthorizedExcursionReasonCode[],
+  startWeek: number | undefined,
+  returnDeadlineWeek: number | undefined
+): boolean {
+  const prePhysical =
+    stage === 'requested' || stage === 'authorized' || stage === 'blocked' || stage === 'aborted'
+  if (prePhysical && physicalEffectsOccurred) return false
+  if (!prePhysical && !physicalEffectsOccurred) return false
+  if (!prePhysical && startWeek === undefined) return false
+  const needsReason =
+    stage === 'blocked' ||
+    stage === 'aborted' ||
+    stage === 'overdue' ||
+    stage === 'missing' ||
+    stage === 'retrieval_required' ||
+    stage === 'failed_return' ||
+    stage === 'compromised'
+  if (needsReason && reasonCodes.length === 0) return false
+  if (stage === 'overdue' && returnDeadlineWeek === undefined) return false
+  return true
+}
+
 function parseExcursionRecord(
   value: unknown,
   expectedId: AuthorizedExcursionId
@@ -236,14 +310,17 @@ function parseExcursionRecord(
   if (!hasOwnEnumerableProperty(value, 'excursionId') || value.excursionId !== expectedId) {
     return undefined
   }
-  if (!isNonEmptyString(value.excursionId)) return undefined
-  if (!isNonEmptyString(value.subjectRef)) return undefined
-  if (!isSubjectKind(value.subjectKind)) return undefined
-  if (!isNonEmptyString(value.originNodeId)) return undefined
-  if (!isStage(value.stage)) return undefined
-  if (typeof value.physicalEffectsOccurred !== 'boolean') return undefined
-  if (!isNonEmptyString(value.purposeRef)) return undefined
-  if (!Array.isArray(value.reasonCodes) || !Array.isArray(value.appliedOperationKeys)) {
+  if (
+    !isNonEmptyString(value.excursionId) ||
+    !isNonEmptyString(value.subjectRef) ||
+    !isSubjectKind(value.subjectKind) ||
+    !isNonEmptyString(value.originNodeId) ||
+    !isStage(value.stage) ||
+    typeof value.physicalEffectsOccurred !== 'boolean' ||
+    !isNonEmptyString(value.purposeRef) ||
+    !Array.isArray(value.reasonCodes) ||
+    !Array.isArray(value.appliedOperationKeys)
+  ) {
     return undefined
   }
 
@@ -258,104 +335,47 @@ function parseExcursionRecord(
     appliedOperationKeys.push(key.trim())
   }
 
-  let originZoneRef: string | undefined
-  if (hasOwnEnumerableProperty(value, 'originZoneRef')) {
-    if (!isNonEmptyString(value.originZoneRef)) return undefined
-    originZoneRef = value.originZoneRef.trim()
-  }
-  let authorizationRef: string | undefined
-  if (hasOwnEnumerableProperty(value, 'authorizationRef')) {
-    if (!isNonEmptyString(value.authorizationRef)) return undefined
-    authorizationRef = value.authorizationRef.trim()
-  }
-  let controllingAuthorityRef: string | undefined
-  if (hasOwnEnumerableProperty(value, 'controllingAuthorityRef')) {
-    if (!isNonEmptyString(value.controllingAuthorityRef)) return undefined
-    controllingAuthorityRef = value.controllingAuthorityRef.trim()
-  }
-  let startWeek: number | undefined
-  if (hasOwnEnumerableProperty(value, 'startWeek')) {
-    if (!isFiniteWeek(value.startWeek)) return undefined
-    startWeek = value.startWeek
-  }
-  let returnDeadlineWeek: number | undefined
-  if (hasOwnEnumerableProperty(value, 'returnDeadlineWeek')) {
-    if (!isFiniteWeek(value.returnDeadlineWeek)) return undefined
-    returnDeadlineWeek = value.returnDeadlineWeek
-  }
-  let custodyStatusId: string | undefined
-  if (hasOwnEnumerableProperty(value, 'custodyStatusId')) {
-    if (!isNonEmptyString(value.custodyStatusId)) return undefined
-    custodyStatusId = value.custodyStatusId.trim()
-  }
-  let formerRoleCategory: string | undefined
-  if (hasOwnEnumerableProperty(value, 'formerRoleCategory')) {
-    if (!isNonEmptyString(value.formerRoleCategory)) return undefined
-    formerRoleCategory = value.formerRoleCategory.trim()
-  }
-  let procedureExecutionKey: string | undefined
-  if (hasOwnEnumerableProperty(value, 'procedureExecutionKey')) {
-    if (!isNonEmptyString(value.procedureExecutionKey)) return undefined
-    procedureExecutionKey = value.procedureExecutionKey.trim()
-  }
-  let pendingCorrectiveAction: string | undefined
-  if (hasOwnEnumerableProperty(value, 'pendingCorrectiveAction')) {
-    if (!isNonEmptyString(value.pendingCorrectiveAction)) return undefined
-    pendingCorrectiveAction = value.pendingCorrectiveAction.trim()
-  }
-  let responseOwnerHint: string | undefined
-  if (hasOwnEnumerableProperty(value, 'responseOwnerHint')) {
-    if (!isNonEmptyString(value.responseOwnerHint)) return undefined
-    responseOwnerHint = value.responseOwnerHint.trim()
-  }
+  const optionalStrings = readOptionalStringBag(value)
+  if (optionalStrings === undefined) return undefined
+  const startWeek = readOptionalWeekField(value, 'startWeek')
+  if (startWeek === null) return undefined
+  const returnDeadlineWeek = readOptionalWeekField(value, 'returnDeadlineWeek')
+  if (returnDeadlineWeek === null) return undefined
 
+  const { custodyStatusId, formerRoleCategory, ...otherOptional } = optionalStrings
   if (value.subjectKind === 'person') {
     if (custodyStatusId === undefined || formerRoleCategory === undefined) return undefined
   } else if (custodyStatusId !== undefined || formerRoleCategory !== undefined) {
     return undefined
   }
 
-  // Stage evidence must match domain write paths (auth ≠ release; return ≠ recontainment).
-  const stage = value.stage
-  const prePhysical =
-    stage === 'requested' || stage === 'authorized' || stage === 'blocked' || stage === 'aborted'
-  if (prePhysical && value.physicalEffectsOccurred) return undefined
-  if (!prePhysical && !value.physicalEffectsOccurred) return undefined
-  if (!prePhysical && startWeek === undefined) return undefined
   if (
-    (stage === 'blocked' ||
-      stage === 'aborted' ||
-      stage === 'overdue' ||
-      stage === 'missing' ||
-      stage === 'retrieval_required' ||
-      stage === 'failed_return' ||
-      stage === 'compromised') &&
-    reasonCodes.length === 0
+    !stageEvidenceValid(
+      value.stage,
+      value.physicalEffectsOccurred,
+      reasonCodes,
+      startWeek,
+      returnDeadlineWeek
+    )
   ) {
     return undefined
   }
-  if (stage === 'overdue' && returnDeadlineWeek === undefined) return undefined
 
   return freezeExcursion({
     excursionId: value.excursionId.trim(),
     subjectRef: value.subjectRef.trim(),
     subjectKind: value.subjectKind,
     originNodeId: value.originNodeId.trim(),
-    stage,
+    stage: value.stage,
     reasonCodes: sortUniqueReasons(reasonCodes),
     appliedOperationKeys: Object.freeze([...appliedOperationKeys].sort(compareCodeUnit)),
     physicalEffectsOccurred: value.physicalEffectsOccurred,
     purposeRef: value.purposeRef.trim(),
-    ...(originZoneRef !== undefined ? { originZoneRef } : {}),
-    ...(authorizationRef !== undefined ? { authorizationRef } : {}),
-    ...(controllingAuthorityRef !== undefined ? { controllingAuthorityRef } : {}),
-    ...(startWeek !== undefined ? { startWeek } : {}),
-    ...(returnDeadlineWeek !== undefined ? { returnDeadlineWeek } : {}),
+    ...otherOptional,
     ...(custodyStatusId !== undefined ? { custodyStatusId } : {}),
     ...(formerRoleCategory !== undefined ? { formerRoleCategory } : {}),
-    ...(procedureExecutionKey !== undefined ? { procedureExecutionKey } : {}),
-    ...(pendingCorrectiveAction !== undefined ? { pendingCorrectiveAction } : {}),
-    ...(responseOwnerHint !== undefined ? { responseOwnerHint } : {}),
+    ...(startWeek !== undefined ? { startWeek } : {}),
+    ...(returnDeadlineWeek !== undefined ? { returnDeadlineWeek } : {}),
   })
 }
 
@@ -451,51 +471,26 @@ export function createAuthorizedContainedSubjectExcursion(
     !isNonEmptyString(input.purposeRef) ||
     !isNonEmptyString(input.operationKey)
   ) {
-    return {
-      ok: false,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', undefined, state)
   }
 
   if (input.subjectKind === 'unresolved') {
-    return {
-      ok: false,
-      code: 'custody_unresolved',
-      reasonCodes: Object.freeze(['custody_unresolved'] as const),
-      state,
-    }
+    return rejectExcursion('custody_unresolved', undefined, state)
   }
 
   if (input.subjectKind === 'person') {
     if (!isNonEmptyString(input.custodyStatusId) || !isNonEmptyString(input.formerRoleCategory)) {
-      return {
-        ok: false,
-        code: 'custody_unresolved',
-        reasonCodes: Object.freeze(['custody_unresolved'] as const),
-        state,
-      }
+      return rejectExcursion('custody_unresolved', undefined, state)
     }
   } else if (input.custodyStatusId !== undefined || input.formerRoleCategory !== undefined) {
-    return {
-      ok: false,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', undefined, state)
   }
 
   if (
     hasOwnEnumerableProperty(input as unknown as Record<string, unknown>, 'returnDeadlineWeek') &&
     !isFiniteWeek(input.returnDeadlineWeek)
   ) {
-    return {
-      ok: false,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', undefined, state)
   }
 
   const excursionId = input.excursionId.trim()
@@ -506,13 +501,7 @@ export function createAuthorizedContainedSubjectExcursion(
       if (existing.appliedOperationKeys.includes(operationKey)) {
         return { ok: true, excursion: existing, state }
       }
-      return {
-        ok: false,
-        excursion: existing,
-        code: 'stale_operation',
-        reasonCodes: Object.freeze(['stale_operation'] as const),
-        state,
-      }
+      return rejectExcursion('stale_operation', existing, state)
     }
   }
 
@@ -579,25 +568,13 @@ export function runAuthorizedExcursionPreflight(
   const excursion = resolveCurrentExcursion(input.excursion, state)
   const { operationKey, gates } = input
   if (!isNonEmptyString(operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   if (excursion.stage !== 'requested') {
     if (excursion.appliedOperationKeys.includes(operationKey.trim())) {
       return { ok: true, excursion, state }
     }
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   if (excursion.appliedOperationKeys.includes(operationKey.trim())) {
     return { ok: true, excursion, state }
@@ -687,35 +664,17 @@ export function confirmAuthorizedExcursionRelease(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey) || !isFiniteWeek(input.campaignWeek)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'active_excursion') {
     return { ok: true, excursion, state }
   }
   if (excursion.stage !== 'authorized' && excursion.stage !== 'released') {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   if (!input.releaseCommitted) {
-    return {
-      ok: false,
-      excursion,
-      code: 'release_not_committed',
-      reasonCodes: Object.freeze(['release_not_committed'] as const),
-      state,
-    }
+    return rejectExcursion('release_not_committed', excursion, state)
   }
   const next = freezeExcursion({
     ...excursion,
@@ -739,13 +698,7 @@ export function evaluateAuthorizedExcursionReturnObligation(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey) || !isFiniteWeek(input.campaignWeek)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   if (
@@ -755,13 +708,7 @@ export function evaluateAuthorizedExcursionReturnObligation(
     return { ok: true, excursion, state }
   }
   if (excursion.stage !== 'active_excursion' && excursion.stage !== 'return_due') {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   if (excursion.returnDeadlineWeek === undefined) {
     return { ok: true, excursion, state }
@@ -804,13 +751,7 @@ export function beginAuthorizedExcursionReturn(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = operationKey.trim()
   if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'return_in_progress') {
@@ -821,13 +762,7 @@ export function beginAuthorizedExcursionReturn(
     excursion.stage !== 'return_due' &&
     excursion.stage !== 'overdue'
   ) {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   const next = freezeExcursion({
     ...excursion,
@@ -852,13 +787,7 @@ export function confirmAuthorizedExcursionReturn(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   if (
@@ -868,22 +797,10 @@ export function confirmAuthorizedExcursionReturn(
     return { ok: true, excursion, state }
   }
   if (excursion.stage !== 'return_in_progress') {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   if (!input.returnCommitted || !input.arrivedAtOrigin) {
-    return {
-      ok: false,
-      excursion,
-      code: 'return_not_committed',
-      reasonCodes: Object.freeze(['return_not_committed'] as const),
-      state,
-    }
+    return rejectExcursion('return_not_committed', excursion, state)
   }
   const next = freezeExcursion({
     ...excursion,
@@ -909,26 +826,14 @@ export function confirmAuthorizedExcursionRecontainment(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   if (excursion.appliedOperationKeys.includes(key) && excursion.stage === 'completed') {
     return { ok: true, excursion, state }
   }
   if (excursion.stage !== 'recontainment_verification') {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
 
   if (!input.recontainmentVerified) {
@@ -952,13 +857,7 @@ export function confirmAuthorizedExcursionRecontainment(
   if (input.procedureAdapter !== undefined) {
     const readiness = evaluateCanonicalProcedureExecutionReadiness(input.procedureAdapter)
     if (!readiness.ok) {
-      return {
-        ok: false,
-        excursion,
-        code: 'procedure_not_ready',
-        reasonCodes: Object.freeze(['procedure_not_ready'] as const),
-        state,
-      }
+      return rejectExcursion('procedure_not_ready', excursion, state)
     }
   }
 
@@ -990,13 +889,7 @@ export function reportAuthorizedExcursionMissing(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   const terminal =
@@ -1005,13 +898,7 @@ export function reportAuthorizedExcursionMissing(
     return { ok: true, excursion, state }
   }
   if (!ON_EXCURSION_STAGES.has(excursion.stage) && excursion.stage !== 'return_in_progress') {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
   const next = freezeExcursion({
     ...excursion,
@@ -1046,26 +933,14 @@ export function interruptAuthorizedExcursion(
 ): AuthorizedExcursionResult {
   const excursion = resolveCurrentExcursion(excursionInput, state)
   if (!isNonEmptyString(input.operationKey)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'malformed_input',
-      reasonCodes: Object.freeze(['malformed_input'] as const),
-      state,
-    }
+    return rejectExcursion('malformed_input', excursion, state)
   }
   const key = input.operationKey.trim()
   if (TERMINAL_STAGES.has(excursion.stage) && excursion.appliedOperationKeys.includes(key)) {
     return { ok: true, excursion, state }
   }
   if (TERMINAL_STAGES.has(excursion.stage)) {
-    return {
-      ok: false,
-      excursion,
-      code: 'illegal_transition',
-      reasonCodes: Object.freeze(['illegal_transition'] as const),
-      state,
-    }
+    return rejectExcursion('illegal_transition', excursion, state)
   }
 
   const interruptedAfterRelease =
@@ -1115,13 +990,7 @@ export function interruptAuthorizedExcursion(
     }
   }
 
-  return {
-    ok: false,
-    excursion,
-    code: 'illegal_transition',
-    reasonCodes: Object.freeze(['illegal_transition'] as const),
-    state,
-  }
+  return rejectExcursion('illegal_transition', excursion, state)
 }
 
 /**

@@ -7,7 +7,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3439](https://linear.app/spectranoir/issue/SPE-3439) — Secure contained-subject transfer transaction (In Progress; coding slice).
+- [SPE-3500](https://linear.app/spectranoir/issue/SPE-3500) — Authorized contained-subject excursion and verified recontainment (In Progress; coding slice).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress; umbrella-scale — not the active coding slice).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
@@ -15,13 +15,13 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 - [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028) — Department workshop and processing queues (Backlog; coordinate remaining child work).
 - [SPE-1564](https://linear.app/spectranoir/issue/SPE-1564) — Facility lifecycle state machine (Backlog).
 - [SPE-792](https://linear.app/spectranoir/issue/SPE-792) — Facility core dependency graph (Backlog; umbrella — children Done).
+- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (Backlog; after SPE-3500).
 
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-3439 (coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** SPE-3439 — secure contained-subject transfer (`planning/spe-3439-secure-contained-subject-transfer-slice.md`).
-
+**In progress:** SPE-3500 (coding); SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** SPE-3500 — authorized contained-subject excursion (`planning/spe-3500-authorized-contained-subject-excursion-slice.md`).
 
 ## Maintenance and history
 

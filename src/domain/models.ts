@@ -55,6 +55,7 @@ import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObject
 import type { FacilityRestrictedAssetCheckouts } from './restrictedAssetFieldCheckout'
 import type { FacilityOutboundScreenHolds } from './containmentZoneOutboundScreening'
 import type { FacilitySecureContainedSubjectTransfers } from './secureContainedSubjectTransfer'
+import type { FacilityAuthorizedContainedSubjectExcursions } from './authorizedContainedSubjectExcursion'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
@@ -3004,6 +3005,14 @@ export interface GameState {
    * Omit hydrates omitted.
    */
   facilitySecureContainedSubjectTransfers?: FacilitySecureContainedSubjectTransfers
+  /**
+   * SPE-3500: durable authorized contained-subject excursion / verified-recontainment
+   * transactions. Coordination stages only; does not teleport subjects, invent
+   * custody/location truth, treat physical return as recontainment, manufacture escape,
+   * or duplicate SPE-3439 / SPE-3188 / SPE-3189 / SPE-2995 / SPE-1892 ownership.
+   * Omit hydrates omitted.
+   */
+  facilityAuthorizedContainedSubjectExcursions?: FacilityAuthorizedContainedSubjectExcursions
   /**
    * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
    * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and

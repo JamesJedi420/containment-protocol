@@ -7,7 +7,6 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-110](https://linear.app/spectranoir/issue/SPE-110) — Construction progress and interference (In Progress; wire facility hauling labor into construction delta).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress; umbrella-scale — not the active coding slice).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
@@ -19,8 +18,8 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-110 (coding); SPE-3338 remains live-source verification (blocked).
-**Coding slice:** SPE-110.
+**In progress:** SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** (none) — select next eligible SPE-1052 child after clean main.
 
 
 ## Maintenance and history

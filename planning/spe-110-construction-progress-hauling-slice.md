@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                                                             |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                                                   |
+| **Status**        | **Recently shipped**                                                                                                              |
 | **Issue**         | [SPE-110](https://linear.app/spectranoir/issue/SPE-110/construction-progress-and-interference-state)                              |
 | **Parent**        | Facility program via [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) coordination (SPE-110 remains top-level Backlog→IP) |
 | **Branch**        | `jamesdyedbq/spe-110-construction-progress-and-interference`                                                                      |

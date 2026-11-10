@@ -318,6 +318,7 @@
     "src/test/authorityNegotiation.test.ts",
     "src/test/authorizedContainedSubjectExcursion.contract.test.ts",
     "src/test/baseDefenseDoctrine.contract.test.ts",
+    "src/test/breachOriginRecovery.contract.test.ts",
     "src/test/behaviorDisguiseValidation.test.ts",
     "src/test/beliefLockIllusion.test.ts",
     "src/test/biologicalMnemonicDrain.test.ts",

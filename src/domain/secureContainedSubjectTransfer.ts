@@ -99,12 +99,7 @@ export type SecureTransferExplainability = Readonly<{
   reasonCodes: readonly SecureTransferBlockReason[]
   pendingCorrectiveAction?: string
   physicalEffectsOccurred: boolean
-  outcome:
-    | 'in_progress'
-    | 'completed'
-    | 'blocked'
-    | 'aborted'
-    | 'failed'
+  outcome: 'in_progress' | 'completed' | 'blocked' | 'aborted' | 'failed'
 }>
 
 export type SecureTransferResult =
@@ -189,10 +184,7 @@ function sortUniqueReasons(
   )
 }
 
-function withAppliedKey(
-  record: SecureTransferRecord,
-  operationKey: string
-): readonly string[] {
+function withAppliedKey(record: SecureTransferRecord, operationKey: string): readonly string[] {
   if (record.appliedOperationKeys.includes(operationKey)) {
     return record.appliedOperationKeys
   }
@@ -350,7 +342,10 @@ function writeTransfers(
   }
 }
 
-function upsertTransfer(state: GameState | undefined, transfer: SecureTransferRecord): GameState | undefined {
+function upsertTransfer(
+  state: GameState | undefined,
+  transfer: SecureTransferRecord
+): GameState | undefined {
   if (state === undefined) return undefined
   const transfers = { ...readTransfers(state), [transfer.transferId]: transfer }
   return writeTransfers(state, Object.freeze(transfers))
@@ -420,10 +415,7 @@ export function createSecureContainedSubjectTransfer(
         state,
       }
     }
-  } else if (
-    input.custodyStatusId !== undefined ||
-    input.formerRoleCategory !== undefined
-  ) {
+  } else if (input.custodyStatusId !== undefined || input.formerRoleCategory !== undefined) {
     return {
       ok: false,
       code: 'malformed_input',

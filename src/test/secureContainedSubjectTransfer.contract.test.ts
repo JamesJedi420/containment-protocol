@@ -120,7 +120,9 @@ function procedureAdapter(executionKey = 'exec-transfer-1') {
   }
 }
 
-function createNonPerson(overrides: Partial<Parameters<typeof createSecureContainedSubjectTransfer>[0]> = {}) {
+function createNonPerson(
+  overrides: Partial<Parameters<typeof createSecureContainedSubjectTransfer>[0]> = {}
+) {
   return createSecureContainedSubjectTransfer({
     transferId: 'xfer-1',
     subjectRef: 'subject:anomaly-a',

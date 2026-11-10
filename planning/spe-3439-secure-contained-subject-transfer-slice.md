@@ -1,12 +1,12 @@
 # SPE-3439 — Secure contained-subject transfer transaction
 
-| Field             | Value                                                                                                                             |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                                                   |
-| **Issue**         | [SPE-3439](https://linear.app/spectranoir/issue/SPE-3439/secure-contained-subject-transfer-transaction)                            |
-| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                                           |
-| **Branch**        | `jamesdyedbq/spe-3439-secure-contained-subject-transfer`                                                                          |
-| **Base main SHA** | `ddbbfe81bf2f49906fbc4342ae823e5b80979f00`                                                                                         |
+| Field             | Value                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| **Status**        | **In Progress**                                                                                         |
+| **Issue**         | [SPE-3439](https://linear.app/spectranoir/issue/SPE-3439/secure-contained-subject-transfer-transaction) |
+| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                |
+| **Branch**        | `jamesdyedbq/spe-3439-secure-contained-subject-transfer`                                                |
+| **Base main SHA** | `ddbbfe81bf2f49906fbc4342ae823e5b80979f00`                                                              |
 
 ## Delegated approval
 
@@ -49,13 +49,13 @@ Coordinate one deterministic same-site secure contained-subject transfer so rele
 
 ## Pre-coding summary
 
-| Item | Finding |
-| --- | --- |
-| Relevant files | new transfer module; `models.ts`; `runTransfer.ts`; SPE-3177/3189/2995 seams |
-| Current | No same-site secure transfer coordinator; SPE-3189 explicitly excludes custody transfer |
-| Expected | Stage machine with fail-closed preflight and owner-evidenced commits; save/load mid-transfer |
-| Risks | Teleporting subjects; smuggling person custody onto non-persons; treating screening clear as release |
-| Validation | `src/test/secureContainedSubjectTransfer.contract.test.ts`; lint; backlog handoff |
+| Item           | Finding                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| Relevant files | new transfer module; `models.ts`; `runTransfer.ts`; SPE-3177/3189/2995 seams                         |
+| Current        | No same-site secure transfer coordinator; SPE-3189 explicitly excludes custody transfer              |
+| Expected       | Stage machine with fail-closed preflight and owner-evidenced commits; save/load mid-transfer         |
+| Risks          | Teleporting subjects; smuggling person custody onto non-persons; treating screening clear as release |
+| Validation     | `src/test/secureContainedSubjectTransfer.contract.test.ts`; lint; backlog handoff                    |
 
 ## Acceptance
 
@@ -70,8 +70,8 @@ Coordinate one deterministic same-site secure contained-subject transfer so rele
 
 ## Deferred
 
-| Item | Owner | Why |
-| --- | --- | --- |
-| Live week-close / UI wiring of explainability into facility register | SPE-3359 / existing surfaces | No new transfer UI; projection only |
-| Real movement channel mutation beyond commit acknowledgements | SPE-1095 | Coordinator consumes accessibility gate; does not invent pathfinder |
-| Excursion / breach-recovery lifecycles | SPE-3500 / SPE-3735 | Explicitly distinct |
+| Item                                                                 | Owner                        | Why                                                                 |
+| -------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------- |
+| Live week-close / UI wiring of explainability into facility register | SPE-3359 / existing surfaces | No new transfer UI; projection only                                 |
+| Real movement channel mutation beyond commit acknowledgements        | SPE-1095                     | Coordinator consumes accessibility gate; does not invent pathfinder |
+| Excursion / breach-recovery lifecycles                               | SPE-3500 / SPE-3735          | Explicitly distinct                                                 |

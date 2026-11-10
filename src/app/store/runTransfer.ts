@@ -11084,9 +11084,7 @@ export function hydrateGame(
     // stripUndefinedFields rebuilds objects. Restore the validated frozen
     // registry so loaded fulfillment/window markers cannot mutate in place.
     ...(containmentRequirementStates ? { containmentRequirementStates } : {}),
-    ...(facilitySecureContainedSubjectTransfers
-      ? { facilitySecureContainedSubjectTransfers }
-      : {}),
+    ...(facilitySecureContainedSubjectTransfers ? { facilitySecureContainedSubjectTransfers } : {}),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

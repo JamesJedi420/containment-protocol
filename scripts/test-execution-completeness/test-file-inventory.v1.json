@@ -813,6 +813,7 @@
     "src/test/scouting.spatial.test.ts",
     "src/test/screenRouting.test.ts",
     "src/test/sealedSiteConfiscatedEvidenceEnding.contract.test.ts",
+    "src/test/secureContainedSubjectTransfer.contract.test.ts",
     "src/test/segmentedFeedbackWorkflow.test.ts",
     "src/test/selfCensoringInformationRegistry.test.ts",
     "src/test/selfCensoringInformationRegistryPersistence.test.ts",

@@ -315,12 +315,33 @@ function parseExcursionRecord(
     return undefined
   }
 
+  // Stage evidence must match domain write paths (auth ≠ release; return ≠ recontainment).
+  const stage = value.stage
+  const prePhysical =
+    stage === 'requested' || stage === 'authorized' || stage === 'blocked' || stage === 'aborted'
+  if (prePhysical && value.physicalEffectsOccurred) return undefined
+  if (!prePhysical && !value.physicalEffectsOccurred) return undefined
+  if (!prePhysical && startWeek === undefined) return undefined
+  if (
+    (stage === 'blocked' ||
+      stage === 'aborted' ||
+      stage === 'overdue' ||
+      stage === 'missing' ||
+      stage === 'retrieval_required' ||
+      stage === 'failed_return' ||
+      stage === 'compromised') &&
+    reasonCodes.length === 0
+  ) {
+    return undefined
+  }
+  if (stage === 'overdue' && returnDeadlineWeek === undefined) return undefined
+
   return freezeExcursion({
     excursionId: value.excursionId.trim(),
     subjectRef: value.subjectRef.trim(),
     subjectKind: value.subjectKind,
     originNodeId: value.originNodeId.trim(),
-    stage: value.stage,
+    stage,
     reasonCodes: sortUniqueReasons(reasonCodes),
     appliedOperationKeys: Object.freeze([...appliedOperationKeys].sort(compareCodeUnit)),
     physicalEffectsOccurred: value.physicalEffectsOccurred,
@@ -910,19 +931,6 @@ export function confirmAuthorizedExcursionRecontainment(
     }
   }
 
-  if (input.procedureAdapter !== undefined) {
-    const readiness = evaluateCanonicalProcedureExecutionReadiness(input.procedureAdapter)
-    if (!readiness.ok) {
-      return {
-        ok: false,
-        excursion,
-        code: 'procedure_not_ready',
-        reasonCodes: Object.freeze(['procedure_not_ready'] as const),
-        state,
-      }
-    }
-  }
-
   if (!input.recontainmentVerified) {
     const failed = freezeExcursion({
       ...excursion,
@@ -938,6 +946,19 @@ export function confirmAuthorizedExcursionRecontainment(
       code: 'recontainment_not_verified',
       reasonCodes: failed.reasonCodes,
       state: upsertExcursion(state, failed),
+    }
+  }
+
+  if (input.procedureAdapter !== undefined) {
+    const readiness = evaluateCanonicalProcedureExecutionReadiness(input.procedureAdapter)
+    if (!readiness.ok) {
+      return {
+        ok: false,
+        excursion,
+        code: 'procedure_not_ready',
+        reasonCodes: Object.freeze(['procedure_not_ready'] as const),
+        state,
+      }
     }
   }
 

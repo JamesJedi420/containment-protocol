@@ -381,10 +381,19 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
     const failed = confirmAuthorizedExcursionRecontainment(arrived.excursion!, {
       operationKey: 'op-fail-recontain',
       recontainmentVerified: false,
+      procedureAdapter: {
+        ...procedureAdapter('exec-not-ready'),
+        prerequisiteDecisions: baseDecisions.map((decision) =>
+          decision.prerequisiteClass === 'authorization'
+            ? { ...decision, state: 'blocked', reason: 'missing_auth' }
+            : decision
+        ),
+      },
     })
     expect(failed.ok).toBe(false)
     expect(failed.excursion?.stage).toBe('failed_return')
     expect(failed.reasonCodes).toContain('recontainment_not_verified')
+    expect(failed.code).toBe('recontainment_not_verified')
   })
 
   it('preserves person custody identity refs across release and hydrate', () => {
@@ -532,11 +541,71 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
         reasonCodes: [],
         appliedOperationKeys: ['op-a'],
         physicalEffectsOccurred: true,
+        startWeek: 1,
       },
       'exc-bad': { excursionId: 'wrong-id' },
     })
     expect(parsed).toBeDefined()
     expect(Object.keys(parsed!)).toEqual(['exc-a'])
     expect(Object.isFrozen(parsed)).toBe(true)
+  })
+
+  it('rejects hydrate records that violate stage evidence invariants', () => {
+    const base = {
+      subjectRef: 'subject:a',
+      subjectKind: 'non_person' as const,
+      originNodeId: 'room:a',
+      purposeRef: 'purpose:a',
+      appliedOperationKeys: ['op-a'],
+    }
+    const parsed = parseFacilityAuthorizedContainedSubjectExcursions({
+      'exc-completed-no-effects': {
+        ...base,
+        excursionId: 'exc-completed-no-effects',
+        stage: 'completed',
+        reasonCodes: [],
+        physicalEffectsOccurred: false,
+        startWeek: 1,
+      },
+      'exc-active-no-start': {
+        ...base,
+        excursionId: 'exc-active-no-start',
+        stage: 'active_excursion',
+        reasonCodes: [],
+        physicalEffectsOccurred: true,
+      },
+      'exc-failed-no-reason': {
+        ...base,
+        excursionId: 'exc-failed-no-reason',
+        stage: 'failed_return',
+        reasonCodes: [],
+        physicalEffectsOccurred: true,
+        startWeek: 1,
+      },
+      'exc-requested-effects': {
+        ...base,
+        excursionId: 'exc-requested-effects',
+        stage: 'requested',
+        reasonCodes: [],
+        physicalEffectsOccurred: true,
+      },
+      'exc-overdue-no-deadline': {
+        ...base,
+        excursionId: 'exc-overdue-no-deadline',
+        stage: 'overdue',
+        reasonCodes: ['deadline_exceeded'],
+        physicalEffectsOccurred: true,
+        startWeek: 1,
+      },
+      'exc-valid-blocked': {
+        ...base,
+        excursionId: 'exc-valid-blocked',
+        stage: 'blocked',
+        reasonCodes: ['outbound_screen_blocked'],
+        physicalEffectsOccurred: false,
+      },
+    })
+    expect(parsed).toBeDefined()
+    expect(Object.keys(parsed!)).toEqual(['exc-valid-blocked'])
   })
 })

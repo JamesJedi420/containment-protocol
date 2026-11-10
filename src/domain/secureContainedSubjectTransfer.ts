@@ -127,11 +127,7 @@ const TERMINAL_STAGES: ReadonlySet<SecureTransferStage> = new Set([
   'failed',
 ])
 
-const PRE_RELEASE_STAGES: ReadonlySet<SecureTransferStage> = new Set([
-  'requested',
-  'preflight',
-  'authorized',
-])
+const PRE_RELEASE_STAGES: ReadonlySet<SecureTransferStage> = new Set(['requested', 'authorized'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

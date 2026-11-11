@@ -140,6 +140,17 @@ export function resolveRecoveryMovementOutcome(
     }
   }
 
+  if (
+    (attempt.routeEligible !== undefined && typeof attempt.routeEligible !== 'boolean') ||
+    (attempt.transitInterrupted !== undefined && typeof attempt.transitInterrupted !== 'boolean')
+  ) {
+    return {
+      ok: false,
+      reasonCode: 'malformed_input',
+      reasonCodes: Object.freeze(['malformed_input']),
+    }
+  }
+
   const subjectRef = attempt.subjectRef.trim()
   const movementId = buildMovementId(attempt.attemptId)
   const base = {

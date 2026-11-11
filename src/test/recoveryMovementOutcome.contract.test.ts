@@ -85,6 +85,24 @@ describe('SPE-1095 recovery-movement outcome producer', () => {
         arrivedAtDestination: 'yes' as unknown as boolean,
       }).ok
     ).toBe(false)
+    expect(
+      resolveRecoveryMovementOutcome({
+        attemptId: 'attempt-4',
+        subjectRef: 'subject:anomaly-a',
+        movementCommitted: true,
+        arrivedAtDestination: true,
+        transitInterrupted: 'true' as unknown as boolean,
+      }).ok
+    ).toBe(false)
+    expect(
+      resolveRecoveryMovementOutcome({
+        attemptId: 'attempt-5',
+        subjectRef: 'subject:anomaly-a',
+        movementCommitted: true,
+        arrivedAtDestination: true,
+        routeEligible: 'false' as unknown as boolean,
+      }).ok
+    ).toBe(false)
   })
 
   it('fails closed for ineligible route, transit interrupted, and uncommitted movement', () => {

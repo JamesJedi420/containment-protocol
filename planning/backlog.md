@@ -7,8 +7,8 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipping; full arbitration AC deferred).
-- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; SPE-104/1095/3055 producer seams; full path not Done).
+- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; live store wiring shipping; Done only when §1 evidenced).
+- [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipped; full arbitration AC deferred).
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
 - [SPE-104](https://linear.app/spectranoir/issue/SPE-104) — Capture & restraint weapon interactions (In Progress; capture-secure outcome seam shipped; full weapon AC deferred).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
@@ -21,9 +21,9 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-3055 (coding; operation claim seam); SPE-3735 (incomplete until full path evidenced); SPE-1095 / SPE-104 (full AC deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** SPE-3055 — operation claim seam (`planning/spe-3055-operation-claim-seam-slice.md`).
-**After SPE-3055 claim seam:** keep SPE-3735 / SPE-3055 In Progress; resume SPE-3735 gameplay-evidence for remaining deferred (live wiring / full path).
+**In progress:** SPE-3735 (coding; live store wiring); SPE-3055 / SPE-1095 / SPE-104 (full AC deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** SPE-3735 — live wiring (`planning/spe-3735-breach-origin-recovery-slice.md`).
+**After SPE-3735 live wiring:** keep SPE-3735 Done only when acceptance §1 evidenced; otherwise progress comment and continue deferred remainders.
 
 ## Maintenance and history
 

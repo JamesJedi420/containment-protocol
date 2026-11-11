@@ -704,6 +704,7 @@
     "src/test/operationalCertainty.test.ts",
     "src/test/operationalCover.test.ts",
     "src/test/operationalExplanation.integration.test.ts",
+    "src/test/operationalPersonnelClaimOutcome.contract.test.ts",
     "src/test/operationalStaffCapacity.test.ts",
     "src/test/operationalStaffPosts.test.ts",
     "src/test/operationalStatusExpansionRegistry.test.ts",

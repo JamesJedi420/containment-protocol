@@ -1,99 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
-  resolveCaptureSecureOutcome,
-  toCaptureSecureEvidence,
-} from '../domain/captureSecureOutcome'
-import {
   resolveRecoveryMovementOutcome,
   toRecoveryMovementEvidence,
 } from '../domain/recoveryMovementOutcome'
+import { confirmRecoveryMovement } from '../domain/breachOriginRecovery'
 import {
-  assignBreachRecovery,
-  buildBreachEscapeEvidenceFromLiveRegistry,
-  confirmCaptureSecure,
-  confirmRecoveryMovement,
-  confirmSubjectLocated,
-  createBreachOriginRecovery,
-  type BreachRecoveryRecord,
-} from '../domain/breachOriginRecovery'
-import {
-  createLiveRegistryEntry,
-  deriveRegistryAlerts,
-  updateLiveRegistryEntry,
-} from '../domain/liveRegistry'
-import { alertToWorkItem } from '../domain/liveRegistryAlertCenter'
-
-function escapeFixture() {
-  const contained = createLiveRegistryEntry({
-    id: 'reg-escaped-move-1',
-    entityId: 'subject:anomaly-a',
-    entityClass: 'anomaly',
-    label: 'Anomaly A',
-    operationalState: 'contained',
-    truthState: 'confirmed',
-    confidence: 0.9,
-    week: 4,
-    linkedCaseIds: ['case:escape-move-1'],
-  })
-  const loose = updateLiveRegistryEntry(contained, {
-    operationalState: 'loose',
-    week: 5,
-    reasonCode: 'contained-to-loose',
-    triggerSource: 'containment-breach',
-  })
-  const escapeEvidence = buildBreachEscapeEvidenceFromLiveRegistry(
-    contained,
-    loose,
-    'case:escape-move-1'
-  )!
-  const alerts = deriveRegistryAlerts(contained, loose)
-  const escapeAlert = alerts.find((alert) => alert.type === 'escape')!
-  const respondWorkItem = alertToWorkItem(escapeAlert, loose, 0, true)
-  return { escapeEvidence, respondWorkItem }
-}
-
-function advanceToCaptureSecured(recoveryId = 'rec-move-seam-1'): BreachRecoveryRecord {
-  const { escapeEvidence, respondWorkItem } = escapeFixture()
-  const created = createBreachOriginRecovery({
-    recoveryId,
-    escapeEvidence,
-    subjectKind: 'non_person',
-    recoveryObjectiveRef: 'objective:recontain-anomaly-a',
-    destinationNodeId: 'room:med_bay',
-    destinationZoneRef: 'zone:medical',
-    operationKey: `op-create-${recoveryId}`,
-  })
-  expect(created.ok).toBe(true)
-  const assigned = assignBreachRecovery(created.recovery!, {
-    operationKey: `op-assign-${recoveryId}`,
-    assignmentClaimRef: 'claim:response-1',
-    respondWorkItem,
-  })
-  expect(assigned.ok).toBe(true)
-  const located = confirmSubjectLocated(assigned.recovery!, {
-    operationKey: `op-locate-${recoveryId}`,
-    locatedCommitted: true,
-  })
-  expect(located.ok).toBe(true)
-
-  const capture = resolveCaptureSecureOutcome({
-    attemptId: `capture-${recoveryId}`,
-    subjectRef: located.recovery!.subjectRef,
-    controlCommitted: true,
-    restraintCompatible: true,
-  })
-  expect(capture.ok).toBe(true)
-  if (!capture.ok) throw new Error('expected capture resolve ok')
-
-  const secured = confirmCaptureSecure(located.recovery!, {
-    operationKey: `op-capture-${recoveryId}`,
-    week: 6,
-    captureEvidence: toCaptureSecureEvidence(capture.outcome),
-  })
-  expect(secured.ok).toBe(true)
-  expect(secured.recovery?.stage).toBe('capture_secured')
-  return secured.recovery!
-}
+  advanceBreachRecoveryToCaptureSecured,
+  createBreachEscapeRespondFixture,
+} from './helpers/breachOriginRecoveryFixtures'
 
 describe('SPE-1095 recovery-movement outcome producer', () => {
   it('resolves in-transit and arrived success with stable movementId', () => {
@@ -225,7 +139,11 @@ describe('SPE-1095 recovery-movement outcome producer', () => {
   })
 
   it('feeds real producer evidence into SPE-3735 confirmRecoveryMovement without completing recovery', () => {
-    const captured = advanceToCaptureSecured('rec-move-seam-ok')
+    const moveFixture = createBreachEscapeRespondFixture({
+      registryId: 'reg-escaped-move-1',
+      caseId: 'case:escape-move-1',
+    })
+    const captured = advanceBreachRecoveryToCaptureSecured('rec-move-seam-ok', moveFixture)
 
     const inTransitResolve = resolveRecoveryMovementOutcome({
       attemptId: 'attempt-recovery-transit',
@@ -272,7 +190,13 @@ describe('SPE-1095 recovery-movement outcome producer', () => {
     expect(failResolve.ok).toBe(true)
     if (!failResolve.ok) return
 
-    const capturedFail = advanceToCaptureSecured('rec-move-seam-fail')
+    const capturedFail = advanceBreachRecoveryToCaptureSecured(
+      'rec-move-seam-fail',
+      createBreachEscapeRespondFixture({
+        registryId: 'reg-escaped-move-fail',
+        caseId: 'case:escape-move-fail',
+      })
+    )
     const failed = confirmRecoveryMovement(capturedFail, {
       operationKey: 'op-move-from-producer-fail',
       movementEvidence: toRecoveryMovementEvidence(failResolve.outcome),

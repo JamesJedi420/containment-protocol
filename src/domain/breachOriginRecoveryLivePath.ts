@@ -21,19 +21,18 @@ import {
   parseFacilityBreachOriginRecoveries,
   reportLostContact,
   type BreachRecoveryReasonCode,
+  type BreachRecoveryRecord,
   type BreachRecoveryResult,
   type BreachRecoverySubjectKind,
 } from './breachOriginRecovery'
+import { hasOwnEnumerableKey } from './facilityCoordinationHydrate'
 import {
   resolveCaptureSecureOutcome,
   toCaptureSecureEvidence,
   type CaptureSecureAttempt,
 } from './captureSecureOutcome'
 import type { CoLocationPlacementRequest } from './containmentCoLocationCompatibility'
-import {
-  deriveRegistryAlerts,
-  type LiveRegistryEntry,
-} from './liveRegistry'
+import { deriveRegistryAlerts, type LiveRegistryEntry } from './liveRegistry'
 import { alertToWorkItem, type RegistryWorkItem } from './liveRegistryAlertCenter'
 import {
   resolveOperationalPersonnelClaimOutcome,
@@ -122,10 +121,7 @@ export type BreachOriginRecoveryStepCommand =
       readonly incidentOwnerHint?: string
     }
 
-function rejectStep(
-  state: GameState,
-  code: BreachRecoveryReasonCode
-): BreachRecoveryResult {
+function rejectStep(state: GameState, code: BreachRecoveryReasonCode): BreachRecoveryResult {
   return {
     ok: false,
     state,
@@ -135,19 +131,50 @@ function rejectStep(
 }
 
 type LoadedRecovery =
-  | { readonly ok: true; readonly recovery: NonNullable<BreachRecoveryResult['recovery']> }
+  | { readonly ok: true; readonly recovery: BreachRecoveryRecord }
   | { readonly ok: false; readonly result: BreachRecoveryResult }
 
 function requireRecovery(state: GameState, recoveryId: string): LoadedRecovery {
   if (typeof recoveryId !== 'string' || recoveryId.trim().length === 0) {
     return { ok: false, result: rejectStep(state, 'malformed_input') }
   }
+  const id = recoveryId.trim()
   const map = parseFacilityBreachOriginRecoveries(state.facilityBreachOriginRecoveries)
-  const recovery = map?.[recoveryId.trim()]
-  if (recovery === undefined) {
+  if (map === undefined || !hasOwnEnumerableKey(map as Record<string, unknown>, id)) {
     return { ok: false, result: rejectStep(state, 'stale_operation') }
   }
-  return { ok: true, recovery }
+  return { ok: true, recovery: map[id]! }
+}
+
+function requireCampaignWeek(state: GameState, week: number): BreachRecoveryResult | undefined {
+  if (
+    typeof week !== 'number' ||
+    !Number.isFinite(week) ||
+    !Number.isInteger(week) ||
+    week < 0 ||
+    week !== state.week
+  ) {
+    return rejectStep(state, 'malformed_input')
+  }
+  return undefined
+}
+
+function coLocationMatchesRecovery(
+  recovery: BreachRecoveryRecord,
+  coLocation: CoLocationPlacementRequest
+): boolean {
+  const candidate = coLocation.candidate
+  if (candidate === undefined) return false
+  if (candidate.subjectId !== recovery.subjectRef) return false
+  if (candidate.proposedNodeId !== recovery.destinationNodeId) return false
+  if (
+    recovery.destinationZoneRef !== undefined &&
+    candidate.zoneRef !== undefined &&
+    candidate.zoneRef !== recovery.destinationZoneRef
+  ) {
+    return false
+  }
+  return true
 }
 
 /**
@@ -158,6 +185,9 @@ export function buildBreachRecoveryRespondWorkItem(
   previousEntry: LiveRegistryEntry,
   nextEntry: LiveRegistryEntry
 ): RegistryWorkItem | undefined {
+  if (previousEntry.id !== nextEntry.id || previousEntry.entityId !== nextEntry.entityId) {
+    return undefined
+  }
   const alerts = deriveRegistryAlerts(previousEntry, nextEntry)
   const escapeAlert = alerts.find((alert) => alert.type === 'escape')
   if (escapeAlert === undefined) return undefined
@@ -231,6 +261,8 @@ export function applyBreachOriginRecoveryStep(
     case 'capture': {
       const loaded = requireRecovery(state, command.recoveryId)
       if (!loaded.ok) return loaded.result
+      const weekError = requireCampaignWeek(state, command.week)
+      if (weekError !== undefined) return weekError
       const resolved = resolveCaptureSecureOutcome(command.captureAttempt)
       if (!resolved.ok) {
         return rejectStep(state, 'malformed_input')
@@ -264,6 +296,11 @@ export function applyBreachOriginRecoveryStep(
     case 'admit': {
       const loaded = requireRecovery(state, command.recoveryId)
       if (!loaded.ok) return loaded.result
+      const weekError = requireCampaignWeek(state, command.week)
+      if (weekError !== undefined) return weekError
+      if (!coLocationMatchesRecovery(loaded.recovery, command.coLocation)) {
+        return rejectStep(state, 'malformed_input')
+      }
       return confirmDestinationAdmission(
         loaded.recovery,
         {
@@ -279,6 +316,8 @@ export function applyBreachOriginRecoveryStep(
     case 'verify': {
       const loaded = requireRecovery(state, command.recoveryId)
       if (!loaded.ok) return loaded.result
+      const weekError = requireCampaignWeek(state, command.week)
+      if (weekError !== undefined) return weekError
       return confirmContainmentVerification(
         loaded.recovery,
         {
@@ -293,6 +332,8 @@ export function applyBreachOriginRecoveryStep(
     case 'lost_contact': {
       const loaded = requireRecovery(state, command.recoveryId)
       if (!loaded.ok) return loaded.result
+      const weekError = requireCampaignWeek(state, command.week)
+      if (weekError !== undefined) return weekError
       return reportLostContact(
         loaded.recovery,
         {
@@ -306,6 +347,8 @@ export function applyBreachOriginRecoveryStep(
     case 'interrupt': {
       const loaded = requireRecovery(state, command.recoveryId)
       if (!loaded.ok) return loaded.result
+      const weekError = requireCampaignWeek(state, command.week)
+      if (weekError !== undefined) return weekError
       return interruptBreachRecovery(
         loaded.recovery,
         {

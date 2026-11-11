@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress** until merge (live store step path evidences acceptance §1)                                          |
+| **Status**        | **In Progress** (store live consumer shipped; normal gameplay reachability still open)                              |
 | **Issue**         | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735/breach-origin-recovery-and-verified-recontainment-handoff) |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                            |
 | **Branch**        | `jamesdyedbq/spe-3735-live-wiring`                                                                                  |
@@ -53,16 +53,17 @@ Coordinate one deterministic breach-origin recovery so assignment, locate, captu
 - [x] Admission consumes SPE-3177/3189; verification consumes SPE-2995 when supplied
 - [x] Terminal report once; registry restore only after verified completion
 - [x] Real SPE-104 capture + SPE-1095 movement + SPE-3055 claim producer seams emit typed evidence for coordinator stages
-- [x] Full acceptance §1 end-to-end gameplay path (live wiring) — store step API + `breachOriginRecovery.liveWiring.test.ts`
+- [x] Live store consumer path (producer → assign → locate → capture → move → admit → verify) via `applyBreachOriginRecoveryStep`
+- [ ] Full acceptance §1 normal gameplay reachability / surface — **incomplete** (store consumer only; no UI)
 - [ ] Full SPE-3055 / SPE-1023 claim arbitration beyond assignment seam — **deferred/incomplete**
 
 ## Deferred
 
-| Item                                         | Owner               | Why                                                                                                                       |
-| -------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Full SPE-104 weapon AC remainder             | SPE-104             | Capture-secure outcome seam shipped; tether/limb/weapon-catch AC still deferred                                           |
-| Full SPE-1095 thoroughfare channel suite     | SPE-1095            | Recovery-movement outcome seam shipped; route-class AC deferred                                                           |
-| Full operational personnel claim arbitration | SPE-3055 / SPE-1023 | Assignment claim seam shipped; full arbitration AC deferred                                                               |
-| Mission-mode off-site recapture taxonomy     | SPE-1307            | Related classification surface                                                                                            |
-| Recovery explainability UI surface           | existing surfaces   | SPE-3359 facility-register UI is Done; optional later fold of `projectExplainableBreachRecovery` into a surface          |
-| Persisted live-registry GameState map        | live-registry owner | Escape evidence remains caller-owned input; this slice does not invent a parallel registry SoT                            |
+| Item                                         | Owner               | Why                                                                                                             |
+| -------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Full SPE-104 weapon AC remainder             | SPE-104             | Capture-secure outcome seam shipped; tether/limb/weapon-catch AC still deferred                                 |
+| Full SPE-1095 thoroughfare channel suite     | SPE-1095            | Recovery-movement outcome seam shipped; route-class AC deferred                                                 |
+| Full operational personnel claim arbitration | SPE-3055 / SPE-1023 | Assignment claim seam shipped; full arbitration AC deferred                                                     |
+| Mission-mode off-site recapture taxonomy     | SPE-1307            | Related classification surface                                                                                  |
+| Recovery explainability UI surface           | existing surfaces   | SPE-3359 facility-register UI is Done; optional later fold of `projectExplainableBreachRecovery` into a surface |
+| Persisted live-registry GameState map        | live-registry owner | Escape evidence remains caller-owned input; this slice does not invent a parallel registry SoT                  |

@@ -2,10 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { useGameStore } from '../app/store/gameStore'
 import { readProductionFacilitySectionGraph } from '../domain/facilitySectionGraph'
-import {
-  createLiveRegistryEntry,
-  updateLiveRegistryEntry,
-} from '../domain/liveRegistry'
+import { createLiveRegistryEntry, updateLiveRegistryEntry } from '../domain/liveRegistry'
 import {
   applyBreachOriginRecoveryStep,
   buildBreachRecoveryRespondWorkItem,
@@ -97,8 +94,7 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
     expect(created.ok).toBe(true)
     expect(created.recovery?.stage).toBe('escape_reported')
     expect(
-      useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-live-assign-locate']
-        ?.stage
+      useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-live-assign-locate']?.stage
     ).toBe('escape_reported')
 
     const assigned = useGameStore.getState().applyBreachOriginRecoveryStep({
@@ -126,14 +122,14 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
     expect(located.ok).toBe(true)
     expect(located.recovery?.stage).toBe('subject_located')
     expect(
-      useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-live-assign-locate']
-        ?.stage
+      useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-live-assign-locate']?.stage
     ).toBe('subject_located')
   })
 
   it('store path: full §1 producer → assign → locate → capture → move → admit → verify → completed', () => {
-    resetGameStoreFixture()
+    resetGameStoreFixture({ week: 6 })
     const { previousEntry, nextEntry, respondWorkItem } = escapeEntries()
+    const week = useGameStore.getState().game.week
 
     expect(
       useGameStore.getState().applyBreachOriginRecoveryStep({
@@ -178,7 +174,7 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
       kind: 'capture',
       recoveryId: 'rec-live-full-path',
       operationKey: 'op-live-capture',
-      week: 6,
+      week,
       captureAttempt: {
         attemptId: 'capture-live-1',
         subjectRef: 'subject:anomaly-live',
@@ -210,7 +206,7 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
       kind: 'admit',
       recoveryId: 'rec-live-full-path',
       operationKey: 'op-live-admit',
-      week: 6,
+      week,
       admissionCommitted: true,
       coLocation: permittedCoLocation(),
     })
@@ -221,7 +217,7 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
       kind: 'verify',
       recoveryId: 'rec-live-full-path',
       operationKey: 'op-live-verify',
-      week: 7,
+      week,
       recontainmentVerified: true,
       procedureAdapter: procedureAdapter(),
     })
@@ -233,16 +229,18 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
       useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-live-full-path']
     expect(durable?.stage).toBe('completed')
 
-    const hydrated = hydrateGame(useGameStore.getState().game)
-    expect(hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.stage).toBe(
-      'completed'
-    )
+    const serialized = JSON.parse(JSON.stringify(useGameStore.getState().game)) as unknown
+    const hydrated = hydrateGame(serialized)
+    expect(hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.stage).toBe('completed')
+    expect(
+      hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.terminalOutcomeReported
+    ).toBe(true)
     expect(
       hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.assignmentClaimRef
     ).toBe('claim:response-live-full')
-    expect(
-      hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.captureOutcomeId
-    ).toBe('capture:capture-live-1')
+    expect(hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.captureOutcomeId).toBe(
+      'capture:capture-live-1'
+    )
     expect(hydrated.facilityBreachOriginRecoveries?.['rec-live-full-path']?.movementId).toBe(
       'move:move-live-1'
     )
@@ -300,11 +298,11 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
   })
 
   it('capture alone through the live path cannot complete recovery', () => {
-    resetGameStoreFixture()
+    resetGameStoreFixture({ week: 6 })
     const { previousEntry, nextEntry, respondWorkItem } = escapeEntries()
-    const store = useGameStore.getState()
+    const week = useGameStore.getState().game.week
 
-    store.applyBreachOriginRecoveryStep({
+    useGameStore.getState().applyBreachOriginRecoveryStep({
       kind: 'create',
       recoveryId: 'rec-live-capture-only',
       previousEntry,
@@ -338,7 +336,7 @@ describe('SPE-3735 breach-origin recovery live wiring', () => {
       kind: 'capture',
       recoveryId: 'rec-live-capture-only',
       operationKey: 'op-live-capture-only',
-      week: 6,
+      week,
       captureAttempt: {
         attemptId: 'capture-only',
         subjectRef: 'subject:anomaly-live',

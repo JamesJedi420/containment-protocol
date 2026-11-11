@@ -100,6 +100,7 @@
     "src/domain/unauthorizedEnhancement.test.ts",
     "src/features/agency/AgencyPage.test.tsx",
     "src/features/agency/MaintenanceConversionPanel.test.tsx",
+    "src/features/agency/breachOriginRecoveryGameplayView.test.ts",
     "src/features/agency/facilityMaintenanceView.test.ts",
     "src/features/agency/facilityRegisterView.test.ts",
     "src/features/agency/operationalStaffingView.test.tsx",

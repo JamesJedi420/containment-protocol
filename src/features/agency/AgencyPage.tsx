@@ -5,6 +5,8 @@ import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { FacilityRegisterPanel } from './FacilityRegisterPanel'
 import { projectFacilityRegisterView } from './facilityRegisterView'
+import { BreachOriginRecoveryPanel } from './BreachOriginRecoveryPanel'
+import { projectBreachOriginRecoveryGameplayView } from './breachOriginRecoveryGameplayView'
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 import { OperationalStaffingPanel } from './OperationalStaffingPanel'
 import { projectOperationalStaffingView } from './operationalStaffingView'
@@ -16,10 +18,12 @@ export default function AgencyPage() {
     orderFacilityMaintenanceRecovery,
     purchaseFacilityMaintenancePackage,
     convertFacilityMaintenanceResources,
+    applyBreachOriginRecoveryStep,
   } = useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const staffing = projectOperationalStaffingView(game)
   const facilityRegister = projectFacilityRegisterView(game)
+  const breachOriginRecovery = projectBreachOriginRecoveryGameplayView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -79,6 +83,12 @@ export default function AgencyPage() {
       <OperationalStaffingPanel staffing={staffing} />
 
       <FacilityRegisterPanel register={facilityRegister} />
+
+      <BreachOriginRecoveryPanel
+        game={game}
+        view={breachOriginRecovery}
+        applyStep={applyBreachOriginRecoveryStep}
+      />
 
       <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">
         <h3 id="facility-maintenance-heading" className="text-base font-semibold">

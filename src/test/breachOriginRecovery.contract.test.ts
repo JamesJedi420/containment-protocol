@@ -17,6 +17,7 @@ import {
   parseFacilityBreachOriginRecoveries,
   projectExplainableBreachRecovery,
   reportLostContact,
+  type AssignmentClaimEvidence,
   type BreachRecoveryRecord,
 } from '../domain/breachOriginRecovery'
 import {
@@ -26,6 +27,16 @@ import {
 } from '../domain/liveRegistry'
 import { alertToWorkItem } from '../domain/liveRegistryAlertCenter'
 import { buildCanonicalProcedureAdapterFixture } from './helpers/canonicalProcedureAdapterFixture'
+import { createHeldAssignmentClaimEvidence } from './helpers/breachOriginRecoveryFixtures'
+
+function claimEvidence(
+  overrides: Partial<AssignmentClaimEvidence> = {}
+): AssignmentClaimEvidence {
+  return {
+    ...createHeldAssignmentClaimEvidence(),
+    ...overrides,
+  }
+}
 
 const graph = readProductionFacilitySectionGraph()
 
@@ -146,7 +157,7 @@ function advanceToLocated(recovery: BreachRecoveryRecord): BreachRecoveryRecord 
   const { respondWorkItem } = escapeFixture()
   const assigned = assignBreachRecovery(recovery, {
     operationKey: 'op-assign-1',
-    assignmentClaimRef: 'claim:response-1',
+    assignmentClaim: claimEvidence(),
     respondWorkItem,
   })
   expect(assigned.ok).toBe(true)
@@ -207,15 +218,33 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     const { respondWorkItem } = escapeFixture()
     const noClaim = assignBreachRecovery(created.recovery!, {
       operationKey: 'op-assign-missing',
-      assignmentClaimRef: '',
+      assignmentClaim: claimEvidence({ claimId: '' }),
       respondWorkItem,
     })
     expect(noClaim.ok).toBe(false)
     expect(noClaim.code).toBe('assignment_claim_missing')
 
+    const notHeld = assignBreachRecovery(created.recovery!, {
+      operationKey: 'op-assign-not-held',
+      assignmentClaim: claimEvidence({ claimed: false }),
+      respondWorkItem,
+    })
+    expect(notHeld.ok).toBe(false)
+    expect(notHeld.code).toBe('assignment_claim_not_held')
+
+    const badOwner = assignBreachRecovery(created.recovery!, {
+      operationKey: 'op-assign-bad-owner',
+      assignmentClaim: claimEvidence({
+        producerOwner: 'SPE-9999' as AssignmentClaimEvidence['producerOwner'],
+      }),
+      respondWorkItem,
+    })
+    expect(badOwner.ok).toBe(false)
+    expect(badOwner.code).toBe('assignment_claim_producer_invalid')
+
     const badKind = assignBreachRecovery(created.recovery!, {
       operationKey: 'op-assign-bad-kind',
-      assignmentClaimRef: 'claim:1',
+      assignmentClaim: claimEvidence({ claimId: 'claim:1' }),
       respondWorkItem: { ...respondWorkItem, kind: 'investigate' },
     })
     expect(badKind.ok).toBe(false)
@@ -502,12 +531,12 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     const { respondWorkItem } = escapeFixture()
     const assigned = assignBreachRecovery(created.recovery!, {
       operationKey: 'op-assign',
-      assignmentClaimRef: 'claim:a',
+      assignmentClaim: claimEvidence({ claimId: 'claim:a' }),
       respondWorkItem,
     })
     const again = assignBreachRecovery(assigned.recovery!, {
       operationKey: 'op-assign',
-      assignmentClaimRef: 'claim:a',
+      assignmentClaim: claimEvidence({ claimId: 'claim:a' }),
       respondWorkItem,
     })
     expect(again.ok).toBe(true)

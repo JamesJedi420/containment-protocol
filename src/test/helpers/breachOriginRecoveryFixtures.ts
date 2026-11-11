@@ -4,11 +4,16 @@ import {
   toCaptureSecureEvidence,
 } from '../../domain/captureSecureOutcome'
 import {
+  resolveOperationalPersonnelClaimOutcome,
+  toAssignmentClaimEvidence,
+} from '../../domain/operationalPersonnelClaimOutcome'
+import {
   assignBreachRecovery,
   buildBreachEscapeEvidenceFromLiveRegistry,
   confirmCaptureSecure,
   confirmSubjectLocated,
   createBreachOriginRecovery,
+  type AssignmentClaimEvidence,
   type BreachRecoveryRecord,
   type BreachEscapeEvidence,
 } from '../../domain/breachOriginRecovery'
@@ -23,6 +28,23 @@ export type BreachEscapeRespondFixture = Readonly<{
   escapeEvidence: BreachEscapeEvidence
   respondWorkItem: RegistryWorkItem
 }>
+
+/** Deterministic SPE-3055 claim evidence for SPE-3735 assignment fixtures. */
+export function createHeldAssignmentClaimEvidence(
+  attemptId = 'response-1',
+  operationRef = 'operation:breach-recovery'
+): AssignmentClaimEvidence {
+  const resolved = resolveOperationalPersonnelClaimOutcome({
+    attemptId,
+    operationRef,
+    requirementRefs: ['personnel:responder-a'],
+    claimCommitted: true,
+  })
+  if (!resolved.ok) {
+    throw new Error('expected held assignment claim resolve ok')
+  }
+  return toAssignmentClaimEvidence(resolved.outcome)
+}
 
 /**
  * Shared SPE-3735 escape → respond work-item fixture for producer seam tests.
@@ -79,7 +101,7 @@ export function advanceBreachRecoveryToLocated(
   expect(created.ok).toBe(true)
   const assigned = assignBreachRecovery(created.recovery!, {
     operationKey: `op-assign-${recoveryId}`,
-    assignmentClaimRef: 'claim:response-1',
+    assignmentClaim: createHeldAssignmentClaimEvidence(`response-${recoveryId}`),
     respondWorkItem,
   })
   expect(assigned.ok).toBe(true)

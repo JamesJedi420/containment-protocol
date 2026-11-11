@@ -4,10 +4,11 @@
  * Owns coordinating stages for an already-escaped subject. Consumes live-registry
  * escape evidence, alert-center respond work items, SPE-3177 co-location,
  * SPE-3189 screening, SPE-2995 procedure readiness, and typed producer evidence
- * packets owned by SPE-104 (capture) and SPE-1095 (movement). Does not invent
- * capture, pathfinding, custody, incident, or alert engines. Capture success,
- * physical arrival, status patches, and `recaptured` labels alone never complete
- * the transaction; only authoritative containment verification does.
+ * packets owned by SPE-3055 (assignment claim), SPE-104 (capture), and SPE-1095
+ * (movement). Does not invent claim arbitration, capture, pathfinding, custody,
+ * incident, or alert engines. Capture success, physical arrival, status patches,
+ * and `recaptured` labels alone never complete the transaction; only authoritative
+ * containment verification does.
  */
 
 import type { GameState } from './models'
@@ -69,6 +70,8 @@ export const BREACH_RECOVERY_REASON_CODES = [
   'malformed_input',
   'escape_not_authoritative',
   'assignment_claim_missing',
+  'assignment_claim_producer_invalid',
+  'assignment_claim_not_held',
   'respond_work_item_invalid',
   'located_not_committed',
   'capture_evidence_missing',
@@ -104,6 +107,14 @@ export type BreachEscapeEvidence = Readonly<{
   toOperationalState: 'loose'
   week: number
   incidentCaseRef: string
+}>
+
+/** Typed SPE-3055 producer evidence — coordinator does not invent claim arbitration. */
+export type AssignmentClaimEvidence = Readonly<{
+  producerOwner: 'SPE-3055'
+  claimId: string
+  operationRef: string
+  claimed: boolean
 }>
 
 /** Typed SPE-104 producer evidence — coordinator does not invent capture mechanics. */
@@ -648,7 +659,7 @@ export function assignBreachRecovery(
   recoveryInput: BreachRecoveryRecord,
   input: {
     readonly operationKey: string
-    readonly assignmentClaimRef: string
+    readonly assignmentClaim: AssignmentClaimEvidence
     readonly respondWorkItem: RegistryWorkItem
   },
   state?: GameState
@@ -659,8 +670,15 @@ export function assignBreachRecovery(
   })
   if (prepared.kind !== 'ready') return prepared.result
   const { recovery, key } = prepared
-  if (!isNonEmptyString(input.assignmentClaimRef)) {
+  const claim = input.assignmentClaim
+  if (claim === undefined || !isNonEmptyString(claim.claimId)) {
     return rejectRecovery('assignment_claim_missing', recovery, state)
+  }
+  if (claim.producerOwner !== 'SPE-3055') {
+    return rejectRecovery('assignment_claim_producer_invalid', recovery, state)
+  }
+  if (claim.claimed !== true) {
+    return rejectRecovery('assignment_claim_not_held', recovery, state)
   }
   const workItem = input.respondWorkItem
   if (
@@ -675,7 +693,7 @@ export function assignBreachRecovery(
     freezeRecovery({
       ...recovery,
       stage: 'recovery_assigned',
-      assignmentClaimRef: input.assignmentClaimRef.trim(),
+      assignmentClaimRef: claim.claimId.trim(),
       appliedOperationKeys: withAppliedKey(recovery, key),
       pendingCorrectiveAction: 'locate_escaped_subject',
     }),

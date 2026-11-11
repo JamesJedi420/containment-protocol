@@ -21,6 +21,11 @@ import {
   InvalidMissionEscalationRuleError,
 } from './missionEscalationCompatibility'
 import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
+import {
+  applyBreachOriginRecoveryStep,
+  type BreachOriginRecoveryStepCommand,
+} from '../../domain/breachOriginRecoveryLivePath'
+import type { BreachRecoveryResult } from '../../domain/breachOriginRecovery'
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
 import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
 import {
@@ -501,6 +506,13 @@ interface GameStore {
   ) => void
   destroyStoredEquipmentInstance: (instanceId: string) => void
   orderFacilityMaintenanceRecovery: () => void
+  /**
+   * SPE-3735: advance a durable breach-origin recovery via producer-backed
+   * caller-owned attempt facts. No UI; does not invent claim arbitration.
+   */
+  applyBreachOriginRecoveryStep: (
+    command: BreachOriginRecoveryStepCommand
+  ) => BreachRecoveryResult
   purchaseFacilityMaintenancePackage: () => void
   convertFacilityMaintenanceResources: (
     request: MaintenanceConversionRequest
@@ -2215,6 +2227,16 @@ export const useGameStore = create<GameStore>()(
           const result = applyFacilityMaintenanceRecovery(s.game)
           return result.status === 'recovered' ? { game: result.game } : s
         }),
+
+      applyBreachOriginRecoveryStep: (command) => {
+        let outcome!: BreachRecoveryResult
+        set((s) => {
+          const result = applyBreachOriginRecoveryStep(s.game, command)
+          outcome = result
+          return result.state !== undefined ? { game: result.state } : s
+        })
+        return outcome
+      },
 
       convertFacilityMaintenanceResources: (request) => {
         const result = convertFacilityMaintenanceResources(get().game, request)

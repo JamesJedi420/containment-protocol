@@ -35,7 +35,7 @@ export type CaptureSecureAttempt = Readonly<{
   controlCommitted: boolean
   /**
    * Explicit caller claim that the restraint class matches the subject.
-   * When false, secure fails closed as category_mismatch.
+   * When false, secure fails closed as restraint_incompatible.
    */
   restraintCompatible: boolean
   /** True when the subject category exceeds the restraint model. */

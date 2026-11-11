@@ -3,75 +3,11 @@ import {
   resolveCaptureSecureOutcome,
   toCaptureSecureEvidence,
 } from '../domain/captureSecureOutcome'
+import { confirmCaptureSecure } from '../domain/breachOriginRecovery'
 import {
-  assignBreachRecovery,
-  buildBreachEscapeEvidenceFromLiveRegistry,
-  confirmCaptureSecure,
-  confirmSubjectLocated,
-  createBreachOriginRecovery,
-  type BreachRecoveryRecord,
-} from '../domain/breachOriginRecovery'
-import {
-  createLiveRegistryEntry,
-  deriveRegistryAlerts,
-  updateLiveRegistryEntry,
-} from '../domain/liveRegistry'
-import { alertToWorkItem } from '../domain/liveRegistryAlertCenter'
-
-function escapeFixture() {
-  const contained = createLiveRegistryEntry({
-    id: 'reg-escaped-1',
-    entityId: 'subject:anomaly-a',
-    entityClass: 'anomaly',
-    label: 'Anomaly A',
-    operationalState: 'contained',
-    truthState: 'confirmed',
-    confidence: 0.9,
-    week: 4,
-    linkedCaseIds: ['case:escape-1'],
-  })
-  const loose = updateLiveRegistryEntry(contained, {
-    operationalState: 'loose',
-    week: 5,
-    reasonCode: 'contained-to-loose',
-    triggerSource: 'containment-breach',
-  })
-  const escapeEvidence = buildBreachEscapeEvidenceFromLiveRegistry(
-    contained,
-    loose,
-    'case:escape-1'
-  )!
-  const alerts = deriveRegistryAlerts(contained, loose)
-  const escapeAlert = alerts.find((alert) => alert.type === 'escape')!
-  const respondWorkItem = alertToWorkItem(escapeAlert, loose, 0, true)
-  return { escapeEvidence, respondWorkItem }
-}
-
-function advanceToLocated(recoveryId = 'rec-capture-seam-1'): BreachRecoveryRecord {
-  const { escapeEvidence, respondWorkItem } = escapeFixture()
-  const created = createBreachOriginRecovery({
-    recoveryId,
-    escapeEvidence,
-    subjectKind: 'non_person',
-    recoveryObjectiveRef: 'objective:recontain-anomaly-a',
-    destinationNodeId: 'room:med_bay',
-    destinationZoneRef: 'zone:medical',
-    operationKey: `op-create-${recoveryId}`,
-  })
-  expect(created.ok).toBe(true)
-  const assigned = assignBreachRecovery(created.recovery!, {
-    operationKey: `op-assign-${recoveryId}`,
-    assignmentClaimRef: 'claim:response-1',
-    respondWorkItem,
-  })
-  expect(assigned.ok).toBe(true)
-  const located = confirmSubjectLocated(assigned.recovery!, {
-    operationKey: `op-locate-${recoveryId}`,
-    locatedCommitted: true,
-  })
-  expect(located.ok).toBe(true)
-  return located.recovery!
-}
+  advanceBreachRecoveryToLocated,
+  createBreachEscapeRespondFixture,
+} from './helpers/breachOriginRecoveryFixtures'
 
 describe('SPE-104 capture-secure outcome producer', () => {
   it('resolves secured success with stable outcomeId', () => {
@@ -184,7 +120,11 @@ describe('SPE-104 capture-secure outcome producer', () => {
   })
 
   it('feeds real producer evidence into SPE-3735 confirmCaptureSecure without completing recovery', () => {
-    const located = advanceToLocated('rec-capture-seam-ok')
+    const captureFixture = createBreachEscapeRespondFixture({
+      registryId: 'reg-escaped-1',
+      caseId: 'case:escape-1',
+    })
+    const located = advanceBreachRecoveryToLocated('rec-capture-seam-ok', captureFixture)
     const resolved = resolveCaptureSecureOutcome({
       attemptId: 'attempt-recovery-ok',
       subjectRef: located.subjectRef,
@@ -217,7 +157,13 @@ describe('SPE-104 capture-secure outcome producer', () => {
     expect(failedResolve.ok).toBe(true)
     if (!failedResolve.ok) return
 
-    const locatedFail = advanceToLocated('rec-capture-seam-fail')
+    const locatedFail = advanceBreachRecoveryToLocated(
+      'rec-capture-seam-fail',
+      createBreachEscapeRespondFixture({
+        registryId: 'reg-escaped-fail',
+        caseId: 'case:escape-fail',
+      })
+    )
     const failed = confirmCaptureSecure(locatedFail, {
       operationKey: 'op-capture-from-producer-fail',
       week: 6,

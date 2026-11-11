@@ -777,6 +777,7 @@
     "src/test/queue.test.ts",
     "src/test/rankings.test.ts",
     "src/test/recoveryExposureResidue.test.ts",
+    "src/test/recoveryMovementOutcome.contract.test.ts",
     "src/test/recruitment.funnel.test.ts",
     "src/test/recruitment.generator.test.ts",
     "src/test/recruitment.helpers.contract.test.ts",

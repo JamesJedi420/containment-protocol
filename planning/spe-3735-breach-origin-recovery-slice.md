@@ -2,7 +2,7 @@
 
 | Field             | Value                                                                                                               |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress** (coordinator seam shipping; full acceptance blocked on SPE-104 / SPE-1095 producers)                |
+| **Status**        | **In Progress** (coordinator + SPE-104 capture producer + SPE-1095 movement seam; full path not Done)               |
 | **Issue**         | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735/breach-origin-recovery-and-verified-recontainment-handoff) |
 | **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                            |
 | **Branch**        | `jamesdyedbq/spe-3735-breach-origin-recovery-and-verified`                                                          |
@@ -16,7 +16,7 @@
 
 **Queue state:** tip equals `origin/main` after #4958; no open PRs; SPE-3500 Done.
 
-**Acceptance reconciliation:** hydrate-only owner booleans and synthetic capture/movement stubs do **not** satisfy SPE-3735 acceptance §§1/4/5 for Done. This slice ships the coordinating handoff plus real existing seams (live-registry escape, respond work-item assignment claim gate, SPE-3177/3189 admission, SPE-2995 verification readiness, once-only terminal report + registry restore gate). SPE-104 capture mechanics and SPE-1095 movement channels remain blockers; typed producer evidence packets are consumed without inventing those engines. Keep SPE-3735 **In Progress** until full gameplay evidence exists.
+**Acceptance reconciliation:** hydrate-only owner booleans and synthetic capture/movement stubs do **not** satisfy SPE-3735 acceptance §§1/4/5 for Done. Coordinator + SPE-104 capture-secure producer + SPE-1095 recovery-movement producer seams exist on main (or this PR). Full thoroughfare AC, assignment-claim arbitration, and end-to-end gameplay path remain incomplete. Keep SPE-3735 **In Progress** until full gameplay evidence exists; do not mark Done on producer seams alone.
 
 ## Goal
 
@@ -50,15 +50,16 @@ Coordinate one deterministic breach-origin recovery so assignment, locate, captu
 - [x] Capture/arrival/status-patch alone cannot complete
 - [x] Admission consumes SPE-3177/3189; verification consumes SPE-2995 when supplied
 - [x] Terminal report once; registry restore only after verified completion
-- [ ] Full acceptance §1 gameplay path with real SPE-104 capture + SPE-1095 movement producers — **blocked**
+- [x] Real SPE-104 capture + SPE-1095 movement producer seams emit typed evidence for coordinator stages
+- [ ] Full acceptance §1 end-to-end gameplay path (assignment claim + live wiring) — **incomplete**
 - [ ] End-to-end assignment consumer via SPE-3055 / SPE-1023 claim arbitration — **deferred/incomplete**
 
 ## Deferred
 
-| Item                                     | Owner               | Why                                                                                                                      |
-| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Real capture/restraint outcome producer  | SPE-104             | Capture-secure outcome seam shipping (`planning/spe-104-capture-secure-outcome-slice.md`); full weapon AC still deferred |
-| Real subject movement channel mutation   | SPE-1095            | Hard blocker for acceptance §1                                                                                           |
-| Operational personnel claim arbitration  | SPE-3055 / SPE-1023 | Assignment claim producer incomplete                                                                                     |
-| Mission-mode off-site recapture taxonomy | SPE-1307            | Related classification surface                                                                                           |
-| Live week-close / UI wiring              | SPE-3359 / surfaces | Projection only this slice                                                                                               |
+| Item                                     | Owner               | Why                                                                                                                       |
+| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Full SPE-104 weapon AC remainder         | SPE-104             | Capture-secure outcome seam shipped; tether/limb/weapon-catch AC still deferred                                           |
+| Full SPE-1095 thoroughfare channel suite | SPE-1095            | Recovery-movement outcome seam shipping (`planning/spe-1095-recovery-movement-outcome-slice.md`); route-class AC deferred |
+| Operational personnel claim arbitration  | SPE-3055 / SPE-1023 | Assignment claim producer incomplete                                                                                      |
+| Mission-mode off-site recapture taxonomy | SPE-1307            | Related classification surface                                                                                            |
+| Live week-close / UI wiring              | SPE-3359 / surfaces | Projection only this slice                                                                                                |

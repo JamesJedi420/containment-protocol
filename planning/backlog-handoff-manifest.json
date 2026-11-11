@@ -1,6 +1,6 @@
 {
   "primary": "SPE-1052",
-  "inProgress": ["SPE-104", "SPE-3735", "SPE-3338"],
+  "inProgress": ["SPE-1095", "SPE-3735", "SPE-104", "SPE-3338"],
   "recentlyShipped": [
     "SPE-3500",
     "SPE-3439",
@@ -158,6 +158,8 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-1095-recovery-movement-outcome-slice.md": "In Progress",
+    "planning/spe-104-capture-secure-outcome-slice.md": "In Progress",
     "planning/spe-3735-breach-origin-recovery-slice.md": "In Progress",
     "planning/spe-3500-authorized-contained-subject-excursion-slice.md": "Shipped",
     "planning/spe-3439-secure-contained-subject-transfer-slice.md": "Shipped",

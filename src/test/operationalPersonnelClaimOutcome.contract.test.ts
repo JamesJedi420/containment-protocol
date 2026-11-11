@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { hydrateGame } from '../app/store/runTransfer'
+import { createStartingState } from '../data/startingState'
 import {
   resolveOperationalPersonnelClaimOutcome,
   toAssignmentClaimEvidence,
@@ -152,15 +154,31 @@ describe('SPE-3055 operational personnel claim outcome producer', () => {
     expect(held.ok).toBe(true)
     if (!held.ok) return
 
-    const assigned = assignBreachRecovery(created.recovery!, {
-      operationKey: 'op-assign-from-producer',
-      assignmentClaim: toAssignmentClaimEvidence(held.outcome),
-      respondWorkItem: fixture.respondWorkItem,
-    })
+    const starting = createStartingState()
+    const assigned = assignBreachRecovery(
+      created.recovery!,
+      {
+        operationKey: 'op-assign-from-producer',
+        assignmentClaim: toAssignmentClaimEvidence(held.outcome),
+        respondWorkItem: fixture.respondWorkItem,
+      },
+      starting
+    )
     expect(assigned.ok).toBe(true)
     expect(assigned.recovery?.stage).toBe('recovery_assigned')
     expect(assigned.recovery?.assignmentClaimRef).toBe('claim:attempt-recovery-claim')
     expect(assigned.recovery?.stage).not.toBe('completed')
+    expect(assigned.state?.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.assignmentClaimRef).toBe(
+      'claim:attempt-recovery-claim'
+    )
+
+    const hydrated = hydrateGame(assigned.state!)
+    expect(hydrated.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.assignmentClaimRef).toBe(
+      'claim:attempt-recovery-claim'
+    )
+    expect(hydrated.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.stage).toBe(
+      'recovery_assigned'
+    )
 
     const failResolve = resolveOperationalPersonnelClaimOutcome({
       attemptId: 'attempt-recovery-claim-fail',

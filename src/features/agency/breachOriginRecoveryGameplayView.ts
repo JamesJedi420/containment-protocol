@@ -197,8 +197,14 @@ export function buildCallerOwnedEscapeTransition(request: BreachOriginRecoverySt
 
 /** Rebuild respond work item from durable recovery identity (no live-registry SoT). */
 export function rebuildRespondWorkItemForRecovery(
-  recovery: BreachRecoveryRecord
+  recovery: BreachRecoveryRecord,
+  campaignWeek: number
 ): RegistryWorkItem | undefined {
+  const escapeWeek =
+    typeof campaignWeek === 'number' && Number.isFinite(campaignWeek) && campaignWeek >= 0
+      ? Math.trunc(campaignWeek)
+      : 1
+  const containedWeek = Math.max(0, escapeWeek - 1)
   const previousEntry = createLiveRegistryEntry({
     id: recovery.escapeEvidenceRef,
     entityId: recovery.subjectRef,
@@ -207,12 +213,12 @@ export function rebuildRespondWorkItemForRecovery(
     operationalState: 'contained',
     truthState: 'confirmed',
     confidence: 0.9,
-    week: Math.max(0, 1),
+    week: containedWeek,
     linkedCaseIds: [recovery.incidentCaseRef],
   })
   const nextEntry = updateLiveRegistryEntry(previousEntry, {
     operationalState: 'loose',
-    week: Math.max(1, previousEntry.lastUpdatedWeek + 1),
+    week: escapeWeek,
     reasonCode: 'contained-to-loose',
     triggerSource: 'containment-breach',
   })
@@ -240,9 +246,10 @@ export function buildCreateBreachOriginRecoveryCommand(
 
 export function buildAssignBreachOriginRecoveryCommand(
   recovery: BreachRecoveryRecord,
-  operationKey: string
+  operationKey: string,
+  campaignWeek: number
 ): BreachOriginRecoveryStepCommand | undefined {
-  const respondWorkItem = rebuildRespondWorkItemForRecovery(recovery)
+  const respondWorkItem = rebuildRespondWorkItemForRecovery(recovery, campaignWeek)
   if (respondWorkItem === undefined) return undefined
   return {
     kind: 'assign',
@@ -372,7 +379,8 @@ export function buildNextBreachOriginRecoveryCommand(
     case 'assign':
       return buildAssignBreachOriginRecoveryCommand(
         recovery,
-        `op-agency-assign-${recovery.recoveryId}`
+        `op-agency-assign-${recovery.recoveryId}`,
+        week
       )
     case 'locate':
       return buildLocateBreachOriginRecoveryCommand(
@@ -434,8 +442,11 @@ export function projectBreachOriginRecoveryGameplayView(
       )
     }
   }
-  const startId = getDefaultBreachOriginRecoveryStartRequest(game.week).recoveryId
-  const canStart = !rows.some((row) => row.recoveryId === startId)
+  const start = getDefaultBreachOriginRecoveryStartRequest(game.week)
+  const canStart = !rows.some(
+    (row) =>
+      row.recoveryId === start.recoveryId || (row.active && row.subjectRef === start.subjectRef)
+  )
   return Object.freeze({
     rows: Object.freeze(rows),
     canStart,

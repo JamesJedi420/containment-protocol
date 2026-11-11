@@ -1,12 +1,12 @@
 # SPE-3735 — Breach-origin recovery and verified recontainment handoff
 
-| Field             | Value                                                                                                                             |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress** (coordinator seam shipping; full acceptance blocked on SPE-104 / SPE-1095 producers)                              |
-| **Issue**         | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735/breach-origin-recovery-and-verified-recontainment-handoff)               |
-| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                                          |
-| **Branch**        | `jamesdyedbq/spe-3735-breach-origin-recovery-and-verified`                                                                        |
-| **Base main SHA** | `a595098f400f833c812036e43215f9896496f7be`                                                                                        |
+| Field             | Value                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Status**        | **In Progress** (coordinator seam shipping; full acceptance blocked on SPE-104 / SPE-1095 producers)                |
+| **Issue**         | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735/breach-origin-recovery-and-verified-recontainment-handoff) |
+| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                            |
+| **Branch**        | `jamesdyedbq/spe-3735-breach-origin-recovery-and-verified`                                                          |
+| **Base main SHA** | `a595098f400f833c812036e43215f9896496f7be`                                                                          |
 
 ## Delegated approval
 
@@ -55,10 +55,10 @@ Coordinate one deterministic breach-origin recovery so assignment, locate, captu
 
 ## Deferred
 
-| Item                                              | Owner              | Why                                      |
-| ------------------------------------------------- | ------------------ | ---------------------------------------- |
-| Real capture/restraint outcome producer           | SPE-104            | Hard blocker for acceptance §1           |
-| Real subject movement channel mutation            | SPE-1095           | Hard blocker for acceptance §1           |
-| Operational personnel claim arbitration           | SPE-3055 / SPE-1023 | Assignment claim producer incomplete    |
-| Mission-mode off-site recapture taxonomy          | SPE-1307           | Related classification surface           |
-| Live week-close / UI wiring                       | SPE-3359 / surfaces | Projection only this slice              |
+| Item                                     | Owner               | Why                                                                                                                      |
+| ---------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Real capture/restraint outcome producer  | SPE-104             | Capture-secure outcome seam shipping (`planning/spe-104-capture-secure-outcome-slice.md`); full weapon AC still deferred |
+| Real subject movement channel mutation   | SPE-1095            | Hard blocker for acceptance §1                                                                                           |
+| Operational personnel claim arbitration  | SPE-3055 / SPE-1023 | Assignment claim producer incomplete                                                                                     |
+| Mission-mode off-site recapture taxonomy | SPE-1307            | Related classification surface                                                                                           |
+| Live week-close / UI wiring              | SPE-3359 / surfaces | Projection only this slice                                                                                               |

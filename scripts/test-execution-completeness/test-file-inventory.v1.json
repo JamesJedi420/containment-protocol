@@ -339,6 +339,7 @@
     "src/test/campaignScarDegradedState.contract.test.ts",
     "src/test/campaignToIncidentHook.integration.test.ts",
     "src/test/capabilityGap.test.ts",
+    "src/test/captureSecureOutcome.contract.test.ts",
     "src/test/caseGeneration.test.ts",
     "src/test/caseGenerationPolicy.test.ts",
     "src/test/caseInsights.test.ts",

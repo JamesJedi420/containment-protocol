@@ -7,7 +7,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; live store wiring shipping; Done only when §1 evidenced).
+- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; Agency gameplay reachability shipping; Done only when §1 evidenced).
 - [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipped; full arbitration AC deferred).
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
 - [SPE-104](https://linear.app/spectranoir/issue/SPE-104) — Capture & restraint weapon interactions (In Progress; capture-secure outcome seam shipped; full weapon AC deferred).
@@ -21,9 +21,9 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-3735 (coding; live store wiring); SPE-3055 / SPE-1095 / SPE-104 (full AC deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** SPE-3735 — live wiring (`planning/spe-3735-breach-origin-recovery-slice.md`).
-**After SPE-3735 live wiring:** keep SPE-3735 Done only when acceptance §1 evidenced; otherwise progress comment and continue deferred remainders.
+**In progress:** SPE-3735 (coding; Agency gameplay reachability); SPE-3055 / SPE-1095 / SPE-104 (full AC deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** SPE-3735 — gameplay reachability (`planning/spe-3735-breach-origin-recovery-slice.md`).
+**After SPE-3735 gameplay reachability:** mark SPE-3735 Done only when acceptance §1 evidenced on the Agency surface; otherwise progress comment and continue deferred remainders.
 
 ## Maintenance and history
 

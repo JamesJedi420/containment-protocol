@@ -170,6 +170,28 @@ describe('AgencyPage', () => {
     }
   )
 
+  it('Agency surface can create → assign → locate a breach-origin recovery', () => {
+    useGameStore.setState({ game: { ...makeMinimalGameState(), week: 6 } })
+    renderAgencyPage()
+
+    const start = screen.getByRole('button', { name: 'Start breach-origin recovery' })
+    expect(start).toBeEnabled()
+    expect(
+      screen.getByText(/Coordinate verified recontainment for an already-escaped subject/)
+    ).toBeInTheDocument()
+    fireEvent.click(start)
+
+    expect(screen.getByText('rec-agency-breach-w6')).toBeInTheDocument()
+    expect(screen.getByText(/Stage escape_reported/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Assign recovery response' }))
+    expect(screen.getByText(/Stage recovery_assigned/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm subject located' }))
+    expect(screen.getByText(/Stage subject_located/)).toBeInTheDocument()
+    expect(
+      useGameStore.getState().game.facilityBreachOriginRecoveries?.['rec-agency-breach-w6']?.stage
+    ).toBe('subject_located')
+  })
+
   it('renders the agency strategic overview and recommendation sections', () => {
     renderAgencyPage()
 

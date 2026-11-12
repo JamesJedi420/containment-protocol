@@ -57,6 +57,7 @@ import type { FacilityOutboundScreenHolds } from './containmentZoneOutboundScree
 import type { FacilitySecureContainedSubjectTransfers } from './secureContainedSubjectTransfer'
 import type { FacilityAuthorizedContainedSubjectExcursions } from './authorizedContainedSubjectExcursion'
 import type { FacilityBreachOriginRecoveries } from './breachOriginRecovery'
+import type { FacilityProtectedRemoteWorkCells } from './protectedRemoteWorkCell'
 import type { FacilitySecuredNodes } from './facilitySecuredNodes'
 import type { FacilityStockQuarantine } from './facilityStockQuarantine'
 import type { FacilityHaulingLabor } from './facilityHaulingLabor'
@@ -3021,6 +3022,13 @@ export interface GameState {
    * arrival, and status patches alone never complete recovery. Omit hydrates omitted.
    */
   facilityBreachOriginRecoveries?: FacilityBreachOriginRecoveries
+  /**
+   * SPE-3501: durable protected remote-work cell interactions.
+   * Coordination stages only; does not invent teleoperation, a second procedure
+   * engine, subject registry, robot actor, or map/zone authority. Operator is not
+   * treated as present in the sealed target zone. Omit hydrates omitted.
+   */
+  facilityProtectedRemoteWorkCells?: FacilityProtectedRemoteWorkCells
   /**
    * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
    * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and

@@ -7,23 +7,23 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; Agency gameplay reachability shipping; Done only when §1 evidenced).
+- [SPE-3501](https://linear.app/spectranoir/issue/SPE-3501) — Protected remote-work cell interaction (In Progress; coding slice under SPE-1052).
+- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; Agency gameplay remainders; not the active coding slice).
 - [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipped; full arbitration AC deferred).
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
 - [SPE-104](https://linear.app/spectranoir/issue/SPE-104) — Capture & restraint weapon interactions (In Progress; capture-secure outcome seam shipped; full weapon AC deferred).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress; umbrella-scale — not the active coding slice).
-- [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (Backlog; select bounded child work).
+- [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (In Progress parent; select bounded child work).
 - [SPE-1051](https://linear.app/spectranoir/issue/SPE-1051) — Recoverable failure and campaign scars (Backlog; review remaining acceptance).
 - [SPE-1028](https://linear.app/spectranoir/issue/SPE-1028) — Department workshop and processing queues (Backlog; coordinate remaining child work).
-- [SPE-1564](https://linear.app/spectranoir/issue/SPE-1564) — Facility lifecycle state machine (Backlog).
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** SPE-1052 — coordinate the next approved facility child.
-**In progress:** SPE-3735 (coding; Agency gameplay reachability); SPE-3055 / SPE-1095 / SPE-104 (full AC deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** SPE-3735 — gameplay reachability (`planning/spe-3735-breach-origin-recovery-slice.md`).
-**After SPE-3735 gameplay reachability:** mark SPE-3735 Done only when acceptance §1 evidenced on the Agency surface; otherwise progress comment and continue deferred remainders.
+**Current handoff (primary):** SPE-3501 — protected remote-work cell under SPE-1052.
+**In progress:** SPE-3501 (coding); SPE-3735 / SPE-3055 / SPE-1095 / SPE-104 (remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** SPE-3501 — `planning/spe-3501-protected-remote-work-cell-slice.md`.
+**After SPE-3501:** mark SPE-3501 Done when acceptance evidenced; keep SPE-1052 open.
 
 ## Maintenance and history
 

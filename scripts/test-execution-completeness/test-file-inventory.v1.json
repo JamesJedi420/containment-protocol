@@ -745,6 +745,7 @@
     "src/test/procurementEmergency.test.ts",
     "src/test/progressClocks.test.ts",
     "src/test/progression.test.ts",
+    "src/test/protectedRemoteWorkCell.contract.test.ts",
     "src/test/protocol.test.ts",
     "src/test/protocols.test.ts",
     "src/test/proximityRiskClearance.contract.test.ts",

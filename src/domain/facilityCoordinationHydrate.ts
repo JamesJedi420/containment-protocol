@@ -1,6 +1,7 @@
 /**
  * Shared hydrate/parse primitives for durable facility coordination registries
- * (SPE-3439 secure transfer, SPE-3500 authorized excursion, SPE-3735 breach recovery).
+ * (SPE-3439 secure transfer, SPE-3500 authorized excursion, SPE-3735 breach recovery,
+ * SPE-3501 protected remote-work cell).
  */
 
 import type { GameState } from './models'
@@ -10,6 +11,7 @@ export type FacilityCoordinationMapField =
   | 'facilitySecureContainedSubjectTransfers'
   | 'facilityAuthorizedContainedSubjectExcursions'
   | 'facilityBreachOriginRecoveries'
+  | 'facilityProtectedRemoteWorkCells'
 
 export function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

@@ -20,6 +20,7 @@ import {
 import {
   compareCodeUnitOrder,
   freezeCoordinationRecord,
+  hasOwnEnumerableKey,
   isNonEmptyTrimmedString,
   isPlainRecord,
   parseFacilityRecordMap,
@@ -139,8 +140,23 @@ const isRecord = isPlainRecord
 const isNonEmptyString = isNonEmptyTrimmedString
 const compareCodeUnit = compareCodeUnitOrder
 
+const UNSAFE_WORK_IDS = new Set(['__proto__', 'constructor', 'prototype'])
+
+function isSafeWorkId(value: string): boolean {
+  return isNonEmptyString(value) && !UNSAFE_WORK_IDS.has(value)
+}
+
 function isStage(value: unknown): value is ProtectedRemoteWorkStage {
   return PROTECTED_REMOTE_WORK_STAGES.some((stage) => stage === value)
+}
+
+function stageAllowsProcedureEffects(stage: ProtectedRemoteWorkStage): boolean {
+  return (
+    stage === 'in_progress' ||
+    stage === 'completed' ||
+    stage === 'held' ||
+    stage === 'failed'
+  )
 }
 
 function isReasonCode(value: unknown): value is ProtectedRemoteWorkReasonCode {
@@ -209,13 +225,25 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
   }
   if (typeof raw.procedureEffectsOccurred !== 'boolean') return undefined
   if (typeof raw.exposureCleared !== 'boolean') return undefined
+  if (!isSafeWorkId(id)) return undefined
+
+  const operatorNodeId = raw.operatorNodeId.trim()
+  const targetZoneRef = raw.targetZoneRef.trim()
+  if (operatorNodeId === targetZoneRef) return undefined
+  if (raw.procedureEffectsOccurred && !stageAllowsProcedureEffects(raw.stage)) {
+    return undefined
+  }
+  if (!raw.procedureEffectsOccurred && (raw.stage === 'in_progress' || raw.stage === 'completed')) {
+    return undefined
+  }
+  if (raw.exposureCleared === true) return undefined
 
   return freezeWork({
     workId: id,
     stationId: raw.stationId.trim(),
     operatorRef: raw.operatorRef.trim(),
-    operatorNodeId: raw.operatorNodeId.trim(),
-    targetZoneRef: raw.targetZoneRef.trim(),
+    operatorNodeId,
+    targetZoneRef,
     targetRef: raw.targetRef.trim(),
     capabilityTag: raw.capabilityTag.trim(),
     stage: raw.stage,
@@ -274,7 +302,8 @@ function resolveCurrentWork(
   state: GameState | undefined
 ): ProtectedRemoteWorkRecord {
   if (state === undefined) return work
-  return readWorks(state)[work.workId] ?? work
+  const works = readWorks(state)
+  return hasOwnEnumerableKey(works, work.workId) ? (works[work.workId] ?? work) : work
 }
 
 type PreparedWorkMutation =
@@ -350,9 +379,13 @@ export function createProtectedRemoteWorkCell(
   }
 
   const workId = input.workId.trim()
+  if (!isSafeWorkId(workId)) {
+    return rejectWork('malformed_input', undefined, state)
+  }
   const operationKey = input.operationKey.trim()
   if (state !== undefined) {
-    const existing = readWorks(state)[workId]
+    const works = readWorks(state)
+    const existing = hasOwnEnumerableKey(works, workId) ? works[workId] : undefined
     if (existing) {
       if (existing.appliedOperationKeys.includes(operationKey)) {
         return { ok: true, work: existing, state }
@@ -414,13 +447,16 @@ export function runProtectedRemoteWorkPreflight(
   if (!isNonEmptyString(operationKey)) {
     return rejectWork('malformed_input', work, state)
   }
-  if (work.stage !== 'requested') {
-    if (work.appliedOperationKeys.includes(operationKey.trim())) {
+  const key = operationKey.trim()
+  const canRetryBlocked =
+    work.stage === 'blocked' && work.procedureEffectsOccurred === false
+  if (work.stage !== 'requested' && !canRetryBlocked) {
+    if (work.appliedOperationKeys.includes(key)) {
       return { ok: true, work, state }
     }
     return rejectWork('illegal_transition', work, state)
   }
-  if (work.appliedOperationKeys.includes(operationKey.trim())) {
+  if (work.appliedOperationKeys.includes(key)) {
     return { ok: true, work, state }
   }
 
@@ -429,7 +465,7 @@ export function runProtectedRemoteWorkPreflight(
       ...work,
       stage: 'blocked',
       reasonCodes: sortUniqueReasons(['operator_in_target_zone']),
-      appliedOperationKeys: withAppliedKey(work, operationKey.trim()),
+      appliedOperationKeys: withAppliedKey(work, key),
       pendingCorrectiveAction: 'relocate_operator_outside_target_zone',
       procedureEffectsOccurred: false,
       exposureCleared: false,
@@ -471,7 +507,7 @@ export function runProtectedRemoteWorkPreflight(
       ...work,
       stage: 'blocked',
       reasonCodes: uniqueReasons,
-      appliedOperationKeys: withAppliedKey(work, operationKey.trim()),
+      appliedOperationKeys: withAppliedKey(work, key),
       pendingCorrectiveAction: 'resolve_remote_work_preflight_blockers',
       procedureEffectsOccurred: false,
       exposureCleared: false,
@@ -490,7 +526,7 @@ export function runProtectedRemoteWorkPreflight(
     ...work,
     stage: 'authorized',
     reasonCodes: Object.freeze([]),
-    appliedOperationKeys: withAppliedKey(work, operationKey.trim()),
+    appliedOperationKeys: withAppliedKey(work, key),
     pendingCorrectiveAction: undefined,
     ...(isNonEmptyString(input.authorizationRef)
       ? { authorizationRef: input.authorizationRef.trim() }
@@ -532,9 +568,17 @@ export function beginProtectedRemoteWork(
   if (prepared.kind !== 'ready') return prepared.result
   const { work, key } = prepared
 
+  const executionKey = input.procedureAdapter.executionKey
+  if (
+    isNonEmptyString(work.procedureExecutionKey) &&
+    work.procedureExecutionKey !== executionKey
+  ) {
+    return rejectWork('stale_operation', work, state)
+  }
+
   const procedureExecution = executeCanonicalProcedureThroughCrossRoleAction(input.procedureAdapter)
   const evidence = Object.freeze({ procedureExecution })
-  if (!procedureExecution.ok) {
+  if (!procedureExecution.ok || procedureExecution.outcome !== 'executed') {
     const failed = freezeWork({
       ...work,
       stage: 'failed',
@@ -543,7 +587,7 @@ export function beginProtectedRemoteWork(
       pendingCorrectiveAction: 'resolve_procedure_execution_blockers',
       procedureEffectsOccurred: false,
       exposureCleared: false,
-      procedureExecutionKey: input.procedureAdapter.executionKey,
+      procedureExecutionKey: executionKey,
     })
     return {
       ok: false,
@@ -563,7 +607,7 @@ export function beginProtectedRemoteWork(
     procedureEffectsOccurred: true,
     exposureCleared: false,
     pendingCorrectiveAction: 'monitor_station_integrity',
-    procedureExecutionKey: input.procedureAdapter.executionKey,
+    procedureExecutionKey: executionKey,
   })
   return {
     ok: true,
@@ -571,6 +615,36 @@ export function beginProtectedRemoteWork(
     state: upsertWork(state, started),
     evidence,
   }
+}
+
+/**
+ * Resume held work after station/connection restoration without re-executing the procedure.
+ */
+export function resumeProtectedRemoteWork(
+  workInput: ProtectedRemoteWorkRecord,
+  operationKey: string,
+  state?: GameState
+): ProtectedRemoteWorkResult {
+  const prepared = prepareWorkMutation(workInput, operationKey, state, {
+    idempotentStages: ['in_progress'],
+    allowedStages: ['held'],
+  })
+  if (prepared.kind !== 'ready') return prepared.result
+  if (!prepared.work.procedureEffectsOccurred) {
+    return rejectWork('illegal_transition', prepared.work, state)
+  }
+  return commitWork(
+    freezeWork({
+      ...prepared.work,
+      stage: 'in_progress',
+      reasonCodes: Object.freeze([]),
+      appliedOperationKeys: withAppliedKey(prepared.work, prepared.key),
+      pendingCorrectiveAction: 'monitor_station_integrity',
+      procedureEffectsOccurred: true,
+      exposureCleared: false,
+    }),
+    state
+  )
 }
 
 export type ProtectedRemoteWorkInterruptKind =
@@ -669,7 +743,7 @@ export function completeProtectedRemoteWork(
 }
 
 /**
- * Abort before procedure execution begins.
+ * Abort before procedure execution begins, or abandon held work without clearing exposure.
  */
 export function abortProtectedRemoteWork(
   workInput: ProtectedRemoteWorkRecord,
@@ -677,10 +751,24 @@ export function abortProtectedRemoteWork(
   state?: GameState
 ): ProtectedRemoteWorkResult {
   const prepared = prepareWorkMutation(workInput, operationKey, state, {
-    idempotentStages: ['aborted'],
-    allowedStages: ['requested', 'authorized'],
+    idempotentStages: ['aborted', 'failed'],
+    allowedStages: ['requested', 'authorized', 'held'],
   })
   if (prepared.kind !== 'ready') return prepared.result
+  if (prepared.work.stage === 'held') {
+    return commitWork(
+      freezeWork({
+        ...prepared.work,
+        stage: 'failed',
+        reasonCodes: sortUniqueReasons(['interrupted_during_work', 'aborted_before_start']),
+        appliedOperationKeys: withAppliedKey(prepared.work, prepared.key),
+        pendingCorrectiveAction: undefined,
+        procedureEffectsOccurred: prepared.work.procedureEffectsOccurred,
+        exposureCleared: false,
+      }),
+      state
+    )
+  }
   if (prepared.work.procedureEffectsOccurred) {
     return rejectWork('illegal_transition', prepared.work, state)
   }

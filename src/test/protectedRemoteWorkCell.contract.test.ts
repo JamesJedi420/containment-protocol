@@ -9,6 +9,7 @@ import {
   interruptProtectedRemoteWork,
   parseFacilityProtectedRemoteWorkCells,
   projectExplainableProtectedRemoteWork,
+  resumeProtectedRemoteWork,
   runProtectedRemoteWorkPreflight,
   type ProtectedRemoteWorkPreflightGates,
   type ProtectedRemoteWorkRecord,
@@ -291,15 +292,15 @@ describe('SPE-3501 protected remote-work cell', () => {
     expect(replay.ok).toBe(true)
     expect(replay.work?.stage).toBe('completed')
 
-    const loaded = hydrateGame({
-      ...state,
-      facilityProtectedRemoteWorkCells: state.facilityProtectedRemoteWorkCells,
-    })
+    const loaded = hydrateGame(structuredClone(state))
     expect(loaded.facilityProtectedRemoteWorkCells?.['rw-1']?.stage).toBe('completed')
     expect(loaded.facilityProtectedRemoteWorkCells?.['rw-1']?.targetRef).toBe(
       'sample:andromeda-fragment'
     )
     expect(loaded.facilityProtectedRemoteWorkCells?.['rw-1']?.exposureCleared).toBe(false)
+    expect(loaded.facilityProtectedRemoteWorkCells?.['rw-1']?.appliedOperationKeys).toEqual(
+      expect.arrayContaining(['op-create-a', 'op-complete-a'])
+    )
     expect(Object.isFrozen(loaded.facilityProtectedRemoteWorkCells)).toBe(true)
   })
 
@@ -309,6 +310,77 @@ describe('SPE-3501 protected remote-work cell', () => {
     expect(aborted.ok).toBe(true)
     expect(aborted.work?.stage).toBe('aborted')
     expect(aborted.work?.procedureEffectsOccurred).toBe(false)
+  })
+
+  it('retries preflight after a blocked station fault', () => {
+    const created = createWork()
+    const blocked = runProtectedRemoteWorkPreflight({
+      work: created.work!,
+      operationKey: 'op-preflight-fail',
+      gates: { ...openGates, stationReady: false },
+      procedureAdapter: procedureAdapter(),
+    })
+    expect(blocked.ok).toBe(false)
+    expect(blocked.work?.stage).toBe('blocked')
+
+    const retried = runProtectedRemoteWorkPreflight({
+      work: blocked.work!,
+      operationKey: 'op-preflight-retry',
+      gates: openGates,
+      procedureAdapter: procedureAdapter(),
+      authorizationRef: 'auth:retry',
+    })
+    expect(retried.ok).toBe(true)
+    expect(retried.work?.stage).toBe('authorized')
+    expect(retried.work?.procedureEffectsOccurred).toBe(false)
+  })
+
+  it('binds begin to the preflight procedure execution key', () => {
+    const created = createWork()
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work!,
+      operationKey: 'op-preflight-1',
+      gates: openGates,
+      procedureAdapter: procedureAdapter('exec-remote-lab-1'),
+    })
+    const mismatched = beginProtectedRemoteWork(preflight.work!, {
+      operationKey: 'op-begin-mismatch',
+      procedureAdapter: procedureAdapter('exec-other-procedure'),
+    })
+    expect(mismatched.ok).toBe(false)
+    expect(mismatched.code).toBe('stale_operation')
+  })
+
+  it('resumes held work without re-executing the procedure', () => {
+    const created = createWork()
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work!,
+      operationKey: 'op-preflight-1',
+      gates: openGates,
+      procedureAdapter: procedureAdapter(),
+    })
+    const started = beginProtectedRemoteWork(preflight.work!, {
+      operationKey: 'op-begin-1',
+      procedureAdapter: procedureAdapter(),
+    })
+    const held = interruptProtectedRemoteWork(started.work!, {
+      operationKey: 'op-interrupt-station',
+      kind: 'connection_lost',
+    })
+    expect(held.work?.stage).toBe('held')
+
+    const resumed = resumeProtectedRemoteWork(held.work!, 'op-resume-1')
+    expect(resumed.ok).toBe(true)
+    expect(resumed.work?.stage).toBe('in_progress')
+    expect(resumed.work?.procedureEffectsOccurred).toBe(true)
+    expect(resumed.work?.exposureCleared).toBe(false)
+
+    const completed = completeProtectedRemoteWork(resumed.work!, {
+      operationKey: 'op-complete-after-resume',
+      workCommitted: true,
+    })
+    expect(completed.ok).toBe(true)
+    expect(completed.work?.stage).toBe('completed')
   })
 
   it('parses durable records and drops malformed entries', () => {
@@ -327,9 +399,24 @@ describe('SPE-3501 protected remote-work cell', () => {
         procedureEffectsOccurred: true,
         exposureCleared: false,
       },
+      colocated: {
+        workId: 'colocated',
+        stationId: 'station:a',
+        operatorRef: 'op:1',
+        operatorNodeId: 'zone:lab',
+        targetZoneRef: 'zone:lab',
+        targetRef: 'sample:1',
+        capabilityTag: 'sample_observe',
+        stage: 'authorized',
+        reasonCodes: [],
+        appliedOperationKeys: ['op-1'],
+        procedureEffectsOccurred: false,
+        exposureCleared: false,
+      },
       bad: { workId: 'bad', stage: 'completed' },
     })
     expect(parsed?.good?.stage).toBe('completed')
+    expect(parsed?.colocated).toBeUndefined()
     expect(parsed?.bad).toBeUndefined()
   })
 

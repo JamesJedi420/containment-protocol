@@ -1,0 +1,34 @@
+{
+  "$schemaComment": "Canonical Scenario.com MCP workspace for Containment Protocol visual production. Agents: read before Scenario MCP calls. Never invent team_id or project_id.",
+  "mcp": {
+    "url": "https://mcp.scenario.com/mcp?toolsets=full",
+    "urlLeanCore": "https://mcp.scenario.com/mcp",
+    "note": "toolsets=full lists the full catalog as first-class tools (~90+; ~64 are catalog-only on the lean URL and otherwise need scenario_tool_execute_read/write/delete)."
+  },
+  "canonicalWorkspace": {
+    "teamId": "team_vJiqbQTYL98U1wVNcMtbNBBe",
+    "teamName": "Jamesdyedbq’s Organization",
+    "projectId": "proj_iR6KzLRfxuLTmdur1kR8z8da",
+    "projectName": "Containment Protocol",
+    "avatarAssetId": "asset_NMoNj1ML2mp875fmE3NiY7dp",
+    "ownerIssue": "SPE-3494",
+    "plan": "free",
+    "modelsManagement": "blocklist"
+  },
+  "collections": {
+    "01 — References": "col_fD9LHWuU8coPtFZKL6soxJEX",
+    "02 — Environments": "col_oGnv8a7Qxo8cPP3e97tH53zn",
+    "03 — Characters & Personnel": "col_d53okP9DVA32BDuH71jLZvoi",
+    "04 — Props & Equipment": "col_1Wxak4Aq2WM71V2x9h96NC4J",
+    "05 — UI & Interfaces": "col_Q6PGnxk8YfbJcBywQnZ74ykH",
+    "06 — Drafts": "col_SBcCaw2yXvX1gDoLmmA1CZw2",
+    "07 — Approved": "col_x53GS7uv4e6zkw3iWwSSVVWS"
+  },
+  "sourceOfTruth": {
+    "shippedCodeAndEngineering": "git repo (src/, planning/, Linear)",
+    "scenarioRole": "Visual production — concept art, environments, characters, props, UI mock studies, reference library",
+    "runtime": "Never wire Scenario SDK/OAuth into src/ or CI"
+  },
+  "costPolicy": "Do not run expensive batches, video, or training without an approved plan and cost estimate (align with Scenario project/user instructions).",
+  "accessNote": "Ids are Scenario URL segments, not API secrets. Access is gated by Scenario OAuth (Cursor MCP) or team API key."
+}

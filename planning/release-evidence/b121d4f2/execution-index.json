@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "b121d4f2a977309a120804b154ee596784d44f59",
+  "historicalBase": "8596b04efc82a807d0a334c195e73d8e533ba58e",
+  "collection": {
+    "beforeTrackedEdits": true,
+    "subjectRevision": "b121d4f2a977309a120804b154ee596784d44f59",
+    "startedAt": "2026-11-06T15:10:22.4144857Z",
+    "endedAt": "2026-11-06T15:27:06.7592167Z",
+    "statusBefore": [],
+    "statusAfter": [],
+    "nativeExit": 0,
+    "requirementsExit": 1,
+    "buildExit": 0,
+    "lockfileSha256": "e97d3eef635e19874b1a7774e6025b0fb1076fc9f7fe278a29c55de08caf6b82"
+  },
+  "environment": {
+    "subjectRevision": "b121d4f2a977309a120804b154ee596784d44f59",
+    "platform": "win32",
+    "architecture": "x64",
+    "node": "v22.23.4",
+    "nodeExecutable": "C:\\Users\\james\\.codex\\tmp\\node22-census\\node-v22.23.4-win-x64\\node.exe",
+    "vitest": "5.0.5",
+    "playwright": "1.64.1",
+    "vite": "8.3.5",
+    "ci": true,
+    "validationJsonIsolate": true,
+    "strictTestConsole": "1",
+    "dependencyAdoption": "Existing installed dependencies reused; no installation or lockfile change."
+  },
+  "commands": [
+    {
+      "command": "node --test scripts/release-acceptance/report.test.mjs scripts/validation/requirement-model.check.mjs",
+      "exitCode": 0,
+      "artifact": "native-tests.log"
+    },
+    {
+      "command": "npm --silent run verify:requirements -- --base 8596b04efc82a807d0a334c195e73d8e533ba58e --ci --json",
+      "exitCode": 1,
+      "environment": {
+        "CI": "true",
+        "STRICT_TEST_CONSOLE": "1",
+        "VALIDATION_JSON_ISOLATE": "1"
+      },
+      "unitSummaryLines": [
+        " Test Files  1 failed | 1006 passed (1007)",
+        "      Tests  1 failed | 10971 passed (10972)",
+        "   Duration  512.63s (environment 65%, setup 12%, import 10%, tests 9%, transform 4%)"
+      ],
+      "files": [
+        "docs/cp-core-release-evidence.md",
+        "e2e/intervention-comparison.spec.ts",
+        "e2e/quiet-period.spec.ts",
+        "e2e/support/campaignBudget.ts",
+        "planning/release-evidence/438c8df7/browser-observations.json",
+        "planning/release-evidence/438c8df7/execution-index.json",
+        "planning/release-evidence/438c8df7/requirements-execution.json",
+        "planning/release-evidence/cb37c23a/owner-assessment.md",
+        "planning/spe-3352-concurrent-incidents-slice.md",
+        "planning/spe-3352-current-campaign-evidence-slice.md",
+        "planning/spe-3352-fixture-budgets-slice.md",
+        "planning/spe-3352-information-access-slice.md",
+        "planning/spe-3352-intervention-comparison-slice.md",
+        "planning/spe-3352-owner-evidence-slice.md",
+        "planning/spe-3352-owner-evidence.cb37c23a.v1.json",
+        "planning/spe-3352-quiet-period-slice.md",
+        "planning/spe-3352-release-evidence.438c8df7.v1.json",
+        "SCHEMA_REGISTRY.md",
+        "src/app/store/missionResultHydration.test.ts",
+        "src/app/store/runTransfer.ts",
+        "src/components/TrendSummaryPanel.tsx",
+        "src/features/cases/CaseDetailPage.test.tsx",
+        "src/features/cases/CaseDetailPage.tsx",
+        "src/features/report/reportTrendView.ts",
+        "src/features/report/TrendSummaryPanel.test.tsx"
+      ],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "failed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "artifact": "requirements-execution.json",
+      "outputArtifact": "requirements-stderr.log"
+    },
+    {
+      "command": "npm run build",
+      "exitCode": 0,
+      "artifact": "full-build.log"
+    },
+    {
+      "command": "npm run test:run:ci -- src/app/App.systemBoundary.route.test.tsx",
+      "exitCode": 0,
+      "environment": {
+        "CI": "true",
+        "STRICT_TEST_CONSOLE": "1"
+      },
+      "result": "Four tests passed unchanged in 5.01s; focused diagnostic does not supersede full-run failure or prove its cause.",
+      "artifact": "agency-route-diagnostic.log"
+    }
+  ],
+  "ownerApplicability": {
+    "source": "planning/release-evidence/cb37c23a/owner-assessment.md",
+    "priorSubject": "cb37c23afdf71a42a695f21e08497118d31d3efe",
+    "comparison": "git diff --name-only cb37c23afdf71a42a695f21e08497118d31d3efe..b121d4f2a977309a120804b154ee596784d44f59 contains only four evidence/docs files; no application, test, config or dependency changes.",
+    "currentCorroboration": "Current full unit and browser execution includes the existing targeted owner suites and accessibility/connected campaign checks. Historical PR ancestry remains valid; owner scope/limitations are retained, not promoted to broader acceptance."
+  },
+  "failure": {
+    "file": "src/app/App.systemBoundary.route.test.tsx",
+    "line": 27,
+    "test": "purchases a maintenance package through the production Agency route",
+    "observed": "Unable to find role button with name Buy maintenance package",
+    "registryOwner": "SPE-10",
+    "remediationOwner": "SPE-3283",
+    "ownerBasis": "Live SPE-3283 acceptance explicitly owns the paid Agency maintenance purchase and production-route tests; current status Done is not a substitute for this failing acceptance execution.",
+    "cause": "Unverified. Unchanged isolated file passes with the same CI/strict-console settings; lazy route readiness/load sensitivity is a hypothesis, not a demonstrated root cause."
+  },
+  "historicalFailures": "Earlier snapshots remain failed at their assessed revisions. This new full run also fails; the passing focused diagnostic does not waive either result.",
+  "artifactAvailability": "Host-local retained logs/reports, not public downloadable artifacts. Hashes and commands preserve provenance; another host may need to rerun.",
+  "artifacts": [
+    {
+      "name": "native-tests.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/native-tests.log",
+      "bytes": 11768,
+      "sha256": "ebf64f1b1354570b781b414e874c9821b8f89fd5ae4d69694f28016541a23b44"
+    },
+    {
+      "name": "requirements-execution.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/requirements-execution.json",
+      "bytes": 2991,
+      "sha256": "dc6f71f8a0532be45ee233724738878501590adde4b8edc537512c361586f253"
+    },
+    {
+      "name": "requirements-stderr.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/requirements-stderr.log",
+      "bytes": 213018,
+      "sha256": "ec7b86491de45c5230be95b6965522492f5c6d136e54d86a8566d698bd8bdee2"
+    },
+    {
+      "name": "full-build.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/full-build.log",
+      "bytes": 9969,
+      "sha256": "fb6236cef276dbe3aceb0e16bc8f5e09987c30ccbece7902837c0a833cc83acb"
+    },
+    {
+      "name": "execution-result.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/execution-result.json",
+      "bytes": 364,
+      "sha256": "be26a23db4ddf929c2f743bec58d145cb342656004e514bf6a212a9e71ce2204"
+    },
+    {
+      "name": "environment.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/environment.json",
+      "bytes": 497,
+      "sha256": "7b42c7317bfe1bf3e86ed4dfad7deebc002a936613dd812c2df848ad166e9809"
+    },
+    {
+      "name": "agency-route-diagnostic.log",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/agency-route-diagnostic.log",
+      "bytes": 460,
+      "sha256": "e2408240da39cfa1125cac5a3817c6cd81d97180b812c101550aac32711aaa73"
+    },
+    {
+      "name": "agency-route-diagnostic.exit.txt",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/agency-route-diagnostic.exit.txt",
+      "bytes": 3,
+      "sha256": "13bf7b3039c63bf5a50491fa3cfd8eb4e699d1ba1436315aef9cbe5711530354"
+    },
+    {
+      "name": "campaign-browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/campaign-browser-report.json",
+      "bytes": 25736,
+      "sha256": "0bcec373544b133ed63094ebe775d199fefeaf4ae5a8928b4f2c9ef9ee676639"
+    },
+    {
+      "name": "errors-browser-report.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/errors-browser-report.json",
+      "bytes": 4048,
+      "sha256": "6ac579eb1d5de2726a0f4e247db5f2ab9e3c45682d8b4b996abfbe974a810dcf"
+    },
+    {
+      "name": "campaign-browser-observations.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/campaign-browser-observations.json",
+      "bytes": 17757,
+      "sha256": "309f61e957e6e67d913916ae780ecc89c8dade08e1c11c01e8765f39ab140f55"
+    },
+    {
+      "name": "errors-browser-observations.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/errors-browser-observations.json",
+      "bytes": 2026,
+      "sha256": "172ff02aa65679b76709446445b9ef1cb6e90318cc2ad44bfc0fa5369ceeb6d5"
+    },
+    {
+      "name": "playwright-report/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/playwright-report/index.html",
+      "bytes": 1235008,
+      "sha256": "96f4dfc47ff18bd62a069cd6b060f2d809f9ea777fdf246189698f8874a22f44"
+    },
+    {
+      "name": "playwright-report/errors/index.html",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/playwright-report/errors/index.html",
+      "bytes": 523976,
+      "sha256": "3383991acfaa65c9e82b5503b6f8632ae2876abfc31f780e35c442a3a1c3be4d"
+    },
+    {
+      "name": "controlled-intervention-comparison-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/controlled-intervention-comparison-retry0.json",
+      "bytes": 976844,
+      "sha256": "78aff2941d1d328f8430ccebb609d35225c3617ea687fc1711947924370bf79a"
+    },
+    {
+      "name": "information-access-convergence-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/information-access-convergence-retry0.json",
+      "bytes": 934649,
+      "sha256": "75cd53f938e6f8d846f5740a4088f4e4a3ba851dfb433970dfa2f317e43c3169"
+    },
+    {
+      "name": "quiet-period-hiring-comparison-retry0.json",
+      "path": "C:/Users/james/.codex/tmp/spe3352-evidence-b121d4f2/quiet-period-hiring-comparison-retry0.json",
+      "bytes": 668903,
+      "sha256": "38a509c8cfba1a4d89d91ed55403a16626246f23ba196cc3b3e5853870e79619"
+    }
+  ]
+}

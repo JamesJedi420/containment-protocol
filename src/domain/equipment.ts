@@ -8,8 +8,23 @@ import type {
   Id,
   StatKey,
 } from './models'
+import {
+  createEquipmentGradeDistributionReport,
+  resolveEquipmentGradeCatalogProjection,
+  validateEquipmentGradeCatalogProfile,
+  type EquipmentGradeCatalogProfile,
+} from './equipmentGradeCatalog'
+import type { EquipmentGradeVisibility } from './equipmentGrade'
 import { assessResearchRequirements } from './research'
 import { cloneDomainStats } from './statDomains'
+import {
+  formatWearableConflictDiagnostic,
+  resolveWearableCompatibility,
+  validateWearableOccupancyAuthoring,
+  type WearableConflictReason,
+  type WearableOccupancy,
+  type WearableOccupiedItem,
+} from './wearableCompatibility'
 
 export type EquipmentSlotKind =
   | 'primary'
@@ -63,15 +78,6 @@ export function getRarityLabel(rarity: EquipmentRarity): string {
   return EQUIPMENT_RARITY_LABELS[rarity]
 }
 
-export function qualityToRarity(quality: number): EquipmentRarity {
-  const clampedQuality = Math.max(1, Math.min(5, Math.trunc(quality)))
-  return EQUIPMENT_RARITY_KINDS[clampedQuality - 1]
-}
-
-export function rarityToQualityMultiplier(rarity: EquipmentRarity): number {
-  return EQUIPMENT_RARITY_KINDS.indexOf(rarity) + 1
-}
-
 // ============================================================================
 // PHASE 2: ENCHANTMENTS
 // ============================================================================
@@ -119,19 +125,25 @@ export interface EquipmentDefinition {
   id: string
   name: string
   slot: EquipmentSlotKind
-  quality: number
+  legacyEffectScale: number
+  gradeProfile: EquipmentGradeCatalogProfile
   tags: string[]
   allowedSlots: EquipmentSlotKind[]
   statModifiers: Partial<DomainStats>
   contextModifiers?: EquipmentContextModifier[]
   rarity?: EquipmentRarity
   enchantmentIds?: string[]
+  /**
+   * SPE-3394 optional wearable occupancy. Absent → legacy compatibility only.
+   * Layers are SPE-3394; covered regions consume SPE-120 IDs / coverage groups.
+   */
+  wearableOccupancy?: WearableOccupancy
 }
 
 export interface EquipmentItem {
   id: string
   name: string
-  quality: number
+  legacyEffectScale: number
   slot: EquipmentSlotKind
   tags: string[]
   rarity: EquipmentRarity
@@ -148,7 +160,7 @@ export interface EquipmentLoadoutSummary {
   equippedItemCount: number
   emptySlotCount: number
   activeContextItemCount: number
-  loadoutQuality: number
+  loadoutEffectScale: number
   equippedItemIds: string[]
   equippedTags: string[]
 }
@@ -166,6 +178,8 @@ export interface LoadoutAssignmentValidationResult {
   blockingIssues: string[]
   warnings: string[]
   conflicts: string[]
+  /** SPE-3394 typed wearable layer×region conflicts (empty when none / legacy). */
+  wearableConflicts: WearableConflictReason[]
   readinessSummary: {
     current: AgentLoadoutReadinessSummary
     projected: AgentLoadoutReadinessSummary
@@ -376,13 +390,15 @@ const EQUIPMENT_DEFINITION_KEYS = new Set<keyof EquipmentDefinition>([
   'id',
   'name',
   'slot',
-  'quality',
+  'legacyEffectScale',
+  'gradeProfile',
   'tags',
   'allowedSlots',
   'statModifiers',
   'contextModifiers',
   'rarity',
   'enchantmentIds',
+  'wearableOccupancy',
 ])
 
 const EQUIPMENT_CONTEXT_MODIFIER_KEYS = new Set<keyof EquipmentContextModifier>([
@@ -551,7 +567,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'silver_rounds',
     name: 'Silver Rounds',
     slot: 'primary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'hybrid',
+      functionalClass: 'combat',
+      catalogSegment: 'craftable',
+    },
     tags: ['combat', 'breach', 'anti-spirit', 'silver', 'threat'],
     allowedSlots: ['primary'],
     rarity: 'uncommon',
@@ -576,7 +600,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'ward_seals',
     name: 'Ward Seals',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'containment', 'anti-spirit', 'seal', 'ritual'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -601,7 +633,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'medkits',
     name: 'Emergency Medkits',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'craftable',
+    },
     tags: ['medical', 'stabilization', 'hazmat', 'support'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -626,7 +666,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'diplomatic_kit',
     name: 'Diplomatic Kit',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'diplomacy',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['social', 'negotiation', 'interview', 'support', 'communication'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -651,7 +699,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'signal_jammers',
     name: 'Signal Jammers',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'craftable',
+    },
     tags: ['surveillance', 'signal', 'intel', 'analysis'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -674,7 +730,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'emf_sensors',
     name: 'EMF Sensors',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'craftable',
+    },
     tags: ['surveillance', 'anomaly', 'analysis', 'evidence', 'field'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -699,7 +763,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'anomaly_scanner',
     name: 'Handheld Anomaly Scanner',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'anomaly', 'surveillance', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -724,7 +796,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'spectral_em_array',
     name: 'Spectral / EM Sensor Array',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'surveillance', 'signal', 'anomaly', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -750,7 +830,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'environmental_sampler',
     name: 'Environmental Sampler',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'environmental', 'hazmat', 'evidence', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -776,7 +864,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'encrypted_field_tablet',
     name: 'Encrypted Field Tablet',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'analysis', 'signal', 'communication', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -801,7 +897,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'advanced_recon_suite',
     name: 'Advanced Recon Suite',
     slot: 'headgear',
-    quality: 2,
+    legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'surveillance', 'pathfinding', 'analysis', 'field-kit'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -827,7 +931,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'occult_detection_array',
     name: 'Occult Detection Array',
     slot: 'utility2',
-    quality: 2,
+    legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'hybrid',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'occult', 'anomaly', 'surveillance', 'field-kit'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -854,7 +966,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'signal_intercept_kit',
     name: 'Signal Intercept Kit',
     slot: 'utility1',
-    quality: 2,
+    legacyEffectScale: 2,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_3',
+      basis: 'advanced_system',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['recon', 'signal', 'cyber', 'analysis', 'field-kit'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'rare',
@@ -881,7 +1001,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'warding_kits',
     name: 'Warding Kits',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'containment', 'anti-spirit', 'ritual', 'hazmat'],
     allowedSlots: ['secondary', 'utility1', 'utility2'],
     rarity: 'uncommon',
@@ -906,7 +1034,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'ritual_components',
     name: 'Ritual Components',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'craftable',
+    },
     tags: ['occult', 'ritual', 'anomaly', 'analysis', 'containment'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'rare',
@@ -932,7 +1068,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'field_plate',
     name: 'Field Plate',
     slot: 'armor',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['armor', 'hazmat', 'breach', 'protection'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -957,7 +1101,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'containment_staff',
     name: 'Containment Staff',
     slot: 'primary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'magical',
+      functionalClass: 'containment',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['occult', 'containment', 'stabilization', 'support', 'ritual'],
     allowedSlots: ['primary', 'secondary'],
     rarity: 'uncommon',
@@ -981,7 +1133,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'hazmat_suit',
     name: 'Hazmat Suit',
     slot: 'armor',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'licensed_procurement',
+    },
     tags: ['armor', 'hazmat', 'protection', 'biocontainment', 'support', 'licensed-procurement'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
@@ -1004,7 +1164,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'analysis_goggles',
     name: 'Analysis Goggles',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['surveillance', 'analysis', 'investigation', 'intel'],
     allowedSlots: ['headgear'],
     rarity: 'uncommon',
@@ -1028,7 +1196,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'trauma_kit',
     name: 'Trauma Kit',
     slot: 'utility2',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['medical', 'trauma', 'field', 'physical', 'stabilization'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1053,7 +1229,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'combat_stims',
     name: 'Combat Stims',
     slot: 'utility1',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'medical',
+      catalogSegment: 'licensed_procurement',
+    },
     tags: ['combat', 'stimulant', 'physical', 'support', 'medical', 'licensed-procurement'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
@@ -1077,7 +1261,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'tactical_radio',
     name: 'Tactical Radio',
     slot: 'secondary',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'technological',
+      functionalClass: 'communications',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['tactical', 'communication', 'signal', 'field', 'surveillance'],
     allowedSlots: ['secondary', 'utility1'],
     rarity: 'uncommon',
@@ -1101,7 +1293,15 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     id: 'breach_visor',
     name: 'Breach Visor',
     slot: 'headgear',
-    quality: 1,
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_2',
+      basis: 'specialized_field',
+      origin: 'technological',
+      functionalClass: 'detection',
+      catalogSegment: 'direct_procurement',
+    },
     tags: ['surveillance', 'breach', 'witness', 'field'],
     allowedSlots: ['headgear'],
     rarity: 'rare',
@@ -1123,6 +1323,163 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
       },
     ],
   },
+  // SPE-3394 representative wearable occupancy fixtures (not catalog balance).
+  fixture_wearable_mid_torso_vest: {
+    id: 'fixture_wearable_mid_torso_vest',
+    name: 'Fixture Mid-Torso Vest',
+    slot: 'armor',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_torso_vest',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['armor'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_mid_torso_overlay: {
+    id: 'fixture_wearable_mid_torso_overlay',
+    name: 'Fixture Mid-Torso Overlay',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_torso_overlay',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_mid_greaves: {
+    id: 'fixture_wearable_mid_greaves',
+    name: 'Fixture Mid-Layer Greaves',
+    slot: 'utility2',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_mid_greaves',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['mid'],
+      coveredRegions: ['leg_left', 'leg_right'],
+    },
+  },
+  fixture_wearable_under_torso: {
+    id: 'fixture_wearable_under_torso',
+    name: 'Fixture Under-Layer Undersuit',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_under_torso',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 0, tolerance: 1 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['under'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_under_mid_torso_suit: {
+    id: 'fixture_wearable_under_mid_torso_suit',
+    name: 'Fixture Under+Mid Torso Suit',
+    slot: 'utility1',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_under_mid_torso_suit',
+    },
+    tags: ['armor', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 1 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['under', 'mid'],
+      coveredRegions: ['torso'],
+    },
+  },
+  fixture_wearable_shell_helm: {
+    id: 'fixture_wearable_shell_helm',
+    name: 'Fixture Shell Helm',
+    slot: 'headgear',
+    legacyEffectScale: 1,
+    gradeProfile: {
+      state: 'graded',
+      gradeId: 'grade_1',
+      basis: 'standard_issue',
+      origin: 'ordinary',
+      functionalClass: 'protection',
+      catalogSegment: 'direct_procurement',
+      variantId: 'fixture_wearable_shell_helm',
+    },
+    tags: ['headgear', 'protection', 'protectiveGear', 'fixture-wearable'],
+    allowedSlots: ['headgear'],
+    rarity: 'basic',
+    statModifiers: {
+      physical: { strength: 0, endurance: 1 },
+      stability: { resistance: 1, tolerance: 0 },
+    },
+    wearableOccupancy: {
+      occupiedLayers: ['shell'],
+      coveredRegions: ['head'],
+    },
+  },
 } as const
 
 const EMPTY_EQUIPMENT_LOADOUT_SUMMARY: EquipmentLoadoutSummary = {
@@ -1130,7 +1487,7 @@ const EMPTY_EQUIPMENT_LOADOUT_SUMMARY: EquipmentLoadoutSummary = {
   equippedItemCount: 0,
   emptySlotCount: EQUIPMENT_SLOT_KINDS.length,
   activeContextItemCount: 0,
-  loadoutQuality: 0,
+  loadoutEffectScale: 0,
   equippedItemIds: [],
   equippedTags: [],
 }
@@ -1192,7 +1549,64 @@ function assertAllowedKeys(input: Record<string, unknown>, allowedKeys: Set<stri
   }
 }
 
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableSerialize).join(',')}]`
+  }
+  if (isPlainObject(value)) {
+    return `{${Object.keys(value)
+      .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
+      .map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`)
+      .join(',')}}`
+  }
+  return JSON.stringify(value) ?? 'undefined'
+}
+
+function compareCodeUnits(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
+
+function sortSetLikeValues<T extends string>(values: readonly T[] | undefined) {
+  return values === undefined || values.length === 0
+    ? undefined
+    : [...values].sort(compareCodeUnits)
+}
+
+function getGradeConsistencyFingerprint(definition: EquipmentDefinition) {
+  const contextModifiers = definition.contextModifiers
+    ?.map((modifier) => ({
+      rule: {
+        ...modifier.rule,
+        requiredTags: sortSetLikeValues(modifier.rule.requiredTags),
+        kinds: sortSetLikeValues(modifier.rule.kinds),
+      },
+      statModifiers: modifier.statModifiers,
+    }))
+    .sort((left, right) => compareCodeUnits(stableSerialize(left), stableSerialize(right)))
+
+  return stableSerialize({
+    slot: definition.slot,
+    legacyEffectScale: definition.legacyEffectScale,
+    tags: sortSetLikeValues(definition.tags),
+    allowedSlots: sortSetLikeValues(definition.allowedSlots),
+    statModifiers: definition.statModifiers,
+    contextModifiers,
+    enchantmentIds: sortSetLikeValues(definition.enchantmentIds),
+  })
+}
+
+function getGradeAssignmentFingerprint(profile: EquipmentGradeCatalogProfile) {
+  return profile.state === 'graded' || profile.state === 'hidden_until_identified'
+    ? `graded:${profile.gradeId}`
+    : profile.state
+}
+
 export function validateEquipmentCatalogDefinitions(catalog: Record<string, EquipmentDefinition>) {
+  const consistencyGroups = new Map<
+    string,
+    Map<string, { itemId: string; assignment: string }>
+  >()
+
   for (const [itemId, definition] of Object.entries(catalog)) {
     assertNoForbiddenDesignKeys(definition, `equipment.${itemId}`)
     assertAllowedKeys(
@@ -1213,10 +1627,38 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
       )
     }
 
-    if (!Number.isInteger(definition.quality) || definition.quality < 1) {
+    if (!Number.isInteger(definition.legacyEffectScale) || definition.legacyEffectScale < 1) {
       throw new Error(
-        `Invalid equipment definition at equipment.${itemId}: quality must be a positive integer.`
+        `Invalid equipment definition at equipment.${itemId}: legacyEffectScale must be a positive integer.`
       )
+    }
+
+    const gradeValidation = validateEquipmentGradeCatalogProfile(definition.gradeProfile)
+    if (!gradeValidation.valid) {
+      const issueSummary = gradeValidation.issues
+        .map((issue) => `${issue.code}:${issue.field}`)
+        .join(',')
+      throw new Error(
+        `Invalid equipment definition at equipment.${itemId}.gradeProfile: ${issueSummary}.`
+      )
+    }
+
+    const consistencyFingerprint = getGradeConsistencyFingerprint(definition)
+    const assignmentFingerprint = getGradeAssignmentFingerprint(gradeValidation.value)
+    const variantKey = gradeValidation.value.variantId ?? ''
+    const assignmentsByVariant = consistencyGroups.get(consistencyFingerprint) ?? new Map()
+    const existing = assignmentsByVariant.get(variantKey)
+    if (existing && existing.assignment !== assignmentFingerprint) {
+      throw new Error(
+        `Invalid equipment grade assignment at equipment.${itemId}: operationally identical definition equipment.${existing.itemId} uses a different grade without a distinct authored variantId.`
+      )
+    }
+    if (!existing) {
+      assignmentsByVariant.set(variantKey, {
+        itemId,
+        assignment: assignmentFingerprint,
+      })
+      consistencyGroups.set(consistencyFingerprint, assignmentsByVariant)
     }
 
     if (definition.allowedSlots.length === 0) {
@@ -1232,6 +1674,15 @@ export function validateEquipmentCatalogDefinitions(catalog: Record<string, Equi
       throw new Error(
         `Invalid equipment definition at equipment.${itemId}: primary slot "${definition.slot}" must be allowed.`
       )
+    }
+
+    if (definition.wearableOccupancy !== undefined) {
+      const occupancyValidation = validateWearableOccupancyAuthoring(definition.wearableOccupancy)
+      if (!occupancyValidation.valid || !occupancyValidation.occupancy) {
+        throw new Error(
+          `Invalid equipment definition at equipment.${itemId}.wearableOccupancy: ${occupancyValidation.issues.join(',')}.`
+        )
+      }
     }
 
     assertFiniteStatModifiers(definition.statModifiers, `equipment.${itemId}.statModifiers`)
@@ -1311,6 +1762,7 @@ export function getEquipmentCatalogEntries() {
   return Object.values(EQUIPMENT_CATALOG)
     .map((definition) => ({
       ...definition,
+      gradeProfile: { ...definition.gradeProfile },
       allowedSlots: [...definition.allowedSlots],
       tags: [...definition.tags],
       contextModifiers: definition.contextModifiers?.map((modifier) => ({
@@ -1420,7 +1872,7 @@ export function validateAgentLoadoutAssignment(
   const currentReadiness = buildAgentLoadoutReadinessSummary(agent, {
     state: options?.state,
   })
-  let projectedReadiness = currentReadiness
+  let projectedReadiness: AgentLoadoutReadinessSummary
   const inventoryDeltas = new Map<string, number>()
   let availableStock = 0
   let consumesFromStock = false
@@ -1435,6 +1887,7 @@ export function validateAgentLoadoutAssignment(
       blockingIssues,
       warnings,
       conflicts,
+      wearableConflicts: [],
       readinessSummary: {
         current: currentReadiness,
         projected: buildEmptyReadinessSummary(agent),
@@ -1465,7 +1918,7 @@ export function validateAgentLoadoutAssignment(
   }
 
   const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
-  if (definition.quality >= 2 && resolvedLevel < 2) {
+  if (definition.legacyEffectScale >= 2 && resolvedLevel < 2) {
     blockingIssues.push('prerequisite-level-gate')
   }
 
@@ -1502,6 +1955,50 @@ export function validateAgentLoadoutAssignment(
     if (projectedItemIds.has(rule.itemA) && projectedItemIds.has(rule.itemB)) {
       blockingIssues.push('mutual-exclusion')
       conflicts.push(`${rule.itemA}+${rule.itemB}:${rule.reason}`)
+    }
+  }
+
+  // Same-agent move: when no spare stock exists, clear other slots already holding
+  // this definition so occupancy does not treat the transfer as dual wear.
+  let wearableProjectionSlots = projectedSlots
+  const sameAgentSourceSlots = EQUIPMENT_SLOT_KINDS.filter(
+    (sourceSlot) =>
+      sourceSlot !== slot && getEquipmentSlotItemId(agent.equipmentSlots, sourceSlot) === itemId
+  )
+  if (sameAgentSourceSlots.length > 0) {
+    const stockForMove = options?.state
+      ? Math.max(0, Math.trunc(options.state.inventory[itemId] ?? 0))
+      : 0
+    if (stockForMove === 0) {
+      wearableProjectionSlots = { ...projectedSlots }
+      for (const sourceSlot of sameAgentSourceSlots) {
+        for (const alias of EQUIPMENT_SLOT_ALIASES[sourceSlot]) {
+          delete wearableProjectionSlots[alias]
+        }
+      }
+    }
+  }
+
+  const wearableWorn: WearableOccupiedItem[] = []
+  for (const projectedSlot of EQUIPMENT_SLOT_KINDS) {
+    const projectedItemId = getEquipmentSlotItemId(wearableProjectionSlots, projectedSlot)
+    if (!projectedItemId) {
+      continue
+    }
+    const projectedDefinition = getEquipmentDefinition(projectedItemId)
+    if (projectedDefinition?.wearableOccupancy) {
+      wearableWorn.push({
+        itemId: projectedItemId,
+        occupancy: projectedDefinition.wearableOccupancy,
+      })
+    }
+  }
+  const wearableCompatibility = resolveWearableCompatibility(wearableWorn)
+  const wearableConflicts = wearableCompatibility.conflicts
+  if (!wearableCompatibility.compatible) {
+    blockingIssues.push('wearable-layer-region-overlap')
+    for (const conflict of wearableConflicts) {
+      conflicts.push(formatWearableConflictDiagnostic(conflict))
     }
   }
 
@@ -1570,6 +2067,7 @@ export function validateAgentLoadoutAssignment(
     blockingIssues,
     warnings,
     conflicts,
+    wearableConflicts,
     readinessSummary: {
       current: currentReadiness,
       projected: projectedReadiness,
@@ -1611,7 +2109,7 @@ function isEquipmentPrerequisiteSatisfiedForState(
   }
 
   const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
-  if (definition.quality >= 2 && resolvedLevel < 2) {
+  if (definition.legacyEffectScale >= 2 && resolvedLevel < 2) {
     return false
   }
 
@@ -1722,60 +2220,60 @@ export function listEquippedItemAssignments(
     })
 }
 
-function getItemQuality(_agent: Agent, definition: EquipmentDefinition) {
-  return Math.max(1, Math.trunc(definition.quality))
+function getItemLegacyEffectScale(_agent: Agent, definition: EquipmentDefinition) {
+  return Math.max(1, Math.trunc(definition.legacyEffectScale))
 }
 
 function scaleStatModifiers(
   statModifiers: Partial<DomainStats>,
-  quality: number
+  legacyEffectScale: number
 ): Partial<DomainStats> {
   return {
     ...(statModifiers.physical
       ? {
           physical: {
-            strength: (statModifiers.physical.strength ?? 0) * quality,
-            endurance: (statModifiers.physical.endurance ?? 0) * quality,
+            strength: (statModifiers.physical.strength ?? 0) * legacyEffectScale,
+            endurance: (statModifiers.physical.endurance ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.tactical
       ? {
           tactical: {
-            awareness: (statModifiers.tactical.awareness ?? 0) * quality,
-            reaction: (statModifiers.tactical.reaction ?? 0) * quality,
+            awareness: (statModifiers.tactical.awareness ?? 0) * legacyEffectScale,
+            reaction: (statModifiers.tactical.reaction ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.cognitive
       ? {
           cognitive: {
-            analysis: (statModifiers.cognitive.analysis ?? 0) * quality,
-            investigation: (statModifiers.cognitive.investigation ?? 0) * quality,
+            analysis: (statModifiers.cognitive.analysis ?? 0) * legacyEffectScale,
+            investigation: (statModifiers.cognitive.investigation ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.social
       ? {
           social: {
-            negotiation: (statModifiers.social.negotiation ?? 0) * quality,
-            influence: (statModifiers.social.influence ?? 0) * quality,
+            negotiation: (statModifiers.social.negotiation ?? 0) * legacyEffectScale,
+            influence: (statModifiers.social.influence ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.stability
       ? {
           stability: {
-            resistance: (statModifiers.stability.resistance ?? 0) * quality,
-            tolerance: (statModifiers.stability.tolerance ?? 0) * quality,
+            resistance: (statModifiers.stability.resistance ?? 0) * legacyEffectScale,
+            tolerance: (statModifiers.stability.tolerance ?? 0) * legacyEffectScale,
           },
         }
       : {}),
     ...(statModifiers.technical
       ? {
           technical: {
-            equipment: (statModifiers.technical.equipment ?? 0) * quality,
-            anomaly: (statModifiers.technical.anomaly ?? 0) * quality,
+            equipment: (statModifiers.technical.equipment ?? 0) * legacyEffectScale,
+            anomaly: (statModifiers.technical.anomaly ?? 0) * legacyEffectScale,
           },
         }
       : {}),
@@ -1861,7 +2359,7 @@ function ruleMatchesContext(rule: EquipmentContextRule, context: EquipmentEvalua
 
 function resolveContextualModifiers(
   definition: EquipmentDefinition,
-  quality: number,
+  legacyEffectScale: number,
   context: EquipmentEvaluationContext
 ) {
   return (definition.contextModifiers ?? []).reduce<Partial<DomainStats>>((merged, modifier) => {
@@ -1869,7 +2367,7 @@ function resolveContextualModifiers(
       return merged
     }
 
-    return mergeScaledModifiers(merged, scaleStatModifiers(modifier.statModifiers, quality))
+    return mergeScaledModifiers(merged, scaleStatModifiers(modifier.statModifiers, legacyEffectScale))
   }, {})
 }
 
@@ -1895,10 +2393,10 @@ function resolveActiveEnchantments(
 
 function mergeEnchantmentModifiers(
   enchantments: EquipmentEnchantment[],
-  quality: number
+  legacyEffectScale: number
 ): Partial<DomainStats> {
   return enchantments.reduce<Partial<DomainStats>>((merged, enchantment) => {
-    return mergeScaledModifiers(merged, scaleStatModifiers(enchantment.statModifiers, quality))
+    return mergeScaledModifiers(merged, scaleStatModifiers(enchantment.statModifiers, legacyEffectScale))
   }, {})
 }
 
@@ -1912,8 +2410,9 @@ function resolveActiveEquipmentSets(items: EquipmentItem[]): EquipmentSet[] {
 
 function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Partial<DomainStats> {
   const equippedItemIds = new Set(items.map((item) => item.id))
-  const avgQuality =
-    items.length > 0 ? items.reduce((sum, item) => sum + item.quality, 0) / items.length : 1
+  const averageEffectScale = items.length > 0
+    ? items.reduce((sum, item) => sum + item.legacyEffectScale, 0) / items.length
+    : 1
 
   return sets.reduce<Partial<DomainStats>>((merged, set) => {
     const itemsInSet = set.itemIds.filter((id) => equippedItemIds.has(id))
@@ -1929,7 +2428,7 @@ function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Part
     }
 
     if (bonus) {
-      return mergeScaledModifiers(merged, scaleStatModifiers(bonus, avgQuality))
+      return mergeScaledModifiers(merged, scaleStatModifiers(bonus, averageEffectScale))
     }
 
     return merged
@@ -1949,7 +2448,22 @@ export function getLicensedHandlingRequirement(itemId: string): boolean {
 }
 
 export function getEquipmentDefinition(itemId: string) {
-  return EQUIPMENT_CATALOG[itemId]
+  return Object.prototype.hasOwnProperty.call(EQUIPMENT_CATALOG, itemId)
+    ? EQUIPMENT_CATALOG[itemId]
+    : undefined
+}
+
+export function resolveEquipmentDefinitionGrade(
+  itemId: string,
+  visibility?: EquipmentGradeVisibility
+) {
+  const definition = EQUIPMENT_CATALOG[itemId]
+  if (!definition) return undefined
+  return resolveEquipmentGradeCatalogProjection(definition.gradeProfile, visibility)
+}
+
+export function getEquipmentGradeDistributionReport() {
+  return createEquipmentGradeDistributionReport(Object.values(EQUIPMENT_CATALOG))
 }
 
 export function getEquipmentLabel(itemId: string) {
@@ -1985,21 +2499,21 @@ export function resolveEquippedItems(
       return null
     }
 
-    const quality = getItemQuality(agent, definition)
-    const baseModifiers = scaleStatModifiers(definition.statModifiers, quality)
-    const activeModifiers = resolveContextualModifiers(definition, quality, context)
+    const legacyEffectScale = getItemLegacyEffectScale(agent, definition)
+    const baseModifiers = scaleStatModifiers(definition.statModifiers, legacyEffectScale)
+    const activeModifiers = resolveContextualModifiers(definition, legacyEffectScale, context)
     const contextActive = hasEquipmentStatModifiers(activeModifiers)
 
     // Resolve enchantments
     const enchantments = resolveEnchantmentsForItem(definition)
     const activeEnchantments = resolveActiveEnchantments(enchantments, context)
-    const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, quality)
+    const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, legacyEffectScale)
 
     return {
       id: definition.id,
       name: definition.name,
       slot,
-      quality,
+      legacyEffectScale,
       tags: [...definition.tags],
       rarity: definition.rarity ?? 'basic',
       enchantments,
@@ -2021,7 +2535,7 @@ function buildLoadoutSummary(items: EquipmentItem[], slotCount: number): Equipme
     equippedItemCount: items.length,
     emptySlotCount: Math.max(0, slotCount - items.length),
     activeContextItemCount: items.filter((item) => item.contextActive).length,
-    loadoutQuality: items.reduce((total, item) => total + item.quality, 0),
+    loadoutEffectScale: items.reduce((total, item) => total + item.legacyEffectScale, 0),
     equippedItemIds: items.map((item) => item.id),
     equippedTags: [...new Set(items.flatMap((item) => item.tags))].sort((left, right) =>
       left.localeCompare(right)

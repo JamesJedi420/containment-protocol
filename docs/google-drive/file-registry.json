@@ -1,0 +1,39 @@
+{
+  "$schemaComment": "Canonical Google Drive agent workspace for Containment Protocol. Agents: read this before Drive MCP writes. Create new files under these agent-owned folder ids (drive.file grant).",
+  "canonicalAgentWorkspace": {
+    "name": "Containment Protocol — Agent Workspace",
+    "folderId": "1f9a6-gMTDC4U4CVYAGhz35XHEV5Go7Bt",
+    "webViewLink": "https://drive.google.com/drive/folders/1f9a6-gMTDC4U4CVYAGhz35XHEV5Go7Bt",
+    "ownerIssue": "SPE-3487",
+    "readmeDocId": "1cNrZPOgLTkY95qEFkreqXcshiM41Tp-71hKO_SB2GAQ",
+    "readmeWebViewLink": "https://docs.google.com/document/d/1cNrZPOgLTkY95qEFkreqXcshiM41Tp-71hKO_SB2GAQ/edit?usp=drivesdk",
+    "children": {
+      "Story Knowledge": {
+        "folderId": "1GG2vyxjtoL4JvNyB0EmbXwIA8c82hxKe",
+        "webViewLink": "https://drive.google.com/drive/folders/1GG2vyxjtoL4JvNyB0EmbXwIA8c82hxKe"
+      },
+      "Social Assets": {
+        "folderId": "1cD5QFnkMjFPmjx34TPddxGQWvLQcUA_U",
+        "webViewLink": "https://drive.google.com/drive/folders/1cD5QFnkMjFPmjx34TPddxGQWvLQcUA_U"
+      },
+      "Design Drafts": {
+        "folderId": "1s7Ut24x2fItQy0feswEhxCOfFJTsORiB",
+        "webViewLink": "https://drive.google.com/drive/folders/1s7Ut24x2fItQy0feswEhxCOfFJTsORiB"
+      },
+      "Planning Exports": {
+        "folderId": "1UgkRvYfVvk1QMbdcTLzukD7QlZYMzxZU",
+        "webViewLink": "https://drive.google.com/drive/folders/1UgkRvYfVvk1QMbdcTLzukD7QlZYMzxZU"
+      },
+      "Templates": {
+        "folderId": "1PVO_3PFVnKuFfyM6BWMjJCrcilckPQCr",
+        "webViewLink": "https://drive.google.com/drive/folders/1PVO_3PFVnKuFfyM6BWMjJCrcilckPQCr"
+      }
+    }
+  },
+  "sourceOfTruth": {
+    "shippedCodeAndEngineering": "git repo (src/, planning/, Linear)",
+    "driveRole": "Collaborative drafts — story, social/marketing, design; optional planning exports when a slice asks",
+    "runtime": "Never wire Google Drive SDK/OAuth into src/ or CI"
+  },
+  "accessNote": "Folder ids are Drive URL segments, not API secrets. Access is gated by Google account OAuth (Cursor Google Drive plugin) and Drive sharing. Agent writes target agent-owned folders created via MCP create_folder."
+}

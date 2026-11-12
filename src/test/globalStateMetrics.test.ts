@@ -101,7 +101,7 @@ describe('getGlobalStateMetrics', () => {
       name: 'Shadow',
       agentIds: [assigned.teams['t_nightwatch'].agentIds[0]!],
       tags: ['support'],
-      assignedCaseId: 'case-002',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-002' },
     }
 
     const metrics = getGlobalStateMetrics(assigned)

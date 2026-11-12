@@ -22,39 +22,47 @@ type BoundaryKey =
 
 const BOUNDARY_CONFIG: Record<
   Exclude<BoundaryKey, 'notFound'>,
-  { title: string; focus: string }
+  { title: string; focus: string; routeNote: string }
 > = {
   recruitment: {
     title: 'Recruitment',
     focus: 'Non-field staffing pipeline and reserve capacity for future assignments.',
+    routeNote: 'Recruitment workflows stay outside the MVP command loop until staffed.',
   },
   trainingDivision: {
     title: 'Training Division',
     focus: 'Training throughput planning linked to assignment pressure and fatigue recovery.',
+    routeNote: 'Training division planning ships as a dedicated surface.',
   },
   equipment: {
     title: 'Equipment',
     focus: 'Equipment readiness from inventory and active fabrication outputs.',
+    routeNote: 'Equipment readiness remains a supporting logistics surface.',
   },
   containmentSite: {
     title: 'Containment Site',
     focus: 'Site posture driven by active pressure, unresolved incidents, and escalation risk.',
+    routeNote: 'Containment site is a placeholder route for future site operations.',
   },
   marketsSuppliers: {
     title: 'Markets / Suppliers',
     focus: 'Procurement pressure and pricing signals affecting fabrication throughput.',
+    routeNote: 'Markets and suppliers stay read-only relative to the weekly loop.',
   },
   factions: {
     title: 'Factions',
     focus: 'External activity surface sourced from operational event outputs.',
+    routeNote: 'Faction posture reads live events without blocking core operations.',
   },
   rankings: {
     title: 'Rankings',
     focus: 'Campaign performance benchmarks from reports and score outcomes.',
+    routeNote: 'Rankings are deferred until campaign scoring stabilizes.',
   },
   agency: {
     title: 'Agency',
     focus: 'Cross-division command snapshot for strategic planning.',
+    routeNote: 'Agency command surface ships outside the MVP gameplay loop.',
   },
 }
 
@@ -97,6 +105,7 @@ export function SystemBoundaryPage({
       <article className="panel space-y-3">
         <h2 className="text-lg font-semibold">{config.title}</h2>
         <p className="text-sm opacity-60">{config.focus}</p>
+        <p className="text-sm opacity-60">{config.routeNote}</p>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Metric label="Active cases" value={String(assignment.activeCases)} />

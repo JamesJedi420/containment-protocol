@@ -77,7 +77,10 @@ function buildDetailedAgentGame() {
   const seededXp = getXpThresholdForLevel(4) + 20
 
   game.teams.t_nightwatch.agentIds = [agent.id]
-  game.teams.t_nightwatch.assignedCaseId = 'case-001'
+  game.teams.t_nightwatch.status = {
+    ...(game.teams.t_nightwatch.status ?? { state: 'deployed', assignedCaseId: null }),
+    assignedCaseId: 'case-001',
+  }
   game.agents[agent.id] = {
     ...agent,
     status: 'active',

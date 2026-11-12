@@ -75,4 +75,11 @@ describe('concealmentCasePrepView', () => {
     expect(view.triggerRows[0]?.id).toBe('trigger:test-cover')
     expect(view.canToggleConcealFlag).toBe(true)
   })
+
+  it('surfaces activation preview notes on the prep view', () => {
+    const view = buildConcealmentCasePrepView(createOpenCase(), createStartingState())
+
+    expect(view.activationPreviewNotes.length).toBeGreaterThan(0)
+    expect(view.activationPreviewNotes[0]).toContain('Next weekly tick')
+  })
 })

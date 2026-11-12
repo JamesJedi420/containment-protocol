@@ -7,6 +7,21 @@ import {
   getLatestReportSummary,
 } from '../features/dashboard/dashboardView'
 
+function assignTeamToCase(
+  game: ReturnType<typeof createStartingState>,
+  teamId: string,
+  caseId: string
+) {
+  game.teams[teamId] = {
+    ...game.teams[teamId],
+    status: {
+      ...(game.teams[teamId].status ?? { state: 'deployed', assignedCaseId: null }),
+      state: 'deployed',
+      assignedCaseId: caseId,
+    },
+  }
+}
+
 function setTeamFatigue(
   game: ReturnType<typeof createStartingState>,
   teamId: string,
@@ -47,10 +62,7 @@ describe('getFieldStatusViews', () => {
       assignedTeamIds: ['t_nightwatch'],
       weeksRemaining: expectedRemaining,
     }
-    assigned.teams['t_nightwatch'] = {
-      ...assigned.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(assigned, 't_nightwatch', 'case-001')
     setTeamFatigue(assigned, 't_nightwatch', 12)
 
     const views = getFieldStatusViews(assigned)
@@ -69,10 +81,7 @@ describe('getFieldStatusViews', () => {
       assignedTeamIds: ['t_nightwatch'],
       weeksRemaining: 1,
     }
-    assigned.teams['t_nightwatch'] = {
-      ...assigned.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(assigned, 't_nightwatch', 'case-001')
     setTeamFatigue(assigned, 't_nightwatch', 45)
 
     const views = getFieldStatusViews(assigned)
@@ -118,14 +127,8 @@ describe('getFieldStatusViews', () => {
       assignedTeamIds: ['t_greentape'],
     }
 
-    game.teams['t_nightwatch'] = {
-      ...game.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
-    game.teams['t_greentape'] = {
-      ...game.teams['t_greentape'],
-      assignedCaseId: 'case-002',
-    }
+    assignTeamToCase(game, 't_nightwatch', 'case-001')
+    assignTeamToCase(game, 't_greentape', 'case-002')
 
     const views = getFieldStatusViews(game)
     const ids = views.map((view) => view.team.id)
@@ -145,10 +148,7 @@ describe('getFieldStatusViews', () => {
       deadlineRemaining: 1,
       stage: 4,
     }
-    assigned.teams['t_nightwatch'] = {
-      ...assigned.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(assigned, 't_nightwatch', 'case-001')
 
     const views = getFieldStatusViews(assigned)
     const nightWatch = views.find((view) => view.team.id === 't_nightwatch')
@@ -169,10 +169,7 @@ describe('getFieldStatusViews', () => {
       assignedTeamIds: ['t_nightwatch'],
       weeksRemaining: 2,
     }
-    game.teams['t_nightwatch'] = {
-      ...game.teams['t_nightwatch'],
-      assignedCaseId: 'case-003',
-    }
+    assignTeamToCase(game, 't_nightwatch', 'case-003')
 
     const views = getFieldStatusViews(game)
     const nightWatch = views.find((view) => view.team.id === 't_nightwatch')
@@ -196,10 +193,7 @@ describe('getDashboardMetrics', () => {
       stage: 4,
       weeksRemaining: 1,
     }
-    game.teams['t_nightwatch'] = {
-      ...game.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(game, 't_nightwatch', 'case-001')
     setTeamFatigue(game, 't_nightwatch', 60)
 
     const metrics = getDashboardMetrics(game)

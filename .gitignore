@@ -15,6 +15,8 @@ dist-ssr
 *.local
 *test-results*.json
 *test-results*.txt
+*test_results*.txt
+final_test_results.txt
 test_output.txt
 vitest-output.txt
 agents-test-output.txt
@@ -23,17 +25,41 @@ flaky_errors.txt
 gamestore_full_output.txt
 remaining-subset.json
 
+# Playwright (SPE-3458) — ephemeral artifacts; keep out of campaign state
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+.playwright-mcp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
 .idea
 
 # Cursor-local agent config (solo dev; environment.json stays tracked)
-.cursor/skills/
+.cursor/skills/*
+!.cursor/skills/
+!.cursor/skills/cp-next-implementation-slice/
+!.cursor/skills/cp-next-implementation-slice/SKILL.md
+!.cursor/skills/cp-figma-ui-bridge/
+!.cursor/skills/cp-figma-ui-bridge/SKILL.md
+!.cursor/skills/cp-google-drive-bridge/
+!.cursor/skills/cp-google-drive-bridge/SKILL.md
+!.cursor/skills/cp-scenario-bridge/
+!.cursor/skills/cp-scenario-bridge/SKILL.md
 # Shared repo rules are tracked explicitly; other files here stay local-only
 .cursor/rules/*
 !.cursor/rules/
 !.cursor/rules/linear-always-update.mdc
+!.cursor/rules/implementation-lite.mdc
+!.cursor/rules/agent-cursor-plugins.mdc
+!.cursor/rules/cloud-agent-linear-handoff.mdc
+!.cursor/rules/no-candidate-reconciliation.mdc
+!.cursor/rules/clean-main-before-next-slice.mdc
+!.cursor/rules/cursor-delegated-backlog-approval.mdc
+!.cursor/rules/cursor-autonomous-authority.mdc
 .DS_Store
 *.suo
 *.ntvs*
@@ -42,6 +68,9 @@ remaining-subset.json
 *.sw?
 
 # Secrets
+.env
+.env.*
+!.env.example
 linear-export/.env
 
 # Linear / GitHub backlog tooling — local-only working scripts, data dumps,
@@ -56,3 +85,11 @@ coverage_out_*.txt
 # Local temp / sync staging (agent scripts, Google Drive upload fragments)
 .tmp/
 .tmp.driveupload/
+
+# Local MCP secrets (Linear API key header) — never commit
+.cursor/mcp.json
+
+# Trigger.dev local worker artifacts
+.trigger
+
+.vitest/

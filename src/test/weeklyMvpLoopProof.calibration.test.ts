@@ -24,7 +24,7 @@ describe('MVP weekly loop proof — infiltration calibration (SPE-25)', () => {
       teams: {
         [teamId]: {
           ...fixtureState.teams[teamId]!,
-          assignedCaseId: MVP_LOOP_PROOF_CASE_ID,
+          status: { state: 'deployed' as const, assignedCaseId: MVP_LOOP_PROOF_CASE_ID },
         },
       },
       reports: [],
@@ -47,9 +47,7 @@ describe('MVP weekly loop proof — infiltration calibration (SPE-25)', () => {
       const awareness = caseAfter.infiltrationAwareness ?? 0
 
       awarenessByWeek.push(awareness)
-      expect(awareness, `week index ${index} awareness`).toBeLessThan(
-        VIOLENT_ESCALATION_THRESHOLD
-      )
+      expect(awareness, `week index ${index} awareness`).toBeLessThan(VIOLENT_ESCALATION_THRESHOLD)
       expect(caseAfter.infiltrationStage).not.toBe('violent')
     }
 

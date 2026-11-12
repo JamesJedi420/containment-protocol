@@ -53,6 +53,42 @@ function gameWithEvents(events: OperationEvent[]): GameState {
 // ---------------------------------------------------------------------------
 
 describe('buildEventFeedView', () => {
+  it('recruitment.candidate_departed — states that the candidate is no longer available', () => {
+    const event = makeEvent(
+      'recruitment.candidate_departed',
+      {
+        week: 3,
+        candidateId: 'cand-departed',
+        candidateName: 'Morgan Vale',
+        reason: 'unknown_departure',
+      },
+      { sourceSystem: 'system' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Morgan Vale is no longer available')
+    expect(view.detail).toContain('departure reason is unknown')
+    expect(view.tone).toBe('warning')
+    expect(view.href).toBe('/recruitment')
+  })
+
+  it('recruitment.candidate_departed — explains the producer-emitted expiry reason', () => {
+    const view = buildEventFeedView(
+      makeEvent(
+        'recruitment.candidate_departed',
+        {
+          week: 3,
+          candidateId: 'cand-expired',
+          candidateName: 'Morgan Vale',
+          reason: 'expired_from_consideration',
+        },
+        { sourceSystem: 'system' }
+      )
+    )
+
+    expect(view.detail).toContain('availability expired')
+  })
+
   it('assignment.team_assigned — neutral tone, team and case in title', () => {
     const event = makeEvent('assignment.team_assigned', {
       week: 2,
@@ -590,6 +626,620 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('completed')
   })
 
+  it('equipment.instance_destroyed — names the exact identity and condition', () => {
+    const event = makeEvent(
+      'equipment.instance_destroyed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-1',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'damaged',
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance destroyed')
+    expect(view.detail).toContain('equipment-instance-7-1')
+    expect(view.detail).toContain('damaged')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.instance_destroyed mission loss — names the exact identity and reason', () => {
+    const event = makeEvent(
+      'equipment.instance_destroyed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'mission_loss',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance destroyed')
+    expect(view.detail).toContain('Mission loss')
+    expect(view.searchText).toContain('mission loss')
+  })
+
+  it('equipment.instance_destroyed mission injury — names the exact identity and reason', () => {
+    const event = makeEvent(
+      'equipment.instance_destroyed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-8',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'mission_injury',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance destroyed')
+    expect(view.detail).toContain('Mission injury')
+    expect(view.searchText).toContain('mission injury')
+  })
+
+  it('equipment.instance_condition_repaired — names the exact identity and repair', () => {
+    const event = makeEvent(
+      'equipment.instance_condition_repaired',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        previousCondition: 'damaged',
+        condition: 'operational',
+        reason: 'manual_condition_repair',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance repaired')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Damaged → operational')
+    expect(view.detail).toContain('Manual condition repair')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.containment_class_deficiency_recorded — names blast-door hard stop', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-8',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'overdue',
+        intervalWeeks: 2,
+        weeksSinceInspection: 5,
+        deficiencyKind: 'hard_stop',
+        inService: false,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment deficiency recorded')
+    expect(view.detail).toContain('equipment-instance-7-8')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Hard stop')
+    expect(view.tone).toBe('danger')
+  })
+
+  it('equipment.containment_class_deficiency_recorded — names pressure-seal compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        status: 'due',
+        intervalWeeks: 3,
+        weeksSinceInspection: 3,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_deficiency_recorded — names interlock compensating continue', () => {
+    const event = makeEvent(
+      'equipment.containment_class_deficiency_recorded',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        status: 'due',
+        intervalWeeks: 2,
+        weeksSinceInspection: 2,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'dual_circuit_watch',
+        inService: true,
+        reason: 'inspection_cadence_deficiency',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('dual_circuit_watch')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_inspected — names blast-door week-close auto-advance', () => {
+    const event = makeEvent(
+      'equipment.containment_class_inspected',
+      {
+        week: 5,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        reason: 'week_close_auto_advance',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class inspected')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Last inspection 1 → 5')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_inspected — names mid-week player inspect', () => {
+    const event = makeEvent(
+      'equipment.containment_class_inspected',
+      {
+        week: 5,
+        instanceId: 'equipment-instance-7-14',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        status: 'due',
+        previousLastInspectionWeek: 1,
+        lastInspectionWeek: 5,
+        intervalWeeks: 4,
+        weeksSinceInspection: 4,
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        inService: true,
+        reason: 'mid_week_player_inspect',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class inspected')
+    expect(view.searchText).toContain('mid_week_player_inspect')
+    expect(view.detail).toContain('Last inspection 1 → 5')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_class_stabilized — names blast-door hard-stop relief', () => {
+    const event = makeEvent(
+      'equipment.containment_class_stabilized',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-9',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        previousDeficiencyKind: 'hard_stop',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        inService: true,
+        reason: 'technician_stabilization',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class stabilized')
+    expect(view.detail).toContain('equipment-instance-7-9')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('Hard stop')
+    expect(view.detail).toContain('Compensating continue')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.containment_class_stabilized — names extra-class hard-stop relief', () => {
+    const event = makeEvent(
+      'equipment.containment_class_stabilized',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        previousDeficiencyKind: 'hard_stop',
+        deficiencyKind: 'compensating_continue',
+        compensatingControlId: 'backup_gasket_watch',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        inService: true,
+        reason: 'technician_stabilization',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals containment class stabilized')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('backup_gasket_watch')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.tone).toBe('success')
+  })
+
+  it('equipment.instance_station_mutated — names blast-door integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-11',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        stationId: 'blast_door_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-11')
+    expect(view.detail).toContain('Blast door')
+    expect(view.detail).toContain('blast_door_integrity_bench')
+    expect(view.searchText).toContain('integrity labor')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_station_mutated — names pressure-seal integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-12',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        stationId: 'pressure_seal_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-12')
+    expect(view.detail).toContain('Pressure seal')
+    expect(view.detail).toContain('pressure_seal_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('pressure seal')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_station_mutated — names interlock integrity labor', () => {
+    const event = makeEvent(
+      'equipment.instance_station_mutated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-13',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        stationId: 'interlock_integrity_bench',
+        previousCycleCount: 0,
+        cycleCount: 1,
+        condition: 'operational',
+        deficiencyKind: 'none',
+        inService: true,
+        reason: 'integrity_labor',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals integrity labor applied')
+    expect(view.detail).toContain('equipment-instance-7-13')
+    expect(view.detail).toContain('Interlock')
+    expect(view.detail).toContain('interlock_integrity_bench')
+    expect(view.detail).not.toContain('Blast door')
+    expect(view.searchText).toContain('interlock')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names blast-door zone breach', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'blast_door',
+        zoneId: 'blast_door_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('equipment-instance-7-10')
+    expect(view.detail).toContain('Blast door membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names pressure-seal membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 4,
+        instanceId: 'equipment-instance-4-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'pressure_seal',
+        zoneId: 'pressure_seal_membrane',
+        previousStatus: 'intact',
+        status: 'flow_restraint',
+        sourceDeficiencyKind: 'compensating_continue',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Pressure seal membrane')
+    expect(view.detail).toContain('Flow restraint')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.containment_barrier_integrity_changed — names interlock membrane', () => {
+    const event = makeEvent(
+      'equipment.containment_barrier_integrity_changed',
+      {
+        week: 3,
+        instanceId: 'equipment-instance-3-10',
+        definitionId: 'ward_seals',
+        definitionName: 'Ward Seals',
+        classId: 'interlock',
+        zoneId: 'interlock_membrane',
+        previousStatus: 'intact',
+        status: 'zone_breach',
+        sourceDeficiencyKind: 'hard_stop',
+        reason: 'deficiency_coupling',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Ward Seals barrier integrity changed')
+    expect(view.detail).toContain('Interlock membrane')
+    expect(view.detail).toContain('Zone breach')
+    expect(view.tone).toBe('danger')
+  })
+
+  it('equipment.combat_stim_disposed — names the exact identity and dose snapshot', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-3',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'manual_disposal',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance disposed')
+    expect(view.detail).toContain('equipment-instance-7-3')
+    expect(view.detail).toContain('1/2 doses')
+    expect(view.tone).toBe('warning')
+  })
+
+  it('equipment.combat_stim_disposed mission loss — names the dose snapshot and reason', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'mission_loss',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Mission loss')
+    expect(view.searchText).toContain('mission loss')
+  })
+
+  it('equipment.combat_stim_disposed mission injury — names the dose snapshot and reason', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_disposed',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-9',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 1,
+        reason: 'mission_injury',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Mission injury')
+    expect(view.searchText).toContain('mission injury')
+  })
+
+  it('equipment.combat_stim_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-6',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'combat-stim-batch',
+        fabricationRecipeId: 'combat-stims',
+        fabricationGradeId: 'grade_1',
+        fabricationCompletedWeek: 1,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-6')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('combat-stim-batch')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.combat_stim_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.combat_stim_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-4',
+        definitionId: 'combat_stims',
+        definitionName: 'Combat Stims',
+        condition: 'operational',
+        resourceId: 'combat_stim_dose',
+        capacity: 2,
+        remaining: 2,
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Combat Stims instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-4')
+    expect(view.detail).toContain('2/2 doses')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated — names the exact identity and stock return', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-2',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'manual_untracking',
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to aggregate stock')
+    expect(view.detail).toContain('equipment-instance-7-2')
+    expect(view.detail).toContain('Manual untracking')
+    expect(view.tone).toBe('neutral')
+  })
+
+  it('equipment.instance_reaggregated fabricated lot return — names batch provenance', () => {
+    const event = makeEvent(
+      'equipment.instance_reaggregated',
+      {
+        week: 7,
+        instanceId: 'equipment-instance-7-5',
+        definitionId: 'signal_jammers',
+        definitionName: 'Signal Jammers',
+        condition: 'operational',
+        reason: 'fabricated_lot_return',
+        fabricationQueueId: 'batch',
+        fabricationRecipeId: 'signal-jammers',
+        fabricationGradeId: 'grade_2',
+        fabricationCompletedWeek: 3,
+      },
+      { sourceSystem: 'agent' }
+    )
+    const view = buildEventFeedView(event)
+
+    expect(view.title).toBe('Signal Jammers instance returned to fabricated lot')
+    expect(view.detail).toContain('equipment-instance-7-5')
+    expect(view.detail).toContain('Fabricated lot return')
+    expect(view.detail).toContain('batch')
+    expect(view.detail).toContain('week 3')
+    expect(view.tone).toBe('neutral')
+  })
+
   it('market.shifted tight pressure — warning tone', () => {
     const event = makeEvent('market.shifted', {
       week: 5,
@@ -652,7 +1302,8 @@ describe('buildEventFeedView', () => {
       waiverPrecedentCount: 2,
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
-      authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+      authorityBasis:
+        'Director institutional self-authorization under crisis procurement rules (baseline institution).',
       regulatoryArbitrageSignal: 'none',
       ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
     })
@@ -667,9 +1318,7 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Institution containment_protocol')
     expect(view.detail).toContain('Authority crisis_director_self')
     expect(view.detail).toContain('Reg. arbitrage none')
-    expect(view.detail).toContain(
-      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
-    )
+    expect(view.detail).toContain('Rule conflict sanctioned_procurement_vs_crisis_waiver')
     expect(view.searchText).toContain('130')
     expect(view.searchText).toContain('sanctioned')
     expect(view.searchText).toContain('containment_protocol')
@@ -688,7 +1337,8 @@ describe('buildEventFeedView', () => {
       waiverPrecedentCount: 1,
       institutionKey: 'joint_oversight_concordat',
       authorityRoute: 'joint_oversight_clearance_ratification',
-      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+      authorityBasis:
+        'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
       regulatoryArbitrageSignal: 'cross_institution_clearance_route',
       ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
     })
@@ -696,9 +1346,7 @@ describe('buildEventFeedView', () => {
 
     expect(view.detail).toContain('Reg. arbitrage cross_institution_clearance_route')
     expect(view.searchText).toContain('cross_institution_clearance_route')
-    expect(view.detail).toContain(
-      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
-    )
+    expect(view.detail).toContain('Rule conflict sanctioned_procurement_vs_crisis_waiver')
   })
 
   it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {
@@ -728,6 +1376,8 @@ describe('buildEventFeedView', () => {
       containmentRatingAfter: 69,
       waiverPrecedentCount: 1,
       precedentPenaltyMultiplier: 1,
+      rankingScore: 50,
+      standingFalloutPenaltyScale: 1,
       institutionKey: 'containment_protocol',
     })
     const view = buildEventFeedView(event)
@@ -736,6 +1386,7 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('escalated')
     expect(view.detail).toContain('110→105')
     expect(view.detail).toContain('Precedent 1 ×1')
+    expect(view.detail).toContain('Standing scale 1× (rank 50)')
   })
 
   it('market.emergency_gray_market_fallout_tick — warning when resolved closed', () => {
@@ -750,6 +1401,8 @@ describe('buildEventFeedView', () => {
       containmentRatingAfter: 65,
       waiverPrecedentCount: 2,
       precedentPenaltyMultiplier: 1.06,
+      rankingScore: 20,
+      standingFalloutPenaltyScale: 1.12,
       institutionKey: 'containment_protocol',
     })
     const view = buildEventFeedView(event)
@@ -758,6 +1411,7 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('closed')
     expect(view.detail).toContain('resolved closed')
     expect(view.detail).toContain('Precedent 2 ×1.06')
+    expect(view.detail).toContain('Standing scale 1.12× (rank 20)')
   })
 
   it('faction.standing_changed — posture tone and standing range in detail', () => {
@@ -1670,7 +2324,8 @@ describe('buildEventFeedView faction additions', () => {
       trigger: 'faction_offer',
       factionId: 'institutions',
       factionLabel: 'Academic Institutions',
-      sourceReason: 'Academic Institutions opened a cooperative mission window around archive work.',
+      sourceReason:
+        'Academic Institutions opened a cooperative mission window around archive work.',
     })
     const view = buildEventFeedView(event)
 

@@ -44,6 +44,9 @@ export default function MarketPage() {
   const {
     game,
     purchaseMarketInventory,
+    placeDelayedMarketOrder,
+    redeemFactionFavorProcurement,
+    callCallableObligationProcurement,
     sellMarketInventory,
     acknowledgeLicensedHandlingDoctrine,
     invokeEmergencyGrayMarketWaiver,
@@ -192,8 +195,7 @@ export default function MarketPage() {
                 Last acknowledged campaign week {getLicensedHandlingAttestationWeekBaselined(game)}.
                 Controlled procurement that uses the licensed handling desk is blocked until
                 doctrine is re-attested (required after more than{' '}
-                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS} campaign week
-                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS === 1 ? '' : 's'} since that
+                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS} campaign weeks since that
                 acknowledgement).
               </p>
             </div>
@@ -423,22 +425,85 @@ export default function MarketPage() {
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled={!listing.canBuyOne}
-                  onClick={() => purchaseMarketInventory(listing.id, 1)}
-                >
-                  {MARKET_UI_TEXT.buyOne}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  disabled={!listing.canBuyThree}
-                  onClick={() => purchaseMarketInventory(listing.id, 3)}
-                >
-                  {MARKET_UI_TEXT.buyThree}
-                </button>
+                {!listing.cashPurchaseAllowed && listing.favorExchange ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={!listing.canRedeemFavorOne}
+                      onClick={() => redeemFactionFavorProcurement(listing.id, 1)}
+                    >
+                      {MARKET_UI_TEXT.redeemFavorOne}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={!listing.canRedeemFavorThree}
+                      onClick={() => redeemFactionFavorProcurement(listing.id, 3)}
+                    >
+                      {MARKET_UI_TEXT.redeemFavorThree}
+                    </button>
+                  </>
+                ) : listing.delayedFulfillmentWeeks ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={!listing.canOrderOne}
+                      onClick={() => placeDelayedMarketOrder(listing.id, 1)}
+                    >
+                      {MARKET_UI_TEXT.orderOne}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={!listing.canOrderThree}
+                      onClick={() => placeDelayedMarketOrder(listing.id, 3)}
+                    >
+                      {MARKET_UI_TEXT.orderThree}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {listing.callableObligation &&
+                    (listing.canCallObligationOne || listing.canCallObligationThree) ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          disabled={!listing.canCallObligationOne}
+                          onClick={() => callCallableObligationProcurement(listing.id, 1)}
+                        >
+                          {MARKET_UI_TEXT.callObligationOne}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          disabled={!listing.canCallObligationThree}
+                          onClick={() => callCallableObligationProcurement(listing.id, 3)}
+                        >
+                          {MARKET_UI_TEXT.callObligationThree}
+                        </button>
+                      </>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={!listing.canBuyOne}
+                      onClick={() => purchaseMarketInventory(listing.id, 1)}
+                    >
+                      {MARKET_UI_TEXT.buyOne}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={!listing.canBuyThree}
+                      onClick={() => purchaseMarketInventory(listing.id, 3)}
+                    >
+                      {MARKET_UI_TEXT.buyThree}
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   className="btn btn-sm btn-ghost"
@@ -457,9 +522,12 @@ export default function MarketPage() {
                 </button>
               </div>
 
-              {listing.buyBlockedReason || listing.sellBlockedReason ? (
+              {listing.buyBlockedReason ||
+              listing.orderBlockedReason ||
+              listing.sellBlockedReason ? (
                 <div className="space-y-1 text-xs text-amber-200">
                   {listing.buyBlockedReason ? <p>{listing.buyBlockedReason}</p> : null}
+                  {listing.orderBlockedReason ? <p>{listing.orderBlockedReason}</p> : null}
                   {listing.sellBlockedReason ? <p>{listing.sellBlockedReason}</p> : null}
                 </div>
               ) : null}
@@ -489,8 +557,14 @@ export default function MarketPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">
-                      {transaction.action === 'buy' ? 'Purchased' : 'Sold'} {transaction.quantity}x{' '}
-                      {transaction.itemName}
+                      {transaction.action === 'buy'
+                        ? 'Purchased'
+                        : transaction.action === 'order'
+                          ? 'Ordered'
+                          : transaction.action === 'fulfill'
+                            ? 'Delivered'
+                            : 'Sold'}{' '}
+                      {transaction.quantity}x {transaction.itemName}
                     </p>
                     <p className="text-sm opacity-60">
                       Week {transaction.week} / Market week {transaction.marketWeek}

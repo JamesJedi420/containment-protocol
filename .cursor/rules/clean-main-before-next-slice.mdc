@@ -1,0 +1,28 @@
+---
+description: Do not start the next implementation slice until main is clean and every open PR is merged
+alwaysApply: true
+---
+
+# Clean main before the next slice
+
+Do not begin the next implementation slice while `main` is dirty or any pull request is open.
+
+`main` is clean only when all of these are true:
+
+- the current branch is `main`
+- the working tree has no uncommitted tracked changes
+- local `main` is not ahead of or behind `origin/main`
+
+Ignored local files such as `.cursor/settings.json` do not make `main` dirty.
+
+Before starting a slice, run `git status` and `gh pr list --state open`.
+
+When `main` is dirty or a PR is open:
+
+1. Do not create a branch, set a new issue In Progress, or edit code for a new slice.
+2. For each open PR: review the full diff, triage review comments, fix in-boundary findings, watch CI until green, then merge.
+3. `git checkout main` and `git pull origin main`.
+4. Repeat until `main` is clean and no PR is open.
+5. Only then start the next slice.
+
+If merge is blocked, stop and report the blocker. Do not start the next slice beside the open PR.

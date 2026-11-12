@@ -68,7 +68,9 @@ describe('siteOperationalExploration', () => {
     expect(breach.applied).toBe(true)
     expect(readSiteExplorationTurnValue(breach.state, 'site-1')).toBe(4)
     expect(readSiteExplorationAlertValue(breach.state, 'site-1')).toBe(3)
-    expect(readProgressClock(breach.state, getSiteExplorationTurnClockId('site-1'))?.hidden).toBe(true)
+    expect(readProgressClock(breach.state, getSiteExplorationTurnClockId('site-1'))?.hidden).toBe(
+      true
+    )
   })
 
   it('rejects unknown action ids at runtime without casting', () => {
@@ -92,7 +94,9 @@ describe('siteOperationalExploration', () => {
   })
 
   it('triggers wandering check at alert threshold or when turn interval bucket is crossed', () => {
-    expect(shouldTriggerSiteWanderingCheck(0, 2, SITE_EXPLORATION_ALERT_WANDER_THRESHOLD)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(0, 2, SITE_EXPLORATION_ALERT_WANDER_THRESHOLD)).toBe(
+      true
+    )
     expect(shouldTriggerSiteWanderingCheck(2, 3, 1)).toBe(true)
     expect(shouldTriggerSiteWanderingCheck(2, 4, 1)).toBe(true)
     expect(shouldTriggerSiteWanderingCheck(3, 4, 0)).toBe(false)
@@ -137,7 +141,7 @@ describe('siteOperationalExploration', () => {
   it('flags wandering check after cumulative breach noise', () => {
     const state = createStartingState()
     const currentCase = buildExplorationCase('noisy')
-    let game = { ...state, cases: { noisy: currentCase } }
+    let game: typeof state = { ...state, cases: { noisy: currentCase } }
 
     let last = applySiteExplorationAction(game, 'noisy', 'breach')
     game = last.state

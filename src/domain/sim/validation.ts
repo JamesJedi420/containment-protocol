@@ -1,5 +1,8 @@
 import { createStartingState } from '../../data/startingState'
 import { isAgentAttritionUnavailable } from '../agent/attrition'
+import { getCurrentCampaignRulesLedger, getResolvedDifficultyRunConfiguration } from '../campaignLedger'
+import { resolveDifficultyRunConfiguration } from '../difficultyProfileResolver'
+import type { DifficultyResolveInput } from '../difficultyProfileResolver'
 import { assessFundingPressure } from '../funding'
 import { recomputeMissionRouting, routeMission } from '../missionIntakeRouting'
 import {
@@ -7,8 +10,11 @@ import {
   type GameState,
   type MissionPriorityBand,
   type WeeklyDirectiveId,
+  type WeeklyReport,
 } from '../models'
-import { normalizeGameState } from '../teamSimulation'
+import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
+import { projectStrategicActionBudget } from '../strategicActionBudgetProjection'
+import { queryStaffTimeAllocation } from '../staffTimeAllocation'
 import { advanceWeek } from './advanceWeek'
 import { assignTeam } from './assign'
 
@@ -107,6 +113,152 @@ export interface SimulationValidationScenarioDefinition {
   maxWeeks: number
 }
 
+/** Internal inspection only; this is not filtered player knowledge. */
+export interface SimulationValidationTelemetryEvent {
+  schemaVersion: 7
+  audience: 'internal-validation'
+  source: 'simulation-validation-weekly-snapshot'
+  phase: 'after-week-close'
+  scenarioId: SimulationValidationScenarioId
+  /** One-based within this scenario run, including its final game-over week. */
+  sequence: number
+  /** Conditions after harness assignment, immediately before advancing time. */
+  advanceInput: ReturnType<typeof captureSimulationValidationAdvanceInput>
+  /** Detached consumer-owned copy of the existing validation snapshot. */
+  snapshot: SimulationValidationWeekSnapshot
+  /** Recorded mission-result components only; null means snapshots are unavailable. */
+  missionResults: ReturnType<typeof captureSimulationValidationMissionResults>
+  /** Existing report verification state after close, not reconciled player truth. */
+  informationReports: ReturnType<typeof captureSimulationValidationInformationReports>
+}
+
+/** Copy the intake owner's provenance and verification state without interpreting it. */
+export function captureSimulationValidationInformationReports(state: GameState) {
+  if (state.informationIntakeReports === undefined) return null
+  return structuredClone(
+    Object.values(state.informationIntakeReports)
+      .map((report) => ({
+        id: report.id,
+        topicRef: report.topicRef,
+        initialSourceClass: report.initialSourceClass,
+        credibility: report.credibility,
+        plausibility: report.plausibility,
+        rumorRisk: report.rumorRisk,
+        verificationStatus: report.verificationStatus,
+        confidenceScore: report.confidenceScore,
+        corroborationHistory: report.corroborationHistory,
+        contradictionHistory: report.contradictionHistory,
+        retainedDespiteContradiction: report.retainedDespiteContradiction,
+      }))
+      .sort((left, right) => compareTelemetryIds(left.id, right.id))
+  )
+}
+
+/** Copy recorded result components without recalculating rewards or consequences. */
+export function captureSimulationValidationMissionResults(report: WeeklyReport | undefined) {
+  if (!report?.caseSnapshots) return null
+  return structuredClone(
+    Object.values(report.caseSnapshots)
+      .flatMap((snapshot) => {
+        const result = snapshot.missionResult
+        if (!result) return []
+        return [
+          {
+            caseId: result.caseId,
+            outcome: result.outcome,
+            rewards: result.rewards,
+            penalties: result.penalties,
+            injuries: result.injuries,
+            fatalities: result.fatalities ?? null,
+            spawnedConsequences: result.spawnedConsequences,
+          },
+        ]
+      })
+      .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId))
+  )
+}
+
+/** Internal validation observation; never use this as filtered player knowledge. */
+export function captureSimulationValidationAdvanceInput(state: GameState) {
+  return {
+    phase: 'before-week-close' as const,
+    week: state.week,
+    funding: state.funding,
+    actionBudget: projectStrategicActionBudget(state),
+    difficulty: structuredClone(getResolvedDifficultyRunConfiguration(state)),
+    missionIntake: captureValidationMissionIntake(state),
+    staffTime: captureValidationStaffTime(state),
+    informationReports: captureSimulationValidationInformationReports(state),
+    committedOperations: Object.values(state.cases)
+      .filter(
+        (currentCase) =>
+          currentCase.status === 'in_progress' && currentCase.assignedTeamIds.length > 0
+      )
+      .map((currentCase) => ({
+        caseId: currentCase.id,
+        templateId: currentCase.templateId,
+        contract: currentCase.contract
+          ? {
+              templateId: currentCase.contract.templateId ?? null,
+              riskLevel: currentCase.contract.riskLevel ?? null,
+            }
+          : null,
+        assignedTeamIds: [...currentCase.assignedTeamIds].sort(compareTelemetryIds),
+      }))
+      .sort((left, right) => compareTelemetryIds(left.caseId, right.caseId)),
+  }
+}
+
+/** Observe the allocation owner's query without deriving personnel eligibility here. */
+function captureValidationStaffTime(state: GameState) {
+  const query = queryStaffTimeAllocation(state)
+  const { headcount, available, assigned, effectiveCapacity, reason } = query.capacity
+  return structuredClone({
+    unavailable: query.unavailable,
+    capacity: { headcount, available, assigned, effectiveCapacity, reason },
+    availableIds: query.availableIds,
+    active: query.active,
+    usableCommitmentIds: query.usableCommitmentIds,
+  })
+}
+
+/** Observe recorded routing context; never recompute or silently refresh it. */
+function captureValidationMissionIntake(state: GameState) {
+  if (!state.missionRouting) return null
+  return structuredClone({
+    orderedMissionIds: state.missionRouting.orderedMissionIds,
+    missions: Object.values(state.missionRouting.missions)
+      .map((mission) => ({
+        missionId: mission.missionId,
+        routingState: mission.routingState,
+        priority: mission.priority,
+        deadlineRemaining: mission.deadlineRemaining,
+        priorityReasonCodes: mission.priorityReasonCodes,
+        routingBlockers: mission.routingBlockers,
+        playerDisposition: mission.playerDisposition ?? null,
+        lastTriageWeek: mission.lastTriageWeek ?? null,
+        lastRoutedWeek: mission.lastRoutedWeek ?? null,
+      }))
+      .sort((left, right) => compareTelemetryIds(left.missionId, right.missionId)),
+  })
+}
+
+// Code-unit ordering for canonical identifiers, independent of host locale.
+function compareTelemetryIds(left: string, right: string) {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}
+
+export interface SimulationValidationOptions {
+  /** Detached typed fixture input before scenario setup; not a save import or player-action replay. */
+  startingState?: GameState
+  /** Explicit harness configuration; omission preserves the existing starting-state binding. */
+  difficulty?: DifficultyResolveInput
+  /** Opt-in synchronous observer. Errors propagate to the validation caller. */
+  onSnapshot?: (event: SimulationValidationTelemetryEvent) => void
+}
+
 interface InternalSimulationValidationScenario extends SimulationValidationScenarioDefinition {
   setup?: (state: GameState) => GameState
   beforeWeek?: (state: GameState, weekIndex: number) => GameState
@@ -189,7 +341,14 @@ function applyCampaignEscalationPressure(state: GameState): GameState {
 }
 
 function applyCampaignAttritionPressure(state: GameState): GameState {
-  const agentIdsToStress = ['a_ava', 'a_kellan', 'a_sato']
+  const preferredAgentIds = ['a_ava', 'a_kellan', 'a_sato']
+  const eligibleAgentIds = Object.keys(state.agents)
+    .filter((id) => !['dead', 'resigned'].includes(state.agents[id].status))
+    .sort(compareTelemetryIds)
+  const agentIdsToStress = [
+    ...preferredAgentIds.filter((id) => eligibleAgentIds.includes(id)),
+    ...eligibleAgentIds.filter((id) => !preferredAgentIds.includes(id)),
+  ].slice(0, 3)
 
   return {
     ...mapUnresolvedCases(
@@ -215,6 +374,9 @@ function applyCampaignAttritionPressure(state: GameState): GameState {
     ),
     agents: Object.fromEntries(
       Object.entries(state.agents).map(([agentId, agent]) => {
+        if (agent.status === 'dead' || agent.status === 'resigned') {
+          return [agentId, agent]
+        }
         if (!agentIdsToStress.includes(agentId)) {
           return [agentId, { ...agent, fatigue: Math.min(100, agent.fatigue + 10) }]
         }
@@ -504,7 +666,7 @@ function compareMissionIds(state: GameState, leftId: string, rightId: string) {
 
 function isTeamAssignable(state: GameState, teamId: string, missionId: string) {
   const team = state.teams[teamId]
-  const assignedCaseId = team?.status?.assignedCaseId ?? team?.assignedCaseId ?? null
+  const assignedCaseId = team ? getTeamAssignedCaseId(team) : null
 
   return Boolean(team) && (!assignedCaseId || assignedCaseId === missionId)
 }
@@ -713,10 +875,37 @@ export function formatSimulationValidationSummary(summary: SimulationValidationS
 }
 
 export function runSimulationValidationScenario(
-  scenarioId: SimulationValidationScenarioId
+  scenarioId: SimulationValidationScenarioId,
+  options: SimulationValidationOptions = {}
 ): SimulationValidationRun {
+  const onSnapshot = options.onSnapshot
   const scenario = getScenarioById(scenarioId)
-  let state = createStartingState()
+  if (options.startingState !== undefined && options.difficulty !== undefined) {
+    throw new Error(
+      'Validation starting state: explicit difficulty cannot override a supplied campaign'
+    )
+  }
+  if (options.startingState?.gameOver) {
+    throw new Error('Validation starting state: terminal campaigns cannot continue')
+  }
+  let state =
+    options.startingState === undefined
+      ? createStartingState()
+      : structuredClone(options.startingState)
+
+  if (options.difficulty !== undefined) {
+    const input = structuredClone(options.difficulty)
+    const resolved = resolveDifficultyRunConfiguration(input)
+    if (!resolved.ok) throw new Error(`Validation difficulty: ${resolved.reason}`)
+    state.campaignLedger = {
+      ...getCurrentCampaignRulesLedger(state),
+      difficultyProfile: {
+        profileId: resolved.configuration.profileId,
+        profileVersion: resolved.configuration.profileVersion,
+        ...(resolved.configuration.profileId === 'custom' ? { custom: input.custom } : {}),
+      },
+    }
+  }
 
   state = normalizeGameState(scenario.setup?.(state) ?? state)
   const initialState = structuredClone(state)
@@ -726,9 +915,26 @@ export function runSimulationValidationScenario(
     state = normalizeGameState(scenario.beforeWeek?.(state, weekIndex) ?? state)
     state = applyDirectiveSelection(state, scenario, weekIndex)
     state = driveValidationAssignments(state)
-    state = advanceWeek(state, VALIDATION_NOTE_BASE + weekIndex)
+    const advanceInput = onSnapshot ? captureSimulationValidationAdvanceInput(state) : undefined
+    // Keep note identity tied to campaign time across separate harness invocations.
+    state = advanceWeek(state, VALIDATION_NOTE_BASE + state.week - 1)
 
-    weekly.push(captureWeeklySnapshot(state))
+    const snapshot = captureWeeklySnapshot(state)
+    weekly.push(snapshot)
+    if (onSnapshot && advanceInput) {
+      onSnapshot({
+        schemaVersion: 7,
+        audience: 'internal-validation',
+        source: 'simulation-validation-weekly-snapshot',
+        phase: 'after-week-close',
+        scenarioId,
+        sequence: weekly.length,
+        advanceInput,
+        snapshot: structuredClone(snapshot),
+        missionResults: captureSimulationValidationMissionResults(state.reports.at(-1)),
+        informationReports: captureSimulationValidationInformationReports(state),
+      })
+    }
 
     if (state.gameOver) {
       break
@@ -745,6 +951,14 @@ export function runSimulationValidationScenario(
   }
 }
 
-export function runSimulationValidationSuite() {
-  return INTERNAL_SCENARIOS.map((scenario) => runSimulationValidationScenario(scenario.id))
+export function runSimulationValidationSuite(options: SimulationValidationOptions = {}) {
+  const suiteOptions = {
+    ...options,
+    startingState:
+      options.startingState === undefined ? undefined : structuredClone(options.startingState),
+    difficulty: options.difficulty === undefined ? undefined : structuredClone(options.difficulty),
+  }
+  return INTERNAL_SCENARIOS.map((scenario) =>
+    runSimulationValidationScenario(scenario.id, suiteOptions)
+  )
 }

@@ -14,7 +14,7 @@ import {
 
 export type LivePotentialTier = ExactPotentialTier
 
-const LIVE_POTENTIAL_TIERS = [
+export const EXACT_POTENTIAL_TIERS = [
   'F',
   'D',
   'C',
@@ -54,11 +54,11 @@ const PROFILE_RANK_ADJUSTMENTS: Record<string, readonly number[]> = {
 }
 
 function isLivePotentialTier(value: string | undefined): value is LivePotentialTier {
-  return LIVE_POTENTIAL_TIERS.includes(value as LivePotentialTier)
+  return EXACT_POTENTIAL_TIERS.includes(value as LivePotentialTier)
 }
 
 function getPotentialTierIndex(tier: LivePotentialTier) {
-  return LIVE_POTENTIAL_TIERS.indexOf(tier)
+  return EXACT_POTENTIAL_TIERS.indexOf(tier)
 }
 
 function normalizePotentialIntelConfidence(
@@ -189,8 +189,8 @@ export function scoreToExactPotentialTier(score: number): LivePotentialTier {
 export function shiftPotentialTier(tier: LivePotentialTier, offset: number): LivePotentialTier {
   const currentIndex = getPotentialTierIndex(tier)
   return (
-    LIVE_POTENTIAL_TIERS[
-      clamp(currentIndex + Math.trunc(offset), 0, LIVE_POTENTIAL_TIERS.length - 1)
+    EXACT_POTENTIAL_TIERS[
+      clamp(currentIndex + Math.trunc(offset), 0, EXACT_POTENTIAL_TIERS.length - 1)
     ] ?? tier
   )
 }
@@ -206,7 +206,7 @@ export function stepPotentialTierToward(
     return current
   }
 
-  return LIVE_POTENTIAL_TIERS[currentIndex + Math.sign(targetIndex - currentIndex)] ?? target
+  return EXACT_POTENTIAL_TIERS[currentIndex + Math.sign(targetIndex - currentIndex)] ?? target
 }
 
 export function normalizePotentialIntel(

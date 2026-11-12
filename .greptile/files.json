@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "description": "Agent and review guidelines; severity and architecture bar",
+      "scope": ["src/**", "planning/**", "docs/**"]
+    },
+    {
+      "path": "docs/dependency-boundaries.md",
+      "description": "Layer import rules and dependency boundaries",
+      "scope": ["src/**"]
+    },
+    {
+      "path": ".github/copilot-instructions.md",
+      "description": "Repo-wide coding context",
+      "scope": ["src/**"]
+    },
+    {
+      "path": ".github/instructions/domain-engine.instructions.md",
+      "description": "Domain engine conventions",
+      "scope": ["src/domain/**"]
+    },
+    {
+      "path": ".github/instructions/ui-copilot.instructions.md",
+      "description": "UI and feature conventions",
+      "scope": ["src/features/**"]
+    }
+  ]
+}

@@ -16,21 +16,29 @@ import {
   type EquipmentSlotKind,
 } from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
-import type { GameState, OperationEvent } from './models'
+import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
+import { getCanonicalFundingState, sumInventoryStock } from './funding'
+import { hasDeniableOperationalCover } from './operationalCover'
+import {
+  assessCompromisedAuthorityProcurementDiversion,
+  type ProcurementCorruptionRoutingReason,
+} from './sim/compromisedAuthority'
+import { FUNDING_CALIBRATION } from './sim/calibration'
+import { assessProcurementGearAccess } from './procurementGearAccess'
 
-export type ProcurementTransactionAction = 'buy' | 'sell'
+export type ProcurementTransactionAction =
+  'buy' | 'sell' | 'favor_exchange' | 'callable_obligation' | 'order' | 'fulfill'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
-export type ProcurementAcquisitionClass = 'standard' | 'restricted'
-export type ProcurementAccessChannel = 'open_exchange' | 'directorate_special_channel'
+export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
+export type ProcurementAccessChannel =
+  'open_exchange' | 'directorate_special_channel' | 'faction_favor_exchange'
 export type ProcurementMarketPacketId = 'agency_supplier_roster' | 'gray_market_broker'
 export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-gray-market'
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
 export type ProcurementParticipantChannelType = 'quartermaster' | 'broker'
 export type ProcurementLiquidityProfile = 'stable' | 'thin'
 export type ProcurementResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
 
@@ -118,10 +126,40 @@ export interface ProcurementListing {
   accessDetails: string[]
   accessAvailable: boolean
   accessBlockedReason?: string
+  cashPurchaseAllowed: boolean
+  favorRedeemAvailable: boolean
+  favorExchange?: FactionFavorExchangeProcurementRule
+  /** SPE-2319: supplier lead time when acquisition uses procurement backlog instead of instant exchange. */
+  delayedFulfillmentWeeks?: number
   totalAvailability: number
   remainingAvailability: number
   availableBundles: number
   inventoryStock: number
+  shortagePressureDetail?: ProcurementShortagePressureDetail
+  corruptionRoutingDetail?: ProcurementCorruptionRoutingDetail
+  callableObligation?: CallableObligationProcurementRule
+  callableObligationDetail?: CallableObligationProcurementDetail
+}
+
+export interface ProcurementCorruptionRoutingDetail {
+  active: boolean
+  reasons: ProcurementCorruptionRoutingReason[]
+  availabilityPenaltyBundles: number
+  officialRole?: string
+  benefittingFactionId?: string
+}
+
+export type ProcurementShortagePressureReason = 'high-agency-stock' | 'funding-strain'
+
+export interface ProcurementShortagePressureAssessment {
+  active: boolean
+  reasons: ProcurementShortagePressureReason[]
+}
+
+export interface ProcurementShortagePressureDetail {
+  active: boolean
+  reasons: ProcurementShortagePressureReason[]
+  availabilityPenaltyBundles: number
 }
 
 export interface ProcurementTransactionView {
@@ -205,6 +243,69 @@ interface ProcurementAccessRule {
   accessLabel: string
   details: string[]
   requiredClearanceLevel?: number
+  delayedFulfillmentWeeks?: number
+}
+
+export interface FactionFavorExchangeProcurementRule {
+  factionId: string
+  favorId: string
+  exchangeLabel: string
+  details: string[]
+}
+
+export interface FactionFavorExchangeAssessment {
+  listingId: string
+  eligible: boolean
+  reasonCode: 'favor-exchange-ready' | 'favor-exchange-missing' | 'not-favor-exchange-listing'
+  detail: string
+}
+
+export interface CallableObligationProcurementRule {
+  factionId: string
+  favorId: string
+  obligationLabel: string
+  details: string[]
+}
+
+export interface CallableObligationProcurementAssessment {
+  listingId: string
+  eligible: boolean
+  reasonCode:
+    'callable-obligation-ready' | 'callable-obligation-missing' | 'not-callable-obligation-listing'
+  detail: string
+}
+
+export interface CallableObligationProcurementDetail {
+  active: boolean
+  obligationLabel: string
+  factionId: string
+  favorId: string
+  reasonCode: CallableObligationProcurementAssessment['reasonCode']
+  detail: string
+}
+
+const FAVOR_EXCHANGE_PROCUREMENT_RULES: Record<string, FactionFavorExchangeProcurementRule> = {
+  'gear:containment_staff': {
+    factionId: 'corporate_supply',
+    favorId: 'corporate-supply-salvage-credit',
+    exchangeLabel: 'Salvage reclamation favor',
+    details: [
+      'Rare containment gear circulates only through supplier salvage credit.',
+      'Cash purchase is blocked; redeem the open corporate_supply favor instead.',
+    ],
+  },
+}
+
+const CALLABLE_OBLIGATION_PROCUREMENT_RULES: Record<string, CallableObligationProcurementRule> = {
+  'material:occult_reagents': {
+    factionId: 'institutions',
+    favorId: 'institutions-lab-access-boon',
+    obligationLabel: 'Research lab access boon',
+    details: [
+      'Institutional lab channels honor callable research obligations on occult reagent lines.',
+      'When funding is tight, call the open institutions boon instead of cash purchase.',
+    ],
+  },
 }
 
 const PROCUREMENT_MARKET_PACKET_DEFINITIONS: Record<
@@ -241,7 +342,8 @@ const PROCUREMENT_MARKET_PACKET_DEFINITIONS: Record<
   },
 }
 
-const DIRECT_EQUIPMENT_MARKET_PACKETS: Partial<Record<string, ProcurementMarketPacketId>> = {
+const EQUIPMENT_MARKET_PACKET_OVERRIDES: Partial<Record<string, ProcurementMarketPacketId>> = {
+  // Combat Stims remain covert broker inventory even when also fabricable (SPE-2849).
   combat_stims: 'gray_market_broker',
 }
 
@@ -253,6 +355,16 @@ const DEFAULT_PROCUREMENT_ACCESS = {
 } as const satisfies Omit<ProcurementAccessRule, 'requiredClearanceLevel'>
 
 const PROCUREMENT_ACCESS_RULES: Record<string, ProcurementAccessRule> = {
+  'gear:field_plate': {
+    acquisitionClass: 'standard',
+    accessChannel: 'open_exchange',
+    accessLabel: 'Supplier delivery order',
+    details: [
+      'Replacement field armor restores lost protection without expanding roster capacity.',
+      'Funding is charged when the order is placed; inventory arrives after supplier lead time.',
+    ],
+    delayedFulfillmentWeeks: FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks,
+  },
   'gear:advanced_recon_suite': {
     acquisitionClass: 'restricted',
     accessChannel: 'directorate_special_channel',
@@ -262,6 +374,12 @@ const PROCUREMENT_ACCESS_RULES: Record<string, ProcurementAccessRule> = {
       'Requires directorate clearance before supplier release.',
     ],
     requiredClearanceLevel: 2,
+  },
+  'gear:containment_staff': {
+    acquisitionClass: 'rare',
+    accessChannel: 'faction_favor_exchange',
+    accessLabel: 'Faction favor exchange',
+    details: FAVOR_EXCHANGE_PROCUREMENT_RULES['gear:containment_staff']!.details,
   },
 }
 
@@ -340,7 +458,11 @@ function getDirectEquipmentBasePrice(
   const premiumTags = ['anti-spirit', 'containment', 'hazmat', 'surveillance']
   const premiumCount = definition.tags.filter((tag) => premiumTags.includes(tag)).length
 
-  return EQUIPMENT_SLOT_BASE_PRICES[definition.slot] + definition.quality * 4 + premiumCount * 2
+  return (
+    EQUIPMENT_SLOT_BASE_PRICES[definition.slot] +
+    definition.legacyEffectScale * 4 +
+    premiumCount * 2
+  )
 }
 
 function getClearanceLevel(game: Pick<GameState, 'agency' | 'clearanceLevel'>) {
@@ -375,6 +497,15 @@ function buildMarketPacket(
     blocked &&
     packetId === 'gray_market_broker' &&
     sanctionLevel === 'sanctioned' &&
+    hasDeniableOperationalCover(game.legitimacy)
+  ) {
+    blocked = false
+  }
+
+  if (
+    blocked &&
+    packetId === 'gray_market_broker' &&
+    sanctionLevel === 'sanctioned' &&
     hasActiveEmergencyGrayMarketWaiver(game)
   ) {
     blocked = false
@@ -404,11 +535,7 @@ function buildMarketPacket(
 function getMarketPacketIdForDefinition(
   definition: ProcurementListingDefinition
 ): ProcurementMarketPacketId {
-  if (definition.source === 'direct_equipment') {
-    return DIRECT_EQUIPMENT_MARKET_PACKETS[definition.itemId] ?? 'agency_supplier_roster'
-  }
-
-  return 'agency_supplier_roster'
+  return EQUIPMENT_MARKET_PACKET_OVERRIDES[definition.itemId] ?? 'agency_supplier_roster'
 }
 
 export function getProcurementMarketPackets(game: ProcurementMarketPacketContext) {
@@ -424,12 +551,93 @@ export function getProcurementMarketPacket(
   return buildMarketPacket(packetId, game)
 }
 
+function hasOpenFactionFavor(
+  game: Pick<GameState, 'factions'>,
+  factionId: string,
+  favorId: string
+) {
+  const runtime = game.factions?.[factionId]
+  return (runtime?.availableFavors ?? []).some((favor) => favor.id === favorId)
+}
+
+export function getFactionFavorExchangeProcurementRule(listingId: string) {
+  return FAVOR_EXCHANGE_PROCUREMENT_RULES[listingId]
+}
+
+export function assessFactionFavorExchangeProcurement(
+  game: Pick<GameState, 'factions'>,
+  listingId: string
+): FactionFavorExchangeAssessment {
+  const rule = getFactionFavorExchangeProcurementRule(listingId)
+  if (!rule) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'not-favor-exchange-listing',
+      detail: 'Listing is not configured for faction favor exchange.',
+    }
+  }
+
+  if (!hasOpenFactionFavor(game, rule.factionId, rule.favorId)) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'favor-exchange-missing',
+      detail: `${rule.exchangeLabel} required from ${rule.factionId}; no open favor is available.`,
+    }
+  }
+
+  return {
+    listingId,
+    eligible: true,
+    reasonCode: 'favor-exchange-ready',
+    detail: `${rule.exchangeLabel} from ${rule.factionId} can redeem this listing without spending funding.`,
+  }
+}
+
+export function getCallableObligationProcurementRule(listingId: string) {
+  return CALLABLE_OBLIGATION_PROCUREMENT_RULES[listingId]
+}
+
+export function assessCallableObligationProcurement(
+  game: Pick<GameState, 'factions'>,
+  listingId: string
+): CallableObligationProcurementAssessment {
+  const rule = getCallableObligationProcurementRule(listingId)
+  if (!rule) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'not-callable-obligation-listing',
+      detail: 'Listing is not configured for callable obligation procurement.',
+    }
+  }
+
+  if (!hasOpenFactionFavor(game, rule.factionId, rule.favorId)) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'callable-obligation-missing',
+      detail: `${rule.obligationLabel} required from ${rule.factionId}; no open obligation is available.`,
+    }
+  }
+
+  return {
+    listingId,
+    eligible: true,
+    reasonCode: 'callable-obligation-ready',
+    detail: `${rule.obligationLabel} from ${rule.factionId} can substitute cash on this listing without spending funding.`,
+  }
+}
+
 function assessProcurementAccess(
   definition: ProcurementListingDefinition,
   game: GameState,
   marketPacket: ProcurementMarketPacket
 ) {
   const rule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
+  const favorExchange = getFactionFavorExchangeProcurementRule(definition.id)
+  const callableObligation = getCallableObligationProcurementRule(definition.id)
   const clearanceLevel = getClearanceLevel(game)
   const accessDetails = [...marketPacket.knownDistortions, ...rule.details]
 
@@ -437,18 +645,44 @@ function assessProcurementAccess(
     accessDetails.push(`Clearance ${rule.requiredClearanceLevel}+ required.`)
   }
 
-  const ruleBlockedReason =
+  if (favorExchange) {
+    const favorAssessment = assessFactionFavorExchangeProcurement(game, definition.id)
+    accessDetails.push(favorAssessment.detail)
+  }
+
+  if (callableObligation) {
+    const obligationAssessment = assessCallableObligationProcurement(game, definition.id)
+    accessDetails.push(obligationAssessment.detail)
+  }
+
+  const gearAccess = assessProcurementGearAccess({
+    listingId: definition.id,
+    itemName: definition.itemName,
+    acquisitionClass: rule.acquisitionClass,
+    entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
+  })
+
+  accessDetails.push(...gearAccess.details)
+
+  const clearanceBlocked =
     typeof rule.requiredClearanceLevel === 'number' && clearanceLevel < rule.requiredClearanceLevel
-      ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
-      : undefined
-  const accessBlockedReason = marketPacket.blockedReason ?? ruleBlockedReason
+  const accessBlockedReason = clearanceBlocked
+    ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
+    : (marketPacket.blockedReason ?? gearAccess.blockedReason)
+  const cashPurchaseAllowed = rule.accessChannel !== 'faction_favor_exchange'
+  const channelAvailable =
+    marketPacket.available && gearAccess.available && accessBlockedReason === undefined
 
   return {
     acquisitionClass: rule.acquisitionClass,
     accessChannel: rule.accessChannel,
     accessLabel: rule.accessLabel,
     accessDetails,
-    accessAvailable: marketPacket.available && accessBlockedReason === undefined,
+    cashPurchaseAllowed,
+    ...(favorExchange ? { favorExchange } : {}),
+    ...(callableObligation ? { callableObligation } : {}),
+    accessAvailable: cashPurchaseAllowed && channelAvailable,
+    favorRedeemAvailable: Boolean(favorExchange && channelAvailable),
     ...(accessBlockedReason ? { accessBlockedReason } : {}),
   }
 }
@@ -487,7 +721,10 @@ function getListingDefinitions() {
   )
 
   const directEquipmentDefinitions: ProcurementListingDefinition[] = getEquipmentCatalogEntries()
-    .filter((definition) => !recipeOutputItemIds.has(definition.id))
+    .filter(
+      (definition) =>
+        !recipeOutputItemIds.has(definition.id) && !definition.tags.includes('fixture-wearable')
+    )
     .map((definition) => ({
       id: `gear:${definition.id}`,
       source: 'direct_equipment',
@@ -531,10 +768,16 @@ function getListingTransactionTotalsForWeek(
 
     switch (event.payload.action) {
       case 'buy':
+      case 'favor_exchange':
+      case 'callable_obligation':
         boughtByListingId[listingId] = (boughtByListingId[listingId] ?? 0) + quantity
         break
       case 'sell':
         soldByListingId[listingId] = (soldByListingId[listingId] ?? 0) + quantity
+        break
+      case 'order':
+      case 'fulfill':
+        // Backlog transactions do not consume the instant buy/sell allowance.
         break
       default: {
         const _exhaustive: never = event.payload.action
@@ -553,7 +796,13 @@ function getCurrentSupplierAttentionAllocations(
 ): ProcurementAllocationPacket[] {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter((allocation) => allocation.resourceClass === 'supplier_attention_slot')
     .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
@@ -642,7 +891,13 @@ function getCurrentReagentStockAllocations(
   })
   const marketAllocations = game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter(
       (allocation) =>
@@ -720,7 +975,13 @@ function getCurrentLicensedHandlingAllocations(
 ): ProcurementAllocationPacket[] {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter(
       (allocation) =>
@@ -849,6 +1110,74 @@ function buildAllocationStatus(
   }
 }
 
+export function assessProcurementShortagePressure(
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week' | 'inventory'>
+): ProcurementShortagePressureAssessment {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+  const reasons: ProcurementShortagePressureReason[] = []
+
+  if (sumInventoryStock(game.inventory) > cal.stockThreshold) {
+    reasons.push('high-agency-stock')
+  }
+
+  const fundingState = getCanonicalFundingState(game)
+  const staleProcurementBacklog = fundingState.procurementBacklog.some(
+    (entry) =>
+      entry.status === 'pending' &&
+      game.week - entry.requestedWeek > FUNDING_CALIBRATION.budgetPressure.staleBacklogWeeks
+  )
+  if (fundingState.budgetPressure >= cal.budgetPressureThreshold || staleProcurementBacklog) {
+    reasons.push('funding-strain')
+  }
+
+  return {
+    active: reasons.length > 0,
+    reasons,
+  }
+}
+
+export function applyShortagePressureToBundleAvailability(
+  definition: Pick<ProcurementListingDefinition, 'id'>,
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week' | 'inventory'>,
+  bundleAvailability: number
+): number {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+
+  if (definition.id !== cal.listingId) {
+    return bundleAvailability
+  }
+
+  const assessment = assessProcurementShortagePressure(game)
+  if (!assessment.active) {
+    return bundleAvailability
+  }
+
+  return Math.max(cal.minBundles, bundleAvailability - cal.availabilityPenaltyBundles)
+}
+
+export function assessProcurementCorruptionRouting(game: Pick<GameState, 'compromisedAuthority'>) {
+  return assessCompromisedAuthorityProcurementDiversion(game)
+}
+
+export function applyCorruptionRoutingToBundleAvailability(
+  definition: Pick<ProcurementListingDefinition, 'id'>,
+  game: Pick<GameState, 'compromisedAuthority'>,
+  bundleAvailability: number
+): number {
+  const cal = FUNDING_CALIBRATION.procurementCorruptionRouting
+
+  if (definition.id !== cal.listingId) {
+    return bundleAvailability
+  }
+
+  const assessment = assessProcurementCorruptionRouting(game)
+  if (!assessment.active) {
+    return bundleAvailability
+  }
+
+  return Math.max(cal.minBundles, bundleAvailability - cal.availabilityPenaltyBundles)
+}
+
 function getBaseAvailability(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -868,9 +1197,19 @@ function getBaseAvailability(
       featuredBonus
   )
 
-  const adjustedBundleAvailability = marketPacket.available
+  const packetAdjustedBundleAvailability = marketPacket.available
     ? Math.max(0, Math.floor(bundleAvailability * marketPacket.availabilityMultiplier))
     : 0
+  const shortageAdjustedBundleAvailability = applyShortagePressureToBundleAvailability(
+    definition,
+    game,
+    packetAdjustedBundleAvailability
+  )
+  const adjustedBundleAvailability = applyCorruptionRoutingToBundleAvailability(
+    definition,
+    game,
+    shortageAdjustedBundleAvailability
+  )
 
   return adjustedBundleAvailability * definition.bundleQuantity
 }
@@ -940,6 +1279,13 @@ function buildListing(
         : undefined
       : undefined
   const featured = definition.recipeId === game.market.featuredRecipeId
+  const shortageAssessment = assessProcurementShortagePressure(game)
+  const shortageCalibration = FUNDING_CALIBRATION.procurementShortagePressure
+  const corruptionAssessment = assessProcurementCorruptionRouting(game)
+  const corruptionCalibration = FUNDING_CALIBRATION.procurementCorruptionRouting
+  const obligationAssessment = assessCallableObligationProcurement(game, definition.id)
+  const obligationCalibration = FUNDING_CALIBRATION.procurementCallableObligation
+  const callableObligation = getCallableObligationProcurementRule(definition.id)
   const totalAvailability = getBaseAvailability(definition, game, marketPacket)
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
@@ -949,6 +1295,9 @@ function buildListing(
     Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured))
   )
   const access = assessProcurementAccess(definition, game, marketPacket)
+
+  const accessRule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
+  const delayedFulfillmentWeeks = accessRule.delayedFulfillmentWeeks
 
   return {
     ...definition,
@@ -961,10 +1310,47 @@ function buildListing(
     allocationStatus,
     resourceStatuses,
     ...access,
+    ...(typeof delayedFulfillmentWeeks === 'number' ? { delayedFulfillmentWeeks } : {}),
     totalAvailability,
     remainingAvailability,
     availableBundles: Math.floor(remainingAvailability / definition.bundleQuantity),
     inventoryStock: game.inventory[definition.itemId] ?? 0,
+    ...(definition.id === shortageCalibration.listingId && shortageAssessment.active
+      ? {
+          shortagePressureDetail: {
+            active: true,
+            reasons: shortageAssessment.reasons,
+            availabilityPenaltyBundles: shortageCalibration.availabilityPenaltyBundles,
+          },
+        }
+      : {}),
+    ...(definition.id === corruptionCalibration.listingId && corruptionAssessment.active
+      ? {
+          corruptionRoutingDetail: {
+            active: true,
+            reasons: corruptionAssessment.reasons,
+            availabilityPenaltyBundles: corruptionCalibration.availabilityPenaltyBundles,
+            ...(corruptionAssessment.officialRole
+              ? { officialRole: corruptionAssessment.officialRole }
+              : {}),
+            ...(corruptionAssessment.benefittingFactionId
+              ? { benefittingFactionId: corruptionAssessment.benefittingFactionId }
+              : {}),
+          },
+        }
+      : {}),
+    ...(definition.id === obligationCalibration.listingId && callableObligation
+      ? {
+          callableObligationDetail: {
+            active: obligationAssessment.eligible,
+            obligationLabel: callableObligation.obligationLabel,
+            factionId: callableObligation.factionId,
+            favorId: callableObligation.favorId,
+            reasonCode: obligationAssessment.reasonCode,
+            detail: obligationAssessment.detail,
+          },
+        }
+      : {}),
   }
 }
 
@@ -1067,4 +1453,154 @@ export function getAvailableMarketCategories() {
 
 export function getMarketItemLabel(game: GameState, listingId: string) {
   return getProcurementListing(game, listingId)?.itemName ?? listingId
+}
+
+const PERSISTED_MARKET_PRESSURES: readonly MarketPressure[] = ['discounted', 'stable', 'tight']
+
+const PRODUCTION_RECIPE_IDS = new Set(productionCatalog.map((recipe) => recipe.recipeId))
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function sanitizeMarketInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max?: number
+) {
+  const finiteValue =
+    typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
+  const boundedMin = Math.max(min, finiteValue)
+
+  if (typeof max === 'number') {
+    return Math.min(max, boundedMin)
+  }
+
+  return boundedMin
+}
+
+function sanitizeMarketDecimal(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+  return Math.min(max, Math.max(min, finiteValue))
+}
+
+function isMarketPressure(value: unknown): value is MarketPressure {
+  return (
+    typeof value === 'string' && (PERSISTED_MARKET_PRESSURES as readonly string[]).includes(value)
+  )
+}
+
+/** SPE-454: canonical exchange multiplier for each persisted pressure band. */
+export function getCanonicalMarketCostMultiplier(pressure: MarketPressure): number {
+  if (pressure === 'discounted') {
+    return 0.9
+  }
+
+  if (pressure === 'tight') {
+    return 1.15
+  }
+
+  return 1
+}
+
+/** SPE-446: unknown featured ids fall back to a catalog recipe (never persist phantom recipes). */
+export function sanitizeFeaturedRecipeId(value: unknown, fallbackRecipeId: string): string {
+  if (typeof value === 'string' && value.length > 0 && PRODUCTION_RECIPE_IDS.has(value)) {
+    return value
+  }
+
+  if (PRODUCTION_RECIPE_IDS.has(fallbackRecipeId)) {
+    return fallbackRecipeId
+  }
+
+  return productionCatalog[0]?.recipeId ?? 'ward-seals'
+}
+
+/**
+ * Hydration 586–587 / SPE-2660: catalog featured recipe + canonical pressure multiplier.
+ * Aligns with sanitizePersistedMarketState (SPE-454) and validateOperationEventPayload.
+ */
+export function reconcileMarketShiftedFields(
+  payload: {
+    featuredRecipeId?: unknown
+    featuredRecipeName?: unknown
+    pressure?: unknown
+    costMultiplier?: unknown
+  },
+  fallbackFeaturedRecipeId: string
+) {
+  const pressure = isMarketPressure(payload.pressure) ? payload.pressure : 'stable'
+  const featuredRecipeId = sanitizeFeaturedRecipeId(
+    payload.featuredRecipeId,
+    fallbackFeaturedRecipeId
+  )
+  const recipe = getProductionRecipe(featuredRecipeId)
+  const catalogName = recipe?.name ?? featuredRecipeId
+  const featuredRecipeName =
+    typeof payload.featuredRecipeName === 'string' &&
+    payload.featuredRecipeName.trim() === catalogName
+      ? payload.featuredRecipeName.trim()
+      : catalogName
+  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
+  const boundedCostMultiplier = sanitizeMarketDecimal(
+    typeof payload.costMultiplier === 'number' ? payload.costMultiplier : undefined,
+    canonicalCostMultiplier,
+    0.5,
+    2
+  )
+  const costMultiplier =
+    boundedCostMultiplier === canonicalCostMultiplier
+      ? boundedCostMultiplier
+      : canonicalCostMultiplier
+
+  return { featuredRecipeId, featuredRecipeName, pressure, costMultiplier }
+}
+
+/**
+ * SPE-446–448: normalize persisted market snapshots on import.
+ * `listings` are derived at read time — strip any persisted copy (SPE-448).
+ */
+export function sanitizePersistedMarketState(
+  value: unknown,
+  fallback: MarketState,
+  campaignWeek: number
+): MarketState {
+  if (!isRecord(value)) {
+    return { ...fallback, week: campaignWeek }
+  }
+
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const attestationFallback = fallback.licensedHandlingAttestationWeek ?? fallback.week
+  const pressure = isMarketPressure(value.pressure) ? value.pressure : fallback.pressure
+  const boundedCostMultiplier = sanitizeMarketDecimal(
+    value.costMultiplier as number | undefined,
+    getCanonicalMarketCostMultiplier(pressure),
+    0.5,
+    2
+  )
+  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
+  const costMultiplier =
+    boundedCostMultiplier === canonicalCostMultiplier
+      ? boundedCostMultiplier
+      : canonicalCostMultiplier
+
+  return {
+    week: cappedWeek,
+    featuredRecipeId: sanitizeFeaturedRecipeId(value.featuredRecipeId, fallback.featuredRecipeId),
+    pressure,
+    costMultiplier,
+    licensedHandlingAttestationWeek: sanitizeMarketInteger(
+      value.licensedHandlingAttestationWeek as number | undefined,
+      attestationFallback,
+      1,
+      cappedWeek
+    ),
+  }
 }

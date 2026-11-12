@@ -1,0 +1,11 @@
+{
+  "kind": "course",
+  "records": [
+    {
+      "id": "course-lonely",
+      "displayName": "Lonely",
+      "prerequisites": [],
+      "moduleRefs": ["module-missing"]
+    }
+  ]
+}

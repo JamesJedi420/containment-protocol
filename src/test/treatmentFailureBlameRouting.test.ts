@@ -254,7 +254,9 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
         }),
       ],
     })
-    expect(report.findings.map((row) => row.kind)).toContain('institutional_accountability_required')
+    expect(report.findings.map((row) => row.kind)).toContain(
+      'institutional_accountability_required'
+    )
     const required = report.findings.find(
       (row) => row.kind === 'institutional_accountability_required'
     )
@@ -464,7 +466,9 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
         }),
       ],
     })
-    expect(report.findings.filter((row) => row.attributionId === 'attr:dup').length).toBeGreaterThan(0)
+    expect(
+      report.findings.filter((row) => row.attributionId === 'attr:dup').length
+    ).toBeGreaterThan(0)
     expect(
       report.findings.find(
         (row) => row.attributionId === 'attr:dup' && row.target === 'staff_execution_gap'
@@ -767,7 +771,7 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
           protocolId: 'protocol:stabilize',
           week: 1,
           limitationKind: 'protocol_ceiling',
-          acknowledgedBy: 'staff:lead',
+          acknowledgedBy: 'site_lead',
         }),
       ],
     })
@@ -778,8 +782,7 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
     expect(
       report.findings.some(
         (finding) =>
-          finding.kind === 'prohibited_subject_deflection' &&
-          finding.contextId === 'ctx:week-4'
+          finding.kind === 'prohibited_subject_deflection' && finding.contextId === 'ctx:week-4'
       )
     ).toBe(true)
     expect(

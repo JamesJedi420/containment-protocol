@@ -55,7 +55,7 @@ describe('equipment catalog validation', () => {
         id: 'prototype_item',
         name: 'Prototype Item',
         slot: 'utility1',
-        quality: 1,
+        legacyEffectScale: 1,
         tags: ['analysis'],
         allowedSlots: ['utility1'],
         statModifiers: {
@@ -76,7 +76,7 @@ describe('equipment catalog validation', () => {
         id: 'prototype_item',
         name: 'Prototype Item',
         slot: 'utility1',
-        quality: 1,
+        legacyEffectScale: 1,
         tags: ['analysis'],
         allowedSlots: ['utility1'],
         statModifiers: {

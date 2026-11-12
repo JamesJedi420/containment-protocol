@@ -66,7 +66,7 @@ function makeRelationshipState(options: {
       agentIds: memberIds,
       leaderId: 'agent-a',
       tags: [],
-      assignedCaseId: 'case-relationship',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-relationship' },
     },
   }
   state.cases = {

@@ -1,8 +1,13 @@
+import {
+  DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL,
+  DEFAULT_CASE_LIFECYCLE_STAGE,
+} from '../caseLifecycleStateMachine'
 import { type CaseInstance } from '../models'
 import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { normalizePartialResolutionRule } from '../partialResolutionRule'
 import { copyInfiltrationCoverProfile } from '../infiltrationCover'
 import { copyInfiltrationProbePlan } from '../infiltrationProbe'
 import { applySiteGenerationToCase } from '../siteGeneration'
@@ -94,6 +99,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
     ...createMissionIntelState(1),
     assignedTeamIds: [...new Set(seed.assignedTeamIds ?? [])],
+    onPartial: normalizePartialResolutionRule(template.onPartial),
     onFail: {
       ...onFail,
       spawnCount: { ...onFail.spawnCount },
@@ -111,6 +117,8 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
         : undefined,
     infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
     infiltrationCoverProfile: copyInfiltrationCoverProfile(template.infiltrationCoverProfile),
+    lifecycleStage: DEFAULT_CASE_LIFECYCLE_STAGE,
+    lifecycleInstitutionalLabel: DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL,
   }
 
   return applySiteGenerationToCase({

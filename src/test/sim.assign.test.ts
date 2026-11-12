@@ -2,7 +2,19 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../domain/sim/assign'
-import type { OperationEvent } from '../domain/models'
+import type { OperationEvent, Team } from '../domain/models'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
+
+function assignTeamCaseFixture(team: Team, caseId: string): Team {
+  return {
+    ...team,
+    status: {
+      ...(team.status ?? { state: 'deployed', assignedCaseId: null }),
+      state: 'deployed',
+      assignedCaseId: caseId,
+    },
+  }
+}
 
 describe('assignTeam', () => {
   it('returns the same state when the target case does not exist', () => {
@@ -32,8 +44,8 @@ describe('assignTeam', () => {
     const withBravo = assignTeam(withAlpha, 'case-001', 't_greentape')
 
     expect(withBravo.cases['case-001'].assignedTeamIds).toEqual(['t_greentape'])
-    expect(withBravo.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
-    expect(withBravo.teams['t_greentape'].assignedCaseId).toBe('case-001')
+    expect(getTeamAssignedCaseId(withBravo.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(withBravo.teams['t_greentape'])).toBe('case-001')
   })
 
   it('emits assignment events for new and replaced team assignments', () => {
@@ -85,30 +97,26 @@ describe('assignTeam', () => {
       assignedTeamIds: ['t_nightwatch', 't_greentape'],
       weeksRemaining: 1,
     }
-    state.teams['t_nightwatch'] = { ...state.teams['t_nightwatch'], assignedCaseId: 'case-001' }
-    state.teams['t_greentape'] = { ...state.teams['t_greentape'], assignedCaseId: 'case-001' }
+    state.teams['t_nightwatch'] = assignTeamCaseFixture(state.teams['t_nightwatch'], 'case-001')
+    state.teams['t_greentape'] = assignTeamCaseFixture(state.teams['t_greentape'], 'case-001')
 
     const next = assignTeam(state, 'case-001', 'team-charlie')
 
     expect(next).not.toBe(state)
     expect(next.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch', 't_greentape'])
-    expect(next.teams['team-charlie'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['team-charlie'])).toBeNull()
     expect(next.teams['t_nightwatch'].status?.assignedCaseId).toBe('case-001')
     expect(next.teams['t_greentape'].status?.assignedCaseId).toBe('case-001')
   })
 
   it('returns the same state when the team is already assigned to another case', () => {
     const state = createStartingState()
-    state.teams['t_nightwatch'] = {
-      ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-002',
-    }
+    state.teams['t_nightwatch'] = assignTeamCaseFixture(state.teams['t_nightwatch'], 'case-002')
 
     const next = assignTeam(state, 'case-001', 't_nightwatch')
 
-    expect(next).not.toBe(state)
     expect(next.cases['case-001'].assignedTeamIds).toEqual([])
-    expect(next.teams['t_nightwatch'].status?.assignedCaseId).toBe(null)
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBe('case-002')
   })
 
   it('rejects assignments that do not satisfy required tags', () => {
@@ -122,7 +130,7 @@ describe('assignTeam', () => {
 
     expect(next).toBe(state)
     expect(next.cases['case-003'].assignedTeamIds).toEqual([])
-    expect(next.teams['t_greentape'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
   })
 
   it('rejects assignments that do not satisfy required role coverage', () => {
@@ -137,7 +145,7 @@ describe('assignTeam', () => {
 
     expect(next).toBe(state)
     expect(next.cases['case-003'].assignedTeamIds).toEqual([])
-    expect(next.teams['t_greentape'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
   })
 
   it('rejects assignments when the only matching capability comes from a dead agent', () => {
@@ -156,7 +164,7 @@ describe('assignTeam', () => {
 
     expect(next).not.toBe(state)
     expect(next.cases['case-003'].assignedTeamIds).toEqual([])
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
     expect(next.teams['t_nightwatch'].derivedStats?.overall).toBeGreaterThan(0)
   })
 
@@ -174,7 +182,7 @@ describe('assignTeam', () => {
 
     expect(next).not.toBe(state)
     expect(next.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBe('case-001')
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBe('case-001')
   })
 
   it('rejects raid additions from squads with no deployable members even when other teams satisfy the case', () => {
@@ -187,7 +195,7 @@ describe('assignTeam', () => {
       requiredRoles: ['technical'],
       assignedTeamIds: ['t_nightwatch'],
     }
-    state.teams['t_nightwatch'] = { ...state.teams['t_nightwatch'], assignedCaseId: 'case-001' }
+    state.teams['t_nightwatch'] = assignTeamCaseFixture(state.teams['t_nightwatch'], 'case-001')
     state.teams['team-empty'] = {
       id: 'team-empty',
       name: 'Empty Frame',
@@ -207,7 +215,7 @@ describe('assignTeam', () => {
 
     expect(next).not.toBe(state)
     expect(next.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(next.teams['team-empty'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['team-empty'])).toBeNull()
     expect(next.teams['team-empty'].status).toBeDefined()
   })
 })
@@ -221,19 +229,19 @@ describe('unassignTeam', () => {
       kind: 'raid',
       raid: { minTeams: 2, maxTeams: 2 },
       status: 'in_progress',
-      assignedTeamIds: ['team-alpha', 'team-bravo'],
+      assignedTeamIds: ['t_nightwatch', 't_greentape'],
       weeksRemaining: 2,
     }
-    state.teams['team-alpha'] = { ...state.teams['team-alpha'], assignedCaseId: 'case-001' }
-    state.teams['team-bravo'] = { ...state.teams['team-bravo'], assignedCaseId: 'case-001' }
+    state.teams['t_nightwatch'] = assignTeamCaseFixture(state.teams['t_nightwatch'], 'case-001')
+    state.teams['t_greentape'] = assignTeamCaseFixture(state.teams['t_greentape'], 'case-001')
 
     const next = unassignTeam(state, 'case-001')
 
     expect(next.cases['case-001'].assignedTeamIds).toEqual([])
     expect(next.cases['case-001'].status).toBe('open')
     expect(next.cases['case-001'].weeksRemaining).toBeUndefined()
-    expect(next.teams['team-alpha'].assignedCaseId).toBeUndefined()
-    expect(next.teams['team-bravo'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
   })
 
   it('returns the same state when the case does not exist', () => {
@@ -273,8 +281,8 @@ describe('unassignTeam', () => {
       weeksRemaining: 1,
       assignedTeamIds: ['t_nightwatch', 't_greentape'],
     }
-    state.teams['t_nightwatch'] = { ...state.teams['t_nightwatch'], assignedCaseId: 'case-001' }
-    state.teams['t_greentape'] = { ...state.teams['t_greentape'], assignedCaseId: 'case-001' }
+    state.teams['t_nightwatch'] = assignTeamCaseFixture(state.teams['t_nightwatch'], 'case-001')
+    state.teams['t_greentape'] = assignTeamCaseFixture(state.teams['t_greentape'], 'case-001')
 
     const cleared = unassignTeam(state, 'case-001')
     const reassigned = assignTeam(cleared, 'case-001', 't_nightwatch')
@@ -312,8 +320,8 @@ describe('unassignTeam', () => {
     ])
 
     expect(assignedBackNightWatch.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(assignedBackNightWatch.teams['t_nightwatch'].assignedCaseId).toBe('case-001')
-    expect(assignedBackNightWatch.teams['t_greentape'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(assignedBackNightWatch.teams['t_nightwatch'])).toBe('case-001')
+    expect(getTeamAssignedCaseId(assignedBackNightWatch.teams['t_greentape'])).toBeNull()
   })
 })
 
@@ -345,9 +353,9 @@ describe('launchMajorIncident', () => {
       'team-charlie',
     ])
     expect(next.cases['major-incident'].majorIncident?.requiredTeams).toBe(3)
-    expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
-    expect(next.teams['team-bravo'].assignedCaseId).toBe('major-incident')
-    expect(next.teams['team-charlie'].assignedCaseId).toBe('major-incident')
+    expect(getTeamAssignedCaseId(next.teams['team-alpha'])).toBe('major-incident')
+    expect(getTeamAssignedCaseId(next.teams['team-bravo'])).toBe('major-incident')
+    expect(getTeamAssignedCaseId(next.teams['team-charlie'])).toBe('major-incident')
     expect(next.inventory['medical_supplies']).toBe(state.inventory['medical_supplies'] - 2)
   })
 
@@ -366,7 +374,7 @@ describe('launchMajorIncident', () => {
       'team-bravo',
       'team-charlie',
     ])
-    expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
+    expect(getTeamAssignedCaseId(next.teams['team-alpha'])).toBe('major-incident')
   })
 })
 

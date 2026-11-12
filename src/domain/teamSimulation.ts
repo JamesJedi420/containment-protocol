@@ -1,3 +1,5 @@
+import { normalizeMaintenanceConversionLedger } from './facilityMaintenanceConversion'
+import { normalizeStaffTimeLedger } from './staffTimeAllocation'
 import { getOutcomeBand, resolveConsequenceRoute } from './shared/outcomes'
 import type { ThreatFamily } from './shared/modifiers'
 // Deterministic consequence summary for each threat family based on team readiness and composition
@@ -58,6 +60,13 @@ import {
   type TeamEquipmentSummary,
 } from './equipment'
 import type { AgencyProtocolState } from './protocols'
+import {
+  normalizeRivalExpeditionClueRegistry,
+  normalizeRivalExpeditionProgressRegistry,
+} from './rivalExpeditionProgress'
+import { normalizeHistoricalRouteReplayRegistry } from './historicalRouteReplay'
+import { normalizeHistoricalRouteReplayActivationCandidates } from './historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraphsFromGameState } from './historicalRouteMemory'
 
 export interface TeamCompositionProfile {
   members: Agent[]
@@ -434,7 +443,7 @@ function buildTeamPowerSummary(
         equippedCount: 1,
         activeContextCount: item.contextActive ? 1 : 0,
         stockOnHand: Math.max(0, Math.trunc(inventory[item.id] ?? 0)),
-        totalQuality: item.quality,
+        totalEffectScale: item.legacyEffectScale,
         tags: [...item.tags].sort((left, right) => left.localeCompare(right)),
       })
       continue
@@ -442,7 +451,7 @@ function buildTeamPowerSummary(
 
     current.equippedCount += 1
     current.activeContextCount += item.contextActive ? 1 : 0
-    current.totalQuality += item.quality
+    current.totalEffectScale += item.legacyEffectScale
     current.tags = [...new Set([...current.tags, ...item.tags])].sort((left, right) =>
       left.localeCompare(right)
     )
@@ -645,18 +654,8 @@ export function getUniqueTeamMembers(
     .filter((agent): agent is Agent => Boolean(agent))
 }
 
-export function getTeamAssignedCaseId(team: Pick<Team, 'status' | 'assignedCaseId'>): Id | null {
-  const statusAssignedCaseId = team.status?.assignedCaseId ?? null
-
-  if (statusAssignedCaseId !== null) {
-    return statusAssignedCaseId
-  }
-
-  if (Object.prototype.hasOwnProperty.call(team, 'assignedCaseId')) {
-    return team.assignedCaseId ?? null
-  }
-
-  return null
+export function getTeamAssignedCaseId(team: Pick<Team, 'status'>): Id | null {
+  return team.status?.assignedCaseId ?? null
 }
 
 export function getTeamLeaderId(
@@ -907,7 +906,6 @@ export function syncTeamSimulationTeam(
       memberCount: memberIds.length,
     }),
     agentIds: memberIds,
-    assignedCaseId: assignedCaseId ?? undefined,
   }
 }
 
@@ -957,13 +955,10 @@ function normalizeCaseQueueMirror(state: GameState): NonNullable<GameState['case
 
 function hasTeamMirrorParity(team: Team) {
   const memberIds = getTeamMemberIds(team)
-  const statusAssignedCaseId = team.status?.assignedCaseId ?? null
-  const assignedCaseMirror = team.assignedCaseId ?? null
 
   return (
     areIdListsEqual(team.memberIds, memberIds) &&
-    areIdListsEqual(team.agentIds, memberIds) &&
-    statusAssignedCaseId === assignedCaseMirror
+    areIdListsEqual(team.agentIds, memberIds)
   )
 }
 
@@ -1019,7 +1014,6 @@ function clearDanglingTeamCasePointers(
         teamId,
         {
           ...team,
-          assignedCaseId: undefined,
           status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
         },
       ]
@@ -1125,7 +1119,45 @@ export function ensureNormalizedGameState(state: GameState): GameState {
  * need to remember external post-processing.
  */
 export function normalizeGameState(state: GameState): GameState {
-  return syncTeamSimulationState(state)
+  const normalized = syncTeamSimulationState(state)
+  const rivalExpeditionProgressPackets = normalizeRivalExpeditionProgressRegistry(
+    normalized.rivalExpeditionProgressPackets,
+    {
+      campaignWeek: normalized.week,
+      minimumActiveAdvancedWeek: normalized.week - 1,
+      maximumAdvancedWeek: normalized.week - 1,
+    }
+  )
+
+  const historicalRouteMemoryGraphs = normalizeHistoricalRouteMemoryGraphsFromGameState({
+    historicalRouteMemoryGraphs: normalized.historicalRouteMemoryGraphs,
+    historicalRouteMemoryGraph: normalized.historicalRouteMemoryGraph,
+  })
+
+  const { historicalRouteMemoryGraph: _legacyHistoricalRouteMemoryGraph, ...withoutLegacyGraph } =
+    normalized
+  void _legacyHistoricalRouteMemoryGraph
+
+  return {
+    ...withoutLegacyGraph,
+    staffTimeAllocations: normalizeStaffTimeLedger(normalized.staffTimeAllocations),
+    facilityMaintenanceConversionReceipts: normalizeMaintenanceConversionLedger(
+      normalized.facilityMaintenanceConversionReceipts
+    ),
+    rivalExpeditionProgressPackets,
+    rivalExpeditionClues: normalizeRivalExpeditionClueRegistry(
+      normalized.rivalExpeditionClues,
+      rivalExpeditionProgressPackets
+    ),
+    historicalRouteReplays: normalizeHistoricalRouteReplayRegistry(
+      normalized.historicalRouteReplays
+    ),
+    historicalRouteReplayActivationCandidates:
+      normalizeHistoricalRouteReplayActivationCandidates(
+        normalized.historicalRouteReplayActivationCandidates
+      ),
+    historicalRouteMemoryGraphs,
+  }
 }
 
 function computeLeadershipDomainScore(

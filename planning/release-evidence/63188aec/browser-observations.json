@@ -1,0 +1,679 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "63188aec19eba68c56b125da078908d92c100dc4",
+  "campaignSuite": {
+    "stats": {
+      "total": 24,
+      "expected": 24,
+      "unexpected": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "ok": true
+    },
+    "startTime": 1793986821142,
+    "durationMs": 250899.206
+  },
+  "errorReportingSuite": {
+    "stats": {
+      "total": 5,
+      "expected": 5,
+      "unexpected": 0,
+      "flaky": 0,
+      "skipped": 0,
+      "ok": true
+    },
+    "startTime": 1793987073278,
+    "durationMs": 13764.677,
+    "scope": "Separate synthetic error-capture fixtures, not gameplay evidence."
+  },
+  "tests": [
+    {
+      "file": "a11y-keyboard-landmarks.spec.ts",
+      "title": "skip link is the first tab stop and moves focus into the only main",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3350,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "a11y-keyboard-landmarks.spec.ts",
+      "title": "advancing a week announces the close once and updates the same region in place",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6365,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "a11y-keyboard-landmarks.spec.ts",
+      "title": "agent dossier routes expose one main with a named dossier region",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5340,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "a11y-keyboard-landmarks.spec.ts",
+      "title": "advancing from the Front Desk control also announces the close",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2494,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "startup and player-visible navigation",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2262,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "primary Agents roster path loads without page errors",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2640,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "advance one operational week through player controls",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2697,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "save continuity across hard reload (localStorage persist)",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3844,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "launch mission-board contract opens a case with assignment",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2760,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "manual assign from open triage increases Assigned queue",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2951,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "hire a recruitment candidate after week advance",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3819,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "agency maintenance package is a completable player action",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3728,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "cp-smoke.spec.ts",
+      "title": "containment site loads and routes to incident desk",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2817,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "harness-isolation.spec.ts",
+      "title": "clears campaign storage between contexts (no cross-test bleed)",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5236,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "harness-isolation.spec.ts",
+      "title": "surfaces page errors instead of concealing them",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 1240,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "intervention-comparison.spec.ts",
+      "title": "one player intervention causally changes later mission choices and replays through reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 46986,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention",
+              "contentType": "application/json"
+            },
+            {
+              "name": "inaction-next-choice",
+              "contentType": "image/png",
+              "path": "data/b2a3b04c46952bcdef58df294ad9e708d8e82947.png"
+            },
+            {
+              "name": "campaign-budget-inaction",
+              "contentType": "application/json"
+            },
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention",
+              "contentType": "application/json"
+            },
+            {
+              "name": "inaction-next-choice",
+              "contentType": "image/png",
+              "path": "data/b2a3b04c46952bcdef58df294ad9e708d8e82947.png"
+            },
+            {
+              "name": "campaign-budget-inaction",
+              "contentType": "application/json"
+            },
+            {
+              "name": "controlled-intervention-comparison",
+              "contentType": "application/json",
+              "extractedArtifact": "controlled-intervention-comparison-retry0.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "intervention-comparison.spec.ts",
+      "title": "reading available intel preserves campaign history and converges on the same later outcomes",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 41043,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention",
+              "contentType": "application/json"
+            },
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention-read-intel",
+              "contentType": "application/json"
+            },
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention",
+              "contentType": "application/json"
+            },
+            {
+              "name": "intervention-next-choice",
+              "contentType": "image/png",
+              "path": "data/a88cde54bdaaad884bd2a240ca55814543846780.png"
+            },
+            {
+              "name": "campaign-budget-intervention-read-intel",
+              "contentType": "application/json"
+            },
+            {
+              "name": "information-access-convergence",
+              "contentType": "application/json",
+              "extractedArtifact": "information-access-convergence-retry0.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "milestone2-weekly-loop.spec.ts",
+      "title": "connected multi-week player path preserves and replays its visible outcome",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 25893,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "visible-outcome-replay",
+              "contentType": "application/json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "mission-escalation-save.spec.ts",
+      "title": "invalid explicit escalation increments fail safely while a valid campaign continues",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 21380,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "mission-escalation-save.spec.ts",
+      "title": "an optional no-escalation rule loads and does not invent mission follow-ups",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5779,
+          "errors": [],
+          "attachments": []
+        }
+      ]
+    },
+    {
+      "file": "partial-mission-outcomes.spec.ts",
+      "title": "normal partial missions retain their own stage consequences through reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 9415,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "normal-partial-mission-consequences",
+              "contentType": "image/png",
+              "path": "data/646d2bb7821ed2cbb91ad04fa0d51e9c29d8762f.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "quiet-period.spec.ts",
+      "title": "a quiet campaign supports recruitment and independent weekly refresh without forced incidents",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 31490,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "campaign-budget-quiet-hire",
+              "contentType": "application/json"
+            },
+            {
+              "name": "campaign-budget-quiet-no-hire",
+              "contentType": "application/json"
+            },
+            {
+              "name": "campaign-budget-quiet-hire",
+              "contentType": "application/json"
+            },
+            {
+              "name": "campaign-budget-quiet-no-hire",
+              "contentType": "application/json"
+            },
+            {
+              "name": "quiet-period-hiring-comparison",
+              "contentType": "application/json",
+              "extractedArtifact": "quiet-period-hiring-comparison-retry0.json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "support-campaigns.spec.ts",
+      "title": "maintenance explains delayed recovery and continues its queue after reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6186,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "maintenance-first-week",
+              "contentType": "text/plain"
+            },
+            {
+              "name": "maintenance-after-reload",
+              "contentType": "image/png",
+              "path": "data/3018778880e5684a986e3c96c1fe1da192fc1238.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "support-campaigns.spec.ts",
+      "title": "support shortage explains a partial result and preserves its explanation after reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5539,
+          "errors": [],
+          "attachments": [
+            {
+              "name": "support-shortfall-first-week",
+              "contentType": "application/json"
+            },
+            {
+              "name": "support-explanation-after-reload",
+              "contentType": "image/png",
+              "path": "data/1c280c9bdb6d9964dddc59fdee99d2c5ecb49e3d.png"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "budgets": [
+    {
+      "test": "one player intervention causally changes later mission choices and replays through reload",
+      "retry": 0,
+      "path": "intervention",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "one player intervention causally changes later mission choices and replays through reload",
+      "retry": 0,
+      "path": "inaction",
+      "initialBytes": 57803,
+      "finalBytes": 223714,
+      "growthBytes": 165911,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "one player intervention causally changes later mission choices and replays through reload",
+      "retry": 0,
+      "path": "intervention",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "one player intervention causally changes later mission choices and replays through reload",
+      "retry": 0,
+      "path": "inaction",
+      "initialBytes": 57803,
+      "finalBytes": 223714,
+      "growthBytes": 165911,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "reading available intel preserves campaign history and converges on the same later outcomes",
+      "retry": 0,
+      "path": "intervention",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "reading available intel preserves campaign history and converges on the same later outcomes",
+      "retry": 0,
+      "path": "intervention-read-intel",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "reading available intel preserves campaign history and converges on the same later outcomes",
+      "retry": 0,
+      "path": "intervention",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "reading available intel preserves campaign history and converges on the same later outcomes",
+      "retry": 0,
+      "path": "intervention-read-intel",
+      "initialBytes": 57803,
+      "finalBytes": 199117,
+      "growthBytes": 141314,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "a quiet campaign supports recruitment and independent weekly refresh without forced incidents",
+      "retry": 0,
+      "path": "quiet-hire",
+      "initialBytes": 49067,
+      "finalBytes": 72590,
+      "growthBytes": 23523,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "a quiet campaign supports recruitment and independent weekly refresh without forced incidents",
+      "retry": 0,
+      "path": "quiet-no-hire",
+      "initialBytes": 49067,
+      "finalBytes": 69042,
+      "growthBytes": 19975,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "a quiet campaign supports recruitment and independent weekly refresh without forced incidents",
+      "retry": 0,
+      "path": "quiet-hire",
+      "initialBytes": 49067,
+      "finalBytes": 72590,
+      "growthBytes": 23523,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    },
+    {
+      "test": "a quiet campaign supports recruitment and independent weekly refresh without forced incidents",
+      "retry": 0,
+      "path": "quiet-no-hire",
+      "initialBytes": 49067,
+      "finalBytes": 69042,
+      "growthBytes": 19975,
+      "maxFinalBytes": 524288,
+      "maxGrowthBytes": 262144,
+      "comparisonTimeoutMs": 240000
+    }
+  ],
+  "controlledObservations": {
+    "intervention": {
+      "sharedInitialState": true,
+      "intervention": {
+        "week": 3,
+        "archive": {
+          "status": "open",
+          "stage": 1
+        },
+        "outbreakIds": [],
+        "reportWeeks": [1, 2]
+      },
+      "inaction": {
+        "week": 3,
+        "archive": {
+          "status": "open",
+          "stage": 5
+        },
+        "outbreakIds": [
+          "case-spawned-274494603",
+          "case-spawned-770055051",
+          "case-spawned-881553594"
+        ],
+        "reportWeeks": [1, 2]
+      },
+      "scope": "Existing UI-driven comparison and repeat assertions, including distinct same-title incident routing and reload."
+    },
+    "information": {
+      "completeComparedOutputsEqual": true,
+      "scope": "Reference-dossier access changes viewed content, not canonical saved state; broader witness/public-belief propagation remains unverified."
+    },
+    "quiet": {
+      "scope": "Existing authored two-week no-new-incident interval, normal hiring versus no hiring, market refresh, four fresh contexts and full repeated-state comparison.",
+      "sharedInitialState": true,
+      "hiredAgentCount": 9,
+      "noHireAgentCount": 8,
+      "hiredIds": ["cand-848976414"],
+      "finalWeek": 3
+    }
+  }
+}

@@ -18,6 +18,7 @@ export interface FamilyTrendItem {
 }
 
 export interface CaseTrendItem {
+  id: Id
   title: string
   count: number
   caseRefs: TrendCaseRef[]
@@ -89,6 +90,7 @@ export function getRunTrendSummary(game: GameState, reports: WeeklyReport[] = ga
 
       if ((currentCase?.kind ?? snapshot?.kind) === 'raid') {
         const raidEntry = raidMap.get(caseId) ?? {
+          id: caseId,
           title,
           count: 0,
           caseRefs: [],
@@ -103,6 +105,7 @@ export function getRunTrendSummary(game: GameState, reports: WeeklyReport[] = ga
 
       if (report.unresolvedTriggers.includes(caseId)) {
         const unresolvedEntry = unresolvedMap.get(caseId) ?? {
+          id: caseId,
           title,
           count: 0,
           caseRefs: [],

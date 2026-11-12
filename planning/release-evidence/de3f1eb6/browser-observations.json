@@ -1,0 +1,158 @@
+{
+  "subjectRevision": "de3f1eb6caa90be0b87d5e20297dd3d190500e0a",
+  "stats": {
+    "total": 14,
+    "expected": 14,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "ok": true
+  },
+  "errors": [],
+  "tests": [
+    {
+      "file": "milestone2-weekly-loop.spec.ts",
+      "title": "connected multi-week player path preserves and replays its visible outcome",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 19391,
+          "steps": [
+            "Before Hooks",
+            "Fresh campaign through Week 3 and report reload",
+            "Replay in a second fresh browser context",
+            "Compare visible resolved outcome across both campaigns",
+            "After Hooks"
+          ],
+          "attachments": [
+            {
+              "name": "visible-outcome-replay",
+              "contentType": "application/json",
+              "body": "{\n  \"seed\": 1337,\n  \"firstOutcome\": \"Oversight Lockdown Retainer\\n\\ncase-spawned-244643468\\n\\nintel chem-001\\n\\nCase - Probability - Resolved - Stage 1 - Deadline 4 weeks - Remaining 0 weeks\\n\\nHidden state: hidden\\n\\nDetection confidence: 25%\\n\\nCounter-detection: inactive\\n\\nContainment specialist present: +2 containment bonus.\\nSynergy: 4.0 (Containment Triad, Forensic Mesh, Triage Cover Loop, Mobile Lab Doctrine)\\nReadiness: 4.2\\nChemistry: 1.7\\nPreferred tags: +1.0\\nGeneralist substitute covering scouting: -1 scouting penalty.\\nRecon sweep: +0.2 (0/4 hidden factors revealed)\\nUnknown-variable coverage: +0.6%\\nPrior recon: 2 unresolved concealment nodes — route caution.\\nDelta=97.5 (probability)\\nRecon certainty: 0.6%\\nChance=95% roll=22%\\nConcealment readout: contact detected. Counter-detection stripped 1 concealment layer.\\n+9 agency standing: elevated danger, completed, x1.15 commitment, x1.00 repeat normalization.\\nOperation value 66.30000000000001 came from difficulty, escalation pressure, duration, and deadline pressure.\\nContainment breach routing applies the deterministic reward table for this incident family.\\nStanding modifiers applied from Corporate Supply Chains (+0.00).\\nFunding +15, containment +6, reputation +7.\\nInventory rewards: Warding Resin x3, Electronic Parts x2, Ward Seals x1.\\nFaction standing: Corporate Supply Chains +2.\\nExpedition recovery: No valid field staging packet — ordinary rest applies baseline deployed mission fatigue without staging relief.\\nNight Watch fatigue +3 (22 -> 25).\",\n  \"replayOutcome\": \"Oversight Lockdown Retainer\\n\\ncase-spawned-244643468\\n\\nintel chem-001\\n\\nCase - Probability - Resolved - Stage 1 - Deadline 4 weeks - Remaining 0 weeks\\n\\nHidden state: hidden\\n\\nDetection confidence: 25%\\n\\nCounter-detection: inactive\\n\\nContainment specialist present: +2 containment bonus.\\nSynergy: 4.0 (Containment Triad, Forensic Mesh, Triage Cover Loop, Mobile Lab Doctrine)\\nReadiness: 4.2\\nChemistry: 1.7\\nPreferred tags: +1.0\\nGeneralist substitute covering scouting: -1 scouting penalty.\\nRecon sweep: +0.2 (0/4 hidden factors revealed)\\nUnknown-variable coverage: +0.6%\\nPrior recon: 2 unresolved concealment nodes — route caution.\\nDelta=97.5 (probability)\\nRecon certainty: 0.6%\\nChance=95% roll=22%\\nConcealment readout: contact detected. Counter-detection stripped 1 concealment layer.\\n+9 agency standing: elevated danger, completed, x1.15 commitment, x1.00 repeat normalization.\\nOperation value 66.30000000000001 came from difficulty, escalation pressure, duration, and deadline pressure.\\nContainment breach routing applies the deterministic reward table for this incident family.\\nStanding modifiers applied from Corporate Supply Chains (+0.00).\\nFunding +15, containment +6, reputation +7.\\nInventory rewards: Warding Resin x3, Electronic Parts x2, Ward Seals x1.\\nFaction standing: Corporate Supply Chains +2.\\nExpedition recovery: No valid field staging packet — ordinary rest applies baseline deployed mission fatigue without staging relief.\\nNight Watch fatigue +3 (22 -> 25).\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "support-campaigns.spec.ts",
+      "title": "maintenance explains delayed recovery and continues its queue after reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 8774,
+          "steps": [
+            "Before Hooks",
+            "Navigate",
+            "Evaluate",
+            "Reload",
+            "Evaluate",
+            "Reload",
+            "Expect \"toBeVisible\"",
+            "Expect \"toBeVisible\"",
+            "expected visible Week N / Active cap label before advance",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Expect \"toContainText\"",
+            "Attach \"maintenance-first-week\"",
+            "Reload",
+            "Expect \"toBeVisible\"",
+            "Screenshot",
+            "Attach \"maintenance-after-reload\"",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "expected visible Week N / Active cap label before advance",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Expect \"toContainText\"",
+            "Unexpected browser errors:\n",
+            "After Hooks"
+          ],
+          "attachments": [
+            {
+              "name": "maintenance-first-week",
+              "contentType": "text/plain",
+              "body": "FIELD NOTES\n\nNOTE CATEGORY\nAll note categories\nIncident response\nPost-incident review\nRecruitment\nSystem\nThe Whispering Archive: deadline lapsed. Escalated to Stage 3. Rewards: Funding -25, Reputation -9, Agency standing -4, Faction -8.\nThe Whispering Archive: Converted to multi-team operation.\nParty cards drawn: 3.\nThe Whispering Archive: 1 follow-up operation(s) opened.\nThe Whispering Archive: 1 follow-up operation(s) opened.\nRecruitment pipeline generated 4 candidate(s).\nThe Whispering Archive / Raid spillover: 1 follow-up operation(s) opened.\nEquipment maintenance recovered 2 item(s); 3 item(s) remain delayed.\nMarket shift: Stable conditions. Featured fabrication Ritual Components.\nAcademic Institutions: standing -5 after The Whispering Archive.\nBlack Budget Programs: standing -3 after The Whispering Archive.\nAgency posture updated: containment 72% -> 61%, funding $110 -> $53.\nWeek 1 — Public-display upkeep maintained (funding 93 covered weekly operating cost 40; facility display slice 8); no ranking penalty.\nPost-incident follow-on — Near-catastrophe threshold review — The Whispering Archive: recommendation stub (near catastrophe case 002).\nPost-incident closeout reward — Near-catastrophe threshold review — The Whispering Archive: funding credit (threshold mitigation)."
+            },
+            {
+              "name": "maintenance-after-reload",
+              "contentType": "image/png",
+              "path": "data/3018778880e5684a986e3c96c1fe1da192fc1238.png"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "file": "support-campaigns.spec.ts",
+      "title": "support shortage explains a partial result and preserves its explanation after reload",
+      "outcome": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 7236,
+          "steps": [
+            "Before Hooks",
+            "Navigate",
+            "Evaluate",
+            "Reload",
+            "Evaluate",
+            "Reload",
+            "Expect \"toBeVisible\"",
+            "Expect \"toBeVisible\"",
+            "expected visible Week N / Active cap label before advance",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Expect \"toHaveCount\"",
+            "Expect \"toContainText\"",
+            "Expect \"toBeVisible\"",
+            "Evaluate",
+            "Attach \"support-shortfall-first-week\"",
+            "Reload",
+            "Expect \"toContainText\"",
+            "Expect \"toContainText\"",
+            "Evaluate",
+            "Expect \"toEqual\"",
+            "Screenshot",
+            "Attach \"support-explanation-after-reload\"",
+            "Click",
+            "Expect \"toBeVisible\"",
+            "Unexpected browser errors:\n",
+            "After Hooks"
+          ],
+          "attachments": [
+            {
+              "name": "support-shortfall-first-week",
+              "contentType": "application/json",
+              "body": "{\n  \"explanation\": \"The Whispering Archive: support shortfall reduced operational coverage.\",\n  \"reasons\": [\n    \"Containment specialist present: +2 containment bonus.\",\n    \"Leader bonus: 1.9 (x1.003)\",\n    \"Synergy: 4.0 (Occult Anchor, Liaison Screen)\",\n    \"Readiness: 33.4\",\n    \"Chemistry: 0.8\",\n    \"Support specialist substituted into scouting: -2 scouting penalty.\",\n    \"Recon sweep: +0.1 (0/1 hidden factors revealed)\",\n    \"Delta=717.8 (threshold)\",\n    \"Support shortfall: degraded to partial.\",\n    \"Detection readout: contact detected.\",\n    \"+3 agency standing: routine danger, partially completed, x1.00 commitment, x1.00 repeat normalization.\",\n    \"Operation value 11.6 came from difficulty, escalation pressure, duration, and deadline pressure.\",\n    \"Investigation-heavy incident routing applies the deterministic reward table for this incident family.\",\n    \"Standing modifiers applied from Academic Institutions (+0.00).\",\n    \"Funding +6, containment +2, reputation +2.\",\n    \"No inventory rewards generated for this outcome.\",\n    \"Faction standing: Academic Institutions +1.\",\n    \"Green Tape fatigue +3 (1 -> 4).\",\n    \"Case escalated to stage 2.\"\n  ]\n}"
+            },
+            {
+              "name": "support-explanation-after-reload",
+              "contentType": "image/png",
+              "path": "data/da573a9fa936d78f74d73f82bc81f8f6fd564564.png"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "inspection": {
+    "connectedReplay": "The attached seed-1337 outcomes match byte for byte. The executed test checks reload equality in each of two fresh contexts and reaches Week 3.",
+    "maintenanceScreenshot": "Inspected: Equipment maintenance recovered 2 item(s); 3 item(s) remain delayed. Other incident notes also appear.",
+    "supportScreenshot": "Inspected: Partial cases includes Support shortfall: degraded to partial. The snapshot metadata also says Resolved after hydration; this known limitation remains outside the asserted contract.",
+    "limits": "Visible output and selected carryover only; no full-state replay, whole-report equality, human comprehension, fresh-player import journey, or recovering-agent return-to-duty claim.",
+    "errorProbeInterpretation": "Unexpected browser errors:\\n is the custom assertion message supplied by expectNoPageErrors at e2e/support/cpApp.ts:305-309. The helper asserts probe.errors equals []; the text is shown as a successful Playwright assertion step when empty. It is not evidence of a swallowed browser error. The deliberately injected harness-isolation error belongs to its separate detection test.",
+    "errorProbeSource": "https://github.com/JamesJedi420/containment-protocol/blob/de3f1eb6caa90be0b87d5e20297dd3d190500e0a/e2e/support/cpApp.ts#L305"
+  }
+}

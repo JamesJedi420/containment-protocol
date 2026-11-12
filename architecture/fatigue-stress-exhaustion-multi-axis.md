@@ -6,14 +6,14 @@
 
 ## Recommended channels (bounded set)
 
-| Channel | Typical drivers and downstream effects |
-| --- | --- |
-| **Physical exhaustion** | March, carry, injury recovery, environmental exposure → readiness floor, movement denial risk |
-| **Mental exhaustion** | Planning overload, hypervigilance, sleepless ops weeks → briefing quality, mistake rates |
-| **Combat stress** | Sustained violence, moral injury adjacent to combat clocks → cohesion, SPE-115 peril adjacency |
-| **Overtesting / over-interrogation strain** | Repeated audits, polygraph loops, ritual probes → intel false positives, refusal (SPE-56) |
-| **Overdrive debt** | Short boosts that must be paid with recovery weeks or medical load → delayed collapse |
-| **Transit vulnerability** | Fatigue opens ambush, seasickness, or exposure windows during movement → see `architecture/pursuit-chase-transit-hazards.md` |
+| Channel                                     | Typical drivers and downstream effects                                                                                       |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Physical exhaustion**                     | March, carry, injury recovery, environmental exposure → readiness floor, movement denial risk                                |
+| **Mental exhaustion**                       | Planning overload, hypervigilance, sleepless ops weeks → briefing quality, mistake rates                                     |
+| **Combat stress**                           | Sustained violence, moral injury adjacent to combat clocks → cohesion, SPE-115 peril adjacency                               |
+| **Overtesting / over-interrogation strain** | Repeated audits, polygraph loops, ritual probes → intel false positives, refusal (SPE-56)                                    |
+| **Overdrive debt**                          | Short boosts that must be paid with recovery weeks or medical load → delayed collapse                                        |
+| **Transit vulnerability**                   | Fatigue opens ambush, seasickness, or exposure windows during movement → see `architecture/pursuit-chase-transit-hazards.md` |
 
 Author only the subset the campaign needs; unused channels stay inert.
 
@@ -26,6 +26,20 @@ Surface **visible bands** (e.g., fresh / strained / depleted / critical) per cha
 Responder energy is a sibling accounting layer that sits before fatigue accumulation. It tracks compact operational reserve bands (`stable`, `taxed`, `depleted`, `overdrawn`), deterministic duty-cost classes, and bounded estimate confidence. Baseline upkeep is charged even when a responder is idle; idle upkeep stays a flat floor while heavier duties resolve through relative exertion so conditioning, injury, and current reserve state can make the same task cheaper or more expensive for different responders.
 
 This layer does not replace the SPE-130 channels. When reserve is overdrawn, the budget converts explicit exertion debt into `physicalExhaustion` so downstream readiness and recovery systems consume the burden through the existing fatigue surfaces.
+
+## Combat Stim emergency overdrive (SPE-2829)
+
+An authorized two-dose Combat Stim instance can apply the existing one-phase SPE-130 overdrive to
+its equipped responder during a critical operation. It does not restore or rewrite the responder's
+energy budget. Instead, consumers resolve a temporary one-band effective projection:
+`overdrawn → depleted` or `depleted → taxed`. Existing casualty-resolution overdrive protection is
+the immediate tactical consumer.
+
+Combat Stim provenance records the activation, equipment instance, and case on the existing
+overdrive state. Week close expires the effect after mission resolution. The existing two-tick
+overdrive debt then applies its physical, mental, and combat-stress deltas before missions on the
+following two week closes. This path adds no responder-energy `exertionDebt`; provenance clears when
+the fatigue debt reaches zero.
 
 ## Recovery
 

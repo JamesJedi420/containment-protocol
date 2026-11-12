@@ -1,0 +1,17 @@
+{
+  "kind": "course",
+  "records": [
+    {
+      "id": "course-a",
+      "displayName": "A",
+      "prerequisites": ["course-b"],
+      "moduleRefs": []
+    },
+    {
+      "id": "course-b",
+      "displayName": "B",
+      "prerequisites": ["course-a"],
+      "moduleRefs": []
+    }
+  ]
+}

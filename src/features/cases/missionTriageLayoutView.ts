@@ -148,7 +148,34 @@ export function buildMissionTriageListRowChips(
 
   appendUrgencyListRowChips(chips, view)
 
+  for (const marker of view.intakeSignals.markers) {
+    pushListRowChip(chips, {
+      id: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
+  for (const marker of view.modalitySignals.markers) {
+    pushListRowChip(chips, {
+      id: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
   for (const marker of view.covertPrepSignals.markers) {
+    pushListRowChip(chips, {
+      id: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
+  for (const marker of view.closeoutRewardPayoutSignals.markers) {
     pushListRowChip(chips, {
       id: marker.id,
       label: marker.label,

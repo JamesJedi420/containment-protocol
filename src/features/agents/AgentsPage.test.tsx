@@ -60,7 +60,10 @@ it('filters the roster and links into agent detail', async () => {
   ]
 
   game.teams.t_nightwatch.agentIds = [primaryAgent.id]
-  game.teams.t_nightwatch.assignedCaseId = 'case-001'
+  game.teams.t_nightwatch.status = {
+    ...(game.teams.t_nightwatch.status ?? { state: 'deployed', assignedCaseId: null }),
+    assignedCaseId: 'case-001',
+  }
 
   primaryAgent.status = 'active'
   primaryAgent.fatigue = 10

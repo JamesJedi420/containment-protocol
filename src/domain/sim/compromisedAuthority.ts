@@ -12,10 +12,95 @@ import type {
 import type {
   CaseTemplate,
   CompromisedAuthorityState,
+  CompromisedOfficialRole,
   CompromisedResponseCategory,
   CompromisedResponseOverride,
   CorruptionDepth,
+  FactionRuntimeState,
+  GameState,
 } from '../models'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const COMPROMISED_OFFICIAL_ROLES = new Set<CompromisedOfficialRole>([
+  'sheriff',
+  'magistrate',
+  'watchCommander',
+  'inquisitor',
+])
+
+const CORRUPTION_DEPTHS = new Set<CorruptionDepth>(['shallow_cover', 'embedded_control'])
+
+const COMPROMISED_RESPONSE_CATEGORIES = new Set<CompromisedResponseCategory>([
+  'patrol',
+  'interrogation',
+  'custody',
+  'evidence',
+])
+
+/**
+ * Hydration problem 469: enums, faction ref, patrol count.
+ */
+export function sanitizeCompromisedAuthorityState(
+  raw: unknown,
+  factions: Record<string, FactionRuntimeState> | undefined
+): CompromisedAuthorityState | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const officialRole = COMPROMISED_OFFICIAL_ROLES.has(raw.officialRole as CompromisedOfficialRole)
+    ? (raw.officialRole as CompromisedOfficialRole)
+    : undefined
+
+  const corruptionDepth = CORRUPTION_DEPTHS.has(raw.corruptionDepth as CorruptionDepth)
+    ? (raw.corruptionDepth as CorruptionDepth)
+    : undefined
+
+  const benefittingFactionId =
+    typeof raw.benefittingFactionId === 'string' && raw.benefittingFactionId.trim().length > 0
+      ? raw.benefittingFactionId.trim()
+      : undefined
+
+  if (!officialRole || !corruptionDepth || !benefittingFactionId) {
+    return undefined
+  }
+
+  if (factions && !(benefittingFactionId in factions)) {
+    return undefined
+  }
+
+  const distortedCategories = Array.isArray(raw.distortedCategories)
+    ? [
+        ...new Set(
+          raw.distortedCategories.filter(
+            (entry): entry is CompromisedResponseCategory =>
+              typeof entry === 'string' &&
+              COMPROMISED_RESPONSE_CATEGORIES.has(entry as CompromisedResponseCategory)
+          )
+        ),
+      ]
+    : []
+
+  const patrolAnomalyCount =
+    typeof raw.patrolAnomalyCount === 'number' && Number.isFinite(raw.patrolAnomalyCount)
+      ? Math.max(0, Math.trunc(raw.patrolAnomalyCount))
+      : 0
+
+  const authorityLinkEvidenceFound =
+    raw.authorityLinkEvidenceFound === true ? true : undefined
+
+  return {
+    officialRole,
+    benefittingFactionId,
+    distortedCategories,
+    corruptionDepth,
+    patrolAnomalyCount,
+    ...(authorityLinkEvidenceFound ? { authorityLinkEvidenceFound } : {}),
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Threshold constants
@@ -34,6 +119,63 @@ const TIER_ORDER: BeliefTier[] = ['clear', 'uncertain', 'suspected', 'condemned'
 function escalateTier(tier: BeliefTier): BeliefTier {
   const idx = TIER_ORDER.indexOf(tier)
   return TIER_ORDER[Math.min(idx + 1, TIER_ORDER.length - 1)]
+}
+
+// ---------------------------------------------------------------------------
+// Procurement diversion (SPE-2322)
+// ---------------------------------------------------------------------------
+
+const OFFICE_MEDIATED_DIVERSION_ROLES = new Set<CompromisedOfficialRole>([
+  'magistrate',
+  'watchCommander',
+])
+
+export type ProcurementCorruptionRoutingReason = 'office-mediated-diversion'
+
+export interface ProcurementCorruptionRoutingAssessment {
+  active: boolean
+  reasons: ProcurementCorruptionRoutingReason[]
+  officialRole?: CompromisedOfficialRole
+  benefittingFactionId?: string
+}
+
+/**
+ * Office-mediated diversion: compromised office holder distorts evidence routing,
+ * which diverts supplier roster attention away from one calibrated listing.
+ */
+export function assessCompromisedAuthorityProcurementDiversion(
+  game: Pick<GameState, 'compromisedAuthority'>
+): ProcurementCorruptionRoutingAssessment {
+  const authority = game.compromisedAuthority
+  if (!authority) {
+    return { active: false, reasons: [] }
+  }
+
+  const reasons: ProcurementCorruptionRoutingReason[] = []
+  if (
+    OFFICE_MEDIATED_DIVERSION_ROLES.has(authority.officialRole) &&
+    authority.distortedCategories.includes('evidence')
+  ) {
+    reasons.push('office-mediated-diversion')
+  }
+
+  return {
+    active: reasons.length > 0,
+    reasons,
+    ...(reasons.length > 0
+      ? {
+          officialRole: authority.officialRole,
+          benefittingFactionId: authority.benefittingFactionId,
+        }
+      : {}),
+  }
+}
+
+/** Lightweight signal for funding.ts (avoid importing market). */
+export function hasCompromisedAuthorityProcurementDiversionSignals(
+  game: Pick<GameState, 'compromisedAuthority'>
+): boolean {
+  return assessCompromisedAuthorityProcurementDiversion(game).active
 }
 
 // ---------------------------------------------------------------------------

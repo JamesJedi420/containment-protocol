@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { clamp, sigmoid } from '../domain/math'
+import { createStarterAgent } from '../domain/templates/classTables'
 import {
   computeRequiredScore,
   computeTeamScore,
@@ -13,6 +14,19 @@ import {
   previewResolutionForTeamIds as previewResolutionForTeamIdsFromPreview,
   resolveCase,
 } from '../domain/sim/resolve'
+
+function makeHighCombatProbabilityAgent() {
+  return createStarterAgent({
+    id: 'agent-test',
+    name: 'Agent Test',
+    role: 'hunter',
+    baseStats: { combat: 151, investigation: 0, utility: 0, social: 0 },
+    tags: [],
+    relationships: {},
+    fatigue: 0,
+    status: 'active',
+  })
+}
 import { resolveRaid } from '../domain/sim/raid'
 import { playPartyCard } from '../domain/partyCards/engine'
 import type { Agent, CaseInstance, DomainStats, GameState, Id } from '../domain/models'
@@ -410,16 +424,7 @@ describe('resolveCase', () => {
     const state = createStartingState()
 
     state.agents = {
-      'agent-test': {
-        id: 'agent-test',
-        name: 'Agent Test',
-        role: 'hunter',
-        baseStats: { combat: 140, investigation: 0, utility: 0, social: 0 },
-        tags: [],
-        relationships: {},
-        fatigue: 0,
-        status: 'active',
-      },
+      'agent-test': makeHighCombatProbabilityAgent(),
     }
 
     state.teams = {
@@ -465,16 +470,7 @@ describe('resolveCase', () => {
     const state = createStartingState()
 
     state.agents = {
-      'agent-test': {
-        id: 'agent-test',
-        name: 'Agent Test',
-        role: 'hunter',
-        baseStats: { combat: 140, investigation: 0, utility: 0, social: 0 },
-        tags: [],
-        relationships: {},
-        fatigue: 0,
-        status: 'active',
-      },
+      'agent-test': makeHighCombatProbabilityAgent(),
     }
 
     state.teams = {
@@ -1680,16 +1676,7 @@ describe('estimateOutcomeOdds', () => {
     const state = createStartingState()
 
     state.agents = {
-      'agent-test': {
-        id: 'agent-test',
-        name: 'Agent Test',
-        role: 'hunter',
-        baseStats: { combat: 140, investigation: 0, utility: 0, social: 0 },
-        tags: [],
-        relationships: {},
-        fatigue: 0,
-        status: 'active',
-      },
+      'agent-test': makeHighCombatProbabilityAgent(),
     }
 
     state.teams = {

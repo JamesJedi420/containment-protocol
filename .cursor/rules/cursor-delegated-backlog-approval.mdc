@@ -1,0 +1,19 @@
+---
+description: Optional Cursor work-selection heuristics (not a ChatGPT approval gate)
+alwaysApply: true
+---
+
+# Cursor work selection (delegated heuristics)
+
+Canonical Cursor authority: **`docs/cursor-autonomous-authority.md`**.
+
+`docs/cursor-delegated-backlog-approval.md` remains useful **selection heuristics** (clean main, resume In Progress, prefer non-umbrella children, audit comment shape). It is **not** a ChatGPT Phase gate and does **not** forbid creating Linear issues when durable scope is justified under autonomous-authority safeguards.
+
+When continuing without a named slice:
+
+1. Clean main; no open PR.
+2. Resume sole In Progress slice if present.
+3. Else pick an eligible existing issue **or** create a bounded issue when safeguards justify it.
+4. Set In Progress; record rationale in Linear; implement under `implementation-lite.mdc`.
+
+Never select a parent umbrella (including SPE-1052) as the sole coding slice when children remain the real boundary.

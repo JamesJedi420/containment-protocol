@@ -1,0 +1,79 @@
+{
+  "taskId": "cp-simulation-experiment",
+  "runId": "run_06gptqivct049ghrindpb9ava2",
+  "version": "spe-3521.v1",
+  "commit": "78aa6c874c5989d665335c24f2ef263c20d090d0",
+  "status": "success",
+  "requestedSeeds": [11, 22],
+  "executedSeeds": [11, 22],
+  "results": [
+    {
+      "requestedSeed": 11,
+      "executedSeed": 11,
+      "weeksExecuted": 2,
+      "finalWeek": 3,
+      "gameOver": false,
+      "rngState": 1831298345,
+      "pressure": {
+        "unresolvedCaseCount": 7,
+        "attritionPressureCount": 0,
+        "budgetPressure": 3,
+        "escalationBurden": 4,
+        "intelConfidence": 0.97,
+        "pressureScores": {
+          "case-load": 1,
+          "escalation": 0.33,
+          "budget": 1,
+          "attrition": 0,
+          "intel": 0.04
+        },
+        "dominantPressureSource": "budget",
+        "dominantFactor": "budget"
+      },
+      "stateFingerprint": "9b9574cc947a8c88ab679ffc1cffcde3f7505e5c7097544eb11ff798946fe4b2",
+      "replayFingerprint": "9b9574cc947a8c88ab679ffc1cffcde3f7505e5c7097544eb11ff798946fe4b2",
+      "replay": "matched"
+    },
+    {
+      "requestedSeed": 22,
+      "executedSeed": 22,
+      "weeksExecuted": 2,
+      "finalWeek": 3,
+      "gameOver": true,
+      "rngState": 1435622196,
+      "pressure": {
+        "unresolvedCaseCount": 9,
+        "attritionPressureCount": 0,
+        "budgetPressure": 3,
+        "escalationBurden": 4,
+        "intelConfidence": 0.98,
+        "pressureScores": {
+          "case-load": 1.29,
+          "escalation": 0.33,
+          "budget": 1,
+          "attrition": 0,
+          "intel": 0.03
+        },
+        "dominantPressureSource": "case-load",
+        "dominantFactor": "case-load"
+      },
+      "stateFingerprint": "ae4650540de3653ae5ea3bb6acf87f4aff0c15b36ba23b48944526f3573df729",
+      "replayFingerprint": "ae4650540de3653ae5ea3bb6acf87f4aff0c15b36ba23b48944526f3573df729",
+      "replay": "matched"
+    }
+  ],
+  "replayScope": "same-commit-full-state-only",
+  "scopedReplay": "unavailable-SPE-3162",
+  "request": {
+    "fixture": "starter-no-commands",
+    "version": "spe-3521.v1",
+    "commit": "78aa6c874c5989d665335c24f2ef263c20d090d0",
+    "seeds": [11, 22],
+    "weeks": 2,
+    "budgetMs": 30000,
+    "concurrency": 1,
+    "maxAttempts": 1,
+    "replay": "same-commit"
+  },
+  "idempotencyKey": "cp-experiment:4c059d13f7abf05944085bf5a906be7588a6235811029b2721b7ccf1836cdb0a"
+}

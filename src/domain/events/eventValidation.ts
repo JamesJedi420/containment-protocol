@@ -1,10 +1,70 @@
 // Zod schemas for OperationEvent payloads and event validation utilities.
 import { z } from 'zod'
+import { getProductionRecipe, productionMaterialCatalog } from '../../data/production'
+import { getEquipmentDeconstructionProfile } from '../../data/equipmentDeconstruction'
+import { getEquipmentDefinition } from '../equipment'
+import { getEquipmentGradeCatalogParticipation } from '../equipmentGradeCatalog'
+import { getCanonicalMarketCostMultiplier, sanitizeFeaturedRecipeId } from '../market'
+import {
+  getEmergencyWaiverFalloutPrecedentPenaltyMultiplier,
+  getEmergencyWaiverFalloutStandingPenaltyScale,
+} from '../procurementEmergencyFallout'
+import { normalizeInstitutionKeyForAudit } from '../procurementEmergencyInstitution'
+import { getLevelForXp } from '../progression'
+import { createInitialFactionState, FACTION_DEFINITIONS } from '../factions'
+import { EXACT_POTENTIAL_TIERS } from '../agentPotential'
+import { getWeeklyDirectiveDefinition, isWeeklyDirectiveId } from '../directives'
+import { CASE_KINDS, CASE_MODES } from '../models'
+import { EQUIPMENT_GRADE_IDS } from '../equipmentGrade'
+import { EQUIPMENT_AUTO_SCRAP_REASON_CODES } from '../equipmentAutoScrapReasonCodes'
+import { EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES } from '../equipmentGradeFabrication'
+import {
+  CONTAINMENT_CLASS_IDS,
+  getContainmentClassCadenceSpec,
+  isContainmentClassId,
+} from '../containmentClassInspection'
+import {
+  BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+  INTERLOCK_INTEGRITY_LABOR_STATION_ID,
+  PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+  eligibleClassIdForIntegrityLaborStation,
+  isIntegrityLaborStationId,
+} from '../equipmentStationMutation'
+import {
+  CONTAINMENT_BARRIER_ZONE_IDS,
+  zoneIdForContainmentClass,
+} from '../containmentBarrierIntegrity'
 import type { OperationEventType } from './types'
 
 const idSchema = z.string().min(1)
+const equipmentInstanceIdSchema = z
+  .string()
+  .regex(/^[a-z0-9][a-z0-9_-]{0,127}$/)
+  .refine((value) => value !== '__proto__' && value !== 'constructor' && value !== 'prototype')
 const weekSchema = z.number().int().min(1)
-const nonNegativeIntSchema = z.number().int().min(0)
+const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
+const finitePositiveIntSchema = z.number().finite().int().min(1)
+const finiteNonNegativeNumberSchema = z.number().finite().min(0)
+const finiteNumberSchema = z.number().finite()
+const finiteChemistryValueSchema = z.number().finite().min(-2).max(2)
+const factionStandingValueSchema = z.number().finite().int().min(-20).max(20)
+const factionReputationValueSchema = z.number().finite().int().min(-100).max(100)
+const containmentClassIdSchema = z.enum(CONTAINMENT_CLASS_IDS)
+const containmentCompensatingControlIdSchema = z.enum([
+  'secondary_interlock_watch',
+  'backup_gasket_watch',
+  'dual_circuit_watch',
+])
+const trimmedNonblankTextSchema = z
+  .string()
+  .min(1)
+  .refine((value) => value === value.trim(), {
+    message: 'must be a trimmed nonblank string',
+  })
+const caseModeSchema = z.enum(CASE_MODES)
+const caseKindSchema = z.enum(CASE_KINDS)
+const caseStageSchema = finitePositiveIntSchema
+const caseTeamIdsSchema = z.array(idSchema).transform((teamIds) => [...new Set(teamIds)])
 const relationshipReasonSchema = z.enum([
   'mission_success',
   'mission_partial',
@@ -15,8 +75,21 @@ const relationshipReasonSchema = z.enum([
   'spontaneous_event',
   'betrayal',
 ])
+const knownFactionDefinitionsById = new Map(
+  FACTION_DEFINITIONS.map((faction) => [faction.id, faction] as const)
+)
+const knownFactionContactsByFactionId = new Map(
+  Object.entries(createInitialFactionState()).map(([factionId, faction]) => [
+    factionId,
+    new Map((faction.contacts ?? []).map((contact) => [contact.id, contact] as const)),
+  ])
+)
+const factionIdSchema = idSchema.refine((factionId) => knownFactionDefinitionsById.has(factionId), {
+  message: 'factionId must reference a known faction',
+})
 
 const scoutingConfidenceSchema = z.enum(['low', 'medium', 'high', 'confirmed'])
+const potentialTierSchema = z.enum(EXACT_POTENTIAL_TIERS)
 const externalChemistryConsequenceSchema = z.enum([
   'benching',
   'performance_penalty',
@@ -40,8 +113,17 @@ const assignmentTeamAssignedSchema = z
     caseKind: z.string(),
     teamId: idSchema,
     teamName: z.string(),
-    assignedTeamCount: z.number(),
-    maxTeams: z.number(),
+    assignedTeamCount: finiteNonNegativeIntSchema,
+    maxTeams: finitePositiveIntSchema,
+  })
+  .superRefine((payload, context) => {
+    if (payload.assignedTeamCount > payload.maxTeams) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['assignedTeamCount'],
+        message: 'assignedTeamCount must be less than or equal to maxTeams',
+      })
+    }
   })
   .strict()
 
@@ -52,7 +134,7 @@ const assignmentTeamUnassignedSchema = z
     caseTitle: z.string(),
     teamId: idSchema,
     teamName: z.string(),
-    remainingTeamCount: z.number(),
+    remainingTeamCount: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -61,10 +143,10 @@ const caseResolvedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    stage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    stage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
@@ -75,44 +157,72 @@ const casePartiallyResolvedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseFailedSchema = z
   .object({
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    mode: z.string(),
-    kind: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
-    teamIds: z.array(idSchema),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
+    teamIds: caseTeamIdsSchema,
     performanceSummary: z.unknown().optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseEscalatedSchema = z
   .object({
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    fromStage: z.number(),
-    toStage: z.number(),
+    fromStage: caseStageSchema,
+    toStage: caseStageSchema,
     trigger: z.enum(['deadline', 'failure']),
-    deadlineRemaining: z.number(),
+    deadlineRemaining: finiteNonNegativeIntSchema,
     convertedToRaid: z.boolean(),
+    neighborhoodPressureAuditTag: trimmedNonblankTextSchema.max(200).optional(),
     rewardBreakdown: z.unknown().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.toStage < payload.fromStage) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['toStage'],
+        message: 'toStage must be greater than or equal to fromStage',
+      })
+    }
+  })
 
 const caseSpawnedSchema = z
   .object({
@@ -121,7 +231,7 @@ const caseSpawnedSchema = z
     caseTitle: z.string(),
     templateId: z.string(),
     kind: z.string(),
-    stage: z.number(),
+    stage: caseStageSchema,
     trigger: z.enum([
       'failure',
       'unresolved',
@@ -130,6 +240,7 @@ const caseSpawnedSchema = z
       'faction_offer',
       'faction_pressure',
       'pressure_threshold',
+      'workshop_unsafe',
     ]),
     parentCaseId: idSchema.optional(),
     parentCaseTitle: z.string().optional(),
@@ -144,12 +255,79 @@ const caseRaidConvertedSchema = z
     week: weekSchema,
     caseId: idSchema,
     caseTitle: z.string(),
-    stage: z.number(),
+    stage: caseStageSchema,
     trigger: z.enum(['deadline', 'failure']),
-    minTeams: z.number(),
-    maxTeams: z.number(),
+    minTeams: finitePositiveIntSchema,
+    maxTeams: finitePositiveIntSchema,
+  })
+  .superRefine((payload, context) => {
+    if (payload.maxTeams < payload.minTeams) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['maxTeams'],
+        message: 'maxTeams must be greater than or equal to minTeams',
+      })
+    }
   })
   .strict()
+
+const caseAggregateBattleSchema = z
+  .object({
+    week: weekSchema,
+    caseId: idSchema,
+    caseTitle: z.string(),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    battleId: idSchema,
+    roundsResolved: finiteNonNegativeIntSchema,
+    winnerSideId: idSchema.nullable(),
+    winnerLabel: z.string().min(1).nullable(),
+    friendlyLabel: z.string().min(1),
+    hostileLabel: z.string().min(1),
+    movementDeniedCount: finiteNonNegativeIntSchema,
+    friendlyRoutedCount: finiteNonNegativeIntSchema,
+    hostileRoutedCount: finiteNonNegativeIntSchema,
+    friendlyRoutedUnits: z.array(idSchema),
+    hostileRoutedUnits: z.array(idSchema),
+    specialDamageCount: finiteNonNegativeIntSchema,
+    specialDamage: z.array(z.string().min(1)),
+    parallelObjectiveId: idSchema.optional(),
+    parallelObjectiveOutcome: z.enum(['success', 'partial', 'fail']).optional(),
+    parallelObjectiveProgress: z.string().min(1).optional(),
+    extractionRequired: z.boolean().optional(),
+    extractionOutcome: z.enum(['not_required', 'secured', 'contested', 'overrun']).optional(),
+    extractionPressure: z.enum(['low', 'medium', 'high']).optional(),
+    extractionResidualThreatUnits: finiteNonNegativeIntSchema.optional(),
+    ceasefireApplied: z.boolean().optional(),
+    ceasefireObjectiveId: idSchema.optional(),
+    ceasefireTacticalValue: z.enum(['temporary_manpower', 'specialist_knowledge']).optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.friendlyRoutedCount !== payload.friendlyRoutedUnits.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'friendlyRoutedCount must match friendlyRoutedUnits length',
+        path: ['friendlyRoutedCount'],
+      })
+    }
+
+    if (payload.hostileRoutedCount !== payload.hostileRoutedUnits.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'hostileRoutedCount must match hostileRoutedUnits length',
+        path: ['hostileRoutedCount'],
+      })
+    }
+
+    if (payload.specialDamageCount !== payload.specialDamage.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'specialDamageCount must match specialDamage length',
+        path: ['specialDamageCount'],
+      })
+    }
+  })
 
 const intelReportGeneratedSchema = z
   .object({
@@ -164,17 +342,23 @@ const intelReportGeneratedSchema = z
   })
   .strict()
 
+const trimmedNonblankStringSchema = z
+  .string()
+  .refine((value) => value.length > 0 && value === value.trim(), {
+    message: 'must be a trimmed nonblank string',
+  })
+
 const agentTrainingStartedSchema = z
   .object({
     week: weekSchema,
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
     teamName: z.string().optional(),
-    etaWeeks: z.number(),
-    fundingCost: z.number(),
+    etaWeeks: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -184,8 +368,8 @@ const agentTrainingCompletedSchema = z
     queueId: idSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
   })
   .strict()
 
@@ -194,9 +378,9 @@ const agentTrainingCancelledSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    trainingId: z.string(),
-    trainingName: z.string(),
-    refund: z.number(),
+    trainingId: trimmedNonblankStringSchema,
+    trainingName: trimmedNonblankStringSchema,
+    refund: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -207,36 +391,40 @@ const agentRelationshipChangedSchema = z
     agentName: z.string(),
     counterpartId: idSchema,
     counterpartName: z.string(),
-    previousValue: z.number(),
-    nextValue: z.number(),
-    delta: z.number(),
+    previousValue: finiteChemistryValueSchema,
+    nextValue: finiteChemistryValueSchema,
+    delta: finiteNumberSchema,
     reason: relationshipReasonSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    const expectedDelta = Math.round((payload.nextValue - payload.previousValue) * 100) / 100
 
-const agentInstructorAssignedSchema = z
+    if (payload.delta !== expectedDelta) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'delta must equal nextValue - previousValue (rounded to two decimals)',
+        path: ['delta'],
+      })
+    }
+  })
+
+const instructorSpecialtySchema = z.enum(['combat', 'investigation', 'utility', 'social'])
+
+const agentInstructorAssignmentFieldsSchema = z
   .object({
     week: weekSchema,
     staffId: idSchema,
     instructorName: z.string(),
     agentId: idSchema,
     agentName: z.string(),
-    instructorSpecialty: z.string(),
-    bonus: z.number(),
+    instructorSpecialty: instructorSpecialtySchema,
+    bonus: finiteNonNegativeIntSchema,
   })
   .strict()
 
-const agentInstructorUnassignedSchema = z
-  .object({
-    week: weekSchema,
-    staffId: idSchema,
-    instructorName: z.string(),
-    agentId: idSchema,
-    agentName: z.string(),
-    instructorSpecialty: z.string(),
-    bonus: z.number(),
-  })
-  .strict()
+const agentInstructorAssignedSchema = agentInstructorAssignmentFieldsSchema
+const agentInstructorUnassignedSchema = agentInstructorAssignmentFieldsSchema
 
 const agentInjuredSchema = z
   .object({
@@ -264,11 +452,20 @@ const agentBetrayedSchema = z
     betrayerName: z.string(),
     betrayedId: idSchema,
     betrayedName: z.string(),
-    trustDamageDelta: z.number(),
-    trustDamageTotal: z.number(),
+    trustDamageDelta: finiteNonNegativeNumberSchema,
+    trustDamageTotal: finiteNonNegativeNumberSchema,
     triggeredConsequences: z.array(externalChemistryConsequenceSchema),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.trustDamageTotal < payload.trustDamageDelta) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'trustDamageTotal must be greater than or equal to trustDamageDelta',
+        path: ['trustDamageTotal'],
+      })
+    }
+  })
 
 const agentResignedSchema = z
   .object({
@@ -286,13 +483,34 @@ const agentPromotedSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    newRole: z.string(),
-    previousLevel: z.number(),
-    newLevel: z.number(),
-    levelsGained: z.number(),
-    skillPointsGranted: z.number(),
+    newRole: z.string().refine((value) => value.length > 0 && value === value.trim(), {
+      message: 'newRole must be a trimmed nonblank string',
+    }),
+    previousLevel: finitePositiveIntSchema,
+    newLevel: finitePositiveIntSchema,
+    levelsGained: finiteNonNegativeIntSchema,
+    skillPointsGranted: finiteNonNegativeIntSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.newLevel < payload.previousLevel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'newLevel must be greater than or equal to previousLevel',
+        path: ['newLevel'],
+      })
+      return
+    }
+
+    const expectedLevelsGained = payload.newLevel - payload.previousLevel
+    if (payload.levelsGained !== expectedLevelsGained) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `levelsGained must equal newLevel - previousLevel (${expectedLevelsGained})`,
+        path: ['levelsGained'],
+      })
+    }
+  })
 
 const agentHiredSchema = z
   .object({
@@ -313,18 +531,59 @@ const progressionXpGainedSchema = z
     week: weekSchema,
     agentId: idSchema,
     agentName: z.string(),
-    xpAmount: z.number(),
-    reason: z.string(),
-    totalXp: z.number(),
-    level: z.number(),
-    levelsGained: z.number(),
+    xpAmount: finiteNonNegativeIntSchema,
+    reason: z.string().refine((value) => value.length > 0 && value === value.trim(), {
+      message: 'reason must be a trimmed nonblank string',
+    }),
+    totalXp: finiteNonNegativeIntSchema,
+    level: z.number().finite().int().min(1),
+    levelsGained: finiteNonNegativeIntSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.totalXp < payload.xpAmount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalXp must be greater than or equal to xpAmount',
+        path: ['totalXp'],
+      })
+      return
+    }
+
+    const derivedLevel = getLevelForXp(payload.totalXp)
+    if (payload.level !== derivedLevel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `level must equal getLevelForXp(totalXp) (${derivedLevel})`,
+        path: ['level'],
+      })
+    }
+
+    const previousTotalXp = payload.totalXp - payload.xpAmount
+    const expectedLevelsGained = derivedLevel - getLevelForXp(previousTotalXp)
+    if (payload.levelsGained !== expectedLevelsGained) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `levelsGained must equal derived level delta (${expectedLevelsGained})`,
+        path: ['levelsGained'],
+      })
+    }
+  })
 
 const systemRecruitmentExpiredSchema = z
   .object({
     week: weekSchema,
     count: z.number(),
+  })
+  .strict()
+
+const recruitmentCandidateDepartedSchema = z
+  .object({
+    week: weekSchema,
+    candidateId: z.string().min(1),
+    candidateName: z.string().min(1),
+    reason: z.enum(['expired_from_consideration', 'unknown_departure']),
+    destination: z.string().min(1).optional(),
   })
   .strict()
 
@@ -347,20 +606,79 @@ const recruitmentScoutingSchema = z
     week: weekSchema,
     candidateId: idSchema,
     candidateName: z.string(),
-    fundingCost: z.number(),
+    fundingCost: finiteNonNegativeIntSchema,
     stage: z.number().int().min(1).max(3),
-    projectedTier: z.string(),
+    projectedTier: potentialTierSchema,
     confidence: scoutingConfidenceSchema,
-    previousProjectedTier: z.string().optional(),
+    previousProjectedTier: potentialTierSchema.optional(),
     previousConfidence: scoutingConfidenceSchema.optional(),
-    confirmedTier: z.string().optional(),
-    revealLevel: z.number(),
+    confirmedTier: potentialTierSchema.optional(),
+    revealLevel: z.number().finite().int().min(0).max(2),
     sourceFactionId: z.string().optional(),
     sourceFactionName: z.string().optional(),
     sourceContactId: z.string().optional(),
     sourceContactName: z.string().optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.stage === 1 && payload.revealLevel < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['revealLevel'],
+        message: 'revealLevel must be at least 1 when stage is 1',
+      })
+    }
+
+    if (payload.stage >= 2 && payload.revealLevel !== 2) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['revealLevel'],
+        message: 'revealLevel must be 2 when stage is 2 or 3',
+      })
+    }
+  })
+
+const recruitmentIntelConfirmedSchema = recruitmentScoutingSchema.safeExtend({
+  confirmedTier: potentialTierSchema,
+})
+
+/** SPE-2664: catalog recipeId membership + outputId/outputName vs catalog product fields. */
+function refineProductionQueueCatalogMembership(
+  payload: { recipeId: string; outputId: string; outputName: string },
+  context: z.RefinementCtx
+) {
+  // Reuse sanitizeFeaturedRecipeId membership (same PRODUCTION_RECIPE_IDS set as market.shifted).
+  if (sanitizeFeaturedRecipeId(payload.recipeId, payload.recipeId) !== payload.recipeId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'recipeId must be a production catalog recipe id',
+      path: ['recipeId'],
+    })
+    return
+  }
+
+  const recipe = getProductionRecipe(payload.recipeId)
+  if (!recipe) {
+    return
+  }
+
+  // Producer contract: outputId/outputName are catalog outputItemId/outputItemName (not recipe id/name).
+  if (payload.outputId !== recipe.outputItemId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `outputId must match catalog outputItemId for recipeId (${recipe.outputItemId})`,
+      path: ['outputId'],
+    })
+  }
+
+  if (payload.outputName.trim() !== recipe.outputItemName) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `outputName must match catalog outputItemName for recipeId (${recipe.outputItemName})`,
+      path: ['outputName'],
+    })
+  }
+}
 
 const productionQueueStartedSchema = z
   .object({
@@ -370,12 +688,33 @@ const productionQueueStartedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    etaWeeks: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    etaWeeks: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
+    outputGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
+    outputGradeVisibility: z.enum(['known', 'hidden']).optional(),
+    outputGradeExplanationCodes: z
+      .array(z.enum(EQUIPMENT_GRADE_FABRICATION_EXPLANATION_CODES))
+      .min(1)
+      .optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    refineProductionQueueCatalogMembership(payload, context)
+    const gradeFieldCount = [
+      payload.outputGradeId,
+      payload.outputGradeVisibility,
+      payload.outputGradeExplanationCodes,
+    ].filter((value) => value !== undefined).length
+    if (gradeFieldCount !== 0 && gradeFieldCount !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['outputGradeId'],
+        message: 'production grade snapshot fields must be supplied together',
+      })
+    }
+  })
 
 const productionQueueCompletedSchema = z
   .object({
@@ -385,11 +724,887 @@ const productionQueueCompletedSchema = z
     recipeId: z.string(),
     outputId: z.string(),
     outputName: z.string(),
-    outputQuantity: z.number(),
-    fundingCost: z.number(),
+    outputQuantity: finitePositiveIntSchema,
+    fundingCost: finiteNonNegativeIntSchema,
     inputMaterials: z.array(materialRequirementSchema),
+    outputGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    refineProductionQueueCatalogMembership(payload, context)
+  })
+
+const equipmentRecoveryEventShape = {
+  week: weekSchema,
+  queueId: idSchema,
+  itemId: idSchema,
+  itemName: z.string().min(1),
+  pathId: z.enum(['component_reclamation', 'ritual_disassembly']),
+  sourceGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+  sourceFabricationQueueId: idSchema.optional(),
+  sourceEquipmentInstanceId: equipmentInstanceIdSchema.optional(),
+  sourceEquipmentInstanceResourceId: idSchema.optional(),
+  sourceEquipmentInstanceCapacity: finiteNonNegativeIntSchema.optional(),
+  sourceEquipmentInstanceRemaining: finiteNonNegativeIntSchema.optional(),
+  sourceCondition: z.enum(['operational', 'damaged']),
+  outputMaterials: z
+    .array(
+      z
+        .object({
+          materialId: idSchema,
+          materialName: z.string(),
+          quantity: finitePositiveIntSchema,
+        })
+        .strict()
+    )
+    .min(1),
+  wasteQuantity: finiteNonNegativeIntSchema,
+}
+
+function refineEquipmentRecoveryEvent(
+  payload: z.infer<z.ZodObject<typeof equipmentRecoveryEventShape>>,
+  context: z.RefinementCtx
+) {
+  const instanceResourceFields = [
+    payload.sourceEquipmentInstanceResourceId,
+    payload.sourceEquipmentInstanceCapacity,
+    payload.sourceEquipmentInstanceRemaining,
+  ].filter((value) => value !== undefined)
+  if (!payload.sourceEquipmentInstanceId && instanceResourceFields.length > 0) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery instance resource provenance requires an instance ID',
+    })
+  }
+  if (payload.sourceFabricationQueueId && payload.sourceEquipmentInstanceId) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['sourceEquipmentInstanceId'],
+      message: 'recovery cannot claim fabrication and instance provenance together',
+    })
+  }
+  if (payload.sourceEquipmentInstanceId) {
+    const profile = getEquipmentDeconstructionProfile(payload.itemId)
+    const definition = getEquipmentDefinition(payload.itemId)
+    const participation = definition
+      ? getEquipmentGradeCatalogParticipation(definition.gradeProfile)
+      : undefined
+    const hasCanonicalCatalogGrade =
+      participation?.state === 'graded' && payload.sourceGradeId === participation.gradeId
+    const validCombatStimProvenance =
+      payload.itemId === 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'equipment_instance' &&
+      hasCanonicalCatalogGrade &&
+      instanceResourceFields.length === 3 &&
+      payload.sourceEquipmentInstanceResourceId === 'combat_stim_dose' &&
+      payload.sourceEquipmentInstanceCapacity === 2 &&
+      payload.sourceEquipmentInstanceRemaining === 0
+    const validOrdinaryProvenance =
+      payload.itemId !== 'combat_stims' &&
+      profile?.state === 'eligible' &&
+      profile.sourceAuthority === 'aggregate_and_instance' &&
+      instanceResourceFields.length === 0
+    if (!validCombatStimProvenance && !validOrdinaryProvenance) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceEquipmentInstanceId'],
+        message: 'instance recovery provenance does not match its authored source authority',
+      })
+    }
+  }
+  const definition = getEquipmentDefinition(payload.itemId)
+  if (!definition || definition.name !== payload.itemName) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['itemId'],
+      message: 'recovery item must match the equipment catalog',
+    })
+  }
+  const materialIds = new Set(productionMaterialCatalog.map((material) => material.materialId))
+  for (const [index, material] of payload.outputMaterials.entries()) {
+    if (!materialIds.has(material.materialId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['outputMaterials', index, 'materialId'],
+        message: 'recovery output must use a canonical production material',
+      })
+    }
+  }
+}
+
+const equipmentRecoveryStartedSchema = z
+  .object({ ...equipmentRecoveryEventShape, etaWeeks: finitePositiveIntSchema })
+  .strict()
+  .superRefine(refineEquipmentRecoveryEvent)
+const equipmentRecoveryCompletedSchema = z
+  .object(equipmentRecoveryEventShape)
+  .strict()
+  .superRefine(refineEquipmentRecoveryEvent)
+
+const equipmentInstanceMaterializedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    locationState: z.enum(['stored', 'equipped']),
+    agentId: idSchema.optional(),
+    slot: idSchema.optional(),
+    resourceId: idSchema.optional(),
+    capacity: finiteNonNegativeIntSchema.optional(),
+    remaining: finiteNonNegativeIntSchema.optional(),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'materialized instance must reference the equipment catalog',
+      })
+    }
+    const locationFields = [payload.agentId, payload.slot].filter((value) => value !== undefined)
+    if (
+      (payload.locationState === 'equipped' && locationFields.length !== 2) ||
+      (payload.locationState === 'stored' && locationFields.length !== 0)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['locationState'],
+        message: 'materialized location fields must match locationState',
+      })
+    }
+    const payloadFields = [payload.resourceId, payload.capacity, payload.remaining].filter(
+      (value) => value !== undefined
+    )
+    if (payloadFields.length !== 0 && payloadFields.length !== 3) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'materialized resource fields must be supplied together',
+      })
+    }
+    if (
+      payload.capacity !== undefined &&
+      payload.remaining !== undefined &&
+      payload.remaining > payload.capacity
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['remaining'],
+        message: 'materialized remaining resource cannot exceed capacity',
+      })
+    }
+    if (
+      payload.definitionId === 'combat_stims' &&
+      (payload.resourceId !== 'combat_stim_dose' ||
+        payload.capacity !== 2 ||
+        payload.remaining !== 2)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['resourceId'],
+        message: 'Combat Stim materialization must use a 2/2 combat_stim_dose payload',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (fabricationFields.length !== 0 && fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'materialized fabrication provenance fields must be supplied together',
+      })
+    }
+    // SPE-2849: Combat Stim lot materialization carries 2/2 resource fields + all-or-none
+    // fabrication provenance. Ordinary fabricated materialization still forbids resource fields.
+    if (
+      fabricationFields.length === 4 &&
+      payloadFields.length !== 0 &&
+      payload.definitionId !== 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot materialization cannot carry resource payload fields',
+      })
+    }
+  })
+
+const equipmentInstanceDestroyedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    reason: z.enum(['manual_disposal', 'mission_loss', 'mission_injury']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'destroyed instance must reference an ordinary equipment catalog definition',
+      })
+    }
+  })
+
+const equipmentInstanceReaggregatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    condition: z.literal('operational'),
+    reason: z.enum(['manual_untracking', 'fabricated_lot_return']),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (
+      !definition ||
+      definition.name !== payload.definitionName ||
+      payload.definitionId === 'combat_stims'
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 're-aggregated instance must reference an ordinary equipment catalog definition',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (payload.reason === 'manual_untracking') {
+      if (fabricationFields.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fabricationQueueId'],
+          message: 'catalog re-aggregation cannot carry fabricated-lot provenance',
+        })
+      }
+      return
+    }
+    if (fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot return provenance fields must be supplied together',
+      })
+    }
+  })
+
+const equipmentInstanceConditionRepairedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    previousCondition: z.literal('damaged'),
+    condition: z.literal('operational'),
+    reason: z.literal('manual_condition_repair'),
+    repairCost: z.number().int().positive().max(1_000_000).optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'repaired instance must reference a known equipment catalog definition',
+      })
+    }
+  })
+
+function expectedCompensatingControlIdForClass(classId: string): string | undefined {
+  if (!isContainmentClassId(classId)) return undefined
+  return getContainmentClassCadenceSpec(classId)?.compensatingControlId
+}
+
+function refineContainmentClassControlPairing(
+  payload: {
+    classId: string
+    deficiencyKind: 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: string
+    inService: boolean
+  },
+  context: z.RefinementCtx
+) {
+  const expectedControl = expectedCompensatingControlIdForClass(payload.classId)
+  if (payload.deficiencyKind === 'compensating_continue') {
+    if (payload.compensatingControlId !== expectedControl) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'compensating continue requires the authored control for the class',
+      })
+    }
+    if (payload.inService !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'compensating continue remains in-service',
+      })
+    }
+    return
+  }
+  if (payload.compensatingControlId !== undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['compensatingControlId'],
+      message: 'hard-stop cannot carry a compensating control',
+    })
+  }
+  if (payload.inService !== false) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['inService'],
+      message: 'hard-stop is not in-service',
+    })
+  }
+}
+
+const equipmentContainmentClassDeficiencyRecordedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: containmentClassIdSchema,
+    status: z.enum(['due', 'overdue']),
+    intervalWeeks: finitePositiveIntSchema,
+    weeksSinceInspection: finiteNonNegativeIntSchema,
+    deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
+    inService: z.boolean(),
+    reason: z.literal('inspection_cadence_deficiency'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message:
+          'containment deficiency instance must reference a known equipment catalog definition',
+      })
+    }
+    if (payload.status === 'due' && payload.weeksSinceInspection !== payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'due events require weeksSinceInspection to equal intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.weeksSinceInspection <= payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
+      })
+    }
+    refineContainmentClassControlPairing(payload, context)
+  })
+
+const equipmentContainmentClassInspectedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: containmentClassIdSchema,
+    status: z.enum(['due', 'overdue']),
+    previousLastInspectionWeek: finitePositiveIntSchema,
+    lastInspectionWeek: finitePositiveIntSchema,
+    intervalWeeks: finitePositiveIntSchema,
+    weeksSinceInspection: finiteNonNegativeIntSchema,
+    deficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
+    inService: z.boolean(),
+    reason: z.enum(['week_close_auto_advance', 'mid_week_player_inspect']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'containment inspect instance must reference a known equipment catalog definition',
+      })
+    }
+    if (payload.lastInspectionWeek !== payload.week) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['lastInspectionWeek'],
+        message: 'inspect stamps lastInspectionWeek to the event week',
+      })
+    }
+    if (payload.previousLastInspectionWeek >= payload.lastInspectionWeek) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['previousLastInspectionWeek'],
+        message: 'previousLastInspectionWeek must be earlier than the stamped week',
+      })
+    }
+    if (
+      payload.weeksSinceInspection !==
+      payload.lastInspectionWeek - payload.previousLastInspectionWeek
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message:
+          'weeksSinceInspection must equal lastInspectionWeek minus previousLastInspectionWeek',
+      })
+    }
+    if (payload.status === 'due' && payload.weeksSinceInspection !== payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'due events require weeksSinceInspection to equal intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.weeksSinceInspection <= payload.intervalWeeks) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['weeksSinceInspection'],
+        message: 'overdue events require weeksSinceInspection greater than intervalWeeks',
+      })
+    }
+    if (payload.status === 'overdue' && payload.deficiencyKind !== 'hard_stop') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deficiencyKind'],
+        message: 'overdue inspect records hard_stop',
+      })
+    }
+    refineContainmentClassControlPairing(payload, context)
+  })
+
+const equipmentContainmentClassStabilizedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: containmentClassIdSchema,
+    previousDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    deficiencyKind: z.enum(['compensating_continue', 'none']),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
+    previousCycleCount: finiteNonNegativeIntSchema,
+    cycleCount: finiteNonNegativeIntSchema,
+    inService: z.boolean(),
+    reason: z.literal('technician_stabilization'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message:
+          'containment stabilization instance must reference a known equipment catalog definition',
+      })
+    }
+    if (
+      !Number.isSafeInteger(payload.previousCycleCount) ||
+      !Number.isSafeInteger(payload.cycleCount) ||
+      payload.cycleCount !== payload.previousCycleCount + 1
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cycleCount'],
+        message: 'technician stabilization must increment cycleCount by 1',
+      })
+    }
+    if (payload.inService !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'technician stabilization remains in-service',
+      })
+    }
+    if (payload.previousDeficiencyKind === 'hard_stop') {
+      if (payload.deficiencyKind !== 'compensating_continue') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['deficiencyKind'],
+          message: 'hard-stop relief must become compensating continue',
+        })
+      }
+      const expectedControl = expectedCompensatingControlIdForClass(payload.classId)
+      if (payload.compensatingControlId !== expectedControl) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'hard-stop relief requires the authored control for the class',
+        })
+      }
+      return
+    }
+    if (payload.deficiencyKind !== 'none') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['deficiencyKind'],
+        message: 'compensating continue clear must become none',
+      })
+    }
+    if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'cleared deficiency cannot carry a compensating control',
+      })
+    }
+  })
+
+const equipmentInstanceStationMutatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: containmentClassIdSchema,
+    stationId: z.enum([
+      BLAST_DOOR_INTEGRITY_LABOR_STATION_ID,
+      PRESSURE_SEAL_INTEGRITY_LABOR_STATION_ID,
+      INTERLOCK_INTEGRITY_LABOR_STATION_ID,
+    ]),
+    previousCycleCount: finiteNonNegativeIntSchema,
+    cycleCount: finiteNonNegativeIntSchema,
+    condition: z.enum(['operational', 'damaged']),
+    deficiencyKind: z.enum(['none', 'hard_stop', 'compensating_continue']),
+    compensatingControlId: containmentCompensatingControlIdSchema.optional(),
+    inService: z.boolean(),
+    reason: z.literal('integrity_labor'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'integrity-labor instance must reference a known equipment catalog definition',
+      })
+    }
+    if (
+      !Number.isSafeInteger(payload.previousCycleCount) ||
+      !Number.isSafeInteger(payload.cycleCount) ||
+      payload.cycleCount !== payload.previousCycleCount + 1
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['cycleCount'],
+        message: 'integrity labor must increment cycleCount by 1',
+      })
+    }
+    if (
+      isIntegrityLaborStationId(payload.stationId) &&
+      eligibleClassIdForIntegrityLaborStation(payload.stationId) !== payload.classId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['stationId'],
+        message: 'integrity-labor station must match the authored class',
+      })
+    }
+    if (payload.deficiencyKind === 'compensating_continue') {
+      if (
+        payload.compensatingControlId !== expectedCompensatingControlIdForClass(payload.classId)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['compensatingControlId'],
+          message: 'compensating continue requires the authored control for the class',
+        })
+      }
+    } else if (payload.compensatingControlId !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['compensatingControlId'],
+        message: 'none and hard-stop cannot carry a compensating control',
+      })
+    }
+    if (payload.deficiencyKind === 'hard_stop') {
+      if (payload.inService !== false) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['inService'],
+          message: 'hard-stop is not in-service',
+        })
+      }
+    } else if (payload.inService !== true) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['inService'],
+        message: 'none and compensating continue remain in-service',
+      })
+    }
+  })
+
+const equipmentContainmentBarrierIntegrityChangedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: idSchema,
+    definitionName: z.string().min(1),
+    classId: containmentClassIdSchema,
+    zoneId: z.enum(CONTAINMENT_BARRIER_ZONE_IDS),
+    previousStatus: z.enum(['intact', 'flow_restraint', 'zone_breach']),
+    status: z.enum(['flow_restraint', 'zone_breach']),
+    sourceDeficiencyKind: z.enum(['hard_stop', 'compensating_continue']),
+    reason: z.literal('deficiency_coupling'),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'barrier integrity instance must reference a known equipment catalog definition',
+      })
+    }
+    if (zoneIdForContainmentClass(payload.classId) !== payload.zoneId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['zoneId'],
+        message: 'barrier class/zone pairing is mixed',
+      })
+    }
+    if (payload.status === 'flow_restraint') {
+      if (payload.previousStatus !== 'intact') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['previousStatus'],
+          message: 'flow-restraint can only open from intact',
+        })
+      }
+      if (payload.sourceDeficiencyKind !== 'compensating_continue') {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['sourceDeficiencyKind'],
+          message: 'flow-restraint requires compensating continue',
+        })
+      }
+      return
+    }
+    if (payload.previousStatus === 'zone_breach') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['previousStatus'],
+        message: 'zone breach cannot re-open from itself',
+      })
+    }
+    if (payload.sourceDeficiencyKind !== 'hard_stop') {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['sourceDeficiencyKind'],
+        message: 'zone breach requires hard-stop',
+      })
+    }
+  })
+
+const combatStimActivatedSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    caseTitle: z.string().min(1),
+    dosesBefore: z.number().int().min(1).max(2),
+    dosesAfter: z.number().int().min(0).max(1),
+    underlyingBand: z.enum(['depleted', 'overdrawn']),
+    effectiveBand: z.enum(['taxed', 'depleted']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.dosesAfter !== payload.dosesBefore - 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['dosesAfter'],
+        message: 'Combat Stim activation must consume exactly one dose',
+      })
+    }
+    const expectedBand = payload.underlyingBand === 'overdrawn' ? 'depleted' : 'taxed'
+    if (payload.effectiveBand !== expectedBand) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['effectiveBand'],
+        message: 'Combat Stim activation must advance exactly one energy band',
+      })
+    }
+  })
+
+const combatStimOverdriveExpiredSchema = z
+  .object({
+    week: weekSchema,
+    activationId: idSchema,
+    instanceId: idSchema,
+    agentId: idSchema,
+    agentName: z.string().min(1),
+    caseId: idSchema,
+    recoveryDebt: finitePositiveIntSchema,
+  })
+  .strict()
+
+const combatStimDisposedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: z.literal('combat_stims'),
+    definitionName: z.string().min(1),
+    condition: z.enum(['operational', 'damaged']),
+    resourceId: z.literal('combat_stim_dose'),
+    capacity: z.literal(2),
+    remaining: z.number().int().min(0).max(2),
+    reason: z.enum(['manual_disposal', 'mission_loss', 'mission_injury']),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 'disposed instance must reference the Combat Stims catalog definition',
+      })
+    }
+  })
+
+const combatStimReaggregatedSchema = z
+  .object({
+    week: weekSchema,
+    instanceId: equipmentInstanceIdSchema,
+    definitionId: z.literal('combat_stims'),
+    definitionName: z.string().min(1),
+    condition: z.literal('operational'),
+    resourceId: z.literal('combat_stim_dose'),
+    capacity: z.literal(2),
+    remaining: z.literal(2),
+    reason: z.enum(['manual_untracking', 'fabricated_lot_return']),
+    fabricationQueueId: idSchema.optional(),
+    fabricationRecipeId: idSchema.optional(),
+    fabricationGradeId: z.enum(['grade_1', 'grade_2', 'grade_3', 'grade_4', 'grade_5']).optional(),
+    fabricationCompletedWeek: weekSchema.optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    const definition = getEquipmentDefinition(payload.definitionId)
+    if (!definition || definition.name !== payload.definitionName) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['definitionId'],
+        message: 're-aggregated Combat Stim must reference the Combat Stims catalog definition',
+      })
+    }
+    const fabricationFields = [
+      payload.fabricationQueueId,
+      payload.fabricationRecipeId,
+      payload.fabricationGradeId,
+      payload.fabricationCompletedWeek,
+    ].filter((value) => value !== undefined)
+    if (payload.reason === 'manual_untracking') {
+      if (fabricationFields.length !== 0) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fabricationQueueId'],
+          message: 'catalog Combat Stim re-aggregation cannot carry fabricated-lot provenance',
+        })
+      }
+      return
+    }
+    if (fabricationFields.length !== 4) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fabricationQueueId'],
+        message: 'fabricated-lot Combat Stim return provenance fields must be supplied together',
+      })
+    }
+  })
+
+const equipmentAutoScrapPolicyChangedSchema = z
+  .object({
+    week: weekSchema,
+    action: z.enum(['enabled', 'disabled']),
+    thresholdGradeId: z.enum(EQUIPMENT_GRADE_IDS).optional(),
+    includedItemCount: finiteNonNegativeIntSchema,
+    includedQuantity: finiteNonNegativeIntSchema,
+    excludedItemCount: finiteNonNegativeIntSchema,
+    excludedQuantity: finiteNonNegativeIntSchema,
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.action === 'enabled' && payload.thresholdGradeId === undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['thresholdGradeId'],
+        message: 'enabled Auto-Scrap policy requires a canonical threshold',
+      })
+    }
+  })
+
+const equipmentAutoScrapRoutedSchema = z
+  .object({
+    week: weekSchema,
+    thresholdGradeId: z.enum(EQUIPMENT_GRADE_IDS),
+    routedQueueIds: z.array(idSchema),
+    routedQuantity: finiteNonNegativeIntSchema,
+    includedItemCount: finiteNonNegativeIntSchema,
+    excludedItemCount: finiteNonNegativeIntSchema,
+    excludedQuantity: finiteNonNegativeIntSchema,
+    exclusionReasonCounts: z.array(
+      z
+        .object({
+          reasonCode: z.enum(EQUIPMENT_AUTO_SCRAP_REASON_CODES),
+          count: finitePositiveIntSchema,
+        })
+        .strict()
+    ),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.routedQueueIds.length !== payload.routedQuantity) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['routedQuantity'],
+        message: 'routed quantity must match routed queue IDs',
+      })
+    }
+  })
 
 const marketShiftedSchema = z
   .object({
@@ -397,9 +1612,45 @@ const marketShiftedSchema = z
     featuredRecipeId: z.string(),
     featuredRecipeName: z.string(),
     pressure: z.enum(['tight', 'stable', 'discounted']),
-    costMultiplier: z.number(),
+    costMultiplier: finiteNonNegativeNumberSchema,
   })
   .strict()
+  .superRefine((payload, context) => {
+    // SPE-2661: catalog membership + id↔name (reuse sanitizeFeaturedRecipeId membership).
+    if (
+      sanitizeFeaturedRecipeId(payload.featuredRecipeId, payload.featuredRecipeId) !==
+      payload.featuredRecipeId
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'featuredRecipeId must be a production catalog recipe id',
+        path: ['featuredRecipeId'],
+      })
+    } else {
+      const catalogName = getProductionRecipe(payload.featuredRecipeId)?.name
+      if (typeof catalogName === 'string' && payload.featuredRecipeName.trim() !== catalogName) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `featuredRecipeName must match catalog name for featuredRecipeId (${catalogName})`,
+          path: ['featuredRecipeName'],
+        })
+      }
+    }
+
+    const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(payload.pressure)
+    if (payload.costMultiplier !== canonicalCostMultiplier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `costMultiplier must equal canonical multiplier for pressure (${canonicalCostMultiplier})`,
+        path: ['costMultiplier'],
+      })
+    }
+  })
+
+// SPE-2665: align with runTransfer hydrate clamps (SPE-2551/2552). Validate rejects;
+// hydrate still clamps — do not drift these maxima without updating both sites.
+const MARKET_PROCUREMENT_ALLOCATION_PRIORITY_MAX = 10
+const MARKET_PROCUREMENT_ALLOCATION_DELAY_WEEKS_MAX = 52
 
 const marketTransactionListingResourceStatusSchema = z
   .object({
@@ -410,11 +1661,24 @@ const marketTransactionListingResourceStatusSchema = z
     ]),
     sourceId: z.string().optional(),
     label: z.string().optional(),
-    available: z.number().optional(),
-    capacity: z.number().optional(),
+    available: finiteNonNegativeIntSchema.optional(),
+    capacity: finiteNonNegativeIntSchema.optional(),
     allocations: z.array(z.string()).optional(),
   })
   .passthrough()
+  .superRefine((payload, context) => {
+    if (
+      payload.available !== undefined &&
+      payload.capacity !== undefined &&
+      payload.available > payload.capacity
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'available must be <= capacity when both are present',
+        path: ['available'],
+      })
+    }
+  })
 
 const procurementAllocationSchema = z
   .object({
@@ -430,8 +1694,8 @@ const procurementAllocationSchema = z
     destinationLabel: z.string(),
     urgency: z.enum(['standard', 'contingency']),
     expectedBenefit: z.string(),
-    priority: z.number(),
-    delayWeeks: z.number(),
+    priority: finiteNonNegativeIntSchema.max(MARKET_PROCUREMENT_ALLOCATION_PRIORITY_MAX),
+    delayWeeks: finiteNonNegativeIntSchema.max(MARKET_PROCUREMENT_ALLOCATION_DELAY_WEEKS_MAX),
     displacedAlternativeUse: z.string().optional(),
     substitutionStatus: z.enum(['none', 'degraded_substitute']),
     substitutionSummary: z.string().optional(),
@@ -443,27 +1707,58 @@ const marketTransactionRecordedSchema = z
     week: weekSchema,
     marketWeek: weekSchema,
     transactionId: z.string(),
-    action: z.enum(['buy', 'sell']),
+    action: z.enum(['buy', 'sell', 'favor_exchange', 'callable_obligation', 'order', 'fulfill']),
     listingId: z.string(),
     itemId: z.string(),
     itemName: z.string(),
     category: z.enum(['equipment', 'component', 'material']),
-    quantity: z.number(),
-    bundleCount: z.number(),
-    unitPrice: z.number(),
-    totalPrice: z.number(),
-    remainingAvailability: z.number(),
+    // SPE-2662: qty/bundle positive ints; prices finite nonnegative (cents allowed).
+    quantity: finitePositiveIntSchema,
+    bundleCount: finitePositiveIntSchema,
+    unitPrice: finiteNonNegativeNumberSchema,
+    totalPrice: finiteNonNegativeNumberSchema,
+    remainingAvailability: finiteNonNegativeIntSchema,
+    favorExchangeFactionId: z.string().optional(),
+    favorExchangeFavorId: z.string().optional(),
+    favorExchangeLabel: z.string().optional(),
+    callableObligationFactionId: z.string().optional(),
+    callableObligationFavorId: z.string().optional(),
+    callableObligationLabel: z.string().optional(),
     listingResourceStatuses: z.array(marketTransactionListingResourceStatusSchema).optional(),
     allocation: procurementAllocationSchema.optional(),
     allocations: z.array(procurementAllocationSchema).optional(),
   })
   .strict()
+  .superRefine((payload, context) => {
+    // Producer semantics (sim/market): quantity already includes bundles; unitPrice is
+    // per-item rounded to cents. Rounding can accumulate ~1¢ per bundle vs totalPrice.
+    // Compare in integer cents to avoid float edge cases (e.g. 8.33 * 9).
+    const productCents = Math.round(payload.unitPrice * payload.quantity * 100)
+    const totalCents = Math.round(payload.totalPrice * 100)
+    // Finite schema fields can still overflow the cent product to Infinity.
+    if (!Number.isFinite(productCents) || !Number.isFinite(totalCents)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'totalPrice / unitPrice*quantity must stay within finite cent precision',
+        path: ['totalPrice'],
+      })
+      return
+    }
+    const maxDriftCents = Math.max(1, payload.bundleCount)
+    if (Math.abs(totalCents - productCents) > maxDriftCents) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `totalPrice must equal unitPrice * quantity within ${maxDriftCents} cent(s) (expected ~${productCents / 100})`,
+        path: ['totalPrice'],
+      })
+    }
+  })
 
 const marketEmergencyGrayMarketWaiverGrantedSchema = z
   .object({
     week: weekSchema,
     marketWeek: weekSchema,
-    crisisPressureScore: z.number(),
+    crisisPressureScore: finiteNonNegativeIntSchema,
     sanctionLevel: z.literal('sanctioned'),
     packetId: z.literal('gray_market_broker'),
     falloutRiskApplied: z.literal('risk'),
@@ -480,9 +1775,23 @@ const marketEmergencyGrayMarketWaiverAccountabilityClosedSchema = z
   .object({
     week: weekSchema,
     waiverGrantWeek: weekSchema,
-    institutionKey: z.string().min(1),
+    institutionKey: z
+      .string()
+      .min(1)
+      .refine((value) => value === normalizeInstitutionKeyForAudit(value), {
+        message: 'institutionKey must be a normalized nonblank audit key',
+      }),
   })
   .strict()
+  .superRefine((payload, context) => {
+    if (payload.week !== payload.waiverGrantWeek + 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'week must be exactly one campaign week after waiverGrantWeek',
+        path: ['week'],
+      })
+    }
+  })
 
 const marketEmergencyGrayMarketFalloutTickSchema = z
   .object({
@@ -490,26 +1799,95 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
     outcome: z.enum(['escalated_pending_oversight', 'resolved_closed']),
     falloutRiskBefore: z.enum(['risk', 'costly']),
     falloutRiskAfter: z.enum(['costly', 'none']),
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
-    containmentRatingBefore: z.number(),
-    containmentRatingAfter: z.number(),
+    fundingBefore: finiteNonNegativeNumberSchema,
+    fundingAfter: finiteNonNegativeNumberSchema,
+    containmentRatingBefore: finiteNonNegativeNumberSchema,
+    containmentRatingAfter: finiteNonNegativeNumberSchema,
     waiverPrecedentCount: z.number().int().min(1).max(50000),
-    precedentPenaltyMultiplier: z.number().min(1).max(2),
-    institutionKey: z.string().min(1),
+    precedentPenaltyMultiplier: z.number().finite(),
+    rankingScore: z.number().int().min(0).max(100),
+    standingFalloutPenaltyScale: z.number().finite(),
+    institutionKey: z
+      .string()
+      .min(1)
+      .refine((value) => value === normalizeInstitutionKeyForAudit(value), {
+        message: 'institutionKey must be a normalized nonblank audit key',
+      }),
   })
   .strict()
+  .superRefine((payload, context) => {
+    const expectedRisk =
+      payload.outcome === 'resolved_closed'
+        ? { before: 'costly', after: 'none' }
+        : { before: 'risk', after: 'costly' }
+
+    if (
+      payload.falloutRiskBefore !== expectedRisk.before ||
+      payload.falloutRiskAfter !== expectedRisk.after
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'fallout risk transition must match outcome',
+        path: ['falloutRiskAfter'],
+      })
+    }
+
+    if (
+      payload.fundingAfter > payload.fundingBefore ||
+      (payload.fundingBefore > 0 && payload.fundingAfter === payload.fundingBefore)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'fundingAfter must decrease when fundingBefore is positive',
+        path: ['fundingAfter'],
+      })
+    }
+
+    if (
+      payload.containmentRatingAfter > payload.containmentRatingBefore ||
+      (payload.containmentRatingBefore > 0 &&
+        payload.containmentRatingAfter === payload.containmentRatingBefore)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'containmentRatingAfter must decrease when containmentRatingBefore is positive',
+        path: ['containmentRatingAfter'],
+      })
+    }
+
+    const expectedMultiplier = getEmergencyWaiverFalloutPrecedentPenaltyMultiplier(
+      payload.waiverPrecedentCount
+    )
+    if (payload.precedentPenaltyMultiplier !== expectedMultiplier) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `precedentPenaltyMultiplier must equal ${expectedMultiplier} for waiverPrecedentCount`,
+        path: ['precedentPenaltyMultiplier'],
+      })
+    }
+
+    const expectedStandingScale = getEmergencyWaiverFalloutStandingPenaltyScale(
+      payload.rankingScore
+    )
+    if (payload.standingFalloutPenaltyScale !== expectedStandingScale) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `standingFalloutPenaltyScale must equal ${expectedStandingScale} for rankingScore`,
+        path: ['standingFalloutPenaltyScale'],
+      })
+    }
+  })
 
 const factionStandingChangedSchema = z
   .object({
     week: weekSchema,
-    factionId: z.string(),
+    factionId: factionIdSchema,
     factionName: z.string(),
-    delta: z.number(),
-    standingBefore: z.number(),
-    standingAfter: z.number(),
-    reputationBefore: z.number().optional(),
-    reputationAfter: z.number().optional(),
+    delta: z.number().finite().int(),
+    standingBefore: factionStandingValueSchema,
+    standingAfter: factionStandingValueSchema,
+    reputationBefore: factionReputationValueSchema.optional(),
+    reputationAfter: factionReputationValueSchema.optional(),
     reason: z.enum([
       'case.resolved',
       'case.partially_resolved',
@@ -522,44 +1900,174 @@ const factionStandingChangedSchema = z
     interactionLabel: z.string().optional(),
     contactId: z.string().optional(),
     contactName: z.string().optional(),
-    contactRelationshipBefore: z.number().optional(),
-    contactRelationshipAfter: z.number().optional(),
-    contactDelta: z.number().optional(),
+    contactRelationshipBefore: factionReputationValueSchema.optional(),
+    contactRelationshipAfter: factionReputationValueSchema.optional(),
+    contactDelta: z.number().finite().int().optional(),
+  })
+  .superRefine((payload, context) => {
+    const deltaMatchesTransition = (
+      before: number,
+      after: number,
+      delta: number,
+      minimum: number,
+      maximum: number
+    ) => after === Math.min(maximum, Math.max(minimum, before + delta))
+
+    const deltaMatches =
+      payload.reason === 'recruitment.hired' &&
+      payload.reputationBefore !== undefined &&
+      payload.reputationAfter !== undefined
+        ? deltaMatchesTransition(
+            payload.reputationBefore,
+            payload.reputationAfter,
+            payload.delta,
+            -100,
+            100
+          )
+        : deltaMatchesTransition(
+            payload.standingBefore,
+            payload.standingAfter,
+            payload.delta,
+            -20,
+            20
+          )
+
+    if (!deltaMatches) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['delta'],
+        message: 'delta must produce the bounded standing or reputation transition',
+      })
+    }
+
+    const contactValues = [
+      payload.contactRelationshipBefore,
+      payload.contactRelationshipAfter,
+      payload.contactDelta,
+    ]
+    const providedContactValues = contactValues.filter((value) => value !== undefined)
+    if (providedContactValues.length > 0 && providedContactValues.length < contactValues.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactDelta'],
+        message: 'contact relationship fields must all be present together',
+      })
+      return
+    }
+
+    if (
+      payload.contactRelationshipBefore !== undefined &&
+      payload.contactRelationshipAfter !== undefined &&
+      payload.contactDelta !== undefined &&
+      !deltaMatchesTransition(
+        payload.contactRelationshipBefore,
+        payload.contactRelationshipAfter,
+        payload.contactDelta,
+        -100,
+        100
+      )
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactDelta'],
+        message: 'contactDelta must produce the bounded contact relationship transition',
+      })
+    }
   })
   .strict()
 
 const factionUnlockAvailableSchema = z
   .object({
     week: weekSchema,
-    factionId: z.string(),
-    factionName: z.string(),
-    contactId: z.string().optional(),
-    contactName: z.string().optional(),
-    label: z.string(),
-    summary: z.string(),
+    factionId: factionIdSchema,
+    factionName: trimmedNonblankTextSchema,
+    contactId: idSchema.optional(),
+    contactName: trimmedNonblankTextSchema.optional(),
+    label: trimmedNonblankTextSchema.max(120),
+    summary: trimmedNonblankTextSchema.max(500),
     disposition: z.enum(['supportive', 'adversarial']),
+  })
+  .superRefine((payload, context) => {
+    const definition = knownFactionDefinitionsById.get(payload.factionId)
+    if (!definition) return
+
+    if (payload.factionName !== definition.name && payload.factionName !== definition.label) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['factionName'],
+        message: 'factionName must match the catalog name or label for factionId',
+      })
+    }
+
+    if (!payload.contactId) {
+      if (payload.contactName) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['contactName'],
+          message: 'contactName requires contactId',
+        })
+      }
+      return
+    }
+
+    const contact = knownFactionContactsByFactionId.get(payload.factionId)?.get(payload.contactId)
+    if (!contact) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactId'],
+        message: 'contactId must reference a known contact for factionId',
+      })
+      return
+    }
+
+    if (payload.contactName && contact.name && payload.contactName !== contact.name) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['contactName'],
+        message: 'contactName must match the catalog contact name for contactId',
+      })
+    }
   })
   .strict()
 
 const agencyContainmentUpdatedSchema = z
   .object({
     week: weekSchema,
-    containmentRatingBefore: z.number(),
-    containmentRatingAfter: z.number(),
-    containmentDelta: z.number(),
-    clearanceLevelBefore: z.number(),
-    clearanceLevelAfter: z.number(),
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
-    fundingDelta: z.number(),
+    containmentRatingBefore: finiteNumberSchema,
+    containmentRatingAfter: finiteNumberSchema,
+    containmentDelta: finiteNumberSchema,
+    clearanceLevelBefore: finiteNonNegativeIntSchema,
+    clearanceLevelAfter: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
+    fundingDelta: finiteNumberSchema,
   })
   .strict()
 
 const directiveAppliedSchema = z
   .object({
     week: weekSchema,
-    directiveId: z.string(),
-    directiveLabel: z.string(),
+    directiveId: trimmedNonblankTextSchema,
+    directiveLabel: trimmedNonblankTextSchema,
+  })
+  .superRefine((payload, context) => {
+    if (!isWeeklyDirectiveId(payload.directiveId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['directiveId'],
+        message: 'directiveId must reference a known weekly directive',
+      })
+      return
+    }
+
+    const definition = getWeeklyDirectiveDefinition(payload.directiveId)
+    if (payload.directiveLabel !== definition?.label) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['directiveLabel'],
+        message: 'directiveLabel must match the catalog label for directiveId',
+      })
+    }
   })
   .strict()
 
@@ -578,19 +2086,13 @@ const infiltrationProbeEventSchema = z
     caseId: idSchema,
     caseTitle: z.string(),
     summary: z.string(),
-    infiltrationAwareness: z.number().optional(),
-    infiltrationProbeProgress: z.number().optional(),
+    infiltrationAwareness: finiteNumberSchema.optional(),
+    infiltrationProbeProgress: finiteNumberSchema.optional(),
     infiltrationStage: z.enum(['probing', 'exposed', 'violent']).optional(),
     probeAction: z.enum(['probe_access', 'probe_route', 'cleanup']).optional(),
     probeActionSource: z.enum(['override', 'authored', 'heuristic']).optional(),
     coverRole: z
-      .enum([
-        'uniform_guard',
-        'civilian_staff',
-        'courier',
-        'maintenance',
-        'official_inspector',
-      ])
+      .enum(['uniform_guard', 'civilian_staff', 'courier', 'maintenance', 'official_inspector'])
       .optional(),
     leaveBehindId: z.string().optional(),
     leaveBehindLabel: z.string().optional(),
@@ -613,11 +2115,11 @@ const concealmentActivatedEventSchema = z
 const systemAcademyUpgradedSchema = z
   .object({
     week: weekSchema,
-    tierBefore: nonNegativeIntSchema,
-    tierAfter: nonNegativeIntSchema,
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
-    cost: z.number(),
+    tierBefore: finiteNonNegativeIntSchema,
+    tierAfter: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
+    cost: finiteNonNegativeIntSchema,
   })
   .strict()
 
@@ -645,13 +2147,33 @@ export const operationEventPayloadSchemas = {
   'agent.hired': agentHiredSchema,
   'progression.xp_gained': progressionXpGainedSchema,
   'system.recruitment_expired': systemRecruitmentExpiredSchema,
+  'recruitment.candidate_departed': recruitmentCandidateDepartedSchema,
   'system.recruitment_generated': systemRecruitmentGeneratedSchema,
   'system.party_cards_drawn': systemPartyCardsDrawnSchema,
   'recruitment.scouting_initiated': recruitmentScoutingSchema,
   'recruitment.scouting_refined': recruitmentScoutingSchema,
-  'recruitment.intel_confirmed': recruitmentScoutingSchema,
+  'recruitment.intel_confirmed': recruitmentIntelConfirmedSchema,
   'production.queue_started': productionQueueStartedSchema,
   'production.queue_completed': productionQueueCompletedSchema,
+  'equipment.recovery_started': equipmentRecoveryStartedSchema,
+  'equipment.recovery_completed': equipmentRecoveryCompletedSchema,
+  'equipment.auto_scrap_policy_changed': equipmentAutoScrapPolicyChangedSchema,
+  'equipment.auto_scrap_routed': equipmentAutoScrapRoutedSchema,
+  'equipment.instance_materialized': equipmentInstanceMaterializedSchema,
+  'equipment.instance_destroyed': equipmentInstanceDestroyedSchema,
+  'equipment.instance_reaggregated': equipmentInstanceReaggregatedSchema,
+  'equipment.instance_condition_repaired': equipmentInstanceConditionRepairedSchema,
+  'equipment.containment_class_deficiency_recorded':
+    equipmentContainmentClassDeficiencyRecordedSchema,
+  'equipment.containment_class_inspected': equipmentContainmentClassInspectedSchema,
+  'equipment.containment_class_stabilized': equipmentContainmentClassStabilizedSchema,
+  'equipment.instance_station_mutated': equipmentInstanceStationMutatedSchema,
+  'equipment.containment_barrier_integrity_changed':
+    equipmentContainmentBarrierIntegrityChangedSchema,
+  'equipment.combat_stim_activated': combatStimActivatedSchema,
+  'equipment.combat_stim_overdrive_expired': combatStimOverdriveExpiredSchema,
+  'equipment.combat_stim_disposed': combatStimDisposedSchema,
+  'equipment.combat_stim_reaggregated': combatStimReaggregatedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,
@@ -664,20 +2186,20 @@ export const operationEventPayloadSchemas = {
   'agency.front_business.opened': z.object({
     week: z.number(),
     kind: z.literal('courierShell'),
-    startupCost: z.number(),
-    fundingBefore: z.number(),
-    fundingAfter: z.number(),
+    startupCost: finiteNonNegativeIntSchema,
+    fundingBefore: finiteNumberSchema,
+    fundingAfter: finiteNumberSchema,
   }),
   'agency.front_business.resolved': z.object({
     week: z.number(),
     kind: z.literal('courierShell'),
     statusBefore: z.enum(['active', 'strained', 'collapsed']),
     statusAfter: z.enum(['active', 'strained', 'collapsed']),
-    fundingDelta: z.number(),
-    riskScore: z.number(),
-    lockoutCount: z.number(),
-    residueCount: z.number(),
-    budgetPressure: z.number(),
+    fundingDelta: finiteNumberSchema.min(-10_000),
+    riskScore: finiteNonNegativeIntSchema,
+    lockoutCount: finiteNonNegativeIntSchema,
+    residueCount: finiteNonNegativeIntSchema,
+    budgetPressure: finiteNonNegativeIntSchema,
   }),
   'directive.applied': directiveAppliedSchema,
   'support.shortfall': supportShortfallSchema,
@@ -690,7 +2212,7 @@ export const operationEventPayloadSchemas = {
   'concealment.activated': concealmentActivatedEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
-  'case.aggregate_battle': z.object({}).passthrough(),
+  'case.aggregate_battle': caseAggregateBattleSchema,
   'staff.coping.applied': z.object({
     week: z.number(),
     agentId: z.string(),
@@ -707,8 +2229,8 @@ export const operationEventPayloadSchemas = {
     agentId: z.string(),
     optionId: z.enum(['offBooksCourier', 'trustedCourier']),
     outcome: z.enum(['paid', 'lockout']),
-    fundingDelta: z.number(),
-    fatigueDelta: z.number(),
+    fundingDelta: finiteNumberSchema.min(-10_000),
+    fatigueDelta: finiteNumberSchema.min(-100),
   }),
 } satisfies Record<OperationEventType, z.ZodTypeAny>
 

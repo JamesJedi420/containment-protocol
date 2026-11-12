@@ -28,12 +28,21 @@ import {
   type OutcomeBranchProgressEffect,
 } from './outcomeBranching'
 import type { AuthoredBranchContext } from './contentBranching'
+import {
+  resolveVolatileActionPhasePipeline,
+  type VolatileActionIterationInput,
+  type VolatileActionPhasePipelineResult,
+  type VolatileActionStakes,
+  type VolatileActionWiringInput,
+} from './volatileActionPhasePipeline'
+import type {
+  VolatileActionPriorityRequest,
+  VolatileActionPriorityResult,
+} from './volatileActionPriority'
 
 export type HiddenCombatOutcome = OutcomeBranchOutcome
 
-export interface HiddenCombatModifier<
-  Context extends ScreenRouteContext = ScreenRouteContext,
-> {
+export interface HiddenCombatModifier<Context extends ScreenRouteContext = ScreenRouteContext> {
   id: string
   when?: ScreenRouteCondition<Context>
   powerDelta?: number
@@ -61,13 +70,23 @@ export interface HiddenCombatResolutionInput<
   encounterPatchByOutcome?: Partial<Record<HiddenCombatOutcome, EncounterRuntimePatch>>
   followUpByOutcome?: Partial<Record<HiddenCombatOutcome, string | readonly string[]>>
   flagEffectsByOutcome?: Partial<Record<HiddenCombatOutcome, HiddenCombatFlagEffects>>
-  progressEffectsByOutcome?: Partial<Record<HiddenCombatOutcome, readonly HiddenCombatProgressEffect[]>>
+  progressEffectsByOutcome?: Partial<
+    Record<HiddenCombatOutcome, readonly HiddenCombatProgressEffect[]>
+  >
   allyBehaviorProfiles?: readonly AllyBehaviorProfile[]
   allyBehaviorContext?: AuthoredBranchContext
   outcomeBranches?: readonly OutcomeBranchDefinition[]
   outcomeBranchContext?: AuthoredBranchContext
   includeDebug?: boolean
   context?: Context
+  /** Optional SPE-54 sequencing snapshot for this volatile hidden-combat context. */
+  actionPriority?: VolatileActionPriorityRequest
+  /** Optional SPE-62 stakes for the attached phase spine; defaults to present when priority is supplied. */
+  actionStakes?: VolatileActionStakes
+  /** Optional SPE-2930 wiring snapshot; omit keeps pipeline `{ kind: 'none' }`. Does not change outcome math. */
+  actionWiring?: VolatileActionWiringInput
+  /** Optional SPE-2931 iteration snapshot; omit keeps pipeline `{ kind: 'none' }`. Does not change outcome math. */
+  actionIteration?: VolatileActionIterationInput
 }
 
 export interface HiddenCombatResolutionDebugDetails {
@@ -109,6 +128,10 @@ export interface HiddenCombatResolutionResult {
   progressEffects: HiddenCombatProgressEffect[]
   authoredContextPatch?: OutcomeBranchAuthoredContextPatch
   allyBehaviors: AllyBehaviorSelection[]
+  /** Recomputable sequencing evidence only; never persisted or applied as an outcome. */
+  actionPriority?: VolatileActionPriorityResult
+  /** Recomputable SPE-62 phase-spine evidence only; never persisted or applied as an outcome. */
+  actionPhasePipeline?: VolatileActionPhasePipelineResult
   debug?: HiddenCombatResolutionDebugDetails
 }
 
@@ -171,7 +194,10 @@ function applyThresholdModifier(
     partialAt?: number
   }
 ) {
-  const successAt = sanitizeNumber(thresholds.successAt + sanitizeNumber(modifier.successAt, 0), thresholds.successAt)
+  const successAt = sanitizeNumber(
+    thresholds.successAt + sanitizeNumber(modifier.successAt, 0),
+    thresholds.successAt
+  )
   const partialAtRaw = sanitizeNumber(
     thresholds.partialAt + sanitizeNumber(modifier.partialAt, 0),
     thresholds.partialAt
@@ -214,9 +240,10 @@ function buildDefaultEncounterPatch(
   }
 }
 
-export function resolveHiddenCombat<
-  Context extends ScreenRouteContext = ScreenRouteContext,
->(state: GameState, input: HiddenCombatResolutionInput<Context>): HiddenCombatResolutionResult {
+export function resolveHiddenCombat<Context extends ScreenRouteContext = ScreenRouteContext>(
+  state: GameState,
+  input: HiddenCombatResolutionInput<Context>
+): HiddenCombatResolutionResult {
   const encounterId = normalizeString(input.encounterId)
 
   if (encounterId.length === 0) {
@@ -246,7 +273,10 @@ export function resolveHiddenCombat<
     }
 
     appliedModifierIds.push(modifierId)
-    effectivePower = sanitizeNumber(effectivePower + sanitizeNumber(modifier.powerDelta, 0), effectivePower)
+    effectivePower = sanitizeNumber(
+      effectivePower + sanitizeNumber(modifier.powerDelta, 0),
+      effectivePower
+    )
     effectiveDifficulty = sanitizeNumber(
       effectiveDifficulty + sanitizeNumber(modifier.difficultyDelta, 0),
       effectiveDifficulty
@@ -290,6 +320,28 @@ export function resolveHiddenCombat<
     ...(input.progressEffectsByOutcome?.[outcome] ?? []),
     ...allyAggregate.progressEffects,
   ]
+  if (input.actionStakes !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
+  if (input.actionWiring !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
+  if (input.actionIteration !== undefined && !input.actionPriority) {
+    throw new Error('actionPriority is required.')
+  }
+  /** Optional SPE-62 attach uses explicit `advanced_action`; do not infer mode from actor order. */
+  const actionPhasePipeline = input.actionPriority
+    ? resolveVolatileActionPhasePipeline({
+        encounterId,
+        variantId: 'volatile_action_v1',
+        mode: 'advanced_action',
+        stakes: input.actionStakes ?? 'present',
+        actionPriority: input.actionPriority,
+        ...(input.actionWiring !== undefined ? { wiring: input.actionWiring } : {}),
+        ...(input.actionIteration !== undefined ? { iteration: input.actionIteration } : {}),
+      })
+    : undefined
+  const actionPriority = actionPhasePipeline?.actionPriority
 
   const defaultPatch = buildDefaultEncounterPatch(state, outcome)
   const encounterPatch: EncounterRuntimePatch = {
@@ -331,6 +383,8 @@ export function resolveHiddenCombat<
       ? { authoredContextPatch: selectedAftermath.effects.authoredContext }
       : {}),
     allyBehaviors: [...allyAggregate.selections],
+    ...(actionPriority ? { actionPriority } : {}),
+    ...(actionPhasePipeline ? { actionPhasePipeline } : {}),
     ...(input.includeDebug
       ? {
           debug: {
@@ -381,18 +435,20 @@ export function applyHiddenCombatResolution(
     followUpIds: resolution.followUpIds,
   })
 
-  const followUpQueueEvents: RuntimeQueueEventInput[] = resolution.followUpIds.map((followUpId) => ({
-    type: 'encounter.follow_up',
-    targetId: followUpId,
-    contextId: options.contextId,
-    source: options.queueSource ?? `hidden-combat:${resolution.encounterId}`,
-    week: resolution.week,
-    payload: {
-      encounterId: resolution.encounterId,
-      outcome: resolution.outcome,
-      resolutionId: resolution.resolutionId,
-    },
-  }))
+  const followUpQueueEvents: RuntimeQueueEventInput[] = resolution.followUpIds.map(
+    (followUpId) => ({
+      type: 'encounter.follow_up',
+      targetId: followUpId,
+      contextId: options.contextId,
+      source: options.queueSource ?? `hidden-combat:${resolution.encounterId}`,
+      week: resolution.week,
+      payload: {
+        encounterId: resolution.encounterId,
+        outcome: resolution.outcome,
+        resolutionId: resolution.resolutionId,
+      },
+    })
+  )
   const branchApply = applyOutcomeBranching(nextState, {
     outcome: resolution.outcome,
     encounterId: resolution.encounterId,
@@ -427,12 +483,19 @@ export function applyHiddenCombatResolution(
         encounterId: resolution.encounterId,
         resolutionId: resolution.resolutionId,
         outcome: resolution.outcome,
-        allyBehaviorIds: resolution.allyBehaviors.map((entry) => `${entry.allyId}:${entry.behaviorId}`),
+        allyBehaviorIds: resolution.allyBehaviors.map(
+          (entry) => `${entry.allyId}:${entry.behaviorId}`
+        ),
       },
     })
   }
 
-  nextState = recordEncounterFollowUps(nextState, resolution.encounterId, resolution.followUpIds, resolution.week)
+  nextState = recordEncounterFollowUps(
+    nextState,
+    resolution.encounterId,
+    resolution.followUpIds,
+    resolution.week
+  )
 
   return {
     state: nextState,

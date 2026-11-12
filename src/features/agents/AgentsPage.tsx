@@ -2,6 +2,7 @@
 import React from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { dispatchInputAction } from '../../app/inputRuntime'
 import { readEnumParam, toSearchString, writeEnumParam } from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
@@ -136,6 +137,17 @@ export default function AgentsPage() {
           <div>
             <h2 className="text-lg font-semibold">{AGENTS_GUIDANCE.pageHeading}</h2>
             <p className="text-sm opacity-60">{AGENTS_GUIDANCE.pageSubtitle}</p>
+            <button
+              type="button"
+              className="btn btn-ghost settings-control"
+              aria-haspopup="dialog"
+              onClick={(event) => {
+                event.currentTarget.focus()
+                dispatchInputAction('reference.open', 'reference.specializations')
+              }}
+            >
+              Specialization reference
+            </button>
           </div>
           <Link to={APP_ROUTES.registry} className="text-sm opacity-60 hover:opacity-100">
             {AGENTS_GUIDANCE.openRegistryLabel}

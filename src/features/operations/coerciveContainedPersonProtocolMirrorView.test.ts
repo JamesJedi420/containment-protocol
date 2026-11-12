@@ -1,0 +1,655 @@
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../../data/startingState'
+import {
+  ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+  EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+  ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+  evaluateCoerciveProtocolContradictionChecks,
+  projectCoerciveProtocolRiskReview,
+  projectContainmentCareTradeoff,
+  validateCoerciveProtocolRecord,
+  type CoerciveProtocolRecord,
+} from '../../domain/coerciveContainedPersonProtocolRegistry'
+import {
+  INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+  INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+} from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import { applyWeeklyCoerciveProtocolTick } from '../../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
+import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
+import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
+import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../../domain/welfareDebtAccountingRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../../domain/moralLegalAccountabilityMatrixRegistry'
+import {
+  formatCoerciveProtocolEnumLabel,
+  getCoerciveContainedPersonProtocolMirrorView,
+} from './coerciveContainedPersonProtocolMirrorView'
+
+function warningOnlyRecord(): CoerciveProtocolRecord {
+  return {
+    id: 'coercive-protocol:compelled-undocumented',
+    label: 'Compelled protocol without documented authorization',
+    subjectRef: 'subject:cooperative-field-asset-41',
+    handlingMode: 'compelled',
+    subjectFitState: 'validated',
+    authorizationSource: 'undocumented',
+    forcePolicy: 'proportional',
+    consentConfidence: 0.25,
+    refusalHandling: 'documented_override',
+    isolationBurdenScore: 0.4,
+    surveillanceBurdenScore: 0.35,
+    containmentStabilityGain: 0.55,
+    personhoodHarmRisk: 0.48,
+    trustDamageRisk: 0.42,
+    legitimacyRisk: 0.38,
+    welfareDebtImpactLabel: 'coerced restraint welfare debt likely',
+    confidence: 0.71,
+  }
+}
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 4)', () => {
+  it('returns empty mirror when coerciveContainedPersonProtocolRecords map is empty', () => {
+    const game = createStartingState()
+
+    expect(game.coerciveContainedPersonProtocolRecords).toEqual({})
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.isEmpty).toBe(true)
+    expect(view.summary.totalRecords).toBe(0)
+    expect(view.records).toEqual([])
+  })
+
+  it('mirrors handling mode, tradeoff scores, and coercion risk from hydrated records', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const tradeoff = projectContainmentCareTradeoff(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+    const riskReview = projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+
+    expect(view.isEmpty).toBe(false)
+    expect(record?.handlingModeLabel).toBe('Emergency')
+    expect(record?.handlingPostureLabel).toBe('Emergency')
+    expect(record?.containmentStabilityGainLabel).toBe(tradeoff.containmentStabilityGain.toFixed(2))
+    expect(record?.coercionRiskScoreLabel).toBe(riskReview.coercionRiskScore.toFixed(2))
+    expect(record?.medicationRegimenRefLabel).toBe('medication-regimen:coercive-sedative-beta')
+    expect(record?.custodyStatusRefLabel).toBe('custody-status:former-hostile-hold')
+    expect(record?.procedureRefLabel).toBe('coercive-procedure:forced-sedation-stabilization')
+  })
+
+  it('shows stable containment and abusive posture summary counts', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const abusiveRecord = view.records.find(
+      (record) => record.id === ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id
+    )
+
+    expect(view.summary.stableContainmentDominatesCareCount).toBe(2)
+    expect(view.summary.abusivePostureCount).toBe(1)
+    expect(view.summary.contradictionFlaggedCount).toBe(1)
+    expect(abusiveRecord?.handlingPostureLabel).toBe('Abusive')
+    expect(abusiveRecord?.contradictionRiskFlagLabels).toContain('Surveillance Isolation Burden')
+    expect(abusiveRecord?.stableContainmentDominatesCareLabel).toBe('Yes')
+  })
+
+  it('still mirrors warning-only records with validation warning labels', () => {
+    const warningRecord = warningOnlyRecord()
+    expect(validateCoerciveProtocolRecord(warningRecord).valid).toBe(true)
+
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [warningRecord.id]: warningRecord,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.totalRecords).toBe(1)
+    expect(record?.validationWarningLabels.length).toBe(1)
+    expect(record?.handlingModeLabel).toBe('Compelled')
+  })
+
+  it('surfaces contradiction flags for routine force generalized fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.contradictionFlaggedCount).toBe(1)
+    expect(record?.contradictionRiskFlagLabels).toContain('Routine Force Authorization')
+    expect(record?.contradictionRiskFlagLabels).toContain(
+      'Generalized Procedure Without Subject Fit'
+    )
+    expect(record?.subjectFitValidationRefLabel).toBe('—')
+  })
+
+  it('orders records by id and is byte-stable for repeated mirror builds', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records.map((record) => record.id)).toEqual([
+      EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id,
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id,
+    ])
+
+    const first = JSON.stringify(getCoerciveContainedPersonProtocolMirrorView(game))
+    const second = JSON.stringify(getCoerciveContainedPersonProtocolMirrorView(game))
+
+    expect(first).toBe(second)
+  })
+
+  it('formats enum labels for CP-neutral UI copy', () => {
+    expect(formatCoerciveProtocolEnumLabel('court_order')).toBe('Court Order')
+    expect(formatCoerciveProtocolEnumLabel('routine_force_authorization')).toBe(
+      'Routine Force Authorization'
+    )
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 10)', () => {
+  it('returns empty contradiction check views for no-trigger fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(evaluateCoerciveProtocolContradictionChecks(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)).toEqual(
+      []
+    )
+    expect(record?.contradictionCheckViews).toEqual([])
+  })
+
+  it('surfaces triggered sibling issue detail in deterministic flag order', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(record?.contradictionCheckViews.map((check) => check.flagLabel)).toEqual([
+      'Compliance Metric Masks Harm',
+      'Generalized Procedure Without Subject Fit',
+      'Routine Force Authorization',
+    ])
+    expect(record?.contradictionCheckViews.map((check) => check.issueDetailLabels.length)).toEqual(
+      triggered.map((check) => check.issues.length)
+    )
+    expect(
+      record?.contradictionCheckViews.every(
+        (check, index) =>
+          check.issueDetailLabels.join('\n') ===
+          triggered[index]?.issues.map((issue) => issue.detail).join('\n')
+      )
+    ).toBe(true)
+  })
+
+  it('surfaces single surveillance-isolation sibling for abusive fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+
+    expect(record?.contradictionCheckViews).toHaveLength(1)
+    expect(record?.contradictionCheckViews[0]?.flagLabel).toBe('Surveillance Isolation Burden')
+    expect(record?.contradictionCheckViews[0]?.issueDetailLabels).toEqual(
+      triggered[0]?.issues.map((issue) => issue.detail)
+    )
+  })
+
+  it('propagates redacted and unknown metadata into contradiction check views', () => {
+    const redacted = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      redactedFields: ['forcePolicy'],
+      unknownFields: ['refusalHandling'],
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [redacted.id]: redacted,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.contradictionCheckViews.length).toBeGreaterThan(0)
+    expect(record?.contradictionCheckViews.every((check) => check.redacted)).toBe(true)
+    expect(record?.contradictionCheckViews[0]?.unknownFieldLabels).toEqual(['refusalHandling'])
+  })
+
+  it('surfaces four triggered siblings for quad-flag fixture', () => {
+    const quadFlag = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:quad-flag-contradiction',
+      isolationBurdenScore: 0.72,
+      surveillanceBurdenScore: 0.71,
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [quadFlag.id]: quadFlag,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.contradictionCheckViews.map((check) => check.flagLabel)).toEqual([
+      'Compliance Metric Masks Harm',
+      'Generalized Procedure Without Subject Fit',
+      'Routine Force Authorization',
+      'Surveillance Isolation Burden',
+    ])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2429 slice 2)', () => {
+  it('returns zero cross-system tension counts when integrated health bundles are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(0)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(0)
+    expect(view.records[0]?.crossSystemTensionFlagLabels).toEqual([])
+  })
+
+  it('surfaces cross-system tension flags when protocol and bundle share subject ref', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(1)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
+    ])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2439 slice 4)', () => {
+  it('surfaces surveillance-tuning tension flags when tuning records coexist', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    game.surveillanceInterventionTuningRecords = {
+      [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
+      'Surveillance Tuning Monitoring Exceeds Contact',
+      'Surveillance Tuning Sustained Under Collateral Strain',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.88')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2440 slice 5)', () => {
+  it('surfaces psychological-resilience tension flags when resilience records coexist', () => {
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    game.psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Psychological Resilience Duty Reliability Degraded',
+      'Psychological Resilience Exposure Elevated',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.72')
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.79')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2442 slice 6)', () => {
+  it('surfaces staff-duty tension flags when staff-exclusion fixtures coexist', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]:
+        STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(1)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Staff Exclusion Accommodation Access Not Routed',
+      'Staff Exclusion Bundle No Active Contact Cross Tension',
+      'Staff Exclusion Exposure Risk Not Separated',
+      'Staff Exclusion Medical Access Not Routed',
+      'Staff Exclusion Support Duty Obligation Elevated',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.81')
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('excludes staff')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 11)', () => {
+  it('falls back to read-time projections when weekly snapshots are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const tradeoff = projectContainmentCareTradeoff(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+    const riskReview = projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+
+    expect(view.summary.weeklySnapshotCount).toBe(0)
+    expect(record?.containmentStabilityGainLabel).toBe(tradeoff.containmentStabilityGain.toFixed(2))
+    expect(record?.coercionRiskScoreLabel).toBe(riskReview.coercionRiskScore.toFixed(2))
+  })
+
+  it('reads persisted weekly snapshots for tradeoff and risk-review display', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 9)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const snapshot = tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]
+
+    expect(view.summary.weeklySnapshotCount).toBe(1)
+    expect(record?.welfareDebtImpactLabel).toBe(snapshot?.tradeoff.welfareDebtImpactLabel)
+    expect(record?.coercionRiskScoreLabel).toBe(snapshot?.riskReview.coercionRiskScore?.toFixed(2))
+    expect(record?.handlingPostureLabel).toBe('Emergency')
+  })
+
+  it('prefers stale persisted snapshots over read-time projection after record mutation', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 6)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    const mutated = {
+      ...EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.01,
+      personhoodHarmRisk: 0.99,
+    }
+    game.coerciveContainedPersonProtocolRecords = {
+      [mutated.id]: mutated,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const liveTradeoff = projectContainmentCareTradeoff(mutated)
+    const snapshotTradeoff = tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]?.tradeoff
+
+    expect(record?.containmentStabilityGainLabel).toBe(
+      snapshotTradeoff?.containmentStabilityGain.toFixed(2)
+    )
+    expect(record?.personhoodHarmRiskLabel).toBe(snapshotTradeoff?.personhoodHarmRisk.toFixed(2))
+    expect(record?.containmentStabilityGainLabel).not.toBe(
+      liveTradeoff.containmentStabilityGain.toFixed(2)
+    )
+  })
+
+  it('uses snapshot-backed summary counts when persisted projections differ from current record', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 3)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: {
+        ...EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+        handlingMode: 'abusive',
+      },
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]: {
+        ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+        isolationBurdenScore: 0.1,
+        surveillanceBurdenScore: 0.1,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.weeklySnapshotCount).toBe(2)
+    expect(view.summary.stableContainmentDominatesCareCount).toBe(2)
+    expect(view.summary.abusivePostureCount).toBe(1)
+    expect(view.summary.contradictionFlaggedCount).toBe(1)
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 12)', () => {
+  it('omits welfare-debt cross-link labels when ledger records are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(0)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([])
+  })
+
+  it('surfaces welfare-debt cross-link labels by procedureRef match', () => {
+    const game = createStartingState()
+    const debtId = `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:subject:cooperative-field-asset-31`
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [debtId]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        id: debtId,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1047 / SPE-1131 slice 16)', () => {
+  it('omits faction ethics and accountability labels when welfare-debt ledger is absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.factionEthicsLinkedRecordCount).toBe(0)
+    expect(view.summary.accountabilityMatrixLinkedRecordCount).toBe(0)
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([])
+  })
+
+  it('surfaces opaque ethics/accountability labels from linked welfare-debt entries', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.factionEthicsLinkedRecordCount).toBe(1)
+    expect(view.summary.accountabilityMatrixLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([
+      'review_owner:review-owner:ethics-review-board',
+    ])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([
+      'mitigation_path:mitigation-path:independent-welfare-audit',
+    ])
+  })
+
+  it('surfaces matrix wired refs when faction ethics and accountability maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([
+      'faction-ethics:faction-ethics:ethics-review-board-routing',
+    ])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([
+      'accountability-matrix:accountability-matrix:independent-welfare-audit',
+    ])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1047 / SPE-1131 slice 17)', () => {
+  it('omits projection labels when matrix maps are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsProjectionLabels).toEqual([])
+    expect(view.records[0]?.accountabilityMatrixProjectionLabels).toEqual([])
+  })
+
+  it('surfaces permissibility verdict and outcome projection labels when matrix maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsProjectionLabels).toEqual(['Escalation Required'])
+    expect(view.records[0]?.accountabilityMatrixProjectionLabels).toEqual([
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+    ])
+  })
+})

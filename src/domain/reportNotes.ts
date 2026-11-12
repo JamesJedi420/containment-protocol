@@ -168,6 +168,16 @@ function normalizeSequence(sequence: number) {
   return Math.max(0, Math.trunc(sequence))
 }
 
+export function deriveReportNoteWeekFromTimestamp(timestamp: number) {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
+    return null
+  }
+
+  const weekIndex = Math.floor((timestamp - REPORT_NOTE_CLOCK_START_MS) / REPORT_NOTE_WEEK_MS)
+
+  return Math.max(1, weekIndex + 1)
+}
+
 export function buildReportNoteTimestamp(week: number, sequence: number, baseTimestamp?: number) {
   const safeSequence = normalizeSequence(sequence)
 
@@ -449,11 +459,14 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           infiltrationAwareness: draft.payload.infiltrationAwareness ?? null,
           infiltrationProbeProgress: draft.payload.infiltrationProbeProgress ?? null,
           infiltrationStage: draft.payload.infiltrationStage ?? null,
-          probeAction: draft.payload.probeAction ?? null,
-          probeActionSource: draft.payload.probeActionSource ?? null,
-          coverRole: draft.payload.coverRole ?? null,
-          leaveBehindId: draft.payload.leaveBehindId ?? null,
-          leaveBehindLabel: draft.payload.leaveBehindLabel ?? null,
+          probeAction: 'probeAction' in draft.payload ? (draft.payload.probeAction ?? null) : null,
+          probeActionSource:
+            'probeActionSource' in draft.payload ? (draft.payload.probeActionSource ?? null) : null,
+          coverRole: 'coverRole' in draft.payload ? (draft.payload.coverRole ?? null) : null,
+          leaveBehindId:
+            'leaveBehindId' in draft.payload ? (draft.payload.leaveBehindId ?? null) : null,
+          leaveBehindLabel:
+            'leaveBehindLabel' in draft.payload ? (draft.payload.leaveBehindLabel ?? null) : null,
         },
       }
 
@@ -506,7 +519,12 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'market.transaction_recorded':
       return {
-        content: `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
+        content:
+          draft.payload.action === 'favor_exchange'
+            ? `Market favor exchange: ${draft.payload.quantity}x ${draft.payload.itemName} via ${draft.payload.favorExchangeLabel ?? 'faction favor'} (no funding spent).`
+            : draft.payload.action === 'callable_obligation'
+              ? `Market callable obligation: ${draft.payload.quantity}x ${draft.payload.itemName} via ${draft.payload.callableObligationLabel ?? 'faction obligation'} (no funding spent).`
+              : `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
         type: 'market.transaction_recorded',
         metadata: {
           action: draft.payload.action,
@@ -563,6 +581,18 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         type: 'system.recruitment_expired',
         metadata: {
           count: draft.payload.count,
+        },
+      }
+
+    case 'recruitment.candidate_departed':
+      return {
+        content: `${draft.payload.candidateName} is no longer available for recruitment.`,
+        type: 'recruitment.candidate_departed',
+        metadata: {
+          candidateId: draft.payload.candidateId,
+          candidateName: draft.payload.candidateName,
+          reason: draft.payload.reason,
+          destination: draft.payload.destination ?? null,
         },
       }
 
@@ -675,6 +705,9 @@ function buildRewardMetadata(rewardBreakdown: MissionRewardBreakdown): ReportNot
     materialRewardCount: inventoryTotals.materials,
     equipmentRewardCount: inventoryTotals.equipment,
     factionStandingNet: getMissionRewardFactionStandingNet(rewardBreakdown),
+    ...(rewardBreakdown.agencyStanding
+      ? { agencyStandingDelta: rewardBreakdown.agencyStanding.points }
+      : {}),
   }
 }
 
@@ -683,6 +716,9 @@ function formatRewardSummary(rewardBreakdown: MissionRewardBreakdown) {
   const summaryParts = [
     `Funding ${formatSignedNumber(rewardBreakdown.fundingDelta)}`,
     `Reputation ${formatSignedNumber(rewardBreakdown.reputationDelta)}`,
+    ...(rewardBreakdown.agencyStanding
+      ? [`Agency standing ${formatSignedNumber(rewardBreakdown.agencyStanding.points)}`]
+      : []),
   ]
 
   if (inventoryTotals.materials > 0) {

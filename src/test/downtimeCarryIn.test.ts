@@ -1,3 +1,4 @@
+import { createSimulationAgentVitalsBaseline } from '../domain/agentDefaults'
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
@@ -27,7 +28,10 @@ describe('SPE-1701 downtime deployment carry-in', () => {
           sinceWeek: 2,
           foregoneThisInterval: ['therapy', 'coping', 'other'],
         },
-        vitals: { statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG] },
+        vitals: {
+          ...createSimulationAgentVitalsBaseline(40),
+          statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG],
+        },
       },
       3
     )
@@ -103,7 +107,10 @@ describe('SPE-1701 downtime deployment carry-in', () => {
           sinceWeek: 2,
           foregoneThisInterval: ['therapy', 'coping', 'other', 'sideWork', 'sideWorkTrusted'],
         },
-        vitals: { statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG] },
+        vitals: {
+          ...createSimulationAgentVitalsBaseline(40),
+          statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG],
+        },
       },
       3
     )
@@ -152,7 +159,10 @@ describe('SPE-1701 downtime deployment carry-in', () => {
           sinceWeek: 2,
           foregoneThisInterval: ['therapy'],
         },
-        vitals: { statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG] },
+        vitals: {
+          ...createSimulationAgentVitalsBaseline(10),
+          statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG],
+        },
         energyBudget: {
           currentReserve: 90,
           reserveBand: 'stable',
@@ -179,6 +189,7 @@ describe('SPE-1701 downtime deployment carry-in', () => {
           foregoneThisInterval: ['therapy', 'coping', 'other'],
         },
         vitals: {
+          ...createSimulationAgentVitalsBaseline(base.fatigue),
           ...base.vitals,
           statusFlags: [...(base.vitals?.statusFlags ?? []), EXPOSURE_RESIDUE_STATUS_FLAG],
         },
@@ -211,6 +222,7 @@ describe('SPE-1701 downtime deployment carry-in', () => {
             foregoneThisInterval: ['therapy'],
           },
           vitals: {
+            ...createSimulationAgentVitalsBaseline(base.fatigue),
             ...base.vitals,
             statusFlags: [...(base.vitals?.statusFlags ?? []), EXPOSURE_RESIDUE_STATUS_FLAG],
           },
@@ -239,6 +251,7 @@ describe('SPE-1701 downtime deployment carry-in', () => {
             foregoneThisInterval: ['therapy'],
           },
           vitals: {
+            ...createSimulationAgentVitalsBaseline(base.fatigue),
             ...base.vitals,
             statusFlags: [...(base.vitals?.statusFlags ?? []), EXPOSURE_RESIDUE_STATUS_FLAG],
           },

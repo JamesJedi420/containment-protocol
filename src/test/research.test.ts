@@ -4,9 +4,13 @@ import {
   queueResearchProject,
   activateResearchProjects,
   advanceResearchProgress,
+  advanceResearchProgressWithThroughput,
   recomputeResearchState,
 } from '../domain/research'
 import type { ResearchState } from '../domain/models'
+import type { ResearchProjectDefinition } from '../domain/researchProjectDefinition'
+import { RESEARCH_PROJECT_DEFINITION_SCHEMA_VERSION } from '../domain/researchProjectDefinition'
+import type { ResearchCapabilityPacket } from '../domain/researchThroughputExecution'
 
 describe('Research System', () => {
   it('deterministically queues and activates research projects respecting slots', () => {
@@ -73,6 +77,72 @@ describe('Research System', () => {
     expect(state.projects.p1.progressTime).toBe(2)
     expect(state.projects.p1.status).toBe('completed')
     expect(state.completedProjectIds).toContain('p1')
+  })
+
+  it('completes trivial throughput projects and frees their active slot', () => {
+    const definition: ResearchProjectDefinition = {
+      schemaVersion: RESEARCH_PROJECT_DEFINITION_SCHEMA_VERSION,
+      projectId: 'p1',
+      label: 'Trivial Lead',
+      sources: [{ sourceId: 'source.single', analyticalCapacity: 1, analysisCost: 1 }],
+      milestones: [
+        {
+          milestoneId: 'milestone.finding',
+          findingId: 'finding.ready',
+          findingKind: 'mandatory',
+          eligibility: { requiredSourceIds: ['source.single'] },
+          outputs: [{ kind: 'reveal_finding', targetRef: 'finding.ready' }],
+        },
+      ],
+      closureRequirement: { mandatoryFindingIds: ['finding.ready'] },
+    }
+    const capability: ResearchCapabilityPacket = {
+      domainScores: { analysis: 1 },
+      requiredDomainIds: ['analysis'],
+      difficulty: 1,
+      facilityGates: [],
+      staffCompetencyRefs: [],
+      sourceInputRefs: [
+        {
+          sourceId: 'source.single',
+          available: true,
+          quality: 1,
+          priorKnowledgeBonus: 0,
+        },
+      ],
+    }
+    const state: ResearchState = {
+      ...createInitialResearchState(),
+      projects: {
+        p1: {
+          projectId: 'p1',
+          category: 'anomaly',
+          status: 'active',
+          costTime: 1,
+          costMaterials: 0,
+          costData: 0,
+          progressTime: 0,
+          unlocks: [],
+          startedWeek: 1,
+        },
+      },
+      activeProjectIds: ['p1'],
+    }
+
+    const result = advanceResearchProgressWithThroughput({
+      state,
+      week: 2,
+      projectId: 'p1',
+      definition,
+      capability,
+    })
+
+    expect(result.tick.outcome).toBe('completed')
+    expect(result.executionRuntime).toBeNull()
+    expect(result.state.projects.p1.status).toBe('completed')
+    expect(result.state.projects.p1.completedWeek).toBe(2)
+    expect(result.state.activeProjectIds).toEqual([])
+    expect(result.state.completedProjectIds).toEqual(['p1'])
   })
 
   it('enforces research and facility prerequisites and blocks projects', () => {

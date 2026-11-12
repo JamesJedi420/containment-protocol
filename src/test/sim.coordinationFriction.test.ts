@@ -75,12 +75,12 @@ describe('SPE-95: Command-coordination friction', () => {
     expect(next.reports[next.reports.length - 1].notes.some(n => n.content.includes('coordination'))).toBeFalsy()
   })
 
-  it('triggers friction above threshold and downgrades one outcome', () => {
+  it.each([0, 1])('triggers friction and honors a partial increment of %s when downgrading success', (stageDelta) => {
     const state = makeBaseState()
     const baseAgent = createStartingState().agents.a_ava
     // 5 active cases, 0 support shortfall
     for (let i = 0; i < 5; ++i) {
-      state.cases['c' + i] = { id: 'c' + i, templateId: 't', title: 'C' + i, description: '', mode: 'deterministic', kind: 'case', status: 'in_progress', difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 }, weights: { combat: 1, investigation: 1, utility: 1, social: 1 }, tags: [], requiredTags: [], preferredTags: [], stage: 1, durationWeeks: 1, deadlineWeeks: 1, deadlineRemaining: 1, assignedTeamIds: ['t' + i], onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] }, onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] } }
+      state.cases['c' + i] = { id: 'c' + i, templateId: 't-' + i, title: 'C' + i, description: '', mode: 'deterministic', kind: 'case', status: 'in_progress', difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 }, weights: { combat: 1, investigation: 1, utility: 1, social: 1 }, tags: [], requiredTags: [], preferredTags: [], stage: 1, durationWeeks: 1, deadlineWeeks: 1, deadlineRemaining: 1, assignedTeamIds: ['t' + i], onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] }, onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] } }
       state.agents['a' + i] = {
         ...baseAgent,
         id: 'a' + i,
@@ -98,6 +98,7 @@ describe('SPE-95: Command-coordination friction', () => {
         tags: [],
       }
     }
+    state.cases.c0.onPartial = { stageDelta }
     const successReward = buildMissionRewardBreakdown(state.cases.c0, 'success', state.config)
     const partialReward = buildMissionRewardBreakdown(
       createResolutionEscalationTransition(state.cases.c0, 'partial').nextCase,
@@ -116,9 +117,12 @@ describe('SPE-95: Command-coordination friction', () => {
     expect(report.partialCases).toContain('c0')
     expect(next.cases.c0).toMatchObject({
       status: 'open',
-      stage: 2,
+      stage: 1 + stageDelta,
       assignedTeamIds: [],
     })
+    const stageConsequences = report.caseSnapshots?.c0?.missionResult?.spawnedConsequences
+      .filter((consequence) => consequence.type === 'stage_escalation')
+    expect(stageConsequences).toHaveLength(stageDelta > 0 ? 1 : 0)
     expect(
       next.events.some((event) => event.type === 'case.resolved' && event.payload.caseId === 'c0')
     ).toBe(false)

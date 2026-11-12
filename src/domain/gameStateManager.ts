@@ -1,4 +1,26 @@
+import {
+  normalizeTutorialRuntime,
+  resolveTutorialLifecycle,
+  createPersistedTutorialRecord,
+  TUTORIAL_RECORD_LIMIT,
+} from './tutorialPersistence'
+import {
+  transitionTutorial,
+  type TutorialDefinition,
+  type TutorialCommand,
+  type TutorialEligibility,
+  type TutorialTransitionResult,
+} from './tutorialLifecycle'
+import { isAllowedProgressClockId, PROGRESS_CLOCK_HYDRATION_MAX } from './progressClocks'
+import {
+  getDefaultRuntimeLocation,
+  isRuntimeSceneHistoryEntryValid,
+  isRuntimeSceneValidForHub,
+  resolveRuntimeCurrentLocation,
+} from './runtimeLocationRegistry'
 import type {
+  Agent,
+  CaseInstance,
   DeveloperLogDetailValue,
   DeveloperLogEvent,
   DeveloperLogEventType,
@@ -17,6 +39,7 @@ import type {
   RuntimeQueuedEvent,
   RuntimeState,
   SceneHistoryEntry,
+  Team,
 } from './models'
 
 const DEFAULT_PLAYER_PROFILE: PlayerProfileState = {
@@ -27,7 +50,9 @@ const DEFAULT_PLAYER_PROFILE: PlayerProfileState = {
 }
 
 const SCENE_HISTORY_LIMIT = 200
+const DEVELOPER_LOG_HYDRATION_LIMIT = 200
 const DEVELOPER_LOG_TYPES: readonly DeveloperLogEventType[] = [
+  'tutorial.lifecycle',
   'flag.set',
   'flag.cleared',
   'one_shot.consumed',
@@ -43,6 +68,13 @@ const DEVELOPER_LOG_TYPES: readonly DeveloperLogEventType[] = [
   'save.imported',
   'authoring.context_changed',
 ] as const
+
+const RUNTIME_QUEUED_EVENT_TYPES = new Set<string>([
+  'authored.follow_up',
+  'encounter.follow_up',
+  'encounter.patched',
+  'encounter.escalation',
+])
 
 export interface GameStateManagerView {
   player: PlayerProfileState
@@ -114,12 +146,101 @@ function sanitizeInteger(value: unknown, fallback: number, min = 0) {
   return Math.max(min, Math.trunc(value))
 }
 
+function clampCampaignWeek(value: unknown, campaignWeek: number, fallback: number) {
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  return Math.min(cappedWeek, sanitizeInteger(value, fallback, 1))
+}
+
+/** Runtime/save-load: preserve near-future encounter weeks above the current campaign week. */
+function clampEncounterTimelineWeek(value: unknown, campaignWeek: number, fallback: number) {
+  const parsed = sanitizeInteger(value, fallback, 1)
+  const cap = Math.max(campaignWeek, campaignWeek + 100)
+
+  return Math.min(cap, parsed)
+}
+
+type EncounterHydrationWeekField = 'started' | 'resolved' | 'lastUpdated'
+
+/** Hydration: cap corrupt far-future weeks while keeping intentional near-future scheduling. */
+function clampEncounterHydrationWeek(
+  value: unknown,
+  campaignWeek: number,
+  fallback: number,
+  field: EncounterHydrationWeekField
+) {
+  const parsed = sanitizeInteger(value, fallback, 1)
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const nearFutureSlack = field === 'lastUpdated' ? 4 : 1
+
+  if (parsed > cappedWeek + nearFutureSlack) {
+    return cappedWeek
+  }
+
+  return Math.min(Math.max(cappedWeek, cappedWeek + 100), parsed)
+}
+
+type EncounterWeekClampMode = 'hydrate' | 'runtime'
+
+function clampEncounterWeekField(
+  value: unknown,
+  campaignWeek: number,
+  fallback: number,
+  mode: EncounterWeekClampMode,
+  field: EncounterHydrationWeekField
+) {
+  return mode === 'hydrate'
+    ? clampEncounterHydrationWeek(value, campaignWeek, fallback, field)
+    : clampEncounterTimelineWeek(value, campaignWeek, fallback)
+}
+
+function parseQueueEventSequence(eventId: string) {
+  const match = /^qevt-(\d+)$/i.exec(sanitizeString(eventId))
+
+  return match ? Math.max(0, Number.parseInt(match[1], 10)) : 0
+}
+
+function parseDeveloperLogSequence(eventId: string) {
+  const match = /^devlog-(\d+)$/i.exec(sanitizeString(eventId))
+
+  return match ? Math.max(0, Number.parseInt(match[1], 10)) : 0
+}
+
+function isRuntimeQueuedEventTargetValid(
+  type: string,
+  targetId: string,
+  encounterState: Record<string, EncounterRuntimeState>
+) {
+  if (type === 'encounter.follow_up') {
+    if (targetId.length === 0) {
+      return false
+    }
+
+    if (encounterState[targetId] !== undefined) {
+      return true
+    }
+
+    return targetId.includes('.')
+  }
+
+  if (type === 'encounter.patched') {
+    return targetId.length > 0 && encounterState[targetId] !== undefined
+  }
+
+  if (type === 'encounter.escalation') {
+    return targetId.length > 0 && (encounterState[targetId] !== undefined || targetId.includes('.'))
+  }
+
+  return targetId.length > 0
+}
+
 function sanitizeStringList(value: unknown) {
   if (!Array.isArray(value)) {
     return []
   }
 
-  return [...new Set(value.map((entry) => sanitizeString(entry)).filter((entry) => entry.length > 0))]
+  return [
+    ...new Set(value.map((entry) => sanitizeString(entry)).filter((entry) => entry.length > 0)),
+  ]
 }
 
 function isFlagValue(value: unknown): value is GameFlagValue {
@@ -128,6 +249,11 @@ function isFlagValue(value: unknown): value is GameFlagValue {
     (typeof value === 'number' && Number.isFinite(value)) ||
     typeof value === 'boolean'
   )
+}
+
+/** Hydration 652-653: preserve finite numeric precision; integers stay integers. */
+function sanitizeHydrationNumericValue(value: number) {
+  return Number.isInteger(value) ? Math.trunc(value) : value
 }
 
 function sanitizeFlagRecord(value: unknown) {
@@ -140,18 +266,25 @@ function sanitizeFlagRecord(value: unknown) {
   for (const [flagId, rawValue] of Object.entries(value)) {
     const normalizedId = sanitizeString(flagId)
 
-    if (normalizedId.length === 0 || !isFlagValue(rawValue)) {
+    if (normalizedId.length === 0 || !isFlagValue(rawValue) || normalizedId in next) {
       continue
     }
 
     next[normalizedId] =
-      typeof rawValue === 'number' ? Math.trunc(rawValue) : typeof rawValue === 'string' ? rawValue : rawValue
+      typeof rawValue === 'number'
+        ? sanitizeHydrationNumericValue(rawValue)
+        : typeof rawValue === 'string'
+          ? rawValue
+          : rawValue
   }
 
   return next
 }
 
-function sanitizePlayerProfile(value: unknown, fallback = DEFAULT_PLAYER_PROFILE): PlayerProfileState {
+function sanitizePlayerProfile(
+  value: unknown,
+  fallback = DEFAULT_PLAYER_PROFILE
+): PlayerProfileState {
   if (!isRecord(value)) {
     return { ...fallback }
   }
@@ -159,39 +292,59 @@ function sanitizePlayerProfile(value: unknown, fallback = DEFAULT_PLAYER_PROFILE
   return {
     id: sanitizeString(value.id, fallback.id) || fallback.id,
     displayName: sanitizeString(value.displayName, fallback.displayName) || fallback.displayName,
-    ...(sanitizeOptionalString(value.callsign) ? { callsign: sanitizeOptionalString(value.callsign) } : {}),
+    ...(sanitizeOptionalString(value.callsign)
+      ? { callsign: sanitizeOptionalString(value.callsign) }
+      : {}),
     ...(sanitizeOptionalString(value.organization)
       ? { organization: sanitizeOptionalString(value.organization) }
       : fallback.organization
         ? { organization: fallback.organization }
         : {}),
-    ...(sanitizeOptionalString(value.pronouns)
-      ? { pronouns: sanitizeOptionalString(value.pronouns) }
-      : {}),
-    ...(sanitizeOptionalString(value.notes) ? { notes: sanitizeOptionalString(value.notes) } : {}),
   }
 }
 
 function sanitizeLocationState(value: unknown, week: number): GameLocationState {
   if (!isRecord(value)) {
-    return {
-      hubId: 'operations-desk',
-      locationId: 'operations-desk',
-      sceneId: 'dashboard',
-      updatedWeek: sanitizeInteger(week, 1, 1),
-    }
+    return getDefaultRuntimeLocation(week)
   }
 
-  const hubId = sanitizeString(value.hubId, 'operations-desk') || 'operations-desk'
-  return {
-    hubId,
-    ...(sanitizeOptionalString(value.locationId) ? { locationId: sanitizeOptionalString(value.locationId) } : {}),
-    ...(sanitizeOptionalString(value.sceneId) ? { sceneId: sanitizeOptionalString(value.sceneId) } : {}),
-    updatedWeek: sanitizeInteger(value.updatedWeek, week, 1),
-  }
+  return resolveRuntimeCurrentLocation(
+    {
+      hubId: sanitizeString(value.hubId),
+      locationId: sanitizeOptionalString(value.locationId),
+      sceneId: sanitizeOptionalString(value.sceneId),
+      updatedWeek: clampCampaignWeek(value.updatedWeek, week, week),
+    },
+    week
+  )
 }
 
-function sanitizeSceneHistoryEntry(value: unknown): SceneHistoryEntry | null {
+function sceneHistoryDedupeKey(entry: SceneHistoryEntry) {
+  return `${entry.locationId}:${entry.sceneId}:${entry.week}`
+}
+
+function finalizeSceneHistoryEntries(entries: SceneHistoryEntry[]): SceneHistoryEntry[] {
+  const dedupedByKey = new Map<string, SceneHistoryEntry>()
+
+  for (const entry of entries) {
+    dedupedByKey.set(sceneHistoryDedupeKey(entry), entry)
+  }
+
+  return [...dedupedByKey.values()]
+    .sort(
+      (left, right) =>
+        (left.week ?? 1) - (right.week ?? 1) ||
+        left.locationId.localeCompare(right.locationId) ||
+        left.sceneId.localeCompare(right.sceneId)
+    )
+    .slice(-SCENE_HISTORY_LIMIT)
+}
+
+function sanitizeSceneHistoryEntry(
+  value: unknown,
+  campaignWeek: number,
+  weekClampMode: EncounterWeekClampMode = 'hydrate'
+): SceneHistoryEntry | null {
   if (!isRecord(value)) {
     return null
   }
@@ -203,11 +356,22 @@ function sanitizeSceneHistoryEntry(value: unknown): SceneHistoryEntry | null {
     return null
   }
 
+  if (weekClampMode === 'hydrate' && !isRuntimeSceneHistoryEntryValid(locationId, sceneId)) {
+    return null
+  }
+
+  const week =
+    weekClampMode === 'runtime'
+      ? clampEncounterTimelineWeek(value.week, campaignWeek, 1)
+      : clampCampaignWeek(value.week, campaignWeek, 1)
+
   return {
     sceneId,
     locationId,
-    week: sanitizeInteger(value.week, 1, 1),
-    ...(sanitizeOptionalString(value.outcome) ? { outcome: sanitizeOptionalString(value.outcome) } : {}),
+    week,
+    ...(sanitizeOptionalString(value.outcome)
+      ? { outcome: sanitizeOptionalString(value.outcome) }
+      : {}),
     ...(sanitizeStringList(value.tags).length > 0 ? { tags: sanitizeStringList(value.tags) } : {}),
   }
 }
@@ -230,7 +394,7 @@ function sanitizeOneShotEvents(value: unknown, week: number) {
       next[normalizedId] = {
         eventId: normalizedId,
         seen: true,
-        firstSeenWeek: sanitizeInteger(week, 1, 1),
+        firstSeenWeek: clampCampaignWeek(week, week, 1),
       }
       continue
     }
@@ -239,16 +403,17 @@ function sanitizeOneShotEvents(value: unknown, week: number) {
       continue
     }
 
-    const seen = rawEntry.seen !== false
-    if (!seen) {
+    if (rawEntry.seen !== true) {
       continue
     }
 
     next[normalizedId] = {
       eventId: normalizedId,
       seen: true,
-      firstSeenWeek: sanitizeInteger(rawEntry.firstSeenWeek, week, 1),
-      ...(sanitizeOptionalString(rawEntry.source) ? { source: sanitizeOptionalString(rawEntry.source) } : {}),
+      firstSeenWeek: clampCampaignWeek(rawEntry.firstSeenWeek, week, week),
+      ...(sanitizeOptionalString(rawEntry.source)
+        ? { source: sanitizeOptionalString(rawEntry.source) }
+        : {}),
     }
   }
 
@@ -265,7 +430,7 @@ function sanitizeEncounterFlags(value: unknown) {
   for (const [flagId, rawValue] of Object.entries(value)) {
     const normalizedId = sanitizeString(flagId)
 
-    if (normalizedId.length === 0 || typeof rawValue !== 'boolean') {
+    if (normalizedId.length === 0 || typeof rawValue !== 'boolean' || normalizedId in next) {
       continue
     }
 
@@ -275,18 +440,126 @@ function sanitizeEncounterFlags(value: unknown) {
   return next
 }
 
+function reconcileEncounterModifierLists(
+  hiddenModifierIds: readonly string[] | undefined,
+  revealedModifierIds: readonly string[] | undefined
+) {
+  const revealed = sanitizeStringList(revealedModifierIds)
+  const revealedSet = new Set(revealed)
+  const hidden = sanitizeStringList(hiddenModifierIds).filter(
+    (modifierId) => !revealedSet.has(modifierId)
+  )
+
+  return {
+    hiddenModifierIds: hidden,
+    revealedModifierIds: revealed,
+  }
+}
+
+function isEncounterResolutionOutcome(value: unknown): value is EncounterResolutionOutcome {
+  return (
+    value === 'success' ||
+    value === 'partial' ||
+    value === 'failure' ||
+    value === 'failed' ||
+    value === 'dismissed'
+  )
+}
+
+function finalizeEncounterRuntimeState(
+  encounter: EncounterRuntimeState,
+  campaignWeek: number,
+  weekClampMode: EncounterWeekClampMode
+): EncounterRuntimeState {
+  const status = encounter.status ?? 'available'
+  const clampWeek = (value: unknown, fallback: number, field: EncounterHydrationWeekField) =>
+    clampEncounterWeekField(value, campaignWeek, fallback, weekClampMode, field)
+  const startedWeek =
+    typeof encounter.startedWeek === 'number'
+      ? clampWeek(encounter.startedWeek, campaignWeek, 'started')
+      : undefined
+  let resolvedWeek =
+    typeof encounter.resolvedWeek === 'number'
+      ? clampWeek(encounter.resolvedWeek, campaignWeek, 'resolved')
+      : undefined
+  let latestOutcome = encounter.latestOutcome
+  let lastResolutionId = encounter.lastResolutionId
+
+  if (status === 'active') {
+    if (weekClampMode === 'hydrate' && typeof encounter.resolvedWeek === 'number') {
+      resolvedWeek = undefined
+      latestOutcome = undefined
+      lastResolutionId = undefined
+    } else if (!latestOutcome) {
+      resolvedWeek = undefined
+      lastResolutionId = undefined
+    }
+  }
+
+  if (status === 'resolved') {
+    if (!latestOutcome) {
+      latestOutcome = 'failure'
+    }
+
+    const resolvedAnchor = resolvedWeek ?? startedWeek ?? campaignWeek
+    const startAnchor = startedWeek ?? 1
+    resolvedWeek = Math.max(startAnchor, clampWeek(resolvedAnchor, startAnchor, 'resolved'))
+  } else if (resolvedWeek !== undefined && startedWeek !== undefined) {
+    resolvedWeek = Math.max(startedWeek, clampWeek(resolvedWeek, startedWeek, 'resolved'))
+  } else if (resolvedWeek !== undefined) {
+    resolvedWeek = clampWeek(resolvedWeek, campaignWeek, 'resolved')
+  }
+
+  const modifierLists = reconcileEncounterModifierLists(
+    encounter.hiddenModifierIds,
+    encounter.revealedModifierIds
+  )
+
+  const nextEncounter: EncounterRuntimeState = {
+    encounterId: encounter.encounterId,
+    status,
+    ...(encounter.phase ? { phase: encounter.phase } : {}),
+    ...(startedWeek !== undefined ? { startedWeek } : {}),
+    hiddenModifierIds: modifierLists.hiddenModifierIds,
+    revealedModifierIds: modifierLists.revealedModifierIds,
+    flags: encounter.flags,
+    lastUpdatedWeek: clampWeek(encounter.lastUpdatedWeek, campaignWeek, 'lastUpdated'),
+  }
+
+  if (resolvedWeek !== undefined) {
+    nextEncounter.resolvedWeek = resolvedWeek
+  }
+
+  if (latestOutcome !== undefined) {
+    nextEncounter.latestOutcome = latestOutcome
+  }
+
+  if (lastResolutionId !== undefined) {
+    nextEncounter.lastResolutionId = lastResolutionId
+  }
+
+  if (encounter.followUpIds && encounter.followUpIds.length > 0) {
+    nextEncounter.followUpIds = encounter.followUpIds
+  }
+
+  return nextEncounter
+}
+
 function sanitizeEncounterRuntimeState(
   encounterId: string,
   value: unknown,
-  week: number
+  week: number,
+  weekClampMode: EncounterWeekClampMode = 'runtime'
 ): EncounterRuntimeState {
+  const clampWeek = (value: unknown, fallback: number, field: EncounterHydrationWeekField) =>
+    clampEncounterWeekField(value, week, fallback, weekClampMode, field)
   const fallback: EncounterRuntimeState = {
     encounterId,
     status: 'available',
     hiddenModifierIds: [],
     revealedModifierIds: [],
     flags: {},
-    lastUpdatedWeek: sanitizeInteger(week, 1, 1),
+    lastUpdatedWeek: clampCampaignWeek(week, week, 1),
   }
 
   if (!isRecord(value)) {
@@ -299,21 +572,22 @@ function sanitizeEncounterRuntimeState(
     normalizedStatus === 'available' ||
     normalizedStatus === 'active' ||
     normalizedStatus === 'resolved' ||
+    normalizedStatus === 'locked' ||
     normalizedStatus === 'archived'
       ? normalizedStatus
-      : fallback.status ?? 'available'
+      : (fallback.status ?? 'available')
 
-  return {
+  const encounter: EncounterRuntimeState = {
     encounterId,
     status,
     ...(sanitizeOptionalString(value.phase) ? { phase: sanitizeOptionalString(value.phase) } : {}),
     ...(typeof value.startedWeek === 'number'
-      ? { startedWeek: sanitizeInteger(value.startedWeek, week, 1) }
+      ? { startedWeek: clampWeek(value.startedWeek, week, 'started') }
       : {}),
     ...(typeof value.resolvedWeek === 'number'
-      ? { resolvedWeek: sanitizeInteger(value.resolvedWeek, week, 1) }
+      ? { resolvedWeek: clampWeek(value.resolvedWeek, week, 'resolved') }
       : {}),
-    ...(value.latestOutcome === 'success' || value.latestOutcome === 'partial' || value.latestOutcome === 'failure'
+    ...(isEncounterResolutionOutcome(value.latestOutcome)
       ? { latestOutcome: value.latestOutcome }
       : {}),
     ...(sanitizeOptionalString(value.lastResolutionId)
@@ -325,11 +599,17 @@ function sanitizeEncounterRuntimeState(
     hiddenModifierIds: sanitizeStringList(value.hiddenModifierIds),
     revealedModifierIds: sanitizeStringList(value.revealedModifierIds),
     flags: sanitizeEncounterFlags(value.flags),
-    lastUpdatedWeek: sanitizeInteger(value.lastUpdatedWeek, week, 1),
+    lastUpdatedWeek: clampWeek(value.lastUpdatedWeek, week, 'lastUpdated'),
   }
+
+  return finalizeEncounterRuntimeState(encounter, week, weekClampMode)
 }
 
-function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
+function sanitizeEncounterRuntimeMap(
+  value: unknown,
+  week: number,
+  weekClampMode: EncounterWeekClampMode = 'runtime'
+) {
   if (!isRecord(value)) {
     return {}
   }
@@ -343,7 +623,7 @@ function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
       continue
     }
 
-    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week)
+    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week, weekClampMode)
   }
 
   return next
@@ -366,7 +646,10 @@ function sanitizeProgressClockState(
     }
   }
 
-  const max = Math.max(1, sanitizeInteger(value.max, fallbackMax, 1))
+  const max = Math.min(
+    PROGRESS_CLOCK_HYDRATION_MAX,
+    Math.max(1, sanitizeInteger(value.max, fallbackMax, 1))
+  )
   const valueClamped = Math.min(max, sanitizeInteger(value.value, 0, 0))
 
   return {
@@ -376,7 +659,7 @@ function sanitizeProgressClockState(
     max,
     ...(typeof value.hidden === 'boolean' ? { hidden: value.hidden } : {}),
     ...(valueClamped >= max
-      ? { completedAtWeek: sanitizeInteger(value.completedAtWeek, week, 1) }
+      ? { completedAtWeek: clampCampaignWeek(value.completedAtWeek, week, week) }
       : {}),
   }
 }
@@ -391,7 +674,11 @@ function sanitizeProgressClockMap(value: unknown, week: number) {
   for (const [clockId, rawEntry] of Object.entries(value)) {
     const normalizedId = sanitizeString(clockId)
 
-    if (normalizedId.length === 0) {
+    if (
+      normalizedId.length === 0 ||
+      !isAllowedProgressClockId(normalizedId) ||
+      normalizedId in next
+    ) {
       continue
     }
 
@@ -407,7 +694,7 @@ function sanitizeRuntimeEventQueuePayloadValue(value: unknown) {
   }
 
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return Number.isInteger(value) ? Math.trunc(value) : Number(value.toFixed(2))
+    return sanitizeHydrationNumericValue(value)
   }
 
   if (typeof value === 'string') {
@@ -434,7 +721,7 @@ function sanitizeRuntimeEventQueuePayload(value: unknown) {
     const normalizedId = sanitizeString(payloadId)
     const normalizedValue = sanitizeRuntimeEventQueuePayloadValue(rawValue)
 
-    if (normalizedId.length === 0 || normalizedValue === null) {
+    if (normalizedId.length === 0 || normalizedValue === null || normalizedId in next) {
       continue
     }
 
@@ -444,7 +731,12 @@ function sanitizeRuntimeEventQueuePayload(value: unknown) {
   return Object.keys(next).length > 0 ? next : undefined
 }
 
-function sanitizeRuntimeQueuedEvent(value: unknown, index: number, week: number): RuntimeQueuedEvent | null {
+function sanitizeRuntimeQueuedEvent(
+  value: unknown,
+  index: number,
+  week: number,
+  encounterState: Record<string, EncounterRuntimeState>
+): RuntimeQueuedEvent | null {
   if (!isRecord(value)) {
     return null
   }
@@ -452,7 +744,10 @@ function sanitizeRuntimeQueuedEvent(value: unknown, index: number, week: number)
   const type = sanitizeString(value.type)
   const targetId = sanitizeString(value.targetId)
 
-  if (type.length === 0 || targetId.length === 0) {
+  if (
+    !RUNTIME_QUEUED_EVENT_TYPES.has(type) ||
+    !isRuntimeQueuedEventTargetValid(type, targetId, encounterState)
+  ) {
     return null
   }
 
@@ -463,15 +758,40 @@ function sanitizeRuntimeQueuedEvent(value: unknown, index: number, week: number)
     ...(sanitizeOptionalString(value.contextId)
       ? { contextId: sanitizeOptionalString(value.contextId) }
       : {}),
-    ...(sanitizeOptionalString(value.source) ? { source: sanitizeOptionalString(value.source) } : {}),
-    ...(typeof value.week === 'number' ? { week: sanitizeInteger(value.week, week, 1) } : {}),
+    ...(sanitizeOptionalString(value.source)
+      ? { source: sanitizeOptionalString(value.source) }
+      : {}),
+    ...(typeof value.week === 'number' ? { week: clampCampaignWeek(value.week, week, week) } : {}),
     ...(sanitizeRuntimeEventQueuePayload(value.payload)
       ? { payload: sanitizeRuntimeEventQueuePayload(value.payload) }
       : {}),
   }
 }
 
-function sanitizeRuntimeEventQueueState(value: unknown, week: number): RuntimeEventQueueState {
+function dedupeRuntimeQueuedEventsById(entries: RuntimeQueuedEvent[]) {
+  const seenIds = new Set<string>()
+  const next: RuntimeQueuedEvent[] = []
+
+  for (const [index, entry] of entries.entries()) {
+    let id = entry.id
+
+    if (seenIds.has(id)) {
+      id = `${entry.id}-dup-${index + 1}`
+    }
+
+    seenIds.add(id)
+
+    next.push(id === entry.id ? entry : { ...entry, id })
+  }
+
+  return next
+}
+
+function sanitizeRuntimeEventQueueState(
+  value: unknown,
+  week: number,
+  encounterState: Record<string, EncounterRuntimeState>
+): RuntimeEventQueueState {
   if (!isRecord(value)) {
     return {
       entries: [],
@@ -479,15 +799,27 @@ function sanitizeRuntimeEventQueueState(value: unknown, week: number): RuntimeEv
     }
   }
 
-  const entries = Array.isArray(value.entries)
-    ? value.entries
-        .map((entry, index) => sanitizeRuntimeQueuedEvent(entry, index, week))
-        .filter((entry): entry is RuntimeQueuedEvent => entry !== null)
-    : []
+  const entries = dedupeRuntimeQueuedEventsById(
+    Array.isArray(value.entries)
+      ? value.entries
+          .map((entry, index) => sanitizeRuntimeQueuedEvent(entry, index, week, encounterState))
+          .filter((entry): entry is RuntimeQueuedEvent => entry !== null)
+      : []
+  )
+
+  const maxEntrySequence = entries.reduce(
+    (max, entry) => Math.max(max, parseQueueEventSequence(entry.id)),
+    0
+  )
 
   return {
     entries,
-    nextSequence: Math.max(1, sanitizeInteger(value.nextSequence, entries.length + 1, 1)),
+    nextSequence: Math.max(
+      1,
+      entries.length + 1,
+      maxEntrySequence + 1,
+      sanitizeInteger(value.nextSequence, entries.length + 1, 1)
+    ),
   }
 }
 
@@ -497,7 +829,7 @@ function sanitizeDeveloperLogDetailValue(value: unknown): DeveloperLogDetailValu
   }
 
   if (typeof value === 'number' && Number.isFinite(value)) {
-    return Number.isInteger(value) ? Math.trunc(value) : Number(value.toFixed(2))
+    return sanitizeHydrationNumericValue(value)
   }
 
   if (typeof value === 'string') {
@@ -524,7 +856,7 @@ function sanitizeDeveloperLogDetails(value: unknown) {
     const normalizedId = sanitizeString(detailId)
     const normalizedValue = sanitizeDeveloperLogDetailValue(rawValue)
 
-    if (normalizedId.length === 0 || normalizedValue === null) {
+    if (normalizedId.length === 0 || normalizedValue === null || normalizedId in next) {
       continue
     }
 
@@ -534,7 +866,11 @@ function sanitizeDeveloperLogDetails(value: unknown) {
   return Object.keys(next).length > 0 ? next : undefined
 }
 
-function sanitizeDeveloperLogEvent(value: unknown, index: number, week: number): DeveloperLogEvent | null {
+function sanitizeDeveloperLogEvent(
+  value: unknown,
+  index: number,
+  week: number
+): DeveloperLogEvent | null {
   if (!isRecord(value)) {
     return null
   }
@@ -548,7 +884,7 @@ function sanitizeDeveloperLogEvent(value: unknown, index: number, week: number):
 
   return {
     id: sanitizeString(value.id, `devlog-${index + 1}`) || `devlog-${index + 1}`,
-    week: sanitizeInteger(value.week, week, 1),
+    week: clampCampaignWeek(value.week, week, week),
     type: type as DeveloperLogEventType,
     summary,
     ...(sanitizeOptionalString(value.contextId)
@@ -560,17 +896,38 @@ function sanitizeDeveloperLogEvent(value: unknown, index: number, week: number):
   }
 }
 
+function dedupeDeveloperLogEventsById(entries: DeveloperLogEvent[]) {
+  const seenIds = new Set<string>()
+  const next: DeveloperLogEvent[] = []
+
+  for (const [index, entry] of entries.entries()) {
+    let id = entry.id
+
+    if (seenIds.has(id)) {
+      id = `${entry.id}-dup-${index + 1}`
+    }
+
+    seenIds.add(id)
+
+    next.push(id === entry.id ? entry : { ...entry, id })
+  }
+
+  return next
+}
+
 function sanitizeDeveloperLogEventList(value: unknown, week: number) {
   if (!Array.isArray(value)) {
     return []
   }
 
-  return value
-    .map((entry, index) => sanitizeDeveloperLogEvent(entry, index, week))
-    .filter((entry): entry is DeveloperLogEvent => entry !== null)
+  return dedupeDeveloperLogEventsById(
+    value
+      .map((entry, index) => sanitizeDeveloperLogEvent(entry, index, week))
+      .filter((entry): entry is DeveloperLogEvent => entry !== null)
+  ).slice(-DEVELOPER_LOG_HYDRATION_LIMIT)
 }
 
-function sanitizeUiState(value: unknown): GameUiDebugState {
+function sanitizeUiState(value: unknown, week: number): GameUiDebugState {
   if (!isRecord(value)) {
     return {
       debug: {
@@ -584,6 +941,20 @@ function sanitizeUiState(value: unknown): GameUiDebugState {
 
   const debug = isRecord(value.debug) ? value.debug : {}
   const authoring = isRecord(value.authoring) ? value.authoring : {}
+  const rawEventLog = Array.isArray(debug.eventLog) ? debug.eventLog : []
+  const eventLog = sanitizeDeveloperLogEventList(rawEventLog, week)
+  const maxLogSequence = eventLog.reduce(
+    (max, entry) => Math.max(max, parseDeveloperLogSequence(entry.id)),
+    0
+  )
+  const nextEventSequence = Math.max(
+    1,
+    eventLog.length + 1,
+    maxLogSequence + 1,
+    sanitizeInteger(debug.nextEventSequence, eventLog.length + 1, 1)
+  )
+  const debugFlags = sanitizeEncounterFlags(debug.flags)
+
   return {
     ...(sanitizeOptionalString(value.selectedLocationId)
       ? { selectedLocationId: sanitizeOptionalString(value.selectedLocationId) }
@@ -623,19 +994,19 @@ function sanitizeUiState(value: unknown): GameUiDebugState {
               ? { lastFollowUpIds: sanitizeStringList(authoring.lastFollowUpIds) }
               : {}),
             ...(typeof authoring.updatedWeek === 'number'
-              ? { updatedWeek: sanitizeInteger(authoring.updatedWeek, 1, 1) }
+              ? { updatedWeek: clampCampaignWeek(authoring.updatedWeek, week, week) }
               : {}),
           },
         }
       : {}),
     debug: {
-      enabled: typeof debug.enabled === 'boolean' ? debug.enabled : false,
-      flags: sanitizeEncounterFlags(debug.flags),
-      eventLog: sanitizeDeveloperLogEventList(debug.eventLog, 1),
-      nextEventSequence: Math.max(
-        1,
-        sanitizeInteger(debug.nextEventSequence, sanitizeDeveloperLogEventList(debug.eventLog, 1).length + 1, 1)
-      ),
+      enabled:
+        typeof debug.enabled === 'boolean' && Object.values(debugFlags).some(Boolean)
+          ? debug.enabled
+          : false,
+      flags: debugFlags,
+      eventLog,
+      nextEventSequence,
     },
   }
 }
@@ -650,7 +1021,7 @@ function sanitizeInventoryRecord(value: unknown) {
   for (const [itemId, quantity] of Object.entries(value)) {
     const normalizedId = sanitizeString(itemId)
 
-    if (normalizedId.length === 0) {
+    if (normalizedId.length === 0 || normalizedId in next) {
       continue
     }
 
@@ -665,28 +1036,13 @@ function isInventoryCanonical(value: unknown) {
     isRecord(value) &&
     Object.entries(value).every(
       ([itemId, quantity]) =>
-        sanitizeString(itemId).length > 0 &&
+        itemId === sanitizeString(itemId) &&
+        itemId.length > 0 &&
         typeof quantity === 'number' &&
         Number.isFinite(quantity) &&
         Math.trunc(quantity) === quantity &&
         quantity >= 0
     )
-  )
-}
-
-function hasRuntimeShape(value: unknown): value is RuntimeState {
-  return (
-    isRecord(value) &&
-    isRecord(value.player) &&
-    isRecord(value.globalFlags) &&
-    isRecord(value.oneShotEvents) &&
-    isRecord(value.currentLocation) &&
-    Array.isArray(value.sceneHistory) &&
-    isRecord(value.encounterState) &&
-    isRecord(value.progressClocks) &&
-    isRecord(value.eventQueue) &&
-    isRecord(value.ui) &&
-    isRecord((value.ui as Record<string, unknown>).debug)
   )
 }
 
@@ -724,30 +1080,163 @@ export function createDefaultRuntimeState(week = 1): RuntimeState {
  * Save/load extension point.
  * This normalizes authored narrative/meta state without touching domain-specific systems.
  */
-export function normalizeRuntimeState(value: unknown, week: number, fallback?: RuntimeState): RuntimeState {
+export interface ReconcileRuntimeUiContext {
+  cases: Record<string, CaseInstance>
+  teams: Record<string, Team>
+  agents: Record<string, Agent>
+}
+
+export function reconcileRuntimeUiSelections(
+  runtimeState: RuntimeState,
+  context: ReconcileRuntimeUiContext
+): RuntimeState {
+  const caseIds = new Set(Object.keys(context.cases))
+  const teamIds = new Set(Object.keys(context.teams))
+  const agentIds = new Set(Object.keys(context.agents))
+  const defaultLocation = getDefaultRuntimeLocation(runtimeState.currentLocation.updatedWeek ?? 1)
+
+  const selectedCaseId = sanitizeOptionalString(runtimeState.ui.selectedCaseId)
+  const selectedTeamId = sanitizeOptionalString(runtimeState.ui.selectedTeamId)
+  const selectedAgentId = sanitizeOptionalString(runtimeState.ui.selectedAgentId)
+  const selectedLocationId = sanitizeOptionalString(runtimeState.ui.selectedLocationId)
+  const selectedSceneId = sanitizeOptionalString(runtimeState.ui.selectedSceneId)
+
+  const nextUi: GameUiDebugState = {
+    ...runtimeState.ui,
+  }
+
+  delete nextUi.selectedCaseId
+  delete nextUi.selectedTeamId
+  delete nextUi.selectedAgentId
+  delete nextUi.selectedLocationId
+  delete nextUi.selectedSceneId
+
+  if (selectedCaseId && caseIds.has(selectedCaseId)) {
+    nextUi.selectedCaseId = selectedCaseId
+  }
+
+  if (selectedTeamId && teamIds.has(selectedTeamId)) {
+    nextUi.selectedTeamId = selectedTeamId
+  }
+
+  if (selectedAgentId && agentIds.has(selectedAgentId)) {
+    nextUi.selectedAgentId = selectedAgentId
+  }
+
+  if (
+    selectedLocationId &&
+    selectedSceneId &&
+    isRuntimeSceneHistoryEntryValid(selectedLocationId, selectedSceneId)
+  ) {
+    nextUi.selectedLocationId = selectedLocationId
+    nextUi.selectedSceneId = selectedSceneId
+  } else if (
+    selectedLocationId &&
+    isRuntimeSceneValidForHub(
+      runtimeState.currentLocation.hubId,
+      selectedLocationId,
+      runtimeState.currentLocation.sceneId
+    )
+  ) {
+    nextUi.selectedLocationId = selectedLocationId
+    if (runtimeState.currentLocation.sceneId) {
+      nextUi.selectedSceneId = runtimeState.currentLocation.sceneId
+    }
+  } else {
+    nextUi.selectedLocationId = defaultLocation.locationId
+    nextUi.selectedSceneId = defaultLocation.sceneId
+  }
+
+  return {
+    ...runtimeState,
+    ui: nextUi,
+  }
+}
+
+function hasCanonicalDebugFlags(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  if (!Array.isArray(value.eventLog)) {
+    return false
+  }
+
+  if (value.enabled === true && isRecord(value.flags) && Object.keys(value.flags).length === 0) {
+    return false
+  }
+
+  if (!isRecord(value.flags)) {
+    return true
+  }
+
+  const hasTruthyFlag = Object.entries(value.flags).some(
+    ([key, flagValue]) => key === sanitizeString(key) && key.length > 0 && Boolean(flagValue)
+  )
+
+  if (value.enabled === true && !hasTruthyFlag) {
+    return false
+  }
+
+  return Object.keys(value.flags).every((key) => key === sanitizeString(key) && key.length > 0)
+}
+
+function hasRuntimeShape(value: unknown): value is RuntimeState {
+  return (
+    isRecord(value) &&
+    isRecord(value.player) &&
+    isRecord(value.globalFlags) &&
+    isRecord(value.oneShotEvents) &&
+    isRecord(value.currentLocation) &&
+    Array.isArray(value.sceneHistory) &&
+    isRecord(value.encounterState) &&
+    isRecord(value.progressClocks) &&
+    isRecord(value.eventQueue) &&
+    Array.isArray(value.eventQueue.entries) &&
+    isRecord(value.ui) &&
+    hasCanonicalDebugFlags((value.ui as Record<string, unknown>).debug)
+  )
+}
+
+export function normalizeRuntimeState(
+  value: unknown,
+  week: number,
+  fallback?: RuntimeState,
+  encounterWeekClampMode: EncounterWeekClampMode = 'hydrate'
+): RuntimeState {
   const base = fallback ?? createDefaultRuntimeState(week)
 
   if (!isRecord(value)) {
-    return { ...base }
+    const legacyBase = { ...base }
+    delete legacyBase.tutorials
+    return legacyBase
   }
 
   const sceneHistory = Array.isArray(value.sceneHistory)
-    ? value.sceneHistory
-        .map((entry) => sanitizeSceneHistoryEntry(entry))
-        .filter((entry): entry is SceneHistoryEntry => entry !== null)
-        .slice(-SCENE_HISTORY_LIMIT)
+    ? finalizeSceneHistoryEntries(
+        value.sceneHistory
+          .map((entry) => sanitizeSceneHistoryEntry(entry, week, encounterWeekClampMode))
+          .filter((entry): entry is SceneHistoryEntry => entry !== null)
+      )
     : base.sceneHistory
+  const encounterState = sanitizeEncounterRuntimeMap(
+    value.encounterState,
+    week,
+    encounterWeekClampMode
+  )
 
+  const tutorials = normalizeTutorialRuntime(value.tutorials)
   return {
+    ...(tutorials !== undefined ? { tutorials } : {}),
     player: sanitizePlayerProfile(value.player, base.player),
     globalFlags: sanitizeFlagRecord(value.globalFlags),
     oneShotEvents: sanitizeOneShotEvents(value.oneShotEvents, week),
     currentLocation: sanitizeLocationState(value.currentLocation, week),
     sceneHistory,
-    encounterState: sanitizeEncounterRuntimeMap(value.encounterState, week),
+    encounterState,
     progressClocks: sanitizeProgressClockMap(value.progressClocks, week),
-    eventQueue: sanitizeRuntimeEventQueueState(value.eventQueue, week),
-    ui: sanitizeUiState(value.ui),
+    eventQueue: sanitizeRuntimeEventQueueState(value.eventQueue, week, encounterState),
+    ui: sanitizeUiState(value.ui, week),
   }
 }
 
@@ -791,7 +1280,10 @@ export function readGameStateManager(state: GameState): GameStateManagerView {
     ),
     eventQueue: {
       nextSequence: runtimeState.eventQueue.nextSequence,
-      entries: runtimeState.eventQueue.entries.map((entry) => ({
+      entries: (Array.isArray(runtimeState.eventQueue.entries)
+        ? runtimeState.eventQueue.entries
+        : []
+      ).map((entry) => ({
         ...entry,
         ...(entry.payload
           ? {
@@ -853,47 +1345,70 @@ export function getGlobalFlag(state: GameState, flagId: string) {
 
 export function hasOneShotEventOccurred(state: GameState, eventId: string) {
   const normalizedId = sanitizeString(eventId)
-  return normalizedId.length > 0 ? Boolean(readGameStateManager(state).oneShotEvents[normalizedId]) : false
+  return normalizedId.length > 0
+    ? Boolean(readGameStateManager(state).oneShotEvents[normalizedId])
+    : false
 }
 
 export function getOneShotEventRecord(state: GameState, eventId: string) {
   const normalizedId = sanitizeString(eventId)
-  return normalizedId.length > 0 ? readGameStateManager(state).oneShotEvents[normalizedId] ?? null : null
+  return normalizedId.length > 0
+    ? (readGameStateManager(state).oneShotEvents[normalizedId] ?? null)
+    : null
 }
 
 export function getProgressClock(state: GameState, clockId: string) {
   const normalizedId = sanitizeString(clockId)
-  return normalizedId.length > 0 ? readGameStateManager(state).progressClocks[normalizedId] : undefined
+  return normalizedId.length > 0
+    ? readGameStateManager(state).progressClocks[normalizedId]
+    : undefined
 }
 
-export function ensureManagedGameState(state: GameState): GameState {
-  const normalizedRuntimeState = hasRuntimeShape(state.runtimeState)
+type RuntimeStateInput = Omit<GameState, 'runtimeState'> & { runtimeState?: unknown }
+
+function hasCanonicalGameRuntime(
+  state: RuntimeStateInput
+): state is GameState & { runtimeState: RuntimeState } {
+  return hasRuntimeShape(state.runtimeState)
+}
+
+export function ensureManagedGameState(state: RuntimeStateInput): GameState {
+  const hasCanonicalRuntime = hasCanonicalGameRuntime(state)
+  const runtimeState = hasCanonicalRuntime
     ? state.runtimeState
-    : normalizeRuntimeState(state.runtimeState, state.week)
-  const normalizedInventory = isInventoryCanonical(state.inventory)
+    : normalizeRuntimeState(state.runtimeState, state.week, undefined, 'runtime')
+  const inventory = isInventoryCanonical(state.inventory)
     ? state.inventory
     : sanitizeInventoryRecord(state.inventory)
 
-  if (normalizedRuntimeState === state.runtimeState && normalizedInventory === state.inventory) {
+  if (hasCanonicalRuntime && runtimeState === state.runtimeState && inventory === state.inventory) {
     return state
   }
 
   return {
     ...state,
-    runtimeState: normalizedRuntimeState,
-    inventory: normalizedInventory,
+    runtimeState,
+    inventory,
   }
 }
 
 function withRuntimeState(
   state: GameState,
-  updater: (runtimeState: RuntimeState, nextInventory: Record<string, number>) => {
+  updater: (
+    runtimeState: RuntimeState,
+    nextInventory: Record<string, number>
+  ) => {
     runtimeState?: RuntimeState
     inventory?: Record<string, number>
   }
 ) {
   const normalized = ensureManagedGameState(state)
-  const runtimeState = normalizeRuntimeState(normalized.runtimeState, normalized.week)
+  const runtimeState = normalizeRuntimeState(
+    normalized.runtimeState,
+    normalized.week,
+    undefined,
+    'runtime'
+  )
   const inventory = isInventoryCanonical(normalized.inventory)
     ? normalized.inventory
     : sanitizeInventoryRecord(normalized.inventory)
@@ -913,6 +1428,47 @@ export function setPlayerProfile(state: GameState, patch: Partial<PlayerProfileS
       player: sanitizePlayerProfile({ ...runtimeState.player, ...patch }, runtimeState.player),
     },
   }))
+}
+
+/** Registered definitions remain caller-owned; this branch never executes game actions. */
+export function getTutorialLifecycle(state: GameState, definition: TutorialDefinition) {
+  return resolveTutorialLifecycle(
+    normalizeTutorialRuntime(state.runtimeState?.tutorials),
+    definition
+  )
+}
+
+export function applyTutorialCommand(
+  state: GameState,
+  definition: TutorialDefinition,
+  command: TutorialCommand,
+  eligibility: TutorialEligibility = {}
+): { state: GameState; result: TutorialTransitionResult | null } {
+  const runtime = normalizeTutorialRuntime(state.runtimeState?.tutorials)
+  const current = resolveTutorialLifecycle(runtime, definition)
+  if (
+    !current ||
+    (!Object.hasOwn(runtime?.records ?? {}, definition.id) &&
+      Object.keys(runtime?.records ?? {}).length >= TUTORIAL_RECORD_LIMIT)
+  )
+    return { state, result: null }
+  const result = transitionTutorial(definition, current, command, eligibility)
+  if (!result.changed) return { state, result }
+  return {
+    result,
+    state: withRuntimeState(state, (managed) => ({
+      runtimeState: {
+        ...managed,
+        tutorials: {
+          schemaVersion: 1,
+          records: {
+            ...runtime?.records,
+            [definition.id]: createPersistedTutorialRecord(definition, result.state),
+          },
+        },
+      },
+    })),
+  }
 }
 
 export function setGlobalFlag(state: GameState, flagId: string, value: GameFlagValue) {
@@ -1060,13 +1616,17 @@ export function recordSceneVisit(state: GameState, input: SceneVisitInput) {
   }
 
   return withRuntimeState(state, (runtimeState) => {
-    const nextEntry = sanitizeSceneHistoryEntry({
-      sceneId,
-      locationId,
-      week: input.week ?? state.week,
-      outcome: input.outcome,
-      tags: input.tags,
-    })
+    const nextEntry = sanitizeSceneHistoryEntry(
+      {
+        sceneId,
+        locationId,
+        week: input.week ?? state.week,
+        outcome: input.outcome,
+        tags: input.tags,
+      },
+      state.week,
+      'runtime'
+    )
 
     if (!nextEntry) {
       return { runtimeState }
@@ -1213,7 +1773,7 @@ export function advanceProgressClock(
               value: nextValue,
               hidden: defaults?.hidden ?? existing?.hidden,
               completedAtWeek:
-                nextValue >= baseMax ? existing?.completedAtWeek ?? state.week : undefined,
+                nextValue >= baseMax ? (existing?.completedAtWeek ?? state.week) : undefined,
             },
             state.week
           ),
@@ -1227,29 +1787,32 @@ export function setUiDebugState(state: GameState, patch: Partial<GameUiDebugStat
   return withRuntimeState(state, (runtimeState) => ({
     runtimeState: {
       ...runtimeState,
-      ui: sanitizeUiState({
-        ...runtimeState.ui,
-        ...patch,
-        ...(isRecord(patch.authoring)
-          ? {
-              authoring: {
-                ...(isRecord(runtimeState.ui.authoring) ? runtimeState.ui.authoring : {}),
-                ...patch.authoring,
-                ...(Array.isArray(patch.authoring.lastFollowUpIds)
-                  ? { lastFollowUpIds: patch.authoring.lastFollowUpIds }
-                  : {}),
-              },
-            }
-          : {}),
-        debug: {
-          ...runtimeState.ui.debug,
-          ...(isRecord(patch.debug) ? patch.debug : {}),
-          flags: {
-            ...runtimeState.ui.debug.flags,
-            ...(isRecord(patch.debug?.flags) ? patch.debug.flags : {}),
+      ui: sanitizeUiState(
+        {
+          ...runtimeState.ui,
+          ...patch,
+          ...(isRecord(patch.authoring)
+            ? {
+                authoring: {
+                  ...(isRecord(runtimeState.ui.authoring) ? runtimeState.ui.authoring : {}),
+                  ...patch.authoring,
+                  ...(Array.isArray(patch.authoring.lastFollowUpIds)
+                    ? { lastFollowUpIds: patch.authoring.lastFollowUpIds }
+                    : {}),
+                },
+              }
+            : {}),
+          debug: {
+            ...runtimeState.ui.debug,
+            ...(isRecord(patch.debug) ? patch.debug : {}),
+            flags: {
+              ...runtimeState.ui.debug.flags,
+              ...(isRecord(patch.debug?.flags) ? patch.debug.flags : {}),
+            },
           },
         },
-      }),
+        state.week
+      ),
     },
   }))
 }

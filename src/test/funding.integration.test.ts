@@ -40,7 +40,7 @@ function withFundingProfile(
   const procurementBacklog: FundingState['procurementBacklog'] = [
     ...Array.from({ length: stalePendingCount }, (_, index) => ({
       requestId: `stale-req-${index + 1}`,
-      itemId: 'stabilizer-kit',
+      itemId: 'medkits',
       quantity: 1,
       status: 'pending' as const,
       requestedWeek: Math.max(1, state.week - 6),
@@ -48,7 +48,7 @@ function withFundingProfile(
     })),
     ...Array.from({ length: freshPendingCount }, (_, index) => ({
       requestId: `fresh-req-${index + 1}`,
-      itemId: 'stabilizer-kit',
+      itemId: 'medkits',
       quantity: 1,
       status: 'pending' as const,
       requestedWeek: state.week,

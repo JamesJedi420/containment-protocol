@@ -1,13 +1,34 @@
 import type { ReportNote, ReportNoteType } from '../../domain/models'
 
-export type ReportNoteCategory = 'incident_response' | 'recruitment' | 'system' | 'uncategorized'
+export type ReportNoteCategory =
+  | 'incident_response'
+  | 'recruitment'
+  | 'information_intake'
+  | 'post_incident_review'
+  | 'system'
+  | 'uncategorized'
 
 export const REPORT_NOTE_CATEGORY_LABELS: Record<ReportNoteCategory, string> = {
   incident_response: 'Incident response',
   recruitment: 'Recruitment',
+  information_intake: 'Information intake',
+  post_incident_review: 'Post-incident review',
   system: 'System',
   uncategorized: 'Uncategorized',
 }
+
+const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
+  'information_intake.verification',
+  'information_intake.naming_hazard_cross_link',
+  'information_intake.extranormal_cross_link',
+  'information_intake.minor_anomaly_cross_link',
+  'information_intake.unexplained_location_cross_link',
+]
+
+const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = [
+  'post_incident_review.follow_on',
+  'post_incident_review.closeout_reward_payout',
+]
 
 const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.resolved',
@@ -16,10 +37,12 @@ const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.escalated',
   'case.spawned',
   'case.raid_converted',
+  'case.aggregate_battle',
 ]
 
 const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
   'system.recruitment_expired',
+  'recruitment.candidate_departed',
   'system.recruitment_generated',
   'recruitment.scouting_initiated',
   'recruitment.scouting_refined',
@@ -27,8 +50,17 @@ const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
 ]
 
 const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
+  'welfare_debt.accounting_cross_link',
+  'coercive_protocol.integrated_health_reconciliation',
+  'public_disclosure.trust_outcome',
+  'public_disclosure.segment_trust_divergence',
   'system.week_delta',
   'system.party_cards_drawn',
+  'system.equipment_recovered',
+  'system.escalation_consequence',
+  'system.proxy_conflict',
+  'system.protocol_contact',
+  'system.anchor_instability',
   'agent.training_completed',
   'production.queue_completed',
   'market.shifted',
@@ -36,12 +68,44 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'faction.standing_changed',
   'faction.unlock_available',
   'agency.containment_updated',
+  'agency.cross_jurisdiction_coordination',
+  'agency.hidden_cell_interference',
+  'agency.status_upkeep_display',
   'directive.applied',
+  'support.shortfall',
+  'support.restored',
+  'infiltration.awareness_complication',
+  'infiltration.escalation_exposed',
+  'infiltration.escalation_violent',
+  'infiltration.cover_strain',
+  'infiltration.weekly_encounter',
+  'infiltration.leave_behind_tradeoff',
+  'concealment.activated',
+  'hub.opportunity',
+  'hub.rumor',
+  'cognitive_hazard.simulation_trigger',
+  'contribution_release.publish_queue_execution',
+  'contribution_release.modifiable_data_pack_governance',
+  'contribution_release.modifiable_data_pack_publish_enqueue',
+  'visual_trigger_hazard.weekly_transition',
+  'spe947_evaluator.weekly_transition',
+  'spe956_participatory_channel.weekly_transition',
+  'entity_welfare_reclassification.weekly_transition',
+  'affiliation_person_status.weekly_progression',
+  'pattern_source_series.weekly_transition',
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {
   if (note.type !== undefined && RECRUITMENT_NOTE_TYPES.includes(note.type)) {
     return 'recruitment'
+  }
+
+  if (note.type !== undefined && INFORMATION_INTAKE_NOTE_TYPES.includes(note.type)) {
+    return 'information_intake'
+  }
+
+  if (note.type !== undefined && POST_INCIDENT_REVIEW_NOTE_TYPES.includes(note.type)) {
+    return 'post_incident_review'
   }
 
   if (note.type !== undefined && SYSTEM_NOTE_TYPES.includes(note.type)) {

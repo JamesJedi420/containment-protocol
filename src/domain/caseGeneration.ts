@@ -708,7 +708,7 @@ export function generateAmbientCases(
         enabledPowerFamilies: state.clearanceLevel >= 2 ? ['alchemy', 'folk_rite', 'miracle'] : ['folk_rite'],
         suppressedPowerFamilies: state.market.pressure === 'tight' ? ['arcane'] : [],
         moneyModel: state.market.pressure === 'tight' ? 'mercantile_credit' : 'coinage',
-        prevalentMonsterFamilies: ['urban_anomaly'],
+        prevalentThreatFamilies: ['urban_anomaly'],
         settlementStyleHints: ['fortified_market_town'],
         suppressedInteractionSurfaces: state.market.pressure === 'tight'
           ? ['wizard_colleges']
@@ -1090,6 +1090,20 @@ function buildCaseOrigin(currentCase: CaseInstance, game: GameState): CaseOrigin
         detail:
           spawnEvent.payload.sourceReason ??
           'A major incident was opened by accumulated unresolved global pressure.',
+      }
+    }
+
+    if (trigger === 'workshop_unsafe') {
+      return {
+        trigger,
+        label: 'Workshop unsafe processing',
+        detail:
+          spawnEvent.payload.sourceReason ??
+          (spawnEvent.payload.parentCaseTitle
+            ? `Unsafe workshop processing on ${spawnEvent.payload.parentCaseTitle} opened a secondary incident.`
+            : 'Unsafe workshop processing disposition opened a secondary incident.'),
+        parentCaseId: spawnEvent.payload.parentCaseId,
+        parentCaseTitle: spawnEvent.payload.parentCaseTitle,
       }
     }
 

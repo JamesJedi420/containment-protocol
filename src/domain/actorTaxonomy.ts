@@ -122,11 +122,13 @@ function uniqueList(values: readonly string[]): string[] {
 
 /**
  * Shared declaration constructor used for all actor classes.
- * Normalizes list-like fields for deterministic comparisons.
+ * Normalizes lists and snapshots capabilities so caller edits cannot silently
+ * change the declared actor's interaction legality.
  */
 export function declareActor(input: UnifiedActorDeclaration): UnifiedActorDeclaration {
   return {
     ...input,
+    capabilities: { ...input.capabilities },
     movementModes: uniqueList(input.movementModes),
     sensingChannels: uniqueList(input.sensingChannels),
     needs: uniqueList(input.needs),
@@ -195,7 +197,10 @@ export function isInteractionAllowed(
     return false
   }
 
-  if ((interaction === 'restrain' || interaction === 'sedate') && !compatibility.allowsConventionalRestraint) {
+  if (
+    (interaction === 'restrain' || interaction === 'sedate') &&
+    !compatibility.allowsConventionalRestraint
+  ) {
     return false
   }
 
@@ -220,9 +225,7 @@ export function buildKnownProfile(
     confidence,
     provisionalClass: overrides.provisionalClass ?? truth.actorClass,
     provisionalPhysicality: overrides.provisionalPhysicality ?? truth.physicality,
-    provisionalMovementModes: uniqueList(
-      overrides.provisionalMovementModes ?? truth.movementModes
-    ),
+    provisionalMovementModes: uniqueList(overrides.provisionalMovementModes ?? truth.movementModes),
     provisionalSensingChannels: uniqueList(
       overrides.provisionalSensingChannels ?? truth.sensingChannels
     ),
@@ -230,18 +233,27 @@ export function buildKnownProfile(
       ...(overrides.provisionalCapabilities ?? truth.capabilities),
     },
     correctionCount: 0,
-    ...(overrides.lastCorrectionReason ? { lastCorrectionReason: overrides.lastCorrectionReason } : {}),
+    ...(overrides.lastCorrectionReason
+      ? { lastCorrectionReason: overrides.lastCorrectionReason }
+      : {}),
   }
 }
 
 /**
  * Deterministically updates a known profile toward the true declaration.
+ * Rejects another actor's truth before confirming any knowledge. Identity is
+ * matched by canonical ID, not by classification, appearance, or object reference.
+ * Returned before/after profiles are detached snapshots of the correction.
  */
 export function correctKnownProfile(
   known: KnownActorProfile,
   truth: TrueActorProfile,
   reason: string
 ): ActorProfileCorrection {
+  if (known.actorId !== truth.declaration.id) {
+    throw new Error('actor-profile-identity-mismatch')
+  }
+
   const next: KnownActorProfile = {
     ...known,
     provisionalClass: truth.declaration.actorClass,
@@ -257,14 +269,17 @@ export function correctKnownProfile(
   const changed =
     known.provisionalClass !== next.provisionalClass ||
     known.provisionalPhysicality !== next.provisionalPhysicality ||
-    JSON.stringify(known.provisionalMovementModes) !== JSON.stringify(next.provisionalMovementModes) ||
-    JSON.stringify(known.provisionalSensingChannels) !== JSON.stringify(next.provisionalSensingChannels) ||
-    JSON.stringify(known.provisionalCapabilities) !== JSON.stringify(next.provisionalCapabilities) ||
+    JSON.stringify(known.provisionalMovementModes) !==
+      JSON.stringify(next.provisionalMovementModes) ||
+    JSON.stringify(known.provisionalSensingChannels) !==
+      JSON.stringify(next.provisionalSensingChannels) ||
+    JSON.stringify(known.provisionalCapabilities) !==
+      JSON.stringify(next.provisionalCapabilities) ||
     known.confidence !== next.confidence
 
   return {
     changed,
-    before: known,
+    before: structuredClone(known),
     after: next,
     reason,
   }

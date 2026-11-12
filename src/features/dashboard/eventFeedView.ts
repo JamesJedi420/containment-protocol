@@ -1,32 +1,20 @@
+import {
+  DEFAULT_EVENT_FEED_FILTERS,
+  EVENT_CATEGORY_LABELS,
+  EVENT_SOURCE_LABELS,
+  EVENT_TYPE_LABELS,
+  type EventFeedCategory,
+  type EventFeedFilters,
+} from '../shared/eventFeedFilters'
+export * from '../shared/eventFeedFilters'
 // cspell:words stabilised
 import { APP_ROUTES } from '../../app/routes'
-import { readStringParam, writeEnumParam, writeStringParam } from '../../app/searchParams'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
-import {
-  type GameState,
-  type OperationEvent,
-  type OperationEventSourceSystem,
-  type OperationEventType,
-} from '../../domain/models'
-
-export type EventFeedFilters = {
-  query: string
-  category: EventFeedCategory | 'all'
-  sourceSystem: OperationEventSourceSystem | 'all'
-  type: OperationEventType | 'all'
-  relationshipVerbosity: 'all' | 'summary'
-  weekMin?: number
-  weekMax?: number
-  entityId?: string
-}
-
-export type EventFeedCategory =
-  | 'incident_response'
-  | 'personnel'
-  | 'intel_briefing'
-  | 'operations_logistics'
-  | 'agency_posture'
+import { getEquipmentGradeDefinition } from '../../domain/equipmentGrade'
+import { type GameState, type OperationEvent, type OperationEventType } from '../../domain/models'
+import type { ContainmentClassId } from '../../domain/containmentClassInspection'
+import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -41,201 +29,6 @@ export type EventFeedView = {
   tone: EventFeedTone
   href?: string
   searchText: string
-}
-
-export const DEFAULT_EVENT_FEED_FILTERS: EventFeedFilters = {
-  query: '',
-  category: 'all',
-  sourceSystem: 'all',
-  type: 'all',
-  relationshipVerbosity: 'summary',
-  weekMin: undefined,
-  weekMax: undefined,
-  entityId: '',
-}
-
-export const EVENT_FEED_PARAM_KEYS = {
-  query: 'feedQ',
-  category: 'feedCategory',
-  sourceSystem: 'feedSource',
-  type: 'feedType',
-  relationshipVerbosity: 'feedRelVerbosity',
-  weekMin: 'feedWeekMin',
-  weekMax: 'feedWeekMax',
-  entityId: 'feedEntity',
-} as const
-
-function readEventFeedEnum<T extends string>(
-  value: string | null,
-  allowed: Set<string>,
-  fallback: T
-): T {
-  return value && allowed.has(value) ? (value as T) : fallback
-}
-
-function readWeekParam(searchParams: URLSearchParams, key: string) {
-  const raw = searchParams.get(key)
-
-  if (!raw) {
-    return undefined
-  }
-
-  const parsed = Math.trunc(Number(raw))
-
-  return Number.isFinite(parsed) && parsed >= 1 ? parsed : undefined
-}
-
-function writeWeekParam(searchParams: URLSearchParams, key: string, value: number | undefined) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value < 1) {
-    searchParams.delete(key)
-    return
-  }
-
-  searchParams.set(key, String(Math.trunc(value)))
-}
-
-export function readEventFeedFilters(searchParams: URLSearchParams): EventFeedFilters {
-  return {
-    query: readStringParam(searchParams, EVENT_FEED_PARAM_KEYS.query),
-    category: readEventFeedEnum(
-      searchParams.get(EVENT_FEED_PARAM_KEYS.category),
-      EVENT_FEED_CATEGORY_ALLOWED,
-      DEFAULT_EVENT_FEED_FILTERS.category
-    ),
-    sourceSystem: readEventFeedEnum(
-      searchParams.get(EVENT_FEED_PARAM_KEYS.sourceSystem),
-      EVENT_FEED_SOURCE_ALLOWED,
-      DEFAULT_EVENT_FEED_FILTERS.sourceSystem
-    ),
-    type: readEventFeedEnum(
-      searchParams.get(EVENT_FEED_PARAM_KEYS.type),
-      EVENT_FEED_TYPE_ALLOWED,
-      DEFAULT_EVENT_FEED_FILTERS.type
-    ),
-    relationshipVerbosity: readEventFeedEnum(
-      searchParams.get(EVENT_FEED_PARAM_KEYS.relationshipVerbosity),
-      EVENT_FEED_RELATIONSHIP_VERBOSITY_ALLOWED,
-      DEFAULT_EVENT_FEED_FILTERS.relationshipVerbosity
-    ),
-    weekMin: readWeekParam(searchParams, EVENT_FEED_PARAM_KEYS.weekMin),
-    weekMax: readWeekParam(searchParams, EVENT_FEED_PARAM_KEYS.weekMax),
-    entityId: readStringParam(searchParams, EVENT_FEED_PARAM_KEYS.entityId),
-  }
-}
-
-export function writeEventFeedFilters(
-  filters: EventFeedFilters,
-  baseSearchParams?: URLSearchParams
-) {
-  const nextSearchParams = new URLSearchParams(baseSearchParams)
-
-  writeStringParam(nextSearchParams, EVENT_FEED_PARAM_KEYS.query, filters.query)
-  writeEnumParam(
-    nextSearchParams,
-    EVENT_FEED_PARAM_KEYS.category,
-    filters.category,
-    DEFAULT_EVENT_FEED_FILTERS.category
-  )
-  writeEnumParam(
-    nextSearchParams,
-    EVENT_FEED_PARAM_KEYS.sourceSystem,
-    filters.sourceSystem,
-    DEFAULT_EVENT_FEED_FILTERS.sourceSystem
-  )
-  writeEnumParam(
-    nextSearchParams,
-    EVENT_FEED_PARAM_KEYS.type,
-    filters.type,
-    DEFAULT_EVENT_FEED_FILTERS.type
-  )
-  writeEnumParam(
-    nextSearchParams,
-    EVENT_FEED_PARAM_KEYS.relationshipVerbosity,
-    filters.relationshipVerbosity,
-    DEFAULT_EVENT_FEED_FILTERS.relationshipVerbosity
-  )
-  writeWeekParam(nextSearchParams, EVENT_FEED_PARAM_KEYS.weekMin, filters.weekMin)
-  writeWeekParam(nextSearchParams, EVENT_FEED_PARAM_KEYS.weekMax, filters.weekMax)
-  writeStringParam(nextSearchParams, EVENT_FEED_PARAM_KEYS.entityId, filters.entityId ?? '')
-
-  return nextSearchParams
-}
-
-export const EVENT_CATEGORY_LABELS: Record<EventFeedCategory, string> = {
-  incident_response: 'Incident response',
-  personnel: 'Personnel',
-  intel_briefing: 'Intel briefing',
-  operations_logistics: 'Operations logistics',
-  agency_posture: 'Agency posture',
-}
-
-export const EVENT_SOURCE_LABELS: Record<OperationEventSourceSystem, string> = {
-  assignment: 'Assignment',
-  incident: 'Incident',
-  intel: 'Intel',
-  agent: 'Agent',
-  production: 'Production',
-  faction: 'Faction',
-  system: 'System',
-}
-
-export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
-  'system.equipment_recovered': 'Equipment Recovered',
-  'assignment.team_assigned': 'Team Assigned',
-  'assignment.team_unassigned': 'Team Unassigned',
-  'case.resolved': 'Case Resolved',
-  'case.partially_resolved': 'Case Partial',
-  'case.failed': 'Case Failed',
-  'case.escalated': 'Case Escalated',
-  'case.spawned': 'Incident Opened',
-  'case.raid_converted': 'Raid Conversion',
-  'case.aggregate_battle': 'Battle Result',
-  'intel.report_generated': 'Intel Report',
-  'agent.training_started': 'Training Started',
-  'agent.training_completed': 'Training Complete',
-  'agent.training_cancelled': 'Training Cancelled',
-  'agent.relationship_changed': 'Relationship Changed',
-  'agent.instructor_assigned': 'Instructor Assigned',
-  'agent.instructor_unassigned': 'Instructor Removed',
-  'agent.injured': 'Agent Injury',
-  'agent.killed': 'Agent Fatality',
-  'agent.betrayed': 'Trust Breach',
-  'agent.resigned': 'Agent Resignation',
-  'agent.promoted': 'Agent Promotion',
-  'progression.xp_gained': 'XP Gained',
-  'agent.hired': 'Recruitment Hire',
-  'system.recruitment_expired': 'Recruitment Expired',
-  'system.recruitment_generated': 'Recruitment Generated',
-  'recruitment.scouting_initiated': 'Scouting Initiated',
-  'recruitment.scouting_refined': 'Scouting Refined',
-  'recruitment.intel_confirmed': 'Intel Confirmed',
-  'system.party_cards_drawn': 'Party Cards Drawn',
-  'production.queue_started': 'Queue Started',
-  'production.queue_completed': 'Queue Complete',
-  'market.shifted': 'Market Shift',
-  'market.transaction_recorded': 'Market Transaction',
-  'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
-  'market.emergency_gray_market_waiver_accountability_closed':
-    'Emergency Waiver Accountability Closed',
-  'market.emergency_gray_market_fallout_tick': 'Emergency Waiver Fallout',
-  'faction.standing_changed': 'Faction Standing',
-  'faction.unlock_available': 'Faction Unlock',
-  'agency.containment_updated': 'Agency Update',
-  'agency.front_business.opened': 'Courier Shell Opened',
-  'agency.front_business.resolved': 'Courier Shell Week',
-  'directive.applied': 'Directive Applied',
-  'support.shortfall': 'Support Shortfall',
-  'system.academy_upgraded': 'Academy Upgraded',
-  'staff.coping.applied': 'Coping Applied',
-  'staff.coping.misconduct': 'Coping Misconduct',
-  'staff.side_work.resolved': 'Side Work Resolved',
-  'infiltration.awareness_complication': 'Infiltration Complication',
-  'infiltration.escalation_exposed': 'Cover Exposed',
-  'infiltration.escalation_violent': 'Violent Escalation',
-  'infiltration.cover_strain': 'Cover Strain',
-  'infiltration.weekly_encounter': 'Infiltration Weekly Encounter',
-  'infiltration.leave_behind_tradeoff': 'Leave-Behind Tradeoff',
-  'concealment.activated': 'Concealment Activated',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -264,6 +57,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'progression.xp_gained': 'personnel',
   'agent.hired': 'personnel',
   'system.recruitment_expired': 'personnel',
+  'recruitment.candidate_departed': 'personnel',
   'system.recruitment_generated': 'personnel',
   'recruitment.scouting_initiated': 'intel_briefing',
   'recruitment.scouting_refined': 'intel_briefing',
@@ -271,6 +65,23 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'system.party_cards_drawn': 'operations_logistics',
   'production.queue_started': 'operations_logistics',
   'production.queue_completed': 'operations_logistics',
+  'equipment.recovery_started': 'operations_logistics',
+  'equipment.recovery_completed': 'operations_logistics',
+  'equipment.auto_scrap_policy_changed': 'operations_logistics',
+  'equipment.auto_scrap_routed': 'operations_logistics',
+  'equipment.instance_materialized': 'operations_logistics',
+  'equipment.instance_destroyed': 'operations_logistics',
+  'equipment.instance_reaggregated': 'operations_logistics',
+  'equipment.instance_condition_repaired': 'operations_logistics',
+  'equipment.containment_class_deficiency_recorded': 'operations_logistics',
+  'equipment.containment_class_inspected': 'operations_logistics',
+  'equipment.containment_class_stabilized': 'operations_logistics',
+  'equipment.instance_station_mutated': 'operations_logistics',
+  'equipment.containment_barrier_integrity_changed': 'operations_logistics',
+  'equipment.combat_stim_activated': 'personnel',
+  'equipment.combat_stim_overdrive_expired': 'personnel',
+  'equipment.combat_stim_disposed': 'operations_logistics',
+  'equipment.combat_stim_reaggregated': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
@@ -296,17 +107,38 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'concealment.activated': 'incident_response',
 }
 
-const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
-const EVENT_FEED_SOURCE_SYSTEMS = Object.keys(EVENT_SOURCE_LABELS) as OperationEventSourceSystem[]
-const EVENT_FEED_TYPES = Object.keys(EVENT_TYPE_LABELS) as OperationEventType[]
-
-const EVENT_FEED_CATEGORY_ALLOWED = new Set<string>(['all', ...EVENT_FEED_CATEGORIES])
-const EVENT_FEED_SOURCE_ALLOWED = new Set<string>(['all', ...EVENT_FEED_SOURCE_SYSTEMS])
-const EVENT_FEED_TYPE_ALLOWED = new Set<string>(['all', ...EVENT_FEED_TYPES])
-const EVENT_FEED_RELATIONSHIP_VERBOSITY_ALLOWED = new Set<string>(['all', 'summary'])
-
 function formatTimestampLabel(timestamp: string) {
   return `${timestamp.slice(0, 10)} ${timestamp.slice(11, 19)}Z`
+}
+
+function instanceLossReasonLabel(reason: 'manual_disposal' | 'mission_loss' | 'mission_injury') {
+  switch (reason) {
+    case 'manual_disposal':
+      return 'Manual disposal'
+    case 'mission_loss':
+      return 'Mission loss'
+    case 'mission_injury':
+      return 'Mission injury'
+    default: {
+      const exhaustive: never = reason
+      return exhaustive
+    }
+  }
+}
+
+function containmentClassFeedLabel(classId: ContainmentClassId) {
+  switch (classId) {
+    case 'blast_door':
+      return 'Blast door'
+    case 'pressure_seal':
+      return 'Pressure seal'
+    case 'interlock':
+      return 'Interlock'
+    default: {
+      const exhaustive: never = classId
+      return exhaustive
+    }
+  }
 }
 
 function getSpawnTriggerLabel(
@@ -318,6 +150,7 @@ function getSpawnTriggerLabel(
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
 ) {
   if (trigger === 'raid_pressure') {
     return 'raid pressure'
@@ -337,6 +170,10 @@ function getSpawnTriggerLabel(
 
   if (trigger === 'pressure_threshold') {
     return 'global pressure threshold'
+  }
+
+  if (trigger === 'workshop_unsafe') {
+    return 'workshop unsafe processing'
   }
 
   return trigger
@@ -776,6 +613,30 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText: `recruitment expired ${event.payload.count}`.toLowerCase(),
       }
 
+    case 'recruitment.candidate_departed': {
+      const reason =
+        event.payload.reason === 'expired_from_consideration'
+          ? 'Their availability expired.'
+          : 'Their departure reason is unknown.'
+      const destination = event.payload.destination
+        ? ` / Last known destination: ${event.payload.destination}`
+        : ''
+
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.candidateName} is no longer available`,
+        detail: `Week ${event.payload.week} / ${reason}${destination}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.recruitment,
+        searchText:
+          `${event.payload.candidateName} ${event.payload.candidateId} departed no longer available ${event.payload.reason} ${event.payload.destination ?? ''}`.toLowerCase(),
+      }
+    }
+
     case 'system.recruitment_generated':
       return {
         event,
@@ -828,6 +689,311 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'neutral',
         searchText:
           `${event.payload.queueName} ${event.payload.outputName} ${event.payload.outputId} ${event.payload.recipeId} ${formatProductionMaterialSummary(event.payload.inputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.recovery_started':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.itemName} recovery started`,
+        detail: `Week ${event.payload.week} / ETA ${event.payload.etaWeeks} week(s) / ${formatProductionMaterialSummary(event.payload.outputMaterials)}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.instance_materialized': {
+      const materializedResourceDetail =
+        event.payload.resourceId !== undefined &&
+        event.payload.capacity !== undefined &&
+        event.payload.remaining !== undefined
+          ? ` / ${event.payload.remaining}/${event.payload.capacity} ${event.payload.resourceId}`
+          : ''
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} materialized`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId}${materializedResourceDetail}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.agentId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_destroyed': {
+      const reasonLabel = instanceLossReasonLabel(event.payload.reason)
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance destroyed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.condition} / ${reasonLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.condition} ${reasonLabel}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
+      const provenanceDetail = fabricatedReturn
+        ? ` / Fabricated batch ${event.payload.fabricationQueueId} / week ${event.payload.fabricationCompletedWeek}`
+        : ''
+      return {
+        event,
+        week: event.payload.week,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Operational / ${
+          fabricatedReturn ? 'Fabricated lot return' : 'Manual untracking'
+        }${provenanceDetail}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} operational ${
+            fabricatedReturn
+              ? `fabricated lot return ${event.payload.fabricationQueueId ?? ''}`
+              : 'manual untracking'
+          }`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_condition_repaired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance repaired`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / Damaged → operational / Manual condition repair${event.payload.repairCost === undefined ? '' : ` / Paid $${event.payload.repairCost}`}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} damaged operational manual condition repair`.toLowerCase(),
+      }
+
+    case 'equipment.containment_class_deficiency_recorded': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment deficiency recorded`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / ${deficiencyLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.status} ${event.payload.deficiencyKind} ${event.payload.compensatingControlId ?? ''}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_class_inspected': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment class inspected`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.status} / Last inspection ${event.payload.previousLastInspectionWeek} → ${event.payload.lastInspectionWeek} / ${deficiencyLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.deficiencyKind === 'hard_stop' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} ${event.payload.reason} ${event.payload.status} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_class_stabilized': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const previousLabel =
+        event.payload.previousDeficiencyKind === 'hard_stop' ? 'Hard stop' : 'Compensating continue'
+      const nextLabel =
+        event.payload.deficiencyKind === 'none'
+          ? 'Cleared'
+          : `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} containment class stabilized`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${previousLabel} → ${nextLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} technician stabilization ${event.payload.previousDeficiencyKind} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.instance_station_mutated': {
+      const classLabel = containmentClassFeedLabel(event.payload.classId)
+      const deficiencyLabel =
+        event.payload.deficiencyKind === 'hard_stop'
+          ? 'Hard stop'
+          : event.payload.deficiencyKind === 'compensating_continue'
+            ? `Compensating continue / ${event.payload.compensatingControlId ?? 'secondary_interlock_watch'}`
+            : 'None'
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} integrity labor applied`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${classLabel} / ${event.payload.stationId} / ${event.payload.condition} / ${deficiencyLabel} / Cycle ${event.payload.previousCycleCount} → ${event.payload.cycleCount}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${classLabel} integrity labor ${event.payload.stationId} ${event.payload.condition} ${event.payload.deficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.containment_barrier_integrity_changed': {
+      const statusLabel =
+        event.payload.status === 'zone_breach'
+          ? 'Zone breach'
+          : 'Flow restraint / barrier integrity watch'
+      const zoneLabel = labelContainmentBarrierZone(event.payload.zoneId)
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} barrier integrity changed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${zoneLabel} / ${statusLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.status === 'zone_breach' ? 'danger' : 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${zoneLabel} ${event.payload.status} ${event.payload.sourceDeficiencyKind}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.combat_stim_activated':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} activated Combat Stims`,
+        detail: `Week ${event.payload.week} / ${event.payload.caseTitle} / Energy ${event.payload.underlyingBand} → ${event.payload.effectiveBand} / Doses ${event.payload.dosesBefore} → ${event.payload.dosesAfter}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_overdrive_expired':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} Combat Stim overdrive expired`,
+        detail: `Week ${event.payload.week} / Recovery debt ${event.payload.recoveryDebt} tick(s) / Instance ${event.payload.instanceId}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} ${event.payload.agentId} ${event.payload.caseId} ${event.payload.instanceId}`.toLowerCase(),
+      }
+
+    case 'equipment.combat_stim_disposed': {
+      const reasonLabel = instanceLossReasonLabel(event.payload.reason)
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.definitionName} instance disposed`,
+        detail: `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / ${event.payload.condition} / ${reasonLabel}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} ${reasonLabel}`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.combat_stim_reaggregated': {
+      const fabricatedReturn = event.payload.reason === 'fabricated_lot_return'
+      return {
+        event,
+        week: event.payload.week,
+        title: fabricatedReturn
+          ? `${event.payload.definitionName} instance returned to fabricated lot`
+          : `${event.payload.definitionName} instance returned to aggregate stock`,
+        detail: fabricatedReturn
+          ? `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Fabricated lot return / Batch ${event.payload.fabricationQueueId ?? 'unknown'}`
+          : `Week ${event.payload.week} / Instance ${event.payload.instanceId} / ${event.payload.remaining}/${event.payload.capacity} doses / Operational / Manual untracking`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText: fabricatedReturn
+          ? `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} fabricated lot return ${event.payload.fabricationQueueId ?? ''}`.toLowerCase()
+          : `${event.payload.definitionName} ${event.payload.definitionId} ${event.payload.instanceId} ${event.payload.remaining} ${event.payload.capacity} manual untracking`.toLowerCase(),
+      }
+    }
+
+    case 'equipment.recovery_completed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.itemName} recovery completed`,
+        detail: `Week ${event.payload.week} / ${formatProductionMaterialSummary(event.payload.outputMaterials)} / Waste ${event.payload.wasteQuantity}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        searchText:
+          `${event.payload.itemName} ${event.payload.itemId} ${event.payload.pathId} ${formatProductionMaterialSummary(event.payload.outputMaterials)}`.toLowerCase(),
+      }
+
+    case 'equipment.auto_scrap_policy_changed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Weekly Auto-Scrap ${event.payload.action}`,
+        detail: `Week ${event.payload.week}${event.payload.thresholdGradeId ? ` / Threshold ${getEquipmentGradeDefinition(event.payload.thresholdGradeId).label}` : ''} / Preview ${event.payload.includedQuantity} included, ${event.payload.excludedQuantity} excluded`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.action === 'enabled' ? 'neutral' : 'warning',
+        searchText:
+          `auto scrap ${event.payload.action} ${event.payload.thresholdGradeId ?? ''}`.toLowerCase(),
+      }
+
+    case 'equipment.auto_scrap_routed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Weekly Auto-Scrap routed ${event.payload.routedQuantity} unit(s)`,
+        detail: `Week ${event.payload.week} / Threshold ${getEquipmentGradeDefinition(event.payload.thresholdGradeId).label} / ${event.payload.excludedQuantity} excluded`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.routedQuantity > 0 ? 'success' : 'neutral',
+        searchText:
+          `auto scrap routed ${event.payload.thresholdGradeId} ${event.payload.routedQueueIds.join(' ')} ${event.payload.exclusionReasonCounts.map((entry) => entry.reasonCode).join(' ')}`.toLowerCase(),
       }
 
     case 'market.shifted':
@@ -894,13 +1060,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           event.payload.outcome === 'resolved_closed'
             ? 'Emergency waiver oversight fallout closed'
             : 'Emergency waiver fallout escalated — oversight review pending',
-        detail: `Week ${event.payload.week} / ${event.payload.outcome.replace(/_/g, ' ')} / Funding ${event.payload.fundingBefore}→${event.payload.fundingAfter} / Containment ${event.payload.containmentRatingBefore}→${event.payload.containmentRatingAfter} / Precedent ${event.payload.waiverPrecedentCount} ×${event.payload.precedentPenaltyMultiplier} / Institution ${event.payload.institutionKey}`,
+        detail: `Week ${event.payload.week} / ${event.payload.outcome.replace(/_/g, ' ')} / Funding ${event.payload.fundingBefore}→${event.payload.fundingAfter} / Containment ${event.payload.containmentRatingBefore}→${event.payload.containmentRatingAfter} / Precedent ${event.payload.waiverPrecedentCount} ×${event.payload.precedentPenaltyMultiplier} / Standing scale ${event.payload.standingFalloutPenaltyScale}× (rank ${event.payload.rankingScore}) / Institution ${event.payload.institutionKey}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.outcome === 'resolved_closed' ? 'warning' : 'danger',
         searchText:
-          `emergency waiver fallout oversight institution ${event.payload.institutionKey} funding containment precedent ${event.payload.waiverPrecedentCount}`.toLowerCase(),
+          `emergency waiver fallout oversight institution ${event.payload.institutionKey} funding containment precedent ${event.payload.waiverPrecedentCount} standing ${event.payload.standingFalloutPenaltyScale}`.toLowerCase(),
       }
 
     case 'faction.standing_changed':
@@ -913,9 +1079,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: event.payload.delta > 0 ? 'success' : event.payload.delta < 0 ? 'warning' : 'neutral',
-        href: event.payload.caseId
-          ? APP_ROUTES.caseDetail(event.payload.caseId)
-          : undefined,
+        href: event.payload.caseId ? APP_ROUTES.caseDetail(event.payload.caseId) : undefined,
         searchText:
           `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''} ${event.payload.interactionLabel ?? ''}`.toLowerCase(),
       }
@@ -1206,24 +1370,27 @@ export function getFilteredEventFeedViews(
     .map(buildEventFeedView)
     .map((view) => refineEventFeedDrillDownHref(view, game.reports))
     .filter((view) => {
-    if (filters.category !== 'all' && EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category) {
-      return false
-    }
+      if (
+        filters.category !== 'all' &&
+        EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category
+      ) {
+        return false
+      }
 
-    if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
-      return false
-    }
+      if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
+        return false
+      }
 
-    if (filters.type !== 'all' && view.event.type !== filters.type) {
-      return false
-    }
+      if (filters.type !== 'all' && view.event.type !== filters.type) {
+        return false
+      }
 
-    if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
-      return false
-    }
+      if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
+        return false
+      }
 
-    return true
-  })
+      return true
+    })
 
   if (filters.relationshipVerbosity === 'summary') {
     return aggregateRelationshipEventViews(mapped)

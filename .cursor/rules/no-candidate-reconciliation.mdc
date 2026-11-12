@@ -1,0 +1,12 @@
+---
+description: ChatGPT-only pointer — Cursor must not treat this as a ban on reconciliation (see cursor-autonomous-authority)
+alwaysApply: false
+---
+
+# ChatGPT candidate reconciliation (not a Cursor ban)
+
+**For Cursor sessions:** follow `docs/cursor-autonomous-authority.md` and `.cursor/rules/cursor-autonomous-authority.mdc`. Cursor may assess, reconcile, approve, and write backlog-shape Linear mutations under those safeguards. Do **not** stop for ChatGPT Phase 1–4 approval.
+
+**For ChatGPT actors:** Phases 1–4 and the canonical candidate ledger remain ChatGPT’s Linear management workflow. ChatGPT must not treat Cursor autonomy docs as permission to skip its own Project gates.
+
+Historical “Cursor must not reconcile / must not create issues” wording in older chats is obsolete for Cursor.

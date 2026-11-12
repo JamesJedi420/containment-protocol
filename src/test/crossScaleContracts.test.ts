@@ -10,7 +10,7 @@ import type {
 const teamSnapshot: Team = {
   id: 'team-001',
   name: 'Alpha',
-  assignedCaseId: 'case-001',
+  status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
   agentIds: [],
   memberIds: [],
   tags: [],

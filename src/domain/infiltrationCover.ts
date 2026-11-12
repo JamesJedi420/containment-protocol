@@ -2,6 +2,10 @@
  * SPE-521 slice 3: authored cover identity profile and weekly posture evaluation.
  */
 
+import {
+  applyInfiltrationEncounterCoverStanceToCoverPostureDelta,
+  readInfiltrationEncounterCoverStanceForTick,
+} from './infiltrationEncounterCoverStanceTick'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
 import {
@@ -29,8 +33,27 @@ const INFILTRATION_COVER_ROLES: readonly InfiltrationCoverRole[] = [
   'official_inspector',
 ]
 
+/** Institutional or uniform/office cover roles (distinct from non-uniform vendor trees). */
+export const INFILTRATION_INSTITUTIONAL_COVER_ROLES: readonly InfiltrationCoverRole[] = [
+  'uniform_guard',
+  'civilian_staff',
+  'official_inspector',
+]
+
+/** Non-institutional cover roles that branch on vendor-style identity trees. */
+export const INFILTRATION_NON_UNIFORM_IDENTITY_COVER_ROLES: readonly InfiltrationCoverRole[] = [
+  'courier',
+  'maintenance',
+]
+
 export function isInfiltrationCoverRole(value: string): value is InfiltrationCoverRole {
   return (INFILTRATION_COVER_ROLES as readonly string[]).includes(value)
+}
+
+export function isNonUniformIdentityCoverRole(
+  role: InfiltrationCoverRole | undefined
+): role is InfiltrationCoverRole {
+  return role !== undefined && (INFILTRATION_NON_UNIFORM_IDENTITY_COVER_ROLES as readonly string[]).includes(role)
 }
 
 export interface InfiltrationCoverProfile {
@@ -81,6 +104,63 @@ const COVER_STRAIN_BAND = 0.35
 
 function collectCaseTags(caseData: CaseInstance): Set<string> {
   return new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])
+}
+
+/** Case tags on site that clash with the cover role incompatibility table. */
+export function listActiveCaseTagsClashingWithCoverRole(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): readonly string[] {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+
+  if (role === undefined) {
+    return []
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  return ROLE_INCOMPATIBLE_CASE_TAGS[role].filter((tag) => caseTags.has(tag)).sort()
+}
+
+/** Cover roles with no incompatible site tags active on the case (deterministic order). */
+export function listCoverRolesCompatibleWithCaseTags(
+  caseData: CaseInstance,
+  excludeRole?: InfiltrationCoverRole
+): readonly InfiltrationCoverRole[] {
+  const caseTags = collectCaseTags(caseData)
+
+  return INFILTRATION_COVER_ROLES.filter((role) => {
+    if (role === excludeRole) {
+      return false
+    }
+
+    return !ROLE_INCOMPATIBLE_CASE_TAGS[role].some((tag) => caseTags.has(tag))
+  })
+}
+
+/** Authored route-violation tags active on site but outside role incompatibility. */
+export function listActiveExtraRouteViolationTags(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): readonly string[] {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+  const profile = caseData.infiltrationCoverProfile
+
+  if (role === undefined || profile === undefined) {
+    return []
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  const incompatibleTagSet = new Set(ROLE_INCOMPATIBLE_CASE_TAGS[role])
+  const routeViolationTags =
+    profile.claimedRole === role || coverRole !== undefined
+      ? profile.routeViolationTags
+      : undefined
+
+  return (
+    routeViolationTags
+      ?.filter((tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag))
+      .sort() ?? []
+  )
 }
 
 function hasAnyTag(caseTags: Set<string>, candidates: readonly string[]) {
@@ -202,6 +282,11 @@ export function evaluateWeeklyInfiltrationCoverPosture(
     awarenessDelta += WEAK_DOCTRINE_AWARENESS
     strainReasons.push('cover doctrine slips under procedural questioning')
   }
+
+  awarenessDelta = applyInfiltrationEncounterCoverStanceToCoverPostureDelta(
+    awarenessDelta,
+    readInfiltrationEncounterCoverStanceForTick(caseData)
+  )
 
   if (awarenessDelta <= 0) {
     return { awarenessDelta: 0, events: [] }

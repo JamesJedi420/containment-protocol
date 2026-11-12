@@ -1,3 +1,11 @@
+import type {
+  MissionTriageCovertPrepMarker,
+  MissionTriageCovertPrepSignals,
+} from '../shared/caseListSignalTypes'
+export type {
+  MissionTriageCovertPrepMarker,
+  MissionTriageCovertPrepSignals,
+} from '../shared/caseListSignalTypes'
 import { hasHighMissionEscalationRisk } from '../../domain/missionIntakeRouting'
 import type { CaseInstance, GameState } from '../../domain/models'
 import {
@@ -29,19 +37,6 @@ const MARKER_STYLES = {
   coverStrain: 'border-orange-500/40 bg-orange-500/10 text-orange-100',
 } as const
 
-export interface MissionTriageCovertPrepMarker {
-  readonly id: string
-  readonly label: string
-  readonly className: string
-  readonly title?: string
-}
-
-export interface MissionTriageCovertPrepSignals {
-  readonly visible: boolean
-  readonly markers: readonly MissionTriageCovertPrepMarker[]
-  readonly deferralNote?: string
-}
-
 function pushMarker(
   markers: MissionTriageCovertPrepMarker[],
   marker: MissionTriageCovertPrepMarker
@@ -64,9 +59,7 @@ export function buildMissionTriageCovertPrepSignals(
   }
   const markers: MissionTriageCovertPrepMarker[] = []
   const concealment =
-    resolvedCase.hiddenState === undefined
-      ? buildConcealmentCasePrepView(resolvedCase, game)
-      : null
+    resolvedCase.hiddenState === undefined ? buildConcealmentCasePrepView(resolvedCase, game) : null
   const infiltration = canShowInfiltrationCasePrepOnCase(resolvedCase)
     ? buildInfiltrationCasePrepView(resolvedCase)
     : null

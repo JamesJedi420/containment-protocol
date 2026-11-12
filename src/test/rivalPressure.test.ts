@@ -1,0 +1,281 @@
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import { buildAgencySummary } from '../domain/agency'
+import { getContractOffers, refreshContractBoard } from '../domain/contracts'
+import {
+  applyRivalPressureToContractScalar,
+  applyRivalPressureToRecruitQuality,
+  applyTrustFailureDriftScale,
+  buildRivalPressure,
+  buildRivalPressureFromRankingScore,
+} from '../domain/rivalPressure'
+import { applyAssetReliabilityDrift, createContractorAsset } from '../domain/externalSupport'
+import { DISCLOSURE_PROGRESSION_FIXTURE } from '../domain/publicDisclosureStateRegistry'
+import { projectPublicDisclosureTrustOutcome } from '../domain/publicDisclosureTrustOutcomeProjection'
+import { buildRecruitmentGenerationState } from '../domain/sim/candidateGenerator'
+import { getReportPageView } from '../features/report/reportView'
+import type { WeeklyReport } from '../domain/models'
+
+function reportWithFailures(week: number, failures: number, unresolved: number): WeeklyReport {
+  return {
+    week,
+    resolvedCases: [],
+    partialCases: [],
+    failedCases: Array.from({ length: failures }, (_, index) => `fail-${week}-${index}`),
+    unresolvedTriggers: Array.from(
+      { length: unresolved },
+      (_, index) => `unresolved-${week}-${index}`
+    ),
+  } as unknown as WeeklyReport
+}
+
+function reportWithResolutions(week: number, resolved: number): WeeklyReport {
+  return {
+    week,
+    resolvedCases: Array.from({ length: resolved }, (_, index) => `resolved-${week}-${index}`),
+    partialCases: [],
+    failedCases: [],
+    unresolvedTriggers: [],
+  } as unknown as WeeklyReport
+}
+
+describe('rival comparative pressure (SPE-2699)', () => {
+  it('derives deterministic pressure bands and surface deltas from ranking score', () => {
+    const empty = buildRivalPressure({ reports: [], events: [] })
+    const balanced = buildRivalPressureFromRankingScore(50)
+    const weak = buildRivalPressureFromRankingScore(20)
+    const strong = buildRivalPressureFromRankingScore(80)
+
+    expect(empty).toEqual(balanced)
+    expect(balanced).toEqual(buildRivalPressureFromRankingScore(50))
+    expect(balanced.band).toBe('balanced')
+    expect(balanced.contractRewardMultiplier).toBe(1)
+    expect(balanced.recruitQualityDelta).toBe(0)
+    expect(balanced.trustFailureDriftScale).toBe(1)
+    expect(balanced.falloutPenaltyScale).toBe(1)
+    expect(balanced.falloutPenaltyScale).toBe(balanced.trustFailureDriftScale)
+    expect(balanced.postExposureTrustDelta).toBe(0)
+    expect(balanced.postExposurePosture).toBe('neutral')
+    expect(Object.is(balanced.recruitQualityDelta, -0)).toBe(false)
+    expect(Object.is(balanced.postExposureTrustDelta, -0)).toBe(false)
+
+    expect(weak.score).toBeGreaterThan(balanced.score)
+    expect(weak.band).toBe('severe')
+    expect(weak.contractRewardMultiplier).toBeLessThan(balanced.contractRewardMultiplier)
+    expect(weak.recruitQualityDelta).toBeLessThan(balanced.recruitQualityDelta)
+    expect(weak.trustFailureDriftScale).toBeGreaterThan(balanced.trustFailureDriftScale)
+    expect(weak.falloutPenaltyScale).toBe(weak.trustFailureDriftScale)
+    expect(weak.falloutPenaltyScale).toBeGreaterThan(balanced.falloutPenaltyScale)
+    expect(weak.postExposureTrustDelta).toBeLessThan(balanced.postExposureTrustDelta)
+    expect(weak.postExposurePosture).toBe('coercive')
+
+    expect(strong.score).toBeLessThan(balanced.score)
+    expect(strong.band).toBe('suppressed')
+    expect(strong.contractRewardMultiplier).toBeGreaterThan(balanced.contractRewardMultiplier)
+    expect(strong.recruitQualityDelta).toBeGreaterThan(balanced.recruitQualityDelta)
+    expect(strong.trustFailureDriftScale).toBeLessThan(balanced.trustFailureDriftScale)
+    expect(strong.falloutPenaltyScale).toBe(strong.trustFailureDriftScale)
+    expect(strong.falloutPenaltyScale).toBeLessThan(balanced.falloutPenaltyScale)
+    expect(strong.postExposureTrustDelta).toBeGreaterThan(balanced.postExposureTrustDelta)
+    expect(strong.postExposurePosture).toBe('protective')
+
+    expect(applyRivalPressureToContractScalar(1, weak)).toBeLessThan(
+      applyRivalPressureToContractScalar(1, strong)
+    )
+    expect(applyRivalPressureToRecruitQuality(50, weak)).toBeLessThan(
+      applyRivalPressureToRecruitQuality(50, strong)
+    )
+    expect(applyTrustFailureDriftScale(-20, weak.trustFailureDriftScale)).toBeLessThan(
+      applyTrustFailureDriftScale(-20, strong.trustFailureDriftScale)
+    )
+    expect(applyTrustFailureDriftScale(12, weak.trustFailureDriftScale)).toBe(12)
+    expect(applyTrustFailureDriftScale(12, strong.trustFailureDriftScale)).toBe(12)
+  })
+
+  it('softens negative reliability drift under high standing vs low standing', () => {
+    const contractor = createContractorAsset('c1', 'Local Contractor', 50)
+    const weak = buildRivalPressureFromRankingScore(20)
+    const strong = buildRivalPressureFromRankingScore(80)
+
+    const weakDrift = applyAssetReliabilityDrift(contractor, 'support_failed', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const strongDrift = applyAssetReliabilityDrift(contractor, 'support_failed', {
+      trustFailureDriftScale: strong.trustFailureDriftScale,
+    })
+    const neutralDrift = applyAssetReliabilityDrift(contractor, 'support_failed')
+
+    expect(strongDrift.asset.reliability).toBeGreaterThan(neutralDrift.asset.reliability)
+    expect(weakDrift.asset.reliability).toBeLessThan(neutralDrift.asset.reliability)
+    expect(strongDrift.asset.reliability).toBeGreaterThan(weakDrift.asset.reliability)
+
+    const weakPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const strongPartial = applyAssetReliabilityDrift(contractor, 'support_partial', {
+      trustFailureDriftScale: strong.trustFailureDriftScale,
+    })
+    const neutralPartial = applyAssetReliabilityDrift(contractor, 'support_partial')
+    expect(strongPartial.asset.reliability).toBeGreaterThan(neutralPartial.asset.reliability)
+    expect(weakPartial.asset.reliability).toBeLessThan(neutralPartial.asset.reliability)
+
+    const identicalA = applyAssetReliabilityDrift(contractor, 'week_idle', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    const identicalB = applyAssetReliabilityDrift(contractor, 'week_idle', {
+      trustFailureDriftScale: weak.trustFailureDriftScale,
+    })
+    expect(identicalA.asset.reliability).toBe(identicalB.asset.reliability)
+  })
+
+  it('compresses contract payouts under severe rival pressure vs suppressed', () => {
+    const baseline = createStartingState()
+    const weakState = {
+      ...baseline,
+      reports: [reportWithFailures(1, 5, 4), reportWithFailures(2, 4, 3)],
+      events: [],
+    }
+    const strongState = {
+      ...baseline,
+      reports: [reportWithResolutions(1, 8), reportWithResolutions(2, 8)],
+      events: [],
+    }
+
+    const weakPressure = buildRivalPressure(weakState)
+    const strongPressure = buildRivalPressure(strongState)
+    expect(weakPressure.score).toBeGreaterThan(strongPressure.score)
+
+    const weakBoard = refreshContractBoard({ ...weakState, week: baseline.week + 1 })
+    const strongBoard = refreshContractBoard({ ...strongState, week: baseline.week + 1 })
+    const weakOffer = getContractOffers(weakBoard).find(
+      (offer) => offer.templateId === 'oversight-lockdown-retainer'
+    )
+    const strongOffer = getContractOffers(strongBoard).find(
+      (offer) => offer.templateId === 'oversight-lockdown-retainer'
+    )
+
+    expect(weakOffer).toBeDefined()
+    expect(strongOffer).toBeDefined()
+    expect(weakOffer!.rewards.funding).toBeLessThan(strongOffer!.rewards.funding)
+  })
+
+  it('passes recruit quality deltas through recruitment generation state', () => {
+    const baseline = createStartingState()
+    const weakState = {
+      ...baseline,
+      reports: [reportWithFailures(1, 5, 4)],
+      events: [],
+    }
+    const strongState = {
+      ...baseline,
+      reports: [reportWithResolutions(1, 10)],
+      events: [],
+    }
+
+    const weakRecruit = buildRecruitmentGenerationState(weakState)
+    const strongRecruit = buildRecruitmentGenerationState(strongState)
+
+    expect(weakRecruit.rivalRecruitQualityDelta).toBe(
+      buildRivalPressure(weakState).recruitQualityDelta
+    )
+    expect(strongRecruit.rivalRecruitQualityDelta).toBe(
+      buildRivalPressure(strongState).recruitQualityDelta
+    )
+    expect(weakRecruit.rivalRecruitQualityDelta).toBeLessThan(
+      strongRecruit.rivalRecruitQualityDelta
+    )
+  })
+
+  it('exposes rival pressure on agency summary for player-facing surfaces', () => {
+    const game = createStartingState()
+    game.reports = [
+      {
+        week: 1,
+        rngStateBefore: 1,
+        rngStateAfter: 2,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+    ]
+    const summary = buildAgencySummary(game)
+
+    expect(summary.rivalPressure).toEqual({
+      score: buildRivalPressure(game).score,
+      band: buildRivalPressure(game).band,
+      summary: buildRivalPressure(game).summary,
+      contractRewardMultiplier: buildRivalPressure(game).contractRewardMultiplier,
+      recruitQualityDelta: buildRivalPressure(game).recruitQualityDelta,
+      trustFailureDriftScale: buildRivalPressure(game).trustFailureDriftScale,
+      falloutPenaltyScale: buildRivalPressure(game).falloutPenaltyScale,
+      postExposureTrustDelta: buildRivalPressure(game).postExposureTrustDelta,
+      postExposurePosture: buildRivalPressure(game).postExposurePosture,
+    })
+    expect(summary.rivalPressure.summary).toMatch(/Comparative pressure/)
+    expect(summary.rivalPressure.summary).toMatch(/standing scale/)
+    expect(summary.rivalPressure.summary).toMatch(/emergency fallout/)
+    expect(summary.rivalPressure.summary).toMatch(/post-exposure rival posture/)
+
+    const reportLine = getReportPageView(game).summary?.agencySummaryLine ?? ''
+    expect(reportLine).toMatch(
+      new RegExp(
+        `rival pressure ${summary.rivalPressure.score} \\(${summary.rivalPressure.band}; standing scale ${summary.rivalPressure.falloutPenaltyScale}×; post-exposure ${summary.rivalPressure.postExposurePosture} ${summary.rivalPressure.postExposureTrustDelta > 0 ? '\\+' : ''}${summary.rivalPressure.postExposureTrustDelta}\\)`
+      )
+    )
+  })
+
+  it('shifts public-disclosure cooperation after exposure by standing (SPE-2701)', () => {
+    const records = { [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE }
+    const weak = buildRivalPressureFromRankingScore(20)
+    const strong = buildRivalPressureFromRankingScore(80)
+    const baseline = projectPublicDisclosureTrustOutcome(records)
+    const weakExposure = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: weak.postExposureTrustDelta,
+    })
+    const strongExposure = projectPublicDisclosureTrustOutcome(records, null, {
+      postExposureTrustDelta: strong.postExposureTrustDelta,
+    })
+    const secrecyOnly = projectPublicDisclosureTrustOutcome(
+      {
+        'disclosure:secret': {
+          ...DISCLOSURE_PROGRESSION_FIXTURE,
+          id: 'disclosure:secret',
+          awarenessLevel: 'secrecy_intact',
+        },
+      },
+      null,
+      { postExposureTrustDelta: strong.postExposureTrustDelta }
+    )
+
+    expect(weak.postExposureTrustDelta).toBeLessThan(0)
+    expect(strong.postExposureTrustDelta).toBeGreaterThan(0)
+    expect(weakExposure.postExposureTrustDeltaApplied).toBe(weak.postExposureTrustDelta)
+    expect(strongExposure.postExposureTrustDeltaApplied).toBe(strong.postExposureTrustDelta)
+    expect(weakExposure.rivalPosture).toBe('coercive')
+    expect(strongExposure.rivalPosture).toBe('protective')
+    expect(baseline.cooperationBand).toBe('opposed')
+    expect(weakExposure.cooperationBand).toBe('opposed')
+    expect(strongExposure.cooperationBand).not.toBe(weakExposure.cooperationBand)
+    expect(strongExposure.aggregateRegionalTrustBand).not.toBe(
+      weakExposure.aggregateRegionalTrustBand
+    )
+    expect(secrecyOnly.activeCampaignCount).toBe(0)
+    expect(secrecyOnly.postExposureTrustDeltaApplied).toBe(0)
+    expect(secrecyOnly.rivalPosture).toBe('inactive')
+    expect(JSON.stringify(weakExposure)).toBe(
+      JSON.stringify(
+        projectPublicDisclosureTrustOutcome(records, null, {
+          postExposureTrustDelta: weak.postExposureTrustDelta,
+        })
+      )
+    )
+  })
+})

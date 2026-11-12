@@ -65,7 +65,7 @@ describe('evaluateInfiltrationStageMissionPressure edge cases', () => {
     const base = createInfiltrationBriefingCase({ infiltrationStage: 'violent' })
 
     expect(
-      evaluateInfiltrationStageMissionPressure({ ...base, hiddenState: 'visible' }).active
+      evaluateInfiltrationStageMissionPressure({ ...base, hiddenState: 'revealed' }).active
     ).toBe(false)
     expect(
       evaluateInfiltrationStageMissionPressure({
@@ -95,10 +95,12 @@ describe('evaluateInfiltrationStageMissionPressure edge cases', () => {
 describe('resolveMissionSuccessDegradeHint', () => {
   it('prefers behavior-validation degrade over stage mission degrade', () => {
     const behaviorReason = 'Behavior mismatch blocked a clean resolution.'
-    const stageReason = 'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
+    const stageReason =
+      'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
 
     const hint = resolveMissionSuccessDegradeHint({
       behaviorValidation: {
+        detectionScan: { fields: [], remainingConcealmentLayers: [], strippedLayerIds: [] },
         active: true,
         level: 'strong',
         scoreAdjustment: 4.5,
@@ -124,9 +126,9 @@ describe('infiltration stage mission-resolution fallout', () => {
   it('orders stage malus probing < exposed < violent', () => {
     const base = createInfiltrationBriefingCase()
 
-    expect(evaluateInfiltrationStageMissionPressure({ ...base, infiltrationStage: 'probing' }).active).toBe(
-      false
-    )
+    expect(
+      evaluateInfiltrationStageMissionPressure({ ...base, infiltrationStage: 'probing' }).active
+    ).toBe(false)
 
     const exposed = evaluateInfiltrationStageMissionPressure({
       ...base,
@@ -240,7 +242,11 @@ describe('infiltration stage mission-resolution fallout', () => {
       detectionConfidence: 0.75,
       assignedTeamIds: [team.id],
     })
-    const probingCase = { ...violentCase, infiltrationStage: 'probing' as const, counterDetection: false }
+    const probingCase = {
+      ...violentCase,
+      infiltrationStage: 'probing' as const,
+      counterDetection: false,
+    }
 
     const previewViolent = previewResolutionForTeamIds(violentCase, state, [team.id])
     const previewProbing = previewResolutionForTeamIds(probingCase, state, [team.id])
@@ -333,8 +339,8 @@ describe('advanceWeek infiltration stage mission fallout', () => {
     expect(preAdvance.infiltrationStageMission?.shouldDegradeSuccessToPartial).toBe(true)
 
     const nextState = advanceWeek(state)
-    const missionResult = nextState.reports[nextState.reports.length - 1]?.caseSnapshots?.['case-001']
-      ?.missionResult
+    const missionResult =
+      nextState.reports[nextState.reports.length - 1]?.caseSnapshots?.['case-001']?.missionResult
 
     expect(missionResult?.outcome).toBe('partial')
     const notes = missionResult?.explanationNotes ?? []

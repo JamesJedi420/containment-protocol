@@ -195,7 +195,7 @@ export function makeAlreadyAssignedFixture(): GameState {
 
   state.teams['team-good'] = {
     ...state.teams['team-good'],
-    assignedCaseId: 'case-good',
+    status: { state: 'deployed', assignedCaseId: 'case-good' },
   }
 
   return normalizeGameState(state)
@@ -214,11 +214,11 @@ export function makeRaidAtCapacityFixture(): GameState {
 
   state.teams['team-good'] = {
     ...state.teams['team-good'],
-    assignedCaseId: 'raid-capacity',
+    status: { state: 'deployed', assignedCaseId: 'raid-capacity' },
   }
   state.teams['team-bad'] = {
     ...state.teams['team-bad'],
-    assignedCaseId: 'raid-capacity',
+    status: { state: 'deployed', assignedCaseId: 'raid-capacity' },
   }
 
   return normalizeGameState(state)
@@ -384,7 +384,7 @@ export function makeDeployedTeamFixture(): GameState {
 
   state.teams['team-good'] = {
     ...state.teams['team-good'],
-    assignedCaseId: 'case-good',
+    status: { state: 'deployed', assignedCaseId: 'case-good' },
   }
 
   return normalizeGameState(state)
@@ -416,7 +416,7 @@ export function makeTeamBuilderParityFixture(): GameState {
       ['agent-deployed'],
       'agent-deployed',
       ['combat'],
-      { assignedCaseId: 'case-active' }
+      { status: { state: 'deployed', assignedCaseId: 'case-active' } }
     ),
     'team-idle': makeTeam(
       'team-idle',
@@ -461,7 +461,7 @@ export function makeRaidUnderCapacityFixture(): GameState {
       ['agent-anchor'],
       'agent-anchor',
       ['combat'],
-      { assignedCaseId: 'raid-under-capacity' }
+      { status: { state: 'deployed', assignedCaseId: 'raid-under-capacity' } }
     ),
     'team-beta': makeTeam('team-beta', 'Beta Team', ['agent-beta'], 'agent-beta', ['tech']),
     'team-gamma': makeTeam('team-gamma', 'Gamma Team', ['agent-gamma'], 'agent-gamma', ['occult']),
@@ -530,7 +530,7 @@ export function makeTrainingSelectorParityFixture(): GameState {
       ['agent-deployed-a', 'agent-deployed-b'],
       'agent-deployed-a',
       ['investigation'],
-      { assignedCaseId: 'case-deployed' }
+      { status: { state: 'deployed', assignedCaseId: 'case-deployed' } }
     ),
     'team-inactive': makeTeam(
       'team-inactive',

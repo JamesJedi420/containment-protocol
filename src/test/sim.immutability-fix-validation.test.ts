@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import { type CaseInstance } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 
 function createControlledState() {
   const state = createStartingState()
@@ -78,7 +79,7 @@ describe('Immutability Fix Validation', () => {
     const next = advanceWeek(assigned)
 
     // Verify team was released
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
     expect(next.cases['short-success'].status).toBe('resolved')
 
     // The team is released for the following week, but the agent still worked this week,
@@ -113,7 +114,7 @@ describe('Immutability Fix Validation', () => {
     // This prevents double-counting active time
 
     expect(state.agents['a_ava'].fatigue).toBeDefined()
-    expect(state.teams['t_nightwatch'].assignedCaseId).toBe('case-beta')
+    expect(getTeamAssignedCaseId(state.teams['t_nightwatch'])).toBe('case-beta')
     expect(state.cases['case-beta'].status).toBe('in_progress')
   })
 

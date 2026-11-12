@@ -101,6 +101,9 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
     case 'agent.resigned':
       return [event.payload.agentId]
     case 'staff.side_work.resolved':
+    case 'staff.coping.applied':
+    case 'staff.coping.misconduct':
+    case 'agent.killed':
       return [event.payload.agentId]
     default:
       return []
@@ -136,7 +139,10 @@ function appendAgentLogsFromEvents(state: GameState, events: readonly OperationE
   }
 }
 
-function appendFactionLogsFromEvents(state: GameState, events: readonly OperationEvent[]): GameState {
+function appendFactionLogsFromEvents(
+  state: GameState,
+  events: readonly OperationEvent[]
+): GameState {
   if (events.length === 0 || Object.keys(state.factions ?? {}).length === 0) {
     return state
   }
@@ -174,7 +180,11 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
             ? event.payload.reputationAfter
             : Math.max(
                 -100,
-                Math.min(100, (typeof faction.reputation === 'number' ? faction.reputation : 0) + event.payload.delta)
+                Math.min(
+                  100,
+                  (typeof faction.reputation === 'number' ? faction.reputation : 0) +
+                    event.payload.delta
+                )
               ),
         history: {
           ...history,
@@ -315,6 +325,34 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
               }
             : contact
         ),
+      }
+      continue
+    }
+
+    if (event.type === 'case.spawned' && event.payload.factionId) {
+      const trigger = event.payload.trigger
+      if (trigger !== 'faction_offer' && trigger !== 'faction_pressure') {
+        continue
+      }
+
+      const faction = nextFactions[event.payload.factionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+      const history = getFactionHistory(faction)
+
+      nextFactions[event.payload.factionId] = {
+        ...faction,
+        history: {
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
+        },
       }
     }
   }
@@ -574,6 +612,124 @@ export function createProductionQueueCompletedDraft(
   }
 }
 
+export function createEquipmentRecoveryStartedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_started']
+): OperationEventDraft<'equipment.recovery_started'> {
+  return {
+    type: 'equipment.recovery_started',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentRecoveryCompletedDraft(
+  payload: OperationEventPayloadMap['equipment.recovery_completed']
+): OperationEventDraft<'equipment.recovery_completed'> {
+  return {
+    type: 'equipment.recovery_completed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentAutoScrapPolicyChangedDraft(
+  payload: OperationEventPayloadMap['equipment.auto_scrap_policy_changed']
+): OperationEventDraft<'equipment.auto_scrap_policy_changed'> {
+  return {
+    type: 'equipment.auto_scrap_policy_changed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentAutoScrapRoutedDraft(
+  payload: OperationEventPayloadMap['equipment.auto_scrap_routed']
+): OperationEventDraft<'equipment.auto_scrap_routed'> {
+  return {
+    type: 'equipment.auto_scrap_routed',
+    sourceSystem: 'production',
+    payload,
+  }
+}
+
+export function createEquipmentInstanceMaterializedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_materialized']
+): OperationEventDraft<'equipment.instance_materialized'> {
+  return { type: 'equipment.instance_materialized', sourceSystem: 'agent', payload }
+}
+
+export function createEquipmentInstanceDestroyedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_destroyed']
+): OperationEventDraft<'equipment.instance_destroyed'> {
+  return { type: 'equipment.instance_destroyed', sourceSystem: 'agent', payload }
+}
+
+export function createEquipmentInstanceReaggregatedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_reaggregated']
+): OperationEventDraft<'equipment.instance_reaggregated'> {
+  return { type: 'equipment.instance_reaggregated', sourceSystem: 'agent', payload }
+}
+
+export function createEquipmentInstanceConditionRepairedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_condition_repaired']
+): OperationEventDraft<'equipment.instance_condition_repaired'> {
+  return { type: 'equipment.instance_condition_repaired', sourceSystem: 'agent', payload }
+}
+
+export function createContainmentClassDeficiencyRecordedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_class_deficiency_recorded']
+): OperationEventDraft<'equipment.containment_class_deficiency_recorded'> {
+  return { type: 'equipment.containment_class_deficiency_recorded', sourceSystem: 'agent', payload }
+}
+
+export function createContainmentClassInspectedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_class_inspected']
+): OperationEventDraft<'equipment.containment_class_inspected'> {
+  return { type: 'equipment.containment_class_inspected', sourceSystem: 'agent', payload }
+}
+
+export function createContainmentClassStabilizedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_class_stabilized']
+): OperationEventDraft<'equipment.containment_class_stabilized'> {
+  return { type: 'equipment.containment_class_stabilized', sourceSystem: 'agent', payload }
+}
+
+export function createEquipmentInstanceStationMutatedDraft(
+  payload: OperationEventPayloadMap['equipment.instance_station_mutated']
+): OperationEventDraft<'equipment.instance_station_mutated'> {
+  return { type: 'equipment.instance_station_mutated', sourceSystem: 'agent', payload }
+}
+
+export function createContainmentBarrierIntegrityChangedDraft(
+  payload: OperationEventPayloadMap['equipment.containment_barrier_integrity_changed']
+): OperationEventDraft<'equipment.containment_barrier_integrity_changed'> {
+  return { type: 'equipment.containment_barrier_integrity_changed', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimActivatedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_activated']
+): OperationEventDraft<'equipment.combat_stim_activated'> {
+  return { type: 'equipment.combat_stim_activated', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimOverdriveExpiredDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_overdrive_expired']
+): OperationEventDraft<'equipment.combat_stim_overdrive_expired'> {
+  return { type: 'equipment.combat_stim_overdrive_expired', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimDisposedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_disposed']
+): OperationEventDraft<'equipment.combat_stim_disposed'> {
+  return { type: 'equipment.combat_stim_disposed', sourceSystem: 'agent', payload }
+}
+
+export function createCombatStimReaggregatedDraft(
+  payload: OperationEventPayloadMap['equipment.combat_stim_reaggregated']
+): OperationEventDraft<'equipment.combat_stim_reaggregated'> {
+  return { type: 'equipment.combat_stim_reaggregated', sourceSystem: 'agent', payload }
+}
+
 export function createMarketShiftedDraft(
   payload: OperationEventPayloadMap['market.shifted']
 ): OperationEventDraft<'market.shifted'> {
@@ -647,3 +803,51 @@ export function createSystemAcademyUpgradedDraft(
     payload,
   }
 }
+
+/** Event types covered by create*Draft factories in this module (producer validation tests). */
+export const OPERATION_EVENT_FACTORY_TYPES = [
+  'assignment.team_assigned',
+  'assignment.team_unassigned',
+  'agent.hired',
+  'agent.training_started',
+  'agent.training_completed',
+  'agent.training_cancelled',
+  'agent.relationship_changed',
+  'agent.instructor_assigned',
+  'agent.instructor_unassigned',
+  'agent.injured',
+  'agent.killed',
+  'agent.betrayed',
+  'agent.resigned',
+  'agent.promoted',
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
+  'progression.xp_gained',
+  'production.queue_started',
+  'production.queue_completed',
+  'equipment.recovery_started',
+  'equipment.recovery_completed',
+  'equipment.auto_scrap_policy_changed',
+  'equipment.auto_scrap_routed',
+  'equipment.instance_materialized',
+  'equipment.instance_destroyed',
+  'equipment.instance_reaggregated',
+  'equipment.instance_condition_repaired',
+  'equipment.containment_class_deficiency_recorded',
+  'equipment.containment_class_inspected',
+  'equipment.containment_class_stabilized',
+  'equipment.instance_station_mutated',
+  'equipment.containment_barrier_integrity_changed',
+  'equipment.combat_stim_activated',
+  'equipment.combat_stim_overdrive_expired',
+  'equipment.combat_stim_disposed',
+  'equipment.combat_stim_reaggregated',
+  'market.shifted',
+  'market.transaction_recorded',
+  'faction.standing_changed',
+  'faction.unlock_available',
+  'agency.front_business.opened',
+  'agency.front_business.resolved',
+  'system.academy_upgraded',
+] as const satisfies readonly OperationEventType[]

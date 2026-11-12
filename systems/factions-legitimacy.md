@@ -167,12 +167,12 @@ A faction should have conceptually:
 
 ```ts
 interface FactionState {
-  id: string;
-  relationship: number;
-  pressure: number;
-  presence?: Record<string, number>;
-  tags?: string[];
-  knownToPlayer?: boolean;
+  id: string
+  relationship: number
+  pressure: number
+  presence?: Record<string, number>
+  tags?: string[]
+  knownToPlayer?: boolean
 }
 ```
 
@@ -194,13 +194,13 @@ Conceptually:
 
 ```ts
 interface AgencyState {
-  legitimacy: number;
+  legitimacy: number
 }
 
 interface LegitimacyState {
-  current: number;
-  pressureActive?: boolean;
-  recentLossReason?: string;
+  current: number
+  pressureActive?: boolean
+  recentLossReason?: string
 }
 ```
 
@@ -312,6 +312,19 @@ Examples:
 - strong agency standing may provoke rivals
 - weakness may embolden interference
 - successful intervention may change power posture in a region or district
+
+**Implemented hooks (SPE-2699 / SPE-2700 / SPE-2701 / SPE-2702 / SPE-2704 / SPE-2705):** ranking-derived
+comparative pressure (`buildRivalPressure`) adjusts contract payout scalars and recruit quality
+deltas, scales negative external-support reliability drift (standing-shaped forgiveness), composes
+a standing fallout-penalty scale onto emergency gray-market waiver fallout ticks (funding/containment
+bands; precedent multiplier unchanged), and after public disclosure exposure applies a
+protective/coercive `postExposureTrustDelta` into regional trust → cooperation bands. Distant
+archive-signature reappearance (SPE-854) projects a bounded cross-jurisdiction coordination packet /
+shared signature alert for agency and weekly report surfaces. Competitive/severe rival pressure also
+drives bounded hidden-cell **funding theft** at week-close (`hiddenCellStrategicInterference`) with
+a player-legible interference note — not a full adversary-org or detection sim. Abstract peer
+baseline only — no per-rival squad or full multi-region org simulation. Standing award math remains
+separate.
 
 ---
 
@@ -443,6 +456,33 @@ Faction stance is **not** a single friendliness scalar. Canonical relationship m
 ### Legitimacy policy shell (SPE-50)
 
 Treat **SPE-50** as the shared **legitimacy / sanction / authorization policy** parent: sanction levels, legal cover, consent, credentials, protocol correctness, and doctrine fluency. Route specialized access work to child issues instead of bloating the parent — for example credential transit (**SPE-600**), rank/quarter/audience rules (**SPE-601**), jurisdiction admission matrices (**SPE-602**), and magical access-state grammar (**SPE-406**).
+
+`LegitimacyState` separates two bounded axes (SPE-2719):
+
+- `sanctionLevel` is **institutional legitimacy**: sanctioned, covert, tolerated, or unsanctioned authorization.
+- `operationalCoverLevel` is **operational exposure**: open, deniable, or compromised.
+
+Legacy saves infer `covert` sanction as deniable cover and every other sanction as open cover. Explicit cover can therefore diverge under the same institutional posture without renaming sanction values. The first bounded gate is sanctioned gray-market procurement: open or compromised cover remains audit-blocked, while deniable cover can reach the broker without creating an emergency-waiver record or its fallout. The emergency waiver remains a separate crisis response for sanctioned operations that lack deniable cover.
+
+### Persisted authority graph foundation
+
+SPE-2720 adds a graph-local persistence seam beneath the broader SPE-788 politics layer. An
+authored authority graph may advance one eligible relationship strength at week-close using the
+existing consequence resolver. Selection is deterministic by edge and pressure-channel ID,
+movement is capped at five points, the same closed week cannot apply twice, and history retains 52
+entries. This state does not alter faction standing, negotiation, commerce, operational cover, or
+SPE-39 rival/interference/upkeep calculations.
+
+SPE-2722 adds one bounded consumer without turning the graph into a general faction simulator.
+When Rally Support Staff uses a contractor, the contractor may resolve one persisted `aid` edge
+to an explicitly linked live faction after the support amount is fixed. A positive edge moves
+faction reputation by `+1`; a denying edge moves it by `-1`. Alias resolution and graph
+sanitization use the authority helpers, selection is deterministic, and an asset/week marker
+prevents duplicate same-week application. Empty/legacy graphs and missing asset, node, or faction
+references are no-ops. Institutional legitimacy and operational cover are not rewritten, and
+market, negotiation, command/council, secrecy/media, commerce, and SPE-39 paths remain isolated.
+Delayed hidden and contradicted claims remain explanatory graph output and do not apply this
+durable reputation movement.
 
 ### Patron obligations and symbolic social debt (SPE-51)
 

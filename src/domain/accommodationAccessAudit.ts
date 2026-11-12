@@ -628,7 +628,6 @@ function buildRowFindings(
       (finding) => finding.kind === 'missing_treatment_limitation_acknowledgment'
     )
     if (upstreamMissingAck) {
-      treatmentLimitationEmitted = true
       findings.push({
         kind: 'treatment_limitation_unacknowledged',
         severity: 'warning',

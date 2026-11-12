@@ -57,8 +57,8 @@ describe('minimal MVP scope', () => {
           },
         },
       ],
-      equipment: {
-        ...(baseAgent.equipment ?? {}),
+      equipmentEffectScales: {
+        ...(baseAgent.equipmentEffectScales ?? {}),
         ward_seals: 1,
         warding_kits: 1,
       },

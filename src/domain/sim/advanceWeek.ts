@@ -1,3 +1,4 @@
+import { projectWorkshopAllocatedLabor, finishWorkshopStaffTimeWindow } from '../workshopStaffTime'
 // Canonical per-tick outcome registrar for exclusive bucketing.
 function recordCaseOutcome(
   context: WeeklyExecutionContext,
@@ -61,13 +62,10 @@ function getMissionResultHiddenStateFields(
 // SPE-94: Maintenance Specialist Bottleneck for Equipment Recovery
 /**
  * Returns a deterministic queue of damaged equipment item IDs for recovery.
- * For this implementation, we assume a field state.damagedEquipmentQueue: string[] exists or is derived.
- * In a real system, this would be derived from agent/equipment state each week.
+ * Queue entries are persisted as item IDs and sanitized against owned catalog equipment.
  */
 function getDamagedEquipmentQueue(state: GameState): string[] {
-  const { damagedEquipmentQueue } = state as AdvanceWeekState
-
-  return Array.isArray(damagedEquipmentQueue) ? [...damagedEquipmentQueue] : []
+  return sanitizeDamagedEquipmentQueue(state.damagedEquipmentQueue, state.inventory)
 }
 
 /**
@@ -85,6 +83,33 @@ function applyEquipmentRecoveryBottleneck(
   }
 }
 import { clamp, createSeededRng } from '../math'
+import {
+  applyCombatStimRecoveryDebtAtWeekClose,
+  expireCombatStimOverdrivesAtWeekClose,
+} from '../combatStimWeekClose'
+import {
+  processDepartmentWorkshopTick,
+  readDepartmentWorkshopState,
+  reconcileDepartmentWorkshopTerminalLanes,
+  sanitizeDepartmentWorkshopCompletionOutcomes,
+} from '../departmentWorkshopQueue'
+import { projectProductionFacilitySectionStaging } from '../facilitySectionStagingProjection'
+import { projectDepartmentWorkshopDisorderByDepartment } from '../departmentWorkshopDisorder'
+import { registerDepartmentWorkshopCompletionOutcomes } from '../departmentWorkshopLiveFacilitySafety'
+import { deriveSpecialistLaborQualityConditionsByWorkOrderId } from '../departmentWorkshopSpecialistLaborWeekClose'
+import {
+  resolveFacilityMaintenanceWeekClose,
+  composeFacilityMaintenanceWorkshopQuality,
+} from '../facilityMaintenanceWeekClose'
+import { resolveWeekCloseSpecialistLaborOperatorSlots } from '../specialistLaborOperatorFeed'
+import { reconcileDepartmentWorkshopUnsafeSecondaryIncidents } from '../departmentWorkshopUnsafeIncident'
+import {
+  listCanonicalTerminalPrerequisiteProcessingWorkOrderIds,
+  reconcileCaseScopedPrerequisiteProcessingCompletions,
+  reconcileCaseScopedPrerequisiteProcessingReservationReleases,
+  reconcileCaseScopedPrerequisiteProcessingSuccessors,
+  reconcileCaseScopedWorkshopFinalizationHandoffs,
+} from '../prerequisiteProcessingOrders'
 import {
   buildAggregateBattleCampaignSummary,
   buildAggregateBattleContextFromCase,
@@ -120,7 +145,16 @@ import {
   explainHazardKnowledge,
   explainRelayChain,
 } from '../explanations'
-import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
+import { isOperationalMajorIncidentCase } from '../majorIncidentOperations'
+import {
+  attachMajorIncidentSettlementReceipt,
+  isValidMajorIncidentSettlementReceipt,
+  settleMajorIncidentTerminal,
+  stripMajorIncidentSettlementReceipt,
+  type MajorIncidentTerminalSettlementReceipt,
+} from '../majorIncidentTerminalSettlement'
+import { drawPartyCardsToHandLimitWithScopedContinuation } from '../partyCards/drawContinuation'
+import { consumeResolutionPartyCards } from '../partyCards/engine'
 import {
   appendOperationEventDrafts,
   createAgencyFrontBusinessResolvedDraft,
@@ -154,6 +188,7 @@ import type {
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
+import { productionCatalog } from '../../data/production'
 import {
   applyIntelSurgeToCandidates,
   applyProcurementPushToMarket,
@@ -179,6 +214,7 @@ import {
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { appendDetectionScanResolutionReason } from '../detectionScanReportNotes'
+import { applyWeeklyHiddenStateScoutingReconPass } from '../hiddenStateScoutingReconCache'
 import { formatConcealmentActivationSummary } from '../concealmentActivationFeed'
 import {
   mergeConcealmentActivationResult,
@@ -193,6 +229,7 @@ import {
   formatInfiltrationWeeklyEncounterSummary,
   shouldEmitInfiltrationWeeklyEncounterNote,
 } from '../infiltrationEncounterReportNotes'
+import { stripInfiltrationEncounterCoverStanceOnResolvedCase } from '../infiltrationEncounterCoverStanceTick'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
 import {
   resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek,
@@ -201,10 +238,12 @@ import {
 import { countCaseHiddenModifiers } from '../recon'
 import {
   buildAnchorFactionInstabilityNote,
+  buildReportNoteTimestamp,
   buildDeterministicReportNotesFromEventDrafts,
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
 import { getRecruitmentPool, syncRecruitmentPoolState } from '../recruitment'
+import { getCandidateFunnelStage, isCandidateHireable } from '../recruitment/helpers'
 import {
   buildTeamCompositionProfile,
   ensureNormalizedGameState,
@@ -215,7 +254,17 @@ import {
 import { buildAssignedTeamLeaderBonuses } from '../teamBonuses'
 import { deriveRelationshipStability, deriveRelationshipState } from './relationshipProjection'
 import { applyRaids } from './raid'
-import { advanceMarketState, advanceProductionQueues } from './production'
+import {
+  advanceMarketState,
+  advanceProductionQueues,
+  enqueueCaseScopedWorkshopFinalizationFabrication,
+  resolveCaseScopedWorkshopFinalizationCases,
+} from './production'
+import { advanceEquipmentDeconstructionQueues } from './equipmentDeconstruction'
+import { applyEquipmentAutoScrapAtWeekClose } from '../equipmentAutoScrap'
+import { advanceContainmentClassInspectionsAtWeekClose } from '../containmentClassWeekClose'
+import { advanceContainmentRequirementsAtWeekClose } from '../containmentRequirementFulfillment'
+import { reconcileContainmentBarrierIntegritySources } from '../equipmentInstance'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -261,6 +310,142 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
+import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../massAnomalousPopulationEmergenceNormalizationInputs'
+import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
+import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
+import { applyWeeklyAffiliationPersonStatusProgressionTick } from '../affiliationPersonStatusWeeklyProgression'
+import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
+import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
+import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
+import { applyWeeklySpe956PropagationGraphTick } from '../spe956PropagationGraphWeeklyOrchestration'
+import { applyAuthorityGraphWeekClose } from '../authorityGraphPersistence'
+import {
+  advanceRivalExpeditionRegistryAtWeekClose,
+  normalizeRivalExpeditionProgressRegistry,
+} from '../rivalExpeditionProgress'
+import { applyHistoricalRouteReplayRegistryAtWeekClose } from '../historicalRouteReplay'
+import {
+  activateHistoricalRouteReplayRegistryForCalendarWeek,
+  normalizeHistoricalRouteReplayActivationCandidates,
+} from '../historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../historicalRouteMemory'
+import { extractSpe956PropagationGraphRecords } from '../spe956PropagationGraphPersistence'
+import { applyWeeklySpe956ParticipatoryChannelTick } from '../spe956ParticipatoryChannelWeeklyOrchestration'
+import { buildWeeklySpe956ParticipatoryChannelTransitionReportNotes } from '../spe956ParticipatoryChannelWeeklyReportNotes'
+import {
+  extractSpe956AsyncDiscussionSurfaceRecords,
+  extractSpe956CollectiveMemoryChannelRecords,
+  extractSpe956CommunityAdvisoryBodyRecords,
+  extractSpe956HotlineChannelRecords,
+  extractSpe956SurvivorInformalRegistryRecords,
+} from '../spe956ParticipatoryChannelPersistence'
+import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
+import { applyWeeklySpe947MediaEconomyTick } from '../spe947MediaEconomyWeeklyOrchestration'
+import { listSpe947MediaEconomyCommercializationActors } from '../spe947MediaEconomySimulator'
+import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
+import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
+import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
+import { applyWeeklyCoverStoryTick } from '../coverStoryWeeklyOrchestration'
+import { applyWeeklyTruthLayerTick } from '../truthLayerWeeklyOrchestration'
+import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
+import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
+import { composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords } from '../cognitiveHazardSiblingCompose'
+import { applyWeeklyCognitiveHazardExposureTick } from '../cognitiveHazardWeeklyOrchestration'
+import { buildWeeklyCognitiveHazardSimulationTriggerReportNotes } from '../cognitiveHazardSimulationTriggerWeeklyReportNotes'
+import { applyCognitiveHazardSimulationTriggerVitalsToAgents } from '../cognitiveHazardSimulationTriggerVitals'
+import {
+  applyCoerciveProcedureWelfareDebtCreationTick,
+  resolveCoerciveProcedureExecutionDrafts,
+} from '../coerciveProcedureWelfareDebtCreation'
+import { applyWeeklyWelfareDebtAccountingTick } from '../welfareDebtAccountingRegistry'
+import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
+import { deriveCustodyStatusBundleFragmentsFromRecords } from '../containedPersonCustodyStatusHealthBundleLinks'
+import { deriveMedicationRegimenBundleFragmentsFromRecords } from '../containedPersonMedicationRegimenHealthBundleLinks'
+import { deriveWelfareDebtBundleFragmentsFromRecords } from '../welfareDebtAccountingHealthBundleLinks'
+import {
+  composeCustodyStatusIntoIntegratedHealthBundles,
+  composeMedicationRegimenIntoIntegratedHealthBundles,
+  composeTherapeuticCareIntoIntegratedHealthBundles,
+  composeWelfareDebtIntoIntegratedHealthBundles,
+} from '../containedPersonIntegratedHealthBundleCompose'
+import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
+import { buildWeeklyPatternSourceSeriesTransitionReportNotes } from '../patternSourceSeriesWeeklyReportNotes'
+import { applyWeeklyPublishQueueExecutionTickOrchestrated } from '../publishQueueWeeklyOrchestration'
+import type { PublishQueueWeeklyOrchestrationDeps } from '../publishQueueWeeklyOrchestration'
+import { mergePublishQueueExecutionReceipts } from '../publishQueueExecutionReceiptPersistence'
+import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
+import { applyWeeklyModifiableDataPackGovernanceTick } from '../modifiableDataPackWeeklyOrchestration'
+import { buildWeeklyModifiableDataPackGovernanceReportNotes } from '../modifiableDataPackWeeklyReportNotes'
+import { applyWeeklyModifiableDataPackPublishQueueEnqueueTick } from '../modifiableDataPackPublishQueueEnqueue'
+import { buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes } from '../modifiableDataPackPublishQueueEnqueueWeeklyReportNotes'
+import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
+import { buildWeeklyAffiliationPersonStatusProgressionReportNotes } from '../affiliationPersonStatusWeeklyReportNotes'
+import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
+import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
+import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
+import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
+import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
+import { buildWeeklyCrossJurisdictionCoordinationReportNotes } from '../crossJurisdictionCoordinationWeeklyReportNotes'
+import {
+  buildWeeklyHiddenCellCovertGrowthReportNotes,
+  buildWeeklyHiddenCellInfrastructureCompromiseReportNotes,
+  buildWeeklyHiddenCellInterferenceReportNotes,
+  buildWeeklyHiddenCellPanicAmplificationReportNotes,
+  buildWeeklyHiddenCellResearchRollbackReportNotes,
+} from '../hiddenCellInterferenceWeeklyReportNotes'
+import { buildWeeklyStatusUpkeepDisplayReportNotes } from '../statusUpkeepDisplayWeeklyReportNotes'
+import { resolveStatusUpkeepDisplayEffectFromAffordability } from '../statusUpkeepDisplayCost'
+import {
+  applyHiddenCellCovertGrowthToAgencyState,
+  applyHiddenCellFundingTheftToFundingState,
+  applyHiddenCellInfrastructureCompromiseToAgencyState,
+  applyHiddenCellPanicAmplificationToGameState,
+  applyHiddenCellResearchRollbackToResearchState,
+  findHiddenCellCovertGrowthAmountForWeek,
+  findHiddenCellDetectionNarrowingAmountForWeek,
+  findHiddenCellFundingTheftAmountForWeek,
+  findHiddenCellInfrastructureCompromiseAmountForWeek,
+  HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+  HIDDEN_CELL_COVERT_GROWTH_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_MAX,
+  HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+  resolveHiddenCellCovertGrowthFromPressure,
+  resolveHiddenCellFundingTheftFromPressure,
+  resolveHiddenCellInfrastructureCompromiseFromPressure,
+  resolveHiddenCellPanicAmplificationFromPressure,
+  resolveHiddenCellResearchRollbackFromPressure,
+} from '../hiddenCellStrategicInterference'
+import { buildRivalPressure } from '../rivalPressure'
+import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
+import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
+import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
+import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../postIncidentReviewCloseoutRewardBranch'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick } from '../postIncidentReviewCloseoutRewardBranchPayout'
+import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick } from '../postIncidentReviewFollowOnRecommendationAction'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
+import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
+import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
+import { buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes } from '../postIncidentReviewCloseoutRewardPayoutSurfacing'
+import {
+  applyWeeklyPostIncidentReviewCreationTick,
+  resolveQualifyingIncidentReviewDraftsFromEventDrafts,
+} from '../postIncidentReviewWeeklyOrchestration'
+import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
+import {
+  applyWeeklyCaseLifecycleTick,
+  produceCaseLifecyclePrerequisiteProcessingTerminalSignals,
+} from '../caseLifecycleWeeklyOrchestration'
+import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
+import { buildWeeklyIntakeExtranormalCrossLinkReportNotes } from '../informationIntakeExtranormalCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeMinorAnomalyCrossLinkReportNotes } from '../informationIntakeMinorAnomalyCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes } from '../informationIntakeUnexplainedLocationCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
+import { buildWeeklyWelfareDebtAccountingCrossLinkReportNotes } from '../welfareDebtAccountingCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
@@ -268,10 +453,18 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
+import { sanitizeDamagedEquipmentQueue } from '../equipmentRecovery'
 import {
+  applyWeeklyInventoryHoldingCostToFundingState,
+  applyWeeklyOperatingCostToFundingState,
+  computeWeeklyInventoryHoldingCost,
+  computeWeeklyOperatingCost,
   createInitialFundingState,
+  hasWeeklyInventoryHoldingCostForWeek,
+  hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
+import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -285,6 +478,7 @@ import {
   advanceCaseConstructionClock,
   CONSTRUCTION_INCOMPLETE_FLAG,
   CONSTRUCTION_PROGRESS_MAX,
+  evaluateConstructionHaulingBonus,
   evaluateConstructionLogisticsBonus,
   getConstructionProgressClockId,
   isCaseUnderConstruction,
@@ -301,7 +495,6 @@ import { applyDwell } from './weirdRoom'
 import { previewResolutionForTeamIds } from './resolve'
 
 type AdvanceWeekState = GameState & {
-  damagedEquipmentQueue?: string[]
   id?: string
   neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
   civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
@@ -559,7 +752,9 @@ function safeNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && !Number.isNaN(value) ? value : fallback
 }
 
-function cloneFundingStateForCanonicalize(fs: NonNullable<AgencyState['fundingState']>): FundingState {
+function cloneFundingStateForCanonicalize(
+  fs: NonNullable<AgencyState['fundingState']>
+): FundingState {
   return {
     ...fs,
     fundingHistory: fs.fundingHistory.map((entry) => ({ ...entry })),
@@ -568,6 +763,75 @@ function cloneFundingStateForCanonicalize(fs: NonNullable<AgencyState['fundingSt
 }
 
 function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined): AgencyState {
+  const lastHiddenCellInfrastructureCompromiseWeek =
+    typeof base?.lastHiddenCellInfrastructureCompromiseWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellInfrastructureCompromiseWeek))
+      : undefined
+  const lastHiddenCellInfrastructureCompromiseAmount =
+    typeof base?.lastHiddenCellInfrastructureCompromiseAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellInfrastructureCompromiseAmount)
+      ? Math.max(0, Math.trunc(base.lastHiddenCellInfrastructureCompromiseAmount))
+      : undefined
+  // SPE-2710: all-or-nothing — incomplete pairs must not lock a week without a note.
+  const hasCompleteInfrastructureCompromiseMarkers =
+    lastHiddenCellInfrastructureCompromiseWeek !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount !== undefined &&
+    lastHiddenCellInfrastructureCompromiseAmount > 0
+
+  const hiddenCellCovertGrowthLevel =
+    typeof base?.hiddenCellCovertGrowthLevel === 'number' &&
+    Number.isFinite(base.hiddenCellCovertGrowthLevel)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_COVERT_GROWTH_LEVEL_MAX,
+            Math.trunc(base.hiddenCellCovertGrowthLevel)
+          )
+        )
+      : undefined
+  const hiddenCellDetectionNarrowing =
+    typeof base?.hiddenCellDetectionNarrowing === 'number' &&
+    Number.isFinite(base.hiddenCellDetectionNarrowing)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_MAX,
+            Math.trunc(base.hiddenCellDetectionNarrowing)
+          )
+        )
+      : undefined
+  const lastHiddenCellCovertGrowthWeek =
+    typeof base?.lastHiddenCellCovertGrowthWeek === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthWeek)
+      ? Math.max(1, Math.trunc(base.lastHiddenCellCovertGrowthWeek))
+      : undefined
+  const lastHiddenCellCovertGrowthAmount =
+    typeof base?.lastHiddenCellCovertGrowthAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellCovertGrowthAmount)
+      ? Math.max(
+          0,
+          Math.min(HIDDEN_CELL_COVERT_GROWTH_MAX, Math.trunc(base.lastHiddenCellCovertGrowthAmount))
+        )
+      : undefined
+  const lastHiddenCellDetectionNarrowingAmount =
+    typeof base?.lastHiddenCellDetectionNarrowingAmount === 'number' &&
+    Number.isFinite(base.lastHiddenCellDetectionNarrowingAmount)
+      ? Math.max(
+          0,
+          Math.min(
+            HIDDEN_CELL_DETECTION_NARROWING_TICK_MAX,
+            Math.trunc(base.lastHiddenCellDetectionNarrowingAmount)
+          )
+        )
+      : undefined
+  // SPE-2714: week marker requires at least one applied amount so a week cannot lock without a note.
+  const hasCompleteCovertGrowthMarkers =
+    lastHiddenCellCovertGrowthWeek !== undefined &&
+    ((lastHiddenCellCovertGrowthAmount !== undefined && lastHiddenCellCovertGrowthAmount > 0) ||
+      (lastHiddenCellDetectionNarrowingAmount !== undefined &&
+        lastHiddenCellDetectionNarrowingAmount > 0))
+
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
     clearanceLevel: safeNumber(base?.clearanceLevel, 1),
@@ -575,6 +839,21 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     supportAvailable: safeNumber(base?.supportAvailable, 0),
     ...(typeof base?.maintenanceSpecialistsAvailable === 'number'
       ? { maintenanceSpecialistsAvailable: base.maintenanceSpecialistsAvailable }
+      : {}),
+    ...(hasCompleteInfrastructureCompromiseMarkers
+      ? {
+          lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(hiddenCellCovertGrowthLevel !== undefined ? { hiddenCellCovertGrowthLevel } : {}),
+    ...(hiddenCellDetectionNarrowing !== undefined ? { hiddenCellDetectionNarrowing } : {}),
+    ...(hasCompleteCovertGrowthMarkers
+      ? {
+          lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount: lastHiddenCellCovertGrowthAmount ?? 0,
+          lastHiddenCellDetectionNarrowingAmount: lastHiddenCellDetectionNarrowingAmount ?? 0,
+        }
       : {}),
     ...(typeof base?.protocolSelectionLimit === 'number'
       ? { protocolSelectionLimit: base.protocolSelectionLimit }
@@ -591,7 +870,9 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     ...(Array.isArray(base?.progressionUnlockIds)
       ? { progressionUnlockIds: [...base.progressionUnlockIds] }
       : {}),
-    ...(base?.fundingState ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) } : {}),
+    ...(base?.fundingState
+      ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) }
+      : {}),
     ...(base?.courierShellFront ? { courierShellFront: { ...base.courierShellFront } } : {}),
   }
 }
@@ -702,7 +983,6 @@ function releaseTeams(teams: GameState['teams'], releasedTeamIds: string[]): Gam
       releasedTeamIds.includes(id)
         ? {
             ...team,
-            assignedCaseId: undefined,
             status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
           }
         : team,
@@ -1566,24 +1846,29 @@ function buildAggregateBattleEventDraft(
   }
 }
 
-interface WeeklyCaseResolutionStrategy {
-  effectiveCase: CaseInstance
-  assignedAgents: NonNullable<GameState['agents'][string]>[]
-  assignedAgentLeaderBonuses: Record<string, LeaderBonus>
-  activeTeamStressModifiers: Record<string, number>
+type WeeklyCaseResolutionStrategy = ReturnType<typeof resolveCanonicalAssignedCaseForWeek> & {
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
-  behaviorValidation?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['behaviorValidation']
-  infiltrationStageMission?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['infiltrationStageMission']
-  stealthLeaveBehindMission?: ReturnType<
-    typeof resolveCanonicalAssignedCaseForWeek
-  >['stealthLeaveBehindMission']
-  weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
 type SeededRng = ReturnType<typeof createSeededRng>
+
+function buildMissionRewardGameContext(
+  nextState: GameState,
+  rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>>,
+  excludeCaseId?: string
+) {
+  const pendingAgencyStandingAwards = Object.entries(rewardByCaseId)
+    .filter(([caseId]) => caseId !== excludeCaseId)
+    .map(([, reward]) => reward?.agencyStanding)
+    .filter((award): award is NonNullable<typeof award> => award !== undefined)
+    .map((award) => ({ repeatKey: award.repeatKey }))
+
+  return {
+    ...nextState,
+    pendingAgencyStandingAwards,
+  }
+}
 
 interface WeeklyExecutionContext {
   sourceState: GameState
@@ -1716,9 +2001,12 @@ function resolveAssignedCaseForWeek(
     outcome,
     aggregateBattleSummary,
     behaviorValidation: canonicalResolution.behaviorValidation,
+    hiddenStateModalityTell: canonicalResolution.hiddenStateModalityTell,
+    hiddenStateScouting: canonicalResolution.hiddenStateScouting,
     infiltrationStageMission: canonicalResolution.infiltrationStageMission,
     stealthLeaveBehindMission: canonicalResolution.stealthLeaveBehindMission,
     weakestLinkResult: canonicalResolution.weakestLinkResult,
+    terminalDisposition: canonicalResolution.terminalDisposition,
     campaignToIncident,
     incidentToCampaign,
   }
@@ -1853,11 +2141,7 @@ function assertExclusiveCaseBuckets(context: WeeklyExecutionContext) {
 function getEventCaseIds(
   drafts: AnyOperationEventDraft[],
   type:
-    | 'case.resolved'
-    | 'case.failed'
-    | 'case.partially_resolved'
-    | 'case.escalated'
-    | 'case.spawned'
+    'case.resolved' | 'case.failed' | 'case.partially_resolved' | 'case.escalated' | 'case.spawned'
 ) {
   const caseIds: string[] = []
 
@@ -2211,7 +2495,10 @@ function applyWeeklyInfiltrationProbe(
     )
   }
 
-  if (probeResult.events.length === 0 && shouldEmitInfiltrationWeeklyEncounterNote(probeResult.case)) {
+  if (
+    probeResult.events.length === 0 &&
+    shouldEmitInfiltrationWeeklyEncounterNote(probeResult.case)
+  ) {
     if (reportContextAfterProbe && probeResult.case.status === 'in_progress') {
       pushInfiltrationEncounterEventDraft(
         context,
@@ -2244,6 +2531,13 @@ function resolveAssignments(
   const supportShortfallCases: string[] = []
 
   for (const caseId of context.initialCaseIds) {
+    const stagedCase = context.nextState.cases[caseId]
+    if (stagedCase?.supportShortfall) {
+      context.nextState.cases[caseId] = { ...stagedCase, supportShortfall: false }
+    }
+  }
+
+  for (const caseId of context.initialCaseIds) {
     if (context.finalizedCaseIds.has(caseId)) {
       continue
     }
@@ -2254,13 +2548,14 @@ function resolveAssignments(
 
     if (currentCase.status !== 'in_progress' || existingAssignedTeamIds.length === 0) {
       if (
-        currentCase.status === 'in_progress' &&
-        currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length
+        currentCase.supportShortfall === true ||
+        (currentCase.status === 'in_progress' &&
+          currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length)
       ) {
         context.nextState.cases[caseId] = {
           ...currentCase,
           assignedTeamIds: existingAssignedTeamIds,
-          supportShortfall: supportShortfallCases.includes(caseId),
+          supportShortfall: false,
         }
       }
       continue
@@ -2272,6 +2567,11 @@ function resolveAssignments(
 
     currentCase = applyWeeklyConcealmentActivation(context, caseId, currentCase)
     currentCase = applyWeeklyInfiltrationProbe(context, caseId, currentCase)
+    currentCase = applyWeeklyHiddenStateScoutingReconPass(
+      context.sourceState,
+      currentCase,
+      existingAssignedTeamIds
+    )
 
     // SPE-38: Support consumption and shortage
     if (supportAvailable >= supportConsumptionPerCase) {
@@ -2388,22 +2688,72 @@ function resolveAssignments(
       supportShortfall: isSupportShortfall,
     }
     const {
-      effectiveCase,
       assignedAgentLeaderBonuses,
       activeTeamStressModifiers,
       outcome,
       aggregateBattleSummary,
       behaviorValidation,
+      hiddenStateModalityTell,
+      hiddenStateScouting,
       infiltrationStageMission,
       stealthLeaveBehindMission,
       weakestLinkResult,
+      terminalDisposition,
     } = weeklyResolution
+
+    let majorIncidentSettlement: MajorIncidentTerminalSettlementReceipt | undefined
+    let effectiveCase = weeklyResolution.effectiveCase
 
     const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
       behaviorValidation,
       infiltrationStageMission,
       stealthLeaveBehindMission,
     })
+
+    // SPE-3076: settle from final authoritative outcome (including success→partial degrade).
+    const majorIncidentFinalOutcome =
+      outcome.result === 'success' && missionSuccessDegrade.shouldDegrade
+        ? ('partial' as const)
+        : outcome.result === 'success' || outcome.result === 'partial' || outcome.result === 'fail'
+          ? outcome.result
+          : null
+    if (
+      currentCase.majorIncident &&
+      isOperationalMajorIncidentCase(currentCase) &&
+      majorIncidentFinalOutcome
+    ) {
+      const existingReceipt = currentCase.majorIncident.settlementReceipt
+      const existingReceipts = isValidMajorIncidentSettlementReceipt(existingReceipt)
+        ? { [existingReceipt.receiptId]: existingReceipt }
+        : undefined
+      const settlementReasons =
+        majorIncidentFinalOutcome === 'partial' &&
+        outcome.result === 'success' &&
+        missionSuccessDegrade.reason
+          ? [...outcome.reasons, missionSuccessDegrade.reason]
+          : outcome.reasons
+      const settlement = settleMajorIncidentTerminal({
+        currentCase: {
+          ...currentCase,
+          majorIncident: currentCase.majorIncident,
+        },
+        outcome: { result: majorIncidentFinalOutcome, reasons: settlementReasons },
+        week: context.sourceState.week,
+        existingReceipts,
+      })
+      if (settlement.kind === 'settled' || settlement.kind === 'idempotent_replay') {
+        majorIncidentSettlement = settlement.receipt
+        if (effectiveCase.majorIncident) {
+          effectiveCase = {
+            ...effectiveCase,
+            majorIncident: attachMajorIncidentSettlementReceipt(
+              effectiveCase.majorIncident,
+              settlement.receipt
+            ),
+          }
+        }
+      }
+    }
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)
     context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)
@@ -2437,9 +2787,17 @@ function resolveAssignments(
       outcome,
       week: context.sourceState.week,
       rng: rng.next,
+      equipmentInstances: context.nextState.equipmentInstances,
+      equipmentDeconstructionQueue: context.nextState.equipmentDeconstructionQueue,
+      equipmentRecoveryOutcomes: context.nextState.equipmentRecoveryOutcomes,
     })
 
-    context.nextState.agents = missionAgentMutations.nextAgents
+    context.nextState = {
+      ...context.nextState,
+      agents: missionAgentMutations.nextAgents,
+      equipmentInstances: missionAgentMutations.nextEquipmentInstances,
+    }
+    context.nextState = reconcileContainmentBarrierIntegritySources(context.nextState)
     if (missionAgentMutations.fundingDelta !== 0) {
       context.nextState = {
         ...context.nextState,
@@ -2453,8 +2811,19 @@ function resolveAssignments(
     const resolutionReasons = [
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
+      ...(majorIncidentSettlement
+        ? [
+            `Major-incident terminal settlement: ${majorIncidentSettlement.reportableOutcome.summary} (${majorIncidentSettlement.receiptId})`,
+          ]
+        : []),
     ]
-    appendDetectionScanResolutionReason(resolutionReasons, behaviorValidation)
+    appendDetectionScanResolutionReason(
+      resolutionReasons,
+      behaviorValidation,
+      hiddenStateScouting,
+      effectiveCase,
+      hiddenStateModalityTell
+    )
 
     if (
       stealthLeaveBehindMission?.active &&
@@ -2539,7 +2908,7 @@ function resolveAssignments(
         effectiveCase,
         'success',
         context.nextState.config,
-        context.nextState
+        buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
       )
 
       if (!willDegrade) {
@@ -2720,13 +3089,13 @@ function resolveAssignments(
       }
 
       recordCaseOutcome(context, caseId, 'resolved')
-      context.nextState.cases[caseId] = {
+      context.nextState.cases[caseId] = stripInfiltrationEncounterCoverStanceOnResolvedCase({
         ...effectiveCase,
         assignedTeamIds: [],
         status: 'resolved',
         weeksRemaining: 0,
         supportShortfall: supportShortfallCases.includes(caseId),
-      }
+      })
       context.eventDrafts.push(
         buildCaseResolvedEventDraft({
           week: context.sourceState.week,
@@ -2773,7 +3142,7 @@ function resolveAssignments(
       escalatedCase,
       outcome.result,
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.rewardByCaseId[caseId] = rewardBreakdown
     const hiddenFields = getMissionResultHiddenStateFields(escalatedCase)
@@ -2797,13 +3166,17 @@ function resolveAssignments(
       powerImpact,
       injuries: missionAgentMutations.missionInjuries,
       spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: currentCase.title,
-          stage: escalatedCase.stage,
-          detail: `Case escalated to stage ${escalatedCase.stage}.`,
-        },
+        ...(escalatedCase.stage !== effectiveCase.stage
+          ? [
+              {
+                type: 'stage_escalation' as const,
+                caseId,
+                caseTitle: currentCase.title,
+                stage: escalatedCase.stage,
+                detail: `Case escalated to stage ${escalatedCase.stage}.`,
+              },
+            ]
+          : []),
         ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons,
@@ -2825,6 +3198,16 @@ function resolveAssignments(
         status: 'open',
         weeksRemaining: undefined,
         supportShortfall: supportShortfallCases.includes(caseId),
+      }
+      if (terminalDisposition) {
+        const terminalSignals = produceCaseLifecyclePrerequisiteProcessingTerminalSignals(
+          context.nextState,
+          terminalDisposition
+        )
+        if (terminalSignals.registeredWorkOrderIds.length > 0) {
+          context.nextState.caseScopedPrerequisiteProcessingTerminalSignals =
+            terminalSignals.signals
+        }
       }
       context.eventDrafts.push(
         buildCaseFailedEventDraft({
@@ -2922,12 +3305,27 @@ function downgradeResolvedCaseToPartial(
     Boolean(context.sourceState.teams[teamId])
   )
   const resolutionEscalation = createResolutionEscalationTransition(resolvedCase, 'partial')
-  const downgradedCase = {
+  let downgradedCase: CaseInstance = {
     ...resolutionEscalation.nextCase,
     status: 'open' as const,
     assignedTeamIds: [],
     weeksRemaining: undefined,
     supportShortfall: context.nextState.cases[caseId]?.supportShortfall ?? false,
+  }
+  // SPE-3076: coordination/mission degrade after success — resettle MI as partial.
+  if (downgradedCase.majorIncident && isOperationalMajorIncidentCase(sourceCase)) {
+    const clearedRuntime = stripMajorIncidentSettlementReceipt(downgradedCase.majorIncident)
+    const settlement = settleMajorIncidentTerminal({
+      currentCase: { ...downgradedCase, majorIncident: clearedRuntime },
+      outcome: { result: 'partial', reasons: [note] },
+      week: context.sourceState.week,
+    })
+    if (settlement.kind === 'settled' || settlement.kind === 'idempotent_replay') {
+      downgradedCase = {
+        ...downgradedCase,
+        majorIncident: attachMajorIncidentSettlementReceipt(clearedRuntime, settlement.receipt),
+      }
+    }
   }
   const nextState = {
     ...context.nextState,
@@ -2940,7 +3338,7 @@ function downgradeResolvedCaseToPartial(
     downgradedCase,
     'partial',
     nextState.config,
-    nextState
+    buildMissionRewardGameContext(nextState, context.rewardByCaseId, caseId)
   )
   const instabilityObjectiveDrift = buildExecutionInstabilityObjectiveDriftConsequence(
     sourceCase,
@@ -2969,13 +3367,17 @@ function downgradeResolvedCaseToPartial(
       injuries: mission.injuries,
       fatalities: mission.fatalities,
       spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: sourceCase.title,
-          stage: downgradedCase.stage,
-          detail: `Case escalated to stage ${downgradedCase.stage}.`,
-        },
+        ...(downgradedCase.stage !== resolvedCase.stage
+          ? [
+              {
+                type: 'stage_escalation' as const,
+                caseId,
+                caseTitle: sourceCase.title,
+                stage: downgradedCase.stage,
+                detail: `Case escalated to stage ${downgradedCase.stage}.`,
+              },
+            ]
+          : []),
         ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons: mission.resolutionReasons,
@@ -3066,7 +3468,7 @@ function escalateCases(
       escalatedCase,
       'unresolved',
       context.nextState.config,
-      context.nextState
+      buildMissionRewardGameContext(context.nextState, context.rewardByCaseId, caseId)
     )
     context.nextState.cases[caseId] = escalatedCase
     context.rewardByCaseId[caseId] = rewardBreakdown
@@ -3075,15 +3477,18 @@ function escalateCases(
       caseTitle: currentCase.title,
       ...getMissionResultHiddenStateFields(escalatedCase),
       rewards: rewardBreakdown,
-      spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: currentCase.title,
-          stage: escalatedCase.stage,
-          detail: `Case escalated to stage ${escalatedCase.stage} after deadline expiry.`,
-        },
-      ],
+      spawnedConsequences:
+        escalatedCase.stage !== currentCase.stage
+          ? [
+              {
+                type: 'stage_escalation',
+                caseId,
+                caseTitle: currentCase.title,
+                stage: escalatedCase.stage,
+                detail: `Case escalated to stage ${escalatedCase.stage} after deadline expiry.`,
+              },
+            ]
+          : [],
       explanationNotes: [
         'Case deadline expired before successful resolution.',
         ...(localPressureInfluence.auditTag ? [localPressureInfluence.auditTag] : []),
@@ -3418,16 +3823,21 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
   })
 }
 
-function refreshPartyCards(context: WeeklyExecutionContext, rng: SeededRng) {
+function refreshPartyCards(context: WeeklyExecutionContext) {
   if (!context.nextState.partyCards) {
     return
   }
 
-  const drawResult = drawPartyCardsToHandLimit(context.nextState.partyCards, rng.next)
+  const drawResult = drawPartyCardsToHandLimitWithScopedContinuation({
+    partyCards: context.nextState.partyCards,
+    // Week-start campaign seed/stream are cutover evidence only; never advanced here.
+    runSeed: context.sourceState.rngSeed,
+    legacyRngState: context.sourceState.rngState,
+    week: context.sourceState.week,
+  })
   context.nextState = {
     ...context.nextState,
     partyCards: drawResult.nextState,
-    rngState: rng.getState(),
   }
 
   if (drawResult.drawnCardIds.length > 0) {
@@ -3532,48 +3942,81 @@ function generateRecruitmentPool(context: WeeklyExecutionContext, rng: SeededRng
       ? applyIntelSurgeToCandidates(generatedCandidates)
       : generatedCandidates
 
-  for (const candidate of directiveAdjustedCandidates) {
-    if (context.initialRecruitmentCandidateIdSet.has(candidate.id)) {
-      throw new Error(
-        `Generated recruitment candidate ${candidate.id} collides with an existing pool id.`
-      )
-    }
+  const normalizeGeneratedRecruitmentCandidates = (
+    candidates: GameState['candidates'],
+    existingIds: ReadonlySet<string>,
+    minimumExpiryWeek: number
+  ): GameState['candidates'] => {
+    const usedIds = new Set(existingIds)
+
+    return candidates.map((candidate) => {
+      let nextId = candidate.id
+      if (usedIds.has(nextId)) {
+        let suffix = 1
+        while (usedIds.has(`${candidate.id}-${suffix}`)) {
+          suffix += 1
+        }
+        nextId = `${candidate.id}-${suffix}`
+      }
+
+      usedIds.add(nextId)
+
+      return {
+        ...candidate,
+        id: nextId,
+        // Candidates generated during this tick must not immediately expire within the same week boundary.
+        expiryWeek: Math.max(candidate.expiryWeek, minimumExpiryWeek),
+      }
+    })
   }
 
-  context.generatedRecruitmentCandidates = directiveAdjustedCandidates
+  const normalizedGeneratedCandidates = normalizeGeneratedRecruitmentCandidates(
+    directiveAdjustedCandidates,
+    context.initialRecruitmentCandidateIdSet,
+    context.nextState.week
+  )
+
+  context.generatedRecruitmentCandidates = normalizedGeneratedCandidates
   context.nextState = {
     ...syncRecruitmentPoolState(context.nextState, [
       ...context.initialRecruitmentPool,
-      ...generatedCandidates,
+      ...normalizedGeneratedCandidates,
     ]),
     rngState: rng.getState(),
   }
 
-  if (generatedCandidates.length > 0) {
+  if (normalizedGeneratedCandidates.length > 0) {
     context.eventDrafts.push({
       type: 'system.recruitment_generated',
       sourceSystem: 'system',
       payload: {
         week: context.sourceState.week,
-        count: generatedCandidates.length,
+        count: normalizedGeneratedCandidates.length,
       },
     })
   }
 }
 
 function expireOldCandidates(context: WeeklyExecutionContext) {
+  const expiredScoutedCandidates = context.initialRecruitmentPool.filter(
+    (candidate) =>
+      context.nextState.week > candidate.expiryWeek &&
+      candidate.scoutReport !== undefined &&
+      isCandidateHireable(candidate.hireStatus) &&
+      !['hired', 'lost'].includes(getCandidateFunnelStage(candidate))
+  )
   const nonExpiredCandidates = removeExpiredCandidates(
     context.initialRecruitmentPool,
     context.nextState.week
   )
   const expiredCandidateCount = context.initialRecruitmentPool.length - nonExpiredCandidates.length
 
-  if (
-    removeExpiredCandidates(context.generatedRecruitmentCandidates, context.nextState.week)
-      .length !== context.generatedRecruitmentCandidates.length
-  ) {
-    throw new Error('Newly generated recruitment candidates expired in the same tick.')
-  }
+  // Ensure we never drop newly generated candidates due to same-tick expiry boundaries.
+  const ensuredGeneratedCandidates = context.generatedRecruitmentCandidates.map((candidate) => ({
+    ...candidate,
+    expiryWeek: Math.max(candidate.expiryWeek, context.nextState.week),
+  }))
+  context.generatedRecruitmentCandidates = ensuredGeneratedCandidates
 
   context.nextState = syncRecruitmentPoolState(context.nextState, [
     ...nonExpiredCandidates,
@@ -3587,6 +4030,19 @@ function expireOldCandidates(context: WeeklyExecutionContext) {
       payload: {
         week: context.sourceState.week,
         count: expiredCandidateCount,
+      },
+    })
+  }
+
+  for (const candidate of expiredScoutedCandidates) {
+    context.eventDrafts.push({
+      type: 'recruitment.candidate_departed',
+      sourceSystem: 'system',
+      payload: {
+        week: context.sourceState.week,
+        candidateId: candidate.id,
+        candidateName: candidate.name,
+        reason: 'expired_from_consideration',
       },
     })
   }
@@ -3622,6 +4078,7 @@ function processRaidPressure(context: WeeklyExecutionContext, rng: SeededRng) {
 // Does not consume inventory stock — read-only logistics check.
 function advanceConstructionProgress(context: WeeklyExecutionContext) {
   const logisticsBonus = evaluateConstructionLogisticsBonus(context.nextState)
+  const haulingBonus = evaluateConstructionHaulingBonus(context.nextState)
   const factionStates = buildFactionStates(context.nextState)
   const anchorFaction = factionStates.find((f) => f.id === 'threshold_court')
   const interferenceActive =
@@ -3640,8 +4097,8 @@ function advanceConstructionProgress(context: WeeklyExecutionContext) {
     )
     if (alreadyComplete) continue
 
-    // delta: base +1, +1 if logistics adequate, 0 total if interference active
-    const delta = interferenceActive ? 0 : 1 + logisticsBonus
+    // delta: base +1, + inventory logistics, + hauling labor; 0 total if interference active
+    const delta = interferenceActive ? 0 : 1 + logisticsBonus + haulingBonus
 
     context.nextState = advanceCaseConstructionClock(context.nextState, currentCase, delta)
 
@@ -3717,16 +4174,30 @@ function advanceQueues(context: WeeklyExecutionContext) {
   context.nextState = productionResult.state
   context.eventDrafts.push(...productionResult.eventDrafts)
 
+  context.nextState = applyEquipmentAutoScrapAtWeekClose(context.nextState)
+
+  // SPE-3181: settle persisted current windows at the authoritative week
+  // boundary. settleWeekState already advanced nextState.week; do not spawn
+  // work or invent cadence windows on behalf of SPE-3041 or SPE-1071.
+  context.nextState = advanceContainmentRequirementsAtWeekClose(context.nextState)
+
+  const containmentInspection = advanceContainmentClassInspectionsAtWeekClose(
+    context.nextState,
+    context.sourceState.week
+  )
+  context.nextState = containmentInspection.state
+  context.eventDrafts.push(...containmentInspection.eventDrafts)
+
+  const equipmentRecoveryResult = advanceEquipmentDeconstructionQueues(context.nextState)
+  context.nextState = equipmentRecoveryResult.state
+  context.eventDrafts.push(...equipmentRecoveryResult.eventDrafts)
+
   // SPE-94: Equipment recovery bottleneck
   const damagedQueue = getDamagedEquipmentQueue(context.nextState)
   const maintenanceCapacity = context.nextState.agency?.maintenanceSpecialistsAvailable ?? 0
   const { recovered, delayed } = applyEquipmentRecoveryBottleneck(damagedQueue, maintenanceCapacity)
 
-  // For demo: remove recovered items from damagedEquipmentQueue, leave delayed for next week
-  const nextStateWithExtras = context.nextState as AdvanceWeekState
-  if (nextStateWithExtras.damagedEquipmentQueue) {
-    nextStateWithExtras.damagedEquipmentQueue = [...delayed]
-  }
+  context.nextState.damagedEquipmentQueue = [...delayed]
 
   // Surface bottleneck/help signals in report notes
   if (damagedQueue.length > 0) {
@@ -3784,8 +4255,7 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
 
   const fundingDelta = downtimeResult.agencyFundingDelta ?? 0
   if (fundingDelta !== 0) {
-    const prevTopFunding =
-      context.nextState.funding ?? context.nextState.agency?.funding ?? 0
+    const prevTopFunding = context.nextState.funding ?? context.nextState.agency?.funding ?? 0
     const nextTopFunding = prevTopFunding + fundingDelta
     const agencyBefore = context.nextState.agency
     context.nextState = {
@@ -3910,8 +4380,7 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
       const after = clamp(before + standing.delta, -20, 20)
       standingByFactionId[standing.factionId] = after
       const sourceCase = context.sourceState.cases[missionResult.caseId] as
-        | (CaseInstance & { contactId?: string; contactName?: string })
-        | undefined
+        (CaseInstance & { contactId?: string; contactName?: string }) | undefined
       const sourceFaction = projectedFactions?.[standing.factionId]
       const sourceContact = sourceCase?.contactId
         ? (sourceFaction?.contacts ?? []).find((contact) => contact.id === sourceCase.contactId)
@@ -4058,7 +4527,7 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
       }
     ),
     caseSnapshots: buildReportCaseSnapshots(
-      context.nextState,
+      { ...context.nextState, knowledge: context.sourceState.knowledge },
       context.missionResultByCaseId,
       context.rewardByCaseId,
       context.performanceByCaseId,
@@ -4083,7 +4552,36 @@ function updateAgencyMetrics(
   const containmentDelta =
     computeContainmentDelta(report, context.nextState.config, context.rewardByCaseId) +
     lockdownPenalty
-  const nextFunding = context.nextState.funding + fundingDelta
+  const closedWeek = context.sourceState.week
+
+  let prevAgency = context.nextState.agency
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = context.sourceState.agency
+  }
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = {
+      containmentRating: 0,
+      clearanceLevel: 1,
+      funding: 0,
+      supportAvailable: 0,
+    }
+  }
+  prevAgency = canonicalizeAgencyState(prevAgency)
+
+  const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
+    ? 0
+    : computeWeeklyOperatingCost(context.nextState, closedWeek)
+  const inventoryHoldingCost = hasWeeklyInventoryHoldingCostForWeek(
+    prevAgency.fundingState,
+    closedWeek
+  )
+    ? 0
+    : computeWeeklyInventoryHoldingCost(context.nextState, closedWeek)
+  const nextFunding = Math.max(
+    0,
+    context.nextState.funding + fundingDelta - operatingCost - inventoryHoldingCost
+  )
+
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4098,28 +4596,6 @@ function updateAgencyMetrics(
     cumulativeScore,
     context.nextState.config.clearanceThresholds
   )
-
-  if (
-    nextFunding !== context.nextState.funding ||
-    nextContainmentRating !== context.nextState.containmentRating ||
-    nextClearanceLevel !== context.nextState.clearanceLevel
-  ) {
-    context.eventDrafts.push({
-      type: 'agency.containment_updated',
-      sourceSystem: 'system',
-      payload: {
-        week: report.week,
-        containmentRatingBefore: context.nextState.containmentRating,
-        containmentRatingAfter: nextContainmentRating,
-        containmentDelta,
-        clearanceLevelBefore: context.nextState.clearanceLevel,
-        clearanceLevelAfter: nextClearanceLevel,
-        fundingBefore: context.nextState.funding,
-        fundingAfter: nextFunding,
-        fundingDelta,
-      },
-    })
-  }
 
   if (context.selectedDirectiveId !== null) {
     const definition = getWeeklyDirectiveDefinition(context.selectedDirectiveId)
@@ -4140,24 +4616,203 @@ function updateAgencyMetrics(
   const allResolved = activeCaseCount === 0
   const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
 
-  let prevAgency = context.nextState.agency
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = context.sourceState.agency
+  const baseFundingState =
+    prevAgency.fundingState ??
+    createInitialFundingState(
+      context.nextState.config.fundingBasePerWeek,
+      context.nextState.config.fundingPerResolution,
+      context.nextState.config.fundingPenaltyPerFail,
+      context.nextState.config.fundingPenaltyPerUnresolved,
+      nextFunding
+    )
+  const normalizedFundingState = normalizeFundingState(
+    nextFunding,
+    context.nextState.config,
+    baseFundingState,
+    closedWeek
+  )
+  const { state: fundingStateAfterOperatingCost } = applyWeeklyOperatingCostToFundingState(
+    normalizedFundingState,
+    context.nextState,
+    closedWeek
+  )
+  const { state: fundingStateAfterHoldingCost } = applyWeeklyInventoryHoldingCostToFundingState(
+    fundingStateAfterOperatingCost,
+    context.nextState,
+    closedWeek
+  )
+  const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
+    {
+      ...context.nextState,
+      funding: nextFunding,
+      agency: {
+        ...prevAgency,
+        funding: nextFunding,
+        fundingState: fundingStateAfterHoldingCost,
+      },
+    },
+    closedWeek
+  )
+  const fundingStateAfterBacklog =
+    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterHoldingCost
+
+  // SPE-2704 / SPE-39: hidden-cell funding theft from rival/cell pressure (after ops/holding).
+  const rivalPressureForInterference = buildRivalPressure(context.sourceState)
+  const hiddenCellInterference = resolveHiddenCellFundingTheftFromPressure(
+    rivalPressureForInterference,
+    nextFunding
+  )
+  const fundingStateSyncedForTheft = {
+    ...fundingStateAfterBacklog,
+    funding: nextFunding,
   }
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = {
-      containmentRating: 0,
-      clearanceLevel: 1,
-      funding: 0,
-      supportAvailable: 0,
-    }
+  const { state: fundingStateAfterHiddenCellTheft, appliedAmount: hiddenCellTheftAmount } =
+    applyHiddenCellFundingTheftToFundingState(
+      fundingStateSyncedForTheft,
+      hiddenCellInterference,
+      closedWeek
+    )
+  const fundingAfterHiddenCellTheft = Math.max(0, fundingStateAfterHiddenCellTheft.funding)
+
+  // SPE-2706 / SPE-39: hidden-cell research rollback (independent of funding theft).
+  const researchStateBeforeRollback = context.nextState.researchState
+  const hiddenCellResearchRollback = resolveHiddenCellResearchRollbackFromPressure(
+    rivalPressureForInterference,
+    researchStateBeforeRollback
+  )
+  const researchStateAfterHiddenCellRollback = researchStateBeforeRollback
+    ? applyHiddenCellResearchRollbackToResearchState(
+        researchStateBeforeRollback,
+        hiddenCellResearchRollback,
+        closedWeek
+      ).state
+    : researchStateBeforeRollback
+
+  // SPE-2707 / SPE-39: hidden-cell panic amplification into ambient globalPressure
+  // (after pressure pipeline — bump carries forward; no same-tick major-incident spawn).
+  const hiddenCellPanicAmplification = resolveHiddenCellPanicAmplificationFromPressure(
+    rivalPressureForInterference
+  )
+  const panicAmplificationApplied = applyHiddenCellPanicAmplificationToGameState(
+    {
+      globalPressure: context.nextState.globalPressure,
+      lastHiddenCellPanicAmplificationWeek: context.nextState.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        context.nextState.lastHiddenCellPanicAmplificationAmount,
+    },
+    hiddenCellPanicAmplification,
+    closedWeek
+  )
+
+  // SPE-2710 / SPE-39: hidden-cell infrastructure compromise into SPE-94 maintenance capacity
+  // (after panic — drain carries into next week's equipment-recovery bottleneck).
+  const maintenanceBeforeCompromise = Math.max(
+    0,
+    Math.trunc(prevAgency.maintenanceSpecialistsAvailable ?? 0)
+  )
+  const hiddenCellInfrastructureCompromise = resolveHiddenCellInfrastructureCompromiseFromPressure(
+    rivalPressureForInterference,
+    maintenanceBeforeCompromise
+  )
+  const infrastructureCompromiseApplied = applyHiddenCellInfrastructureCompromiseToAgencyState(
+    {
+      maintenanceSpecialistsAvailable: prevAgency.maintenanceSpecialistsAvailable,
+      lastHiddenCellInfrastructureCompromiseWeek:
+        prevAgency.lastHiddenCellInfrastructureCompromiseWeek,
+      lastHiddenCellInfrastructureCompromiseAmount:
+        prevAgency.lastHiddenCellInfrastructureCompromiseAmount,
+    },
+    hiddenCellInfrastructureCompromise,
+    closedWeek
+  )
+
+  // SPE-2714 / SPE-39: covert cell growth + detection narrowing (abstract agency counters).
+  const covertGrowthLevelBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellCovertGrowthLevel ?? 0)
+  )
+  const detectionNarrowingBefore = Math.max(
+    0,
+    Math.trunc(prevAgency.hiddenCellDetectionNarrowing ?? 0)
+  )
+  const hiddenCellCovertGrowth = resolveHiddenCellCovertGrowthFromPressure(
+    rivalPressureForInterference,
+    covertGrowthLevelBefore,
+    detectionNarrowingBefore
+  )
+  const covertGrowthApplied = applyHiddenCellCovertGrowthToAgencyState(
+    {
+      hiddenCellCovertGrowthLevel: prevAgency.hiddenCellCovertGrowthLevel,
+      hiddenCellDetectionNarrowing: prevAgency.hiddenCellDetectionNarrowing,
+      lastHiddenCellCovertGrowthWeek: prevAgency.lastHiddenCellCovertGrowthWeek,
+      lastHiddenCellCovertGrowthAmount: prevAgency.lastHiddenCellCovertGrowthAmount,
+      lastHiddenCellDetectionNarrowingAmount: prevAgency.lastHiddenCellDetectionNarrowingAmount,
+    },
+    hiddenCellCovertGrowth,
+    closedWeek
+  )
+
+  if (
+    fundingAfterHiddenCellTheft !== context.nextState.funding ||
+    nextContainmentRating !== context.nextState.containmentRating ||
+    nextClearanceLevel !== context.nextState.clearanceLevel
+  ) {
+    context.eventDrafts.push({
+      type: 'agency.containment_updated',
+      sourceSystem: 'system',
+      payload: {
+        week: report.week,
+        containmentRatingBefore: context.nextState.containmentRating,
+        containmentRatingAfter: nextContainmentRating,
+        containmentDelta,
+        clearanceLevelBefore: context.nextState.clearanceLevel,
+        clearanceLevelAfter: nextClearanceLevel,
+        fundingBefore: context.nextState.funding,
+        fundingAfter: fundingAfterHiddenCellTheft,
+        fundingDelta: fundingDelta - hiddenCellTheftAmount,
+      },
+    })
   }
-  prevAgency = canonicalizeAgencyState(prevAgency)
+
+  // SPE-2718: capture public-display upkeep adequacy from pre-cost funding (post-cost is clamped ≥ 0).
+  const fundingBeforeOperatingCost = context.nextState.funding + fundingDelta
+  const statusUpkeepEffect = resolveStatusUpkeepDisplayEffectFromAffordability(
+    fundingBeforeOperatingCost,
+    operatingCost,
+    closedWeek
+  )
+
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
-    funding: nextFunding,
+    funding: fundingAfterHiddenCellTheft,
+    fundingState: fundingStateAfterHiddenCellTheft,
+    lastStatusUpkeepWeek: closedWeek,
+    lastStatusUpkeepBand: statusUpkeepEffect.band,
+    lastStatusUpkeepFundingBefore: fundingBeforeOperatingCost,
+    lastStatusUpkeepOperatingCost: operatingCost,
+    ...(infrastructureCompromiseApplied.appliedAmount > 0
+      ? {
+          maintenanceSpecialistsAvailable:
+            infrastructureCompromiseApplied.state.maintenanceSpecialistsAvailable,
+          lastHiddenCellInfrastructureCompromiseWeek:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseWeek,
+          lastHiddenCellInfrastructureCompromiseAmount:
+            infrastructureCompromiseApplied.state.lastHiddenCellInfrastructureCompromiseAmount,
+        }
+      : {}),
+    ...(covertGrowthApplied.appliedGrowth > 0 || covertGrowthApplied.appliedNarrowing > 0
+      ? {
+          hiddenCellCovertGrowthLevel: covertGrowthApplied.state.hiddenCellCovertGrowthLevel,
+          hiddenCellDetectionNarrowing: covertGrowthApplied.state.hiddenCellDetectionNarrowing,
+          lastHiddenCellCovertGrowthWeek: covertGrowthApplied.state.lastHiddenCellCovertGrowthWeek,
+          lastHiddenCellCovertGrowthAmount:
+            covertGrowthApplied.state.lastHiddenCellCovertGrowthAmount,
+          lastHiddenCellDetectionNarrowingAmount:
+            covertGrowthApplied.state.lastHiddenCellDetectionNarrowingAmount,
+        }
+      : {}),
   }
   return {
     weekScore,
@@ -4174,10 +4829,18 @@ function updateAgencyMetrics(
         : capacityExceeded
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
-      funding: nextFunding,
+      funding: fundingAfterHiddenCellTheft,
+      inventory: stateAfterBacklogFulfillment.inventory,
+      events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,
+      researchState: researchStateAfterHiddenCellRollback,
+      globalPressure: panicAmplificationApplied.state.globalPressure,
+      lastHiddenCellPanicAmplificationWeek:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationWeek,
+      lastHiddenCellPanicAmplificationAmount:
+        panicAmplificationApplied.state.lastHiddenCellPanicAmplificationAmount,
       reports: [...context.sourceState.reports, report],
     },
   }
@@ -4242,14 +4905,82 @@ function finalizeEvents(
  * This is a batch simulation step: abstract case resolution, report output, and state updates.
  * It is intentionally not a visual combat loop or action-by-action playback engine.
  */
-export function advanceWeek(state: GameState, overrideNow?: number): GameState {
+function reconcileDepartmentWorkshopCompletionReceipts(state: GameState): GameState {
+  const workshopReceipts = sanitizeDepartmentWorkshopCompletionOutcomes(
+    state.departmentWorkshopCompletionOutcomes
+  )
+  const workOrders = readDepartmentWorkshopState(state).workOrders
+  let cases = state.cases
+  let changed = false
+  for (const receipt of Object.values(workshopReceipts)) {
+    if (!Object.hasOwn(workOrders, receipt.workOrderId)) {
+      continue
+    }
+    const workOrder = workOrders[receipt.workOrderId]
+    if (
+      !workOrder ||
+      workOrder.caseId !== receipt.caseId ||
+      workOrder.departmentId !== receipt.departmentId ||
+      workOrder.taskType !== receipt.taskType ||
+      !Object.hasOwn(cases, receipt.caseId)
+    ) {
+      continue
+    }
+    const currentCase = cases[receipt.caseId]
+    if (!currentCase || currentCase.status === 'resolved') {
+      continue
+    }
+    const existingIds = Array.isArray(currentCase.departmentWorkshopCompletionWorkOrderIds)
+      ? currentCase.departmentWorkshopCompletionWorkOrderIds
+      : []
+    if (existingIds.includes(receipt.workOrderId)) {
+      continue
+    }
+    if (!changed) {
+      cases = { ...cases }
+      changed = true
+    }
+    cases[receipt.caseId] = {
+      ...currentCase,
+      departmentWorkshopCompletionWorkOrderIds: [
+        ...new Set([...existingIds, receipt.workOrderId]),
+      ].sort(),
+    }
+  }
+  return changed ? { ...state, cases } : state
+}
+
+function reconcileDepartmentWorkshopCaseHandoffs(state: GameState): GameState {
+  const receiptReconciled = reconcileDepartmentWorkshopCompletionReceipts(state)
+  const finalization = reconcileCaseScopedWorkshopFinalizationHandoffs(
+    receiptReconciled,
+    productionCatalog
+  )
+  const withHandoffs =
+    finalization.cases !== receiptReconciled.cases
+      ? { ...receiptReconciled, cases: finalization.cases as GameState['cases'] }
+      : receiptReconciled
+  // SPE-2766: enqueue Fabrication after the durable readiness handoff exists.
+  const withFabrication = enqueueCaseScopedWorkshopFinalizationFabrication(withHandoffs)
+  // SPE-2767: resolve cases once durable Fabrication enqueue proof exists.
+  return resolveCaseScopedWorkshopFinalizationCases(withFabrication)
+}
+
+export function advanceWeek(
+  state: GameState,
+  overrideNow?: number,
+  publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
+): GameState {
   if (state.gameOver) {
-    return ensureNormalizedGameState(state)
+    return ensureNormalizedGameState(reconcileDepartmentWorkshopCaseHandoffs(state))
   }
 
-  const sourceReports = getSimulationSourceReports(state.reports)
+  const debtAdjustedState = applyCombatStimRecoveryDebtAtWeekClose(state)
+  const sourceReports = getSimulationSourceReports(debtAdjustedState.reports)
   const sourceStateBase =
-    sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+    sourceReports === debtAdjustedState.reports
+      ? debtAdjustedState
+      : { ...debtAdjustedState, reports: sourceReports }
   const weeklyCivicConsequencePackets = deriveWeeklyCivicConsequencePackets(sourceStateBase)
   const sourceState = {
     ...sourceStateBase,
@@ -4311,7 +5042,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   escalateCases(context, timingCheckState)
   assertExclusiveCaseBuckets(context)
   settleWeekState(context, rng)
-  refreshPartyCards(context, rng)
+  refreshPartyCards(context)
   spawnFollowUps(context, rng)
   generateRecruitmentPool(context, rng)
   expireOldCandidates(context)
@@ -4325,6 +5056,12 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)
   finalizeMissionResults(context)
+  const combatStimExpiry = expireCombatStimOverdrivesAtWeekClose(
+    context.nextState,
+    context.sourceState.week
+  )
+  context.nextState = combatStimExpiry.state
+  context.eventDrafts.push(...combatStimExpiry.eventDrafts)
   applyRecoveryDowntimeAfterMissions(context)
   applyCourierShellFrontWeeklyResolution(context)
   // SPE-53: Generate hub simulation and attach notes
@@ -4355,7 +5092,11 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const agencyMetrics = updateAgencyMetrics(context, builtReport)
 
   const result = finalizeEvents(context, builtReport, agencyMetrics)
-  // Patch: preserve unknown fields from input state for testability (e.g., damagedEquipmentQueue)
+
+  // SPE-854 slice 4: accumulate weekly corroboration/contradiction on persisted intake reports.
+  const intakeCorroborationWeek = sourceState.week
+
+  // Patch: preserve unknown fields from input state for testability.
   const stateWithUnknownFields = state as unknown as Record<string, unknown>
   const resultWithUnknownFields = result as unknown as Record<string, unknown>
   for (const key of Object.keys(stateWithUnknownFields)) {
@@ -4366,6 +5107,260 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
   const inputWeeklyState = state as AdvanceWeekState
   const outputWeeklyState = resultWithUnknownFields as unknown as AdvanceWeekState
+
+  // SPE-2753: campaign week-close owns one pure workshop-processing tick.
+  // SPE-3119 accrues facility maintenance immediately before that tick and
+  // passes transient dependency gates; the tick owns only workshop registries.
+  // SPE-2913 / SPE-2998: the 4th-arg feed is the topology projection. Input
+  // and output come from separate staging placements. A persisted
+  // departmentLocalStaging cache cannot override missing or conflicting topology.
+  // SPE-3148 gates staff through canonical capacity on the workshop input snapshot.
+  // Cache cleanup/materialization remains independent of transient archive filtering;
+  // unusable analysis staff cannot regain capacity through campaign fallback.
+  const specialistLaborFeed = resolveWeekCloseSpecialistLaborOperatorSlots(inputWeeklyState)
+  const specialistLaborGateInputs = projectWorkshopAllocatedLabor(
+    inputWeeklyState,
+    specialistLaborFeed.operators
+  )
+  const facilityMaintenance = resolveFacilityMaintenanceWeekClose(
+    inputWeeklyState.facilityLayoutSnapshot,
+    inputWeeklyState.facilityMaintenanceState,
+    sourceState.week
+  )
+  if (facilityMaintenance.state !== undefined) {
+    outputWeeklyState.facilityMaintenanceState = facilityMaintenance.state
+  } else {
+    delete outputWeeklyState.facilityMaintenanceState
+  }
+  const workshopProcessingTick = processDepartmentWorkshopTick(
+    inputWeeklyState,
+    undefined,
+    undefined,
+    projectProductionFacilitySectionStaging(),
+    undefined,
+    undefined,
+    facilityMaintenance.dependencies,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    specialistLaborGateInputs,
+    projectDepartmentWorkshopDisorderByDepartment(inputWeeklyState.facilityLayoutSnapshot)
+  )
+  outputWeeklyState.staffTimeAllocations = finishWorkshopStaffTimeWindow(
+    inputWeeklyState,
+    sourceState.week
+  )
+  if (workshopProcessingTick.state === 'advanced') {
+    outputWeeklyState.departmentWorkshopWorkOrders = workshopProcessingTick.workshopState.workOrders
+    outputWeeklyState.departmentWorkshopSnapshots = workshopProcessingTick.workshopState.snapshots
+  }
+  if (specialistLaborFeed.derivedSlots !== undefined) {
+    outputWeeklyState.specialistOperatorSlots = specialistLaborFeed.derivedSlots
+  } else if (specialistLaborFeed.clearCache) {
+    delete outputWeeklyState.specialistOperatorSlots
+  }
+  const workshopCompletionOutcomes = registerDepartmentWorkshopCompletionOutcomes(
+    outputWeeklyState,
+    workshopProcessingTick.completedWorkOrderIds,
+    sourceState.week,
+    composeFacilityMaintenanceWorkshopQuality(
+      workshopProcessingTick.completedWorkOrderIds,
+      facilityMaintenance.dependencyAvailability,
+      deriveSpecialistLaborQualityConditionsByWorkOrderId(
+        workshopProcessingTick.completedWorkOrderIds,
+        specialistLaborGateInputs
+      )
+    )
+  )
+  if (workshopCompletionOutcomes.registeredWorkOrderIds.length > 0) {
+    outputWeeklyState.departmentWorkshopCompletionOutcomes = workshopCompletionOutcomes.outcomes
+  }
+
+  if (facilityMaintenance.state !== undefined || facilityMaintenance.burden !== undefined) {
+    const lastReportIndex = result.reports.length - 1
+    const lastReport = result.reports[lastReportIndex]
+    if (lastReport) {
+      const impact = facilityMaintenance.dependencyAvailability ?? 'baseline'
+      const totalDebt = facilityMaintenance.state?.maintenanceDebt ?? 0
+      const workshopEffect =
+        impact === 'unavailable'
+          ? 'workshop processing paused'
+          : impact === 'degraded'
+            ? 'workshop progress capped at one unit'
+            : 'workshop processing unchanged'
+      const note: ReportNote = {
+        id: `note-facility-maintenance-${sourceState.week}`,
+        type: 'system.week_delta',
+        timestamp: buildReportNoteTimestamp(
+          lastReport.week,
+          lastReport.notes.length,
+          noteBaseTimestamp
+        ),
+        content: `Facility maintenance: ${facilityMaintenance.roomCount ?? 'unknown'} rooms; debt +${facilityMaintenance.accruedDebt}, total ${totalDebt}; pathways ${facilityMaintenance.collapse.firedPathwayIds.map((id) => id.replaceAll('_', ' ')).join(', ') || 'none'}; ${workshopEffect}.`,
+        metadata: {
+          source: 'facility_maintenance',
+          week: sourceState.week,
+          roomCount: facilityMaintenance.roomCount ?? null,
+          accruedDebt: facilityMaintenance.accruedDebt,
+          maintenanceDebt: totalDebt,
+          ...(facilityMaintenance.collapse.firedPathwayIds.length > 0
+            ? { pathways: facilityMaintenance.collapse.firedPathwayIds }
+            : {}),
+          workshopDependency: impact,
+          upkeepLoad: facilityMaintenance.burden?.upkeepLoad ?? null,
+          staffingMinimum: facilityMaintenance.burden?.staffingMinimum ?? null,
+        },
+      }
+      result.reports = result.reports.map((report, index) =>
+        index === lastReportIndex
+          ? { ...report, notes: [...report.notes.filter((entry) => entry.id !== note.id), note] }
+          : report
+      )
+    }
+  }
+
+  // SPE-1028: durable unsafe receipts feed one parent-linked follow-up case each.
+  // Consume markers make replay/save-load a no-op; quality grades do not spawn.
+  const unsafeSecondaryIncidents =
+    reconcileDepartmentWorkshopUnsafeSecondaryIncidents(outputWeeklyState)
+  if (unsafeSecondaryIncidents.spawnedWorkOrderIds.length > 0) {
+    outputWeeklyState.cases = unsafeSecondaryIncidents.state.cases
+    outputWeeklyState.departmentWorkshopUnsafeSecondaryIncidents =
+      unsafeSecondaryIncidents.state.departmentWorkshopUnsafeSecondaryIncidents
+  }
+
+  const prerequisiteCompletions = reconcileCaseScopedPrerequisiteProcessingCompletions({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
+  if (prerequisiteCompletions.completedWorkOrderIds.length > 0) {
+    outputWeeklyState.inventory = prerequisiteCompletions.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteCompletions.reservations
+  }
+
+  // SPE-2761: completion wins any same-week terminal race. Only explicit,
+  // provenance-matched failed/cancelled proof releases exact reserved inputs.
+  const prerequisiteReleases = reconcileCaseScopedPrerequisiteProcessingReservationReleases({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
+  if (prerequisiteReleases.releasedWorkOrderIds.length > 0) {
+    outputWeeklyState.inventory = prerequisiteReleases.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteReleases.reservations
+  }
+
+  // SPE-2764: only orders that passed canonical terminal provenance and exact
+  // reservation release leave workshop lanes. Missing reservations also admit
+  // prior-release saves. Durable provenance remains, and freed slots wait for
+  // the next workshop tick.
+  const terminalWorkshopWorkOrderIds = listCanonicalTerminalPrerequisiteProcessingWorkOrderIds(
+    outputWeeklyState
+  ).filter((workOrderId) => !prerequisiteReleases.reservations[workOrderId])
+  const workshopTerminalCleanup = reconcileDepartmentWorkshopTerminalLanes(
+    outputWeeklyState,
+    terminalWorkshopWorkOrderIds
+  )
+  if (workshopTerminalCleanup.state === 'cleaned') {
+    outputWeeklyState.departmentWorkshopSnapshots = workshopTerminalCleanup.workshopState.snapshots
+  }
+
+  // SPE-2760: output credit precedes one deterministic successor attempt per
+  // case. The reconciler delegates all mutable writes to the existing atomic
+  // activation seam and is safe to replay after save/load.
+  const prerequisiteSuccessors = reconcileCaseScopedPrerequisiteProcessingSuccessors({
+    ...outputWeeklyState,
+    cases: inputWeeklyState.cases,
+  })
+  if (prerequisiteSuccessors.activatedWorkOrderIds.length > 0 && prerequisiteSuccessors.inventory) {
+    outputWeeklyState.inventory = prerequisiteSuccessors.inventory
+    outputWeeklyState.caseScopedPrerequisiteProcessingReservations =
+      prerequisiteSuccessors.reservations
+    outputWeeklyState.departmentWorkshopWorkOrders = prerequisiteSuccessors.workshopWorkOrders
+    outputWeeklyState.departmentWorkshopSnapshots = prerequisiteSuccessors.workshopSnapshots
+  }
+
+  // SPE-2755: case records are the sole receipt consumer. Reconciliation
+  // verifies authored work-order provenance and is safe on replays/save-load.
+  Object.assign(outputWeeklyState, reconcileDepartmentWorkshopCaseHandoffs(outputWeeklyState))
+
+  // SPE-2741: advance persisted rivals for the week that just closed. Pressure
+  // ownership remains explicit; production uses deterministic zero-pressure inputs.
+  const normalizedRivalPackets = normalizeRivalExpeditionProgressRegistry(
+    inputWeeklyState.rivalExpeditionProgressPackets,
+    {
+      campaignWeek: sourceState.week,
+      minimumActiveAdvancedWeek: sourceState.week - 1,
+      maximumAdvancedWeek: sourceState.week - 1,
+    }
+  )
+  const rivalWeekClose = advanceRivalExpeditionRegistryAtWeekClose(
+    normalizedRivalPackets,
+    inputWeeklyState.rivalExpeditionClues,
+    sourceState.week,
+    Object.fromEntries(
+      Object.keys(normalizedRivalPackets).map((expeditionId) => [
+        expeditionId,
+        { casualties: 0, pacePenalty: 0 },
+      ])
+    )
+  )
+  outputWeeklyState.rivalExpeditionProgressPackets = rivalWeekClose.packets
+  outputWeeklyState.rivalExpeditionClues = rivalWeekClose.clues
+
+  // SPE-3018 + SPE-3020: advance persisted historical-route replays once for the
+  // week that just closed, then resolve terminal → ended with the owned
+  // week-close ordinary-world consequence policy. Already-ended siblings stay
+  // SPE-3009 identity no-ops.
+  // SPE-3024: after advance/resolve, activate matching calendar/start-condition
+  // candidates into approaching records (idempotent; inactive SPE-1392 fail-closed).
+  // Newly activated records stay approaching until the next week-close advance.
+  // SPE-3027: activation reads the multi-site memory-graph registry (legacy
+  // single historicalRouteMemoryGraph dual-reads into the registry).
+  const weekCloseHistoricalRouteMemoryGraphs = normalizeHistoricalRouteMemoryGraphsFromGameState({
+    historicalRouteMemoryGraphs: inputWeeklyState.historicalRouteMemoryGraphs,
+    historicalRouteMemoryGraph: inputWeeklyState.historicalRouteMemoryGraph,
+  })
+  const afterHistoricalRouteWeekClose = applyHistoricalRouteReplayRegistryAtWeekClose(
+    inputWeeklyState.historicalRouteReplays
+  )
+  outputWeeklyState.historicalRouteReplays = activateHistoricalRouteReplayRegistryForCalendarWeek(
+    afterHistoricalRouteWeekClose,
+    weekCloseHistoricalRouteMemoryGraphs,
+    normalizeHistoricalRouteReplayActivationCandidates(
+      inputWeeklyState.historicalRouteReplayActivationCandidates
+    ),
+    sourceState.week
+  )
+  outputWeeklyState.historicalRouteReplayActivationCandidates =
+    normalizeHistoricalRouteReplayActivationCandidates(
+      inputWeeklyState.historicalRouteReplayActivationCandidates
+    )
+  outputWeeklyState.historicalRouteMemoryGraphs = weekCloseHistoricalRouteMemoryGraphs
+  // Drop SPE-3024 legacy single-graph field after canonicalize into the registry.
+  delete outputWeeklyState.historicalRouteMemoryGraph
+
+  // SPE-2720: one graph-local consequence-driven mutation at week-close.
+  // Missing/empty legacy state remains a no-op and does not couple into other systems.
+  const nextAuthorityGraphState = applyAuthorityGraphWeekClose(
+    inputWeeklyState.authorityGraphState,
+    result.week
+  )
+  if (
+    inputWeeklyState.authorityGraphState !== undefined ||
+    nextAuthorityGraphState.graph.edges.length > 0
+  ) {
+    outputWeeklyState.authorityGraphState = nextAuthorityGraphState
+  }
+  const authorityMissionAccessMutated =
+    nextAuthorityGraphState.lastMutationWeek === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.week === result.week &&
+    nextAuthorityGraphState.mutationHistory.at(-1)?.channel === 'mission_access'
+  if (outputWeeklyState.missionRouting && authorityMissionAccessMutated) {
+    outputWeeklyState.missionRouting = recomputeMissionRouting(outputWeeklyState, result.week)
+  }
 
   if (inputWeeklyState.civicConsequencePackets !== undefined) {
     outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]
@@ -4390,6 +5385,1325 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.civicAuthoritySources = mergedAuthoritySources
   } else if ('civicAuthoritySources' in outputWeeklyState) {
     delete resultWithUnknownFields.civicAuthoritySources
+  }
+
+  const priorIntakeReports = inputWeeklyState.informationIntakeReports ?? {}
+  if (Object.keys(priorIntakeReports).length > 0) {
+    const nextIntakeReports = applyWeeklyIntakeCorroborationTick(
+      priorIntakeReports,
+      intakeCorroborationWeek,
+      inputWeeklyState.cases,
+      outputWeeklyState.cases
+    )
+    outputWeeklyState.informationIntakeReports = nextIntakeReports
+
+    // SPE-854 slice 7: project weekly intake verification narratives into report notes.
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const intakeVerificationNotes = buildWeeklyIntakeVerificationReportNotes({
+      priorReports: priorIntakeReports,
+      nextReports: nextIntakeReports,
+      week: intakeCorroborationWeek,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+      casesById: outputWeeklyState.cases,
+    })
+    if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...intakeVerificationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2105 slice 3: expire extranormal monitoring windows and advance monitor_only closure.
+  const currentExtranormalEvents = outputWeeklyState.extranormalEventRecords ?? {}
+  if (Object.keys(currentExtranormalEvents).length > 0) {
+    outputWeeklyState.extranormalEventRecords = applyWeeklyExtranormalEventMonitoringTick(
+      currentExtranormalEvents,
+      result.week
+    )
+  }
+
+  // SPE-2104 slice 3: advance intake disposition when custody review due week is reached.
+  const currentMinorAnomalyItems = outputWeeklyState.minorAnomalyItemRecords ?? {}
+  if (Object.keys(currentMinorAnomalyItems).length > 0) {
+    outputWeeklyState.minorAnomalyItemRecords = applyWeeklyMinorAnomalyItemDispositionTick(
+      currentMinorAnomalyItems,
+      result.week
+    )
+  }
+
+  // SPE-2106 slice 3: advance site lifecycle when monitoring cadence due week is reached.
+  const currentUnexplainedLocations = outputWeeklyState.unexplainedLocationRecords ?? {}
+  if (Object.keys(currentUnexplainedLocations).length > 0) {
+    outputWeeklyState.unexplainedLocationRecords = applyWeeklyUnexplainedLocationLifecycleTick(
+      currentUnexplainedLocations,
+      result.week
+    )
+  }
+
+  // SPE-2108 slice 3: expire retention decay timers and advance rediscovery due-week loops.
+  const currentSelfCensoringInformation = outputWeeklyState.selfCensoringInformationRecords ?? {}
+  if (Object.keys(currentSelfCensoringInformation).length > 0) {
+    outputWeeklyState.selfCensoringInformationRecords = applyWeeklySelfCensoringInformationTick(
+      currentSelfCensoringInformation,
+      result.week
+    )
+  }
+
+  // SPE-2109 slice 3: apply scheduled public-disclosure awareness/fallout transitions.
+  const currentPublicDisclosureRecords = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (Object.keys(currentPublicDisclosureRecords).length > 0) {
+    outputWeeklyState.publicDisclosureRecords = applyWeeklyPublicDisclosureProgressionTick(
+      currentPublicDisclosureRecords,
+      result.week
+    )
+  }
+
+  // SPE-1343 slice 3: myth-as-infrastructure ops projection on persisted truth-layer records.
+  const currentTruthLayerRecords = outputWeeklyState.truthLayerRecords ?? {}
+  if (Object.keys(currentTruthLayerRecords).length > 0) {
+    const truthLayerTick = applyWeeklyTruthLayerTick(
+      currentTruthLayerRecords,
+      result.week,
+      outputWeeklyState.truthLayerWeeklyProjectionSnapshots
+    )
+    outputWeeklyState.truthLayerRecords = truthLayerTick.records
+    outputWeeklyState.truthLayerWeeklyProjectionSnapshots = truthLayerTick.snapshots
+  }
+
+  // SPE-1347 slice 4: lifecycle projection + contradiction accumulation on persisted cover-story records.
+  const currentCoverStoryRecords = outputWeeklyState.coverStoryRecords ?? {}
+  if (Object.keys(currentCoverStoryRecords).length > 0) {
+    const coverStoryTick = applyWeeklyCoverStoryTick(
+      currentCoverStoryRecords,
+      result.week,
+      outputWeeklyState.coverStoryWeeklyProjectionSnapshots,
+      {
+        contradictionInput: {
+          priorIntakeReports,
+          nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
+          truthLayerRecords: outputWeeklyState.truthLayerRecords,
+          ruleDocumentComplianceRecords: outputWeeklyState.ruleDocumentComplianceRecords,
+          extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
+          cases: outputWeeklyState.cases,
+        },
+      }
+    )
+    outputWeeklyState.coverStoryRecords = coverStoryTick.records
+    outputWeeklyState.coverStoryWeeklyProjectionSnapshots = coverStoryTick.snapshots
+  }
+
+  // SPE-2110 slice 3 / SPE-2497 slice 5: advance readiness-gated pattern-source intake pipeline + surface transitions.
+  const priorPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
+  if (Object.keys(priorPatternSourceSeriesRecords).length > 0) {
+    outputWeeklyState.patternSourceSeriesRecords = applyWeeklyPatternSourceSeriesIntakeTick(
+      priorPatternSourceSeriesRecords,
+      result.week
+    )
+  }
+
+  const nextPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
+  if (Object.keys(nextPatternSourceSeriesRecords).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const patternSourceSeriesTransitionNotes = buildWeeklyPatternSourceSeriesTransitionReportNotes({
+      priorRecords: priorPatternSourceSeriesRecords,
+      nextRecords: nextPatternSourceSeriesRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (patternSourceSeriesTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...patternSourceSeriesTransitionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2493 slice 2: modifiable data-pack governance tick (re-validation + needs_revision observation).
+  const currentModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
+  if (Object.keys(currentModifiableDataPackRecords).length > 0) {
+    const modifiableDataPackTick = applyWeeklyModifiableDataPackGovernanceTick(
+      currentModifiableDataPackRecords,
+      result.week
+    )
+    outputWeeklyState.modifiableDataPackRecords = modifiableDataPackTick.records
+
+    if (modifiableDataPackTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const modifiableDataPackNotes = buildWeeklyModifiableDataPackGovernanceReportNotes({
+        receipts: modifiableDataPackTick.receipts,
+        records: modifiableDataPackTick.records,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (modifiableDataPackNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...modifiableDataPackNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
+  // SPE-2500 slice 4: modifiable data-pack publish-queue enqueue tick.
+  const postGovernanceModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
+  if (Object.keys(postGovernanceModifiableDataPackRecords).length > 0) {
+    const publishQueueEnqueueTick = applyWeeklyModifiableDataPackPublishQueueEnqueueTick(
+      postGovernanceModifiableDataPackRecords,
+      outputWeeklyState.publishQueueRecords ?? {},
+      result.week
+    )
+    outputWeeklyState.publishQueueRecords = publishQueueEnqueueTick.records
+
+    if (publishQueueEnqueueTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const publishQueueEnqueueNotes = buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes({
+        receipts: publishQueueEnqueueTick.receipts,
+        records: postGovernanceModifiableDataPackRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (publishQueueEnqueueNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...publishQueueEnqueueNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
+  // SPE-2485 / SPE-2491: publish-queue execution tick (dry-run default; live when configured).
+  const currentPublishQueueRecords = outputWeeklyState.publishQueueRecords ?? {}
+  if (Object.keys(currentPublishQueueRecords).length > 0) {
+    const publishQueueTick = applyWeeklyPublishQueueExecutionTickOrchestrated(
+      currentPublishQueueRecords,
+      result.week,
+      publishQueueOrchestrationDeps
+    )
+    outputWeeklyState.publishQueueRecords = publishQueueTick.records
+    outputWeeklyState.publishQueueExecutionReceipts = mergePublishQueueExecutionReceipts(
+      outputWeeklyState.publishQueueExecutionReceipts,
+      publishQueueTick.receipts,
+      { records: publishQueueTick.records }
+    )
+
+    if (publishQueueTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const publishQueueNotes = buildWeeklyPublishQueueExecutionReportNotes({
+        receipts: publishQueueTick.receipts,
+        records: publishQueueTick.records,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (publishQueueNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...publishQueueNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
+  // SPE-2122 slice 3: decay registration backlog on persisted population emergence records.
+  const currentMassAnomalousPopulationEmergenceRecords =
+    outputWeeklyState.massAnomalousPopulationEmergenceRecords ?? {}
+  if (Object.keys(currentMassAnomalousPopulationEmergenceRecords).length > 0) {
+    outputWeeklyState.massAnomalousPopulationEmergenceRecords =
+      applyWeeklyPopulationEmergenceGovernanceTick(
+        currentMassAnomalousPopulationEmergenceRecords,
+        result.week
+      )
+  }
+
+  // SPE-2114 slice 3: scheduled reclassification-state transitions on entity welfare records.
+  const priorEntityWelfareReclassificationRecords =
+    outputWeeklyState.entityWelfareReclassificationRecords ?? {}
+  const currentEntityWelfareReclassificationRecords = priorEntityWelfareReclassificationRecords
+  if (Object.keys(currentEntityWelfareReclassificationRecords).length > 0) {
+    outputWeeklyState.entityWelfareReclassificationRecords =
+      applyWeeklyEntityWelfareReclassificationTick(
+        currentEntityWelfareReclassificationRecords,
+        result.week
+      )
+  }
+
+  // SPE-2520: authored weekly evidence progression for durable person-status records.
+  const priorAffiliationPersonStatusRecords = outputWeeklyState.affiliationPersonStatusRecords ?? {}
+  if (Object.keys(priorAffiliationPersonStatusRecords).length > 0) {
+    outputWeeklyState.affiliationPersonStatusRecords =
+      applyWeeklyAffiliationPersonStatusProgressionTick(
+        priorAffiliationPersonStatusRecords,
+        result.week
+      )
+  }
+
+  // SPE-2490 slice 5: surface post-tick entity welfare reclassification transitions in weekly report notes.
+  const nextEntityWelfareReclassificationRecords =
+    outputWeeklyState.entityWelfareReclassificationRecords ?? {}
+  if (
+    Object.keys(nextEntityWelfareReclassificationRecords).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const entityWelfareReclassificationTransitionNotes =
+      buildWeeklyEntityWelfareReclassificationTransitionReportNotes({
+        priorRecords: priorEntityWelfareReclassificationRecords,
+        nextRecords: nextEntityWelfareReclassificationRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (entityWelfareReclassificationTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...entityWelfareReclassificationTransitionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2520: surface post-tick durable person-status evidence progression in weekly report notes.
+  const nextAffiliationPersonStatusRecords = outputWeeklyState.affiliationPersonStatusRecords ?? {}
+  if (Object.keys(nextAffiliationPersonStatusRecords).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const affiliationPersonStatusProgressionNotes =
+      buildWeeklyAffiliationPersonStatusProgressionReportNotes({
+        priorRecords: priorAffiliationPersonStatusRecords,
+        nextRecords: nextAffiliationPersonStatusRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (affiliationPersonStatusProgressionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...affiliationPersonStatusProgressionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2111 slice 3: disposal compliance, scheduled awareness-band, and occlusion pursuit on visual-trigger hazards.
+  const priorVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  const currentVisualTriggerHazardRecords = priorVisualTriggerHazardRecords
+  if (Object.keys(currentVisualTriggerHazardRecords).length > 0) {
+    outputWeeklyState.visualTriggerHazardRecords = applyWeeklyVisualTriggerHazardTick(
+      currentVisualTriggerHazardRecords,
+      result.week
+    )
+  }
+
+  // SPE-2489 slice 5: surface post-tick visual-trigger hazard transitions in weekly report notes.
+  const nextVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  if (Object.keys(nextVisualTriggerHazardRecords).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const visualTriggerHazardTransitionNotes = buildWeeklyVisualTriggerHazardTransitionReportNotes({
+      priorRecords: priorVisualTriggerHazardRecords,
+      nextRecords: nextVisualTriggerHazardRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (visualTriggerHazardTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...visualTriggerHazardTransitionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2577 slice 1: elapsed propagation + optional authored platform view/uptime deltas on spe947* maps.
+  const priorSpe947Maps = extractSpe947EvaluatorPersistenceMaps(outputWeeklyState)
+  const hasSpe947WeeklyMaps =
+    Object.keys(priorSpe947Maps.spe947PlatformRecords).length > 0 ||
+    Object.keys(priorSpe947Maps.spe947CounterMemeticPlans).length > 0
+  if (hasSpe947WeeklyMaps) {
+    const nextSpe947Maps = applyWeeklySpe947EvaluatorTick(priorSpe947Maps, result.week)
+    outputWeeklyState.spe947PlatformRecords = nextSpe947Maps.spe947PlatformRecords
+    outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
+  }
+
+  // SPE-2624 slice 3: optional authored graph elapsed-week deltas on spe956PropagationGraphRecords.
+  const priorSpe956GraphRecords = extractSpe956PropagationGraphRecords(outputWeeklyState)
+  if (Object.keys(priorSpe956GraphRecords).length > 0) {
+    const nextSpe956GraphRecords = applyWeeklySpe956PropagationGraphTick(
+      priorSpe956GraphRecords,
+      result.week
+    )
+    if (nextSpe956GraphRecords !== priorSpe956GraphRecords) {
+      outputWeeklyState.spe956PropagationGraphRecords = nextSpe956GraphRecords
+    }
+  }
+
+  // SPE-2643: optional authored elapsed-week deltas on five SPE-956 participatory channel maps.
+  const priorSpe956ChannelMaps = {
+    spe956SurvivorInformalRegistryRecords:
+      extractSpe956SurvivorInformalRegistryRecords(outputWeeklyState),
+    spe956CollectiveMemoryChannelRecords:
+      extractSpe956CollectiveMemoryChannelRecords(outputWeeklyState),
+    spe956HotlineChannelRecords: extractSpe956HotlineChannelRecords(outputWeeklyState),
+    spe956AsyncDiscussionSurfaceRecords:
+      extractSpe956AsyncDiscussionSurfaceRecords(outputWeeklyState),
+    spe956CommunityAdvisoryBodyRecords:
+      extractSpe956CommunityAdvisoryBodyRecords(outputWeeklyState),
+  }
+  const hasSpe956ChannelRecords =
+    Object.keys(priorSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956HotlineChannelRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords).length > 0 ||
+    Object.keys(priorSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords).length > 0
+  let nextSpe956ChannelMapsForNotes = priorSpe956ChannelMaps
+  if (hasSpe956ChannelRecords) {
+    const nextSpe956ChannelMaps = applyWeeklySpe956ParticipatoryChannelTick(
+      priorSpe956ChannelMaps,
+      result.week
+    )
+    nextSpe956ChannelMapsForNotes = nextSpe956ChannelMaps
+    if (nextSpe956ChannelMaps !== priorSpe956ChannelMaps) {
+      if (
+        nextSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords !==
+        priorSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords
+      ) {
+        outputWeeklyState.spe956SurvivorInformalRegistryRecords =
+          nextSpe956ChannelMaps.spe956SurvivorInformalRegistryRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords !==
+        priorSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords
+      ) {
+        outputWeeklyState.spe956CollectiveMemoryChannelRecords =
+          nextSpe956ChannelMaps.spe956CollectiveMemoryChannelRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956HotlineChannelRecords !==
+        priorSpe956ChannelMaps.spe956HotlineChannelRecords
+      ) {
+        outputWeeklyState.spe956HotlineChannelRecords =
+          nextSpe956ChannelMaps.spe956HotlineChannelRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords !==
+        priorSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords
+      ) {
+        outputWeeklyState.spe956AsyncDiscussionSurfaceRecords =
+          nextSpe956ChannelMaps.spe956AsyncDiscussionSurfaceRecords
+      }
+      if (
+        nextSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords !==
+        priorSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords
+      ) {
+        outputWeeklyState.spe956CommunityAdvisoryBodyRecords =
+          nextSpe956ChannelMaps.spe956CommunityAdvisoryBodyRecords
+      }
+    }
+  }
+
+  // SPE-2646: surface post-tick participatory channel elapsed-week transitions in weekly report notes.
+  if (hasSpe956ChannelRecords && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const spe956ChannelTransitionNotes = buildWeeklySpe956ParticipatoryChannelTransitionReportNotes(
+      {
+        priorMaps: priorSpe956ChannelMaps,
+        nextMaps: nextSpe956ChannelMapsForNotes,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      }
+    )
+
+    if (spe956ChannelTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...spe956ChannelTransitionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2615 / SPE-2616 / SPE-2617: week-close media-economy aggregate orchestrate (SPE-2577 pattern peer).
+  // Persisted commercialization actors feed the tick; empty actors ⇒ no-op (no invent).
+  // Shared economy maps mutate when an authored weekly delta applies (SPE-2617).
+  const mediaEconomyWeekClose = applyWeeklySpe947MediaEconomyTick({
+    actors: listSpe947MediaEconomyCommercializationActors(
+      outputWeeklyState.spe947MediaEconomyCommercializationActors
+    ),
+    maps: {
+      spe947PostCaseMediaCases: outputWeeklyState.spe947PostCaseMediaCases,
+      spe947MediaEconomyWeights: outputWeeklyState.spe947MediaEconomyWeights,
+      spe947MediaEconomyContinuityBindings: outputWeeklyState.spe947MediaEconomyContinuityBindings,
+    },
+    week: result.week,
+    lastWeeklyTickWeek: outputWeeklyState.spe947MediaEconomyLastWeeklyTickWeek,
+  })
+  if (mediaEconomyWeekClose.lastWeeklyTickWeek !== undefined) {
+    outputWeeklyState.spe947MediaEconomyLastWeeklyTickWeek =
+      mediaEconomyWeekClose.lastWeeklyTickWeek
+  }
+  if (mediaEconomyWeekClose.mapsMutated) {
+    outputWeeklyState.spe947MediaEconomyWeights =
+      mediaEconomyWeekClose.maps.spe947MediaEconomyWeights ?? {}
+    outputWeeklyState.spe947MediaEconomyContinuityBindings =
+      mediaEconomyWeekClose.maps.spe947MediaEconomyContinuityBindings ?? {}
+  }
+
+  // SPE-2596 slice 1: surface post-tick spe947* plan/platform transitions in weekly report notes.
+  const nextSpe947MapsForNotes = extractSpe947EvaluatorPersistenceMaps(outputWeeklyState)
+  if (
+    (Object.keys(nextSpe947MapsForNotes.spe947PlatformRecords).length > 0 ||
+      Object.keys(nextSpe947MapsForNotes.spe947CounterMemeticPlans).length > 0) &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const spe947TransitionNotes = buildWeeklySpe947EvaluatorTransitionReportNotes({
+      priorPlatforms: priorSpe947Maps.spe947PlatformRecords,
+      nextPlatforms: nextSpe947MapsForNotes.spe947PlatformRecords,
+      priorPlans: priorSpe947Maps.spe947CounterMemeticPlans,
+      nextPlans: nextSpe947MapsForNotes.spe947CounterMemeticPlans,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (spe947TransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...spe947TransitionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2116 slice 4: substitution-policy hardening and confidence erosion on naming-hazard descriptors.
+  const currentNamingHazardDescriptors = outputWeeklyState.namingHazardDescriptorRecords ?? {}
+  if (Object.keys(currentNamingHazardDescriptors).length > 0) {
+    outputWeeklyState.namingHazardDescriptorRecords = applyWeeklyNamingHazardDescriptorTick(
+      currentNamingHazardDescriptors,
+      result.week
+    )
+  }
+
+  // SPE-854 / SPE-2406 slice 1: surface intake ↔ naming-hazard cross-link labels in weekly report notes.
+  const nextIntakeReportsForCrossLink = outputWeeklyState.informationIntakeReports ?? {}
+  const nextNamingHazardDescriptorsForCrossLink =
+    outputWeeklyState.namingHazardDescriptorRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextNamingHazardDescriptorsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const crossLinkNotes = buildWeeklyIntakeNamingHazardCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextDescriptors: nextNamingHazardDescriptorsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (crossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...crossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 / SPE-2470 slice 1: surface intake ↔ extranormal event cross-link labels in weekly report notes.
+  const nextExtranormalEventsForCrossLink = outputWeeklyState.extranormalEventRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextExtranormalEventsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const extranormalCrossLinkNotes = buildWeeklyIntakeExtranormalCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextEvents: nextExtranormalEventsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (extranormalCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...extranormalCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 slice 1: surface intake ↔ minor anomaly item cross-link labels in weekly report notes.
+  const nextMinorAnomalyItemsForCrossLink = outputWeeklyState.minorAnomalyItemRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextMinorAnomalyItemsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const minorAnomalyCrossLinkNotes = buildWeeklyIntakeMinorAnomalyCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextItems: nextMinorAnomalyItemsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (minorAnomalyCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...minorAnomalyCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 slice 1: surface intake ↔ unexplained location cross-link labels in weekly report notes.
+  const nextUnexplainedLocationsForCrossLink = outputWeeklyState.unexplainedLocationRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextUnexplainedLocationsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const unexplainedLocationCrossLinkNotes =
+      buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes({
+        nextReports: nextIntakeReportsForCrossLink,
+        nextLocations: nextUnexplainedLocationsForCrossLink,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (unexplainedLocationCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...unexplainedLocationCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2702 / SPE-39: distant archive-signature reappearance → cross-jurisdiction coordination packets.
+  const nextIntakeReportsForCoordination = outputWeeklyState.informationIntakeReports ?? {}
+  if (Object.keys(nextIntakeReportsForCoordination).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const coordinationNotes = buildWeeklyCrossJurisdictionCoordinationReportNotes({
+      reports: nextIntakeReportsForCoordination,
+      cases: result.cases,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (coordinationNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...coordinationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2704 / SPE-2706 / SPE-2707 / SPE-2710 / SPE-39: hidden-cell interference → weekly notes.
+  // Funding history + research/panic/infra markers key off the closed week (sourceState.week).
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForInterference = sourceState.week
+    // Same pressure inputs as updateAgencyMetrics apply path (pre-append ranking).
+    const rivalPressureForNotes = buildRivalPressure(sourceState)
+    const appliedTheft = findHiddenCellFundingTheftAmountForWeek(
+      result.agency?.fundingState,
+      closedWeekForInterference
+    )
+    const fundingBeforeTheft = result.funding + appliedTheft
+    const appliedInfraCompromise = findHiddenCellInfrastructureCompromiseAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const maintenanceBeforeCompromise =
+      Math.max(0, Math.trunc(result.agency?.maintenanceSpecialistsAvailable ?? 0)) +
+      appliedInfraCompromise
+    const noteSequenceBase = lastWeeklyReport?.notes?.length ?? 0
+    const hiddenCellFundingNotes = buildWeeklyHiddenCellInterferenceReportNotes({
+      fundingState: result.agency?.fundingState,
+      rivalPressure: rivalPressureForNotes,
+      fundingBeforeTheft,
+      week: closedWeekForInterference,
+      sequenceStart: noteSequenceBase + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellResearchNotes = buildWeeklyHiddenCellResearchRollbackReportNotes({
+      researchState: result.researchState,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart: noteSequenceBase + hiddenCellFundingNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellPanicNotes = buildWeeklyHiddenCellPanicAmplificationReportNotes({
+      gameState: result,
+      rivalPressure: rivalPressureForNotes,
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase + hiddenCellFundingNotes.length + hiddenCellResearchNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellInfrastructureNotes = buildWeeklyHiddenCellInfrastructureCompromiseReportNotes({
+      agency: result.agency,
+      rivalPressure: rivalPressureForNotes,
+      maintenanceBeforeCompromise,
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase +
+        hiddenCellFundingNotes.length +
+        hiddenCellResearchNotes.length +
+        hiddenCellPanicNotes.length +
+        1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const appliedCovertGrowth = findHiddenCellCovertGrowthAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const appliedDetectionNarrowing = findHiddenCellDetectionNarrowingAmountForWeek(
+      result.agency,
+      closedWeekForInterference
+    )
+    const covertGrowthLevelBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellCovertGrowthLevel ?? 0)) - appliedCovertGrowth
+    const detectionNarrowingBefore =
+      Math.max(0, Math.trunc(result.agency?.hiddenCellDetectionNarrowing ?? 0)) -
+      appliedDetectionNarrowing
+    const hiddenCellCovertGrowthNotes = buildWeeklyHiddenCellCovertGrowthReportNotes({
+      agency: result.agency,
+      rivalPressure: rivalPressureForNotes,
+      covertGrowthLevelBefore: Math.max(0, covertGrowthLevelBefore),
+      detectionNarrowingBefore: Math.max(0, detectionNarrowingBefore),
+      week: closedWeekForInterference,
+      sequenceStart:
+        noteSequenceBase +
+        hiddenCellFundingNotes.length +
+        hiddenCellResearchNotes.length +
+        hiddenCellPanicNotes.length +
+        hiddenCellInfrastructureNotes.length +
+        1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    const hiddenCellNotes = [
+      ...hiddenCellFundingNotes,
+      ...hiddenCellResearchNotes,
+      ...hiddenCellPanicNotes,
+      ...hiddenCellInfrastructureNotes,
+      ...hiddenCellCovertGrowthNotes,
+    ]
+
+    if (hiddenCellNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...hiddenCellNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2718 / SPE-39: status upkeep / public-display costs → weekly note when underfunded.
+  if (result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const closedWeekForStatusUpkeep = sourceState.week
+    const statusUpkeepNotes = buildWeeklyStatusUpkeepDisplayReportNotes({
+      agency: result.agency,
+      fundingState: result.agency?.fundingState,
+      week: closedWeekForStatusUpkeep,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (statusUpkeepNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      const nextNotes = [...(lastReport.notes ?? []), ...statusUpkeepNotes]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: nextNotes,
+      }
+      result.reports = reports
+
+      // Keep intel.report_generated.noteCount aligned with post-emit weekly notes.
+      const closedWeek = lastReport.week
+      const events = [...result.events]
+      for (let i = events.length - 1; i >= 0; i -= 1) {
+        const event = events[i]
+        if (
+          event.type === 'intel.report_generated' &&
+          event.payload &&
+          typeof event.payload === 'object' &&
+          'week' in event.payload &&
+          event.payload.week === closedWeek
+        ) {
+          events[i] = {
+            ...event,
+            payload: {
+              ...event.payload,
+              noteCount: nextNotes.length,
+            },
+          }
+          result.events = events
+          break
+        }
+      }
+    }
+  }
+
+  // SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: surface coercive protocol ↔ integrated health cross-reconciliation in weekly report notes.
+  const nextCoerciveProtocolsForReconciliation =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  const nextIntegratedHealthBundlesForReconciliation =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const nextSurveillanceTuningRecordsForReconciliation =
+    outputWeeklyState.surveillanceInterventionTuningRecords ?? {}
+  const nextPsychologicalResilienceRecordsForReconciliation =
+    outputWeeklyState.psychologicalResilienceRecords ?? {}
+  if (
+    Object.keys(nextCoerciveProtocolsForReconciliation).length > 0 &&
+    Object.keys(nextIntegratedHealthBundlesForReconciliation).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const reconciliationNotes =
+      buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+        nextProtocols: nextCoerciveProtocolsForReconciliation,
+        nextBundles: nextIntegratedHealthBundlesForReconciliation,
+        nextSurveillanceTuningRecords: nextSurveillanceTuningRecordsForReconciliation,
+        nextPsychologicalResilienceRecords: nextPsychologicalResilienceRecordsForReconciliation,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (reconciliationNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...reconciliationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2115 slice 3: cadence-based missed-session streak and channel degradation on therapeutic care records.
+  const currentTherapeuticCareRecords =
+    outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
+  if (Object.keys(currentTherapeuticCareRecords).length > 0) {
+    outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
+      currentTherapeuticCareRecords,
+      result.week
+    )
+  }
+
+  // SPE-1882 slice 3/5: deterministic tradeoff and coercion-risk projections on protocol records.
+  const currentCoerciveProtocolRecords =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  if (Object.keys(currentCoerciveProtocolRecords).length > 0) {
+    const coerciveProtocolTick = applyWeeklyCoerciveProtocolTick(
+      currentCoerciveProtocolRecords,
+      result.week,
+      outputWeeklyState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots
+    )
+    outputWeeklyState.coerciveContainedPersonProtocolRecords = coerciveProtocolTick.records
+    outputWeeklyState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots =
+      coerciveProtocolTick.snapshots
+  }
+
+  // SPE-848 slice 3: intervention-level and horizon-outcome advance on surveillance tuning records.
+  const currentSurveillanceInterventionTuningRecords =
+    outputWeeklyState.surveillanceInterventionTuningRecords ?? {}
+  if (Object.keys(currentSurveillanceInterventionTuningRecords).length > 0) {
+    outputWeeklyState.surveillanceInterventionTuningRecords =
+      applyWeeklySurveillanceInterventionTuningTick(
+        currentSurveillanceInterventionTuningRecords,
+        result.week
+      )
+  }
+
+  // SPE-1615 slice 3: depletion-band advance on psychological resilience records.
+  const currentPsychologicalResilienceRecords =
+    outputWeeklyState.psychologicalResilienceRecords ?? {}
+  if (Object.keys(currentPsychologicalResilienceRecords).length > 0) {
+    outputWeeklyState.psychologicalResilienceRecords =
+      applyWeeklyPsychologicalResilienceDepletionTick(
+        currentPsychologicalResilienceRecords,
+        result.week
+      )
+  }
+
+  // SPE-1309 slice 4: merge SPE-2108 propagation-resistance tags into linked exposure channels.
+  let currentCognitiveHazardExposureRecords = outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  const currentSelfCensoringForCognitiveHazardCompose =
+    outputWeeklyState.selfCensoringInformationRecords ?? {}
+  if (
+    Object.keys(currentCognitiveHazardExposureRecords).length > 0 &&
+    Object.keys(currentSelfCensoringForCognitiveHazardCompose).length > 0
+  ) {
+    currentCognitiveHazardExposureRecords =
+      composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords(
+        currentCognitiveHazardExposureRecords,
+        currentSelfCensoringForCognitiveHazardCompose
+      )
+    outputWeeklyState.cognitiveHazardExposureRecords = currentCognitiveHazardExposureRecords
+  }
+
+  // SPE-1309 slice 3: memory-impairment-band advance on cognitive hazard exposure records.
+  if (Object.keys(currentCognitiveHazardExposureRecords).length > 0) {
+    outputWeeklyState.cognitiveHazardExposureRecords = applyWeeklyCognitiveHazardExposureTick(
+      currentCognitiveHazardExposureRecords,
+      result.week
+    )
+  }
+
+  // SPE-1309 slice 5: surface agent/knowledge/procedure simulation triggers from post-tick projections.
+  const priorCognitiveHazardExposureRecords = sourceState.cognitiveHazardExposureRecords ?? {}
+  const nextCognitiveHazardExposureRecordsForTriggers =
+    outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  if (
+    Object.keys(nextCognitiveHazardExposureRecordsForTriggers).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const cognitiveHazardSimulationTriggerNotes =
+      buildWeeklyCognitiveHazardSimulationTriggerReportNotes({
+        nextRecords: nextCognitiveHazardExposureRecordsForTriggers,
+        priorRecords: priorCognitiveHazardExposureRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (cognitiveHazardSimulationTriggerNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...cognitiveHazardSimulationTriggerNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-1309 slice 7: agent vitals side-effects from active simulation trigger summaries.
+  if (Object.keys(nextCognitiveHazardExposureRecordsForTriggers).length > 0) {
+    outputWeeklyState.agents = applyCognitiveHazardSimulationTriggerVitalsToAgents({
+      agents: outputWeeklyState.agents ?? sourceState.agents,
+      nextRecords: nextCognitiveHazardExposureRecordsForTriggers,
+      priorRecords: priorCognitiveHazardExposureRecords,
+    })
+  }
+
+  // SPE-1888 slice 5 + SPE-1882 slice 13: welfare-debt creation from regimen/custody anchors and compromised-care protocol records.
+  const coerciveProcedureExecutionDrafts = resolveCoerciveProcedureExecutionDrafts(
+    outputWeeklyState.containedPersonMedicationRegimenRecords,
+    outputWeeklyState.containedPersonCustodyStatusRecords,
+    result.week,
+    outputWeeklyState.coerciveContainedPersonProtocolRecords
+  )
+  if (coerciveProcedureExecutionDrafts.length > 0) {
+    outputWeeklyState.welfareDebtAccountingRecords = applyCoerciveProcedureWelfareDebtCreationTick(
+      outputWeeklyState.welfareDebtAccountingRecords ?? {},
+      coerciveProcedureExecutionDrafts
+    )
+  }
+
+  // SPE-1888 slice 3: mitigation-state transitions and severity drift on welfare-debt accounting records.
+  const currentWelfareDebtAccountingRecords = outputWeeklyState.welfareDebtAccountingRecords ?? {}
+  if (Object.keys(currentWelfareDebtAccountingRecords).length > 0) {
+    outputWeeklyState.welfareDebtAccountingRecords = applyWeeklyWelfareDebtAccountingTick(
+      currentWelfareDebtAccountingRecords,
+      result.week
+    )
+  }
+
+  // SPE-1888 slice 8: surface welfare-debt cross-link labels in weekly report notes.
+  const nextWelfareDebtRecordsForCrossLink = outputWeeklyState.welfareDebtAccountingRecords ?? {}
+  const nextBundlesForWelfareDebtCrossLink =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const nextCoerciveProtocolsForWelfareDebtCrossLink =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  const nextFactionEthicsRecordsForCrossLink = outputWeeklyState.factionEthicsRecords ?? {}
+  const nextAccountabilityMatrixRecordsForCrossLink =
+    outputWeeklyState.accountabilityMatrixRecords ?? {}
+  if (
+    Object.keys(nextWelfareDebtRecordsForCrossLink).length > 0 &&
+    (Object.keys(nextBundlesForWelfareDebtCrossLink).length > 0 ||
+      Object.keys(nextCoerciveProtocolsForWelfareDebtCrossLink).length > 0 ||
+      Object.keys(nextFactionEthicsRecordsForCrossLink).length > 0 ||
+      Object.keys(nextAccountabilityMatrixRecordsForCrossLink).length > 0) &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const welfareDebtCrossLinkNotes = buildWeeklyWelfareDebtAccountingCrossLinkReportNotes({
+      nextRecords: nextWelfareDebtRecordsForCrossLink,
+      nextBundles: nextBundlesForWelfareDebtCrossLink,
+      nextCoerciveProtocolRecords: nextCoerciveProtocolsForWelfareDebtCrossLink,
+      factionEthicsRecords: nextFactionEthicsRecordsForCrossLink,
+      accountabilityMatrixRecords: nextAccountabilityMatrixRecordsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (welfareDebtCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...welfareDebtCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2117 slice 3: cadence-due recurrenceCount and lastOccurrenceWeek advance on recurrent catastrophes.
+  const currentRecurrentCatastropheRecords = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  if (Object.keys(currentRecurrentCatastropheRecords).length > 0) {
+    outputWeeklyState.recurrentCatastropheRecords = applyWeeklyRecurrentCatastropheTick(
+      currentRecurrentCatastropheRecords,
+      result.week
+    )
+  }
+
+  // SPE-868 slice 4/7: retrospective creation for recurrence closeout refs and qualifying incidents.
+  const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
+  const currentPostIncidentReviewRecommendationRecords =
+    outputWeeklyState.postIncidentReviewRecommendationRecords ?? {}
+  const currentPostIncidentReviewRecommendationActionRecords =
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords ?? {}
+  const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  const qualifyingIncidentReviewDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
+    context.eventDrafts,
+    sourceState.cases,
+    result.week
+  )
+  if (
+    Object.keys(recurrentCatastrophesForReviewCreation).length > 0 ||
+    qualifyingIncidentReviewDrafts.length > 0
+  ) {
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewCreationTick(
+      currentPostIncidentReviewRecords,
+      recurrentCatastrophesForReviewCreation,
+      result.week,
+      qualifyingIncidentReviewDrafts
+    )
+    outputWeeklyState.postIncidentReviewRecords =
+      applyWeeklyPostIncidentReviewCloseoutRewardBranchTick(
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
+      currentPostIncidentReviewRecords,
+      outputWeeklyState.postIncidentReviewRecords
+    )
+    outputWeeklyState.postIncidentReviewRecommendationRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick(
+        currentPostIncidentReviewRecommendationRecords,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick(
+        outputWeeklyState,
+        currentPostIncidentReviewRecommendationActionRecords,
+        currentPostIncidentReviewRecommendationRecords,
+        outputWeeklyState.postIncidentReviewRecommendationRecords
+      )
+
+    const stateAfterFollowOnTrainingEnqueue =
+      applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
+        outputWeeklyState,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.trainingQueue = stateAfterFollowOnTrainingEnqueue.trainingQueue
+    outputWeeklyState.agents = stateAfterFollowOnTrainingEnqueue.agents
+    outputWeeklyState.funding = stateAfterFollowOnTrainingEnqueue.funding
+    outputWeeklyState.events = stateAfterFollowOnTrainingEnqueue.events
+
+    const stateAfterCloseoutRewardBranchPayout =
+      applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick(
+        stateAfterFollowOnTrainingEnqueue,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords,
+        result.week
+      )
+    outputWeeklyState.funding = stateAfterCloseoutRewardBranchPayout.funding
+    if (stateAfterCloseoutRewardBranchPayout.agency) {
+      outputWeeklyState.agency = stateAfterCloseoutRewardBranchPayout.agency
+    }
+
+    // SPE-868 slice 11: project follow-on artifact narratives into weekly report notes.
+    const lastWeeklyReportForFollowOn = result.reports[result.reports.length - 1]
+    const followOnReportNotes = buildWeeklyPostIncidentReviewFollowOnReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReportForFollowOn?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (followOnReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...followOnReportNotes],
+      }
+      result.reports = reports
+    }
+
+    // SPE-868 slice 30: project closeout reward payout lines into weekly report notes.
+    const lastWeeklyReportForPayout = result.reports[result.reports.length - 1]
+    const payoutReportNotes = buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      nextFundingState: stateAfterCloseoutRewardBranchPayout.agency?.fundingState,
+      week: result.week,
+      sequenceStart:
+        (lastWeeklyReportForPayout?.notes?.length ?? 0) + followOnReportNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (payoutReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...payoutReportNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2123 slice 3: compliance-decay band state transitions on rule-document compliance records.
+  const priorRuleDocumentComplianceRecords = outputWeeklyState.ruleDocumentComplianceRecords ?? {}
+  if (Object.keys(priorRuleDocumentComplianceRecords).length > 0) {
+    outputWeeklyState.ruleDocumentComplianceRecords = applyWeeklyRuleDocumentComplianceTick(
+      priorRuleDocumentComplianceRecords,
+      result.week
+    )
+  }
+
+  // SPE-1310 slice 3–4: apply case lifecycle transitions from weekly intake/registry/compliance sources.
+  const priorCasesForLifecycle = outputWeeklyState.cases ?? {}
+  if (Object.keys(priorCasesForLifecycle).length > 0) {
+    const lifecycleTick = applyWeeklyCaseLifecycleTick(priorCasesForLifecycle, {
+      week: result.week,
+      priorIntakeReports,
+      nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
+      extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
+      priorRuleDocumentComplianceRecords,
+      nextRuleDocumentComplianceRecords: outputWeeklyState.ruleDocumentComplianceRecords,
+      priorRecurrentCatastropheRecords: currentRecurrentCatastropheRecords,
+      nextRecurrentCatastropheRecords: outputWeeklyState.recurrentCatastropheRecords,
+    })
+    if (lifecycleTick.changed) {
+      outputWeeklyState.cases = lifecycleTick.cases
+    }
+  }
+
+  // SPE-1889 slice 5: wire therapeutic-care records into integrated health bundles.
+  const therapeuticCareRecordsForBundleCompose =
+    outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
+  const medicationRegimenRecordsForBundleCompose =
+    outputWeeklyState.containedPersonMedicationRegimenRecords ?? {}
+  const custodyStatusRecordsForBundleCompose =
+    outputWeeklyState.containedPersonCustodyStatusRecords ?? {}
+  const welfareDebtAccountingRecordsForBundleCompose =
+    outputWeeklyState.welfareDebtAccountingRecords ?? {}
+  let currentIntegratedHealthBundles =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const hasTherapeuticCareRecords = Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
+  const hasMedicationRegimenRecords =
+    Object.keys(medicationRegimenRecordsForBundleCompose).length > 0
+  const hasCustodyStatusRecords = Object.keys(custodyStatusRecordsForBundleCompose).length > 0
+  const hasWelfareDebtAccountingRecords =
+    Object.keys(welfareDebtAccountingRecordsForBundleCompose).length > 0
+  const hasIntegratedHealthBundles = Object.keys(currentIntegratedHealthBundles).length > 0
+  if (
+    hasTherapeuticCareRecords ||
+    hasMedicationRegimenRecords ||
+    hasCustodyStatusRecords ||
+    hasWelfareDebtAccountingRecords ||
+    hasIntegratedHealthBundles
+  ) {
+    if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
+      const derivedTherapeuticCareBundleFragments = deriveTherapeuticCareBundleFragmentsFromRecords(
+        therapeuticCareRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeTherapeuticCareIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedTherapeuticCareBundleFragments
+      )
+    }
+
+    if (hasMedicationRegimenRecords || hasIntegratedHealthBundles) {
+      const derivedMedicationRegimenBundleFragments =
+        deriveMedicationRegimenBundleFragmentsFromRecords(medicationRegimenRecordsForBundleCompose)
+      currentIntegratedHealthBundles = composeMedicationRegimenIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedMedicationRegimenBundleFragments
+      )
+    }
+
+    if (hasCustodyStatusRecords || hasIntegratedHealthBundles) {
+      const derivedCustodyStatusBundleFragments = deriveCustodyStatusBundleFragmentsFromRecords(
+        custodyStatusRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeCustodyStatusIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedCustodyStatusBundleFragments
+      )
+    }
+
+    if (hasWelfareDebtAccountingRecords || hasIntegratedHealthBundles) {
+      const derivedWelfareDebtBundleFragments = deriveWelfareDebtBundleFragmentsFromRecords(
+        welfareDebtAccountingRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeWelfareDebtIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedWelfareDebtBundleFragments
+      )
+    }
+
+    outputWeeklyState.containedPersonIntegratedHealthBundles = currentIntegratedHealthBundles
+  }
+
+  // SPE-2122 slice 5: wire population-emergence-derived normalization inputs into disclosure records.
+  const currentDisclosureRecordsForCompose = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (Object.keys(currentDisclosureRecordsForCompose).length > 0) {
+    const derivedPopulationEmergenceNormalizationInputs =
+      deriveNormalizationInputsFromPopulationEmergenceRecords(
+        outputWeeklyState.massAnomalousPopulationEmergenceRecords,
+        { week: result.week }
+      )
+
+    outputWeeklyState.publicDisclosureRecords =
+      composePopulationEmergenceNormalizationIntoDisclosureRecords(
+        currentDisclosureRecordsForCompose,
+        derivedPopulationEmergenceNormalizationInputs
+      )
+  }
+
+  // SPE-861 slice 2: surface post-tick public-disclosure trust outcomes in weekly report notes.
+  const nextPublicDisclosureRecordsForTrustOutcome = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (
+    Object.keys(nextPublicDisclosureRecordsForTrustOutcome).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const postExposureTrustDelta = buildRivalPressure(result).postExposureTrustDelta
+    const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
+      nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    let appendedDisclosureNotes = trustOutcomeNotes
+
+    const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
+      nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
+      postExposureTrustDelta,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    appendedDisclosureNotes = [...appendedDisclosureNotes, ...segmentedTrustNotes]
+
+    if (appendedDisclosureNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...appendedDisclosureNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.
@@ -4431,6 +6745,18 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     }
     result.coordinationFrictionActive = false
     result.coordinationFrictionReason = undefined
+  }
+  // SPE-3119: reconcile after all post-finalize note producers, not only when
+  // an unrelated status-upkeep hook happens to append a note.
+  if (facilityMaintenance.state !== undefined || facilityMaintenance.burden !== undefined) {
+    const report = result.reports.at(-1)
+    if (report) {
+      result.events = result.events.map((event) =>
+        event.type === 'intel.report_generated' && event.payload.week === report.week
+          ? { ...event, payload: { ...event.payload, noteCount: report.notes.length } }
+          : event
+      )
+    }
   }
   return result
 }

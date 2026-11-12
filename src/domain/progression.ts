@@ -58,6 +58,26 @@ function coerceXp(xp: number | undefined) {
   return Math.max(0, Math.trunc(xp ?? 0))
 }
 
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
 function normalizeSkillTree(skillTree: AgentProgression['skillTree']): NonNullable<SkillTree> {
   return {
     ...createDefaultAgentSkillTree(),
@@ -218,6 +238,63 @@ export function getLevelForXp(xp: number) {
   }
 
   return level
+}
+
+/** Hydration: reconcile xp gained totals with derived level and levelsGained. */
+export function reconcileProgressionXpGainedFields(payload: {
+  xpAmount?: unknown
+  totalXp?: unknown
+  level?: unknown
+  levelsGained?: unknown
+}) {
+  const xpAmount = Math.max(0, Math.trunc(coerceFiniteNumber(payload.xpAmount, 0)))
+  const totalXpRaw = Math.max(0, Math.trunc(coerceFiniteNumber(payload.totalXp, xpAmount)))
+  const totalXp = Math.max(totalXpRaw, xpAmount)
+  const previousTotalXp = Math.max(0, totalXp - xpAmount)
+  const previousLevel = getLevelForXp(previousTotalXp)
+  const derivedLevel = getLevelForXp(totalXp)
+  const expectedLevelsGained = derivedLevel - previousLevel
+  const levelRaw = Math.max(1, Math.trunc(coerceFiniteNumber(payload.level, derivedLevel)))
+  const level = levelRaw === derivedLevel ? levelRaw : derivedLevel
+  const levelsGainedRaw = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.levelsGained, expectedLevelsGained))
+  )
+  const levelsGained =
+    levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
+
+  return { xpAmount, totalXp, level, levelsGained }
+}
+
+/** Hydration: reconcile agent.promoted level fields and skill points granted. */
+export function reconcileAgentPromotedFields(payload: {
+  previousLevel?: unknown
+  newLevel?: unknown
+  levelsGained?: unknown
+  skillPointsGranted?: unknown
+}) {
+  const previousLevel = Math.max(
+    PROGRESSION_MIN_LEVEL,
+    Math.trunc(coerceFiniteNumber(payload.previousLevel, PROGRESSION_MIN_LEVEL))
+  )
+  const newLevelRaw = Math.max(
+    PROGRESSION_MIN_LEVEL,
+    Math.trunc(coerceFiniteNumber(payload.newLevel, previousLevel))
+  )
+  const newLevel = Math.max(previousLevel, newLevelRaw)
+  const expectedLevelsGained = newLevel - previousLevel
+  const levelsGainedRaw = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.levelsGained, expectedLevelsGained))
+  )
+  const levelsGained =
+    levelsGainedRaw === expectedLevelsGained ? levelsGainedRaw : expectedLevelsGained
+  const skillPointsGranted = Math.max(
+    0,
+    Math.trunc(coerceFiniteNumber(payload.skillPointsGranted, 0))
+  )
+
+  return { previousLevel, newLevel, levelsGained, skillPointsGranted }
 }
 
 export function synchronizeProgressionState(

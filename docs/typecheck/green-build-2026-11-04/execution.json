@@ -1,0 +1,14 @@
+{
+  "command": "npm run build",
+  "exitCode": 0,
+  "viteExecuted": true,
+  "revision": "7d4a9889dfdcdb1a21e90ffe3612d68da766114e",
+  "compilerInputHash": "999a0be1b8ecc8cb4a181db3bf5a9eedf3c7791c3c30f65d43affa48c6fb65c3",
+  "nodeVersion": "v22.23.4",
+  "normalizedTranscriptSha256": "92e5a84754ee470678e9a4025026e3bf31b67acbecb2231de35e6188f0c56411",
+  "transcript": "build.txt",
+  "limitations": [
+    "Captured on dirty recovery worktree based on recorded main; merged main acceptance recorded separately in Linear and PR.",
+    "Existing large bundle warning; no dependency installation or build-gate policy changes."
+  ]
+}

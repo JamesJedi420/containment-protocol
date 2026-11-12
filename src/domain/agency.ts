@@ -8,7 +8,25 @@ import { buildFactionStates } from './factions'
 import { buildLogisticsOverview } from './logistics'
 import { buildMajorIncidentProfile } from './majorIncidents'
 import { buildAgencyRanking, type AgencyRankingTier } from './rankings'
+import {
+  buildCrossJurisdictionCoordinationSummary,
+  type CrossJurisdictionCoordinationSummary,
+} from './crossJurisdictionCoordinationPacket'
+import {
+  buildHiddenCellInterferenceSummary,
+  type HiddenCellInterferenceSummary,
+} from './hiddenCellStrategicInterference'
+import {
+  buildRivalPressure,
+  type RivalPressureBand,
+  type RivalPostExposurePosture,
+} from './rivalPressure'
+import {
+  buildStatusUpkeepDisplaySummary,
+  type StatusUpkeepDisplaySummary,
+} from './statusUpkeepDisplayCost'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
+import { buildLegitimacyCoverSummary, type LegitimacyCoverSummary } from './operationalCover'
 
 const DEFAULT_AGENCY_NAME = 'Containment Protocol'
 
@@ -76,6 +94,21 @@ export interface AgencySummary {
     score: number
     tier: AgencyRankingTier
   }
+  rivalPressure: {
+    score: number
+    band: RivalPressureBand
+    summary: string
+    contractRewardMultiplier: number
+    recruitQualityDelta: number
+    trustFailureDriftScale: number
+    falloutPenaltyScale: number
+    postExposureTrustDelta: number
+    postExposurePosture: RivalPostExposurePosture
+  }
+  crossJurisdictionCoordination: CrossJurisdictionCoordinationSummary
+  hiddenCellInterference: HiddenCellInterferenceSummary
+  statusUpkeepDisplay: StatusUpkeepDisplaySummary
+  legitimacyCover: LegitimacyCoverSummary
   report: AgencyReportSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
   chokepointLeverage: number // 0-100, deterministic
@@ -298,6 +331,13 @@ export function buildAgencySummary(game: GameState): AgencySummary {
   const pressure = buildAgencyPressureSummary(game)
   const stability = buildAgencyStabilitySummary(game, pressure, teams)
   const ranking = buildAgencyRanking(game)
+  const rivalPressure = buildRivalPressure(game)
+  const crossJurisdictionCoordination = buildCrossJurisdictionCoordinationSummary({
+    reports: game.informationIntakeReports,
+    cases: game.cases,
+  })
+  const hiddenCellInterference = buildHiddenCellInterferenceSummary(game)
+  const statusUpkeepDisplay = buildStatusUpkeepDisplaySummary(game)
   const averageFactionStanding = (() => {
     const factions = buildFactionStates(game)
     if (factions.length === 0) {
@@ -354,6 +394,21 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       score: ranking.score,
       tier: ranking.tier,
     },
+    rivalPressure: {
+      score: rivalPressure.score,
+      band: rivalPressure.band,
+      summary: rivalPressure.summary,
+      contractRewardMultiplier: rivalPressure.contractRewardMultiplier,
+      recruitQualityDelta: rivalPressure.recruitQualityDelta,
+      trustFailureDriftScale: rivalPressure.trustFailureDriftScale,
+      falloutPenaltyScale: rivalPressure.falloutPenaltyScale,
+      postExposureTrustDelta: rivalPressure.postExposureTrustDelta,
+      postExposurePosture: rivalPressure.postExposurePosture,
+    },
+    crossJurisdictionCoordination,
+    hiddenCellInterference,
+    statusUpkeepDisplay,
+    legitimacyCover: buildLegitimacyCoverSummary(game.legitimacy),
     report: buildAgencyReportSummary(game),
     chokepointLeverage,
     councilPowerDistribution,

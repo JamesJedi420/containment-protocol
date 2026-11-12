@@ -12,6 +12,7 @@ import {
 } from '../../domain/investigationEconomy'
 import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
+import { CANAL_BRIDGE_NAMING_HAZARD_FIXTURE } from '../../domain/namingHazardDescriptorRegistry'
 import { caseTemplateMap } from '../../domain/templates/caseTemplates'
 import CaseDetailPage from './CaseDetailPage'
 
@@ -62,6 +63,32 @@ it('renders a local not-found state for an unknown case', () => {
   expect(screen.getByText(/case not found/i)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /back to cases/i })).toBeInTheDocument()
 })
+
+it.each(['open', 'in_progress', 'resolved'] as const)(
+  'routes %s major incidents through their canonical planner instead of ordinary assignment',
+  (status) => {
+    const game = createStartingState()
+    game.cases['case-003'] = {
+      ...game.cases['case-003'],
+      kind: 'raid',
+      stage: 5,
+      status,
+      assignedTeamIds: status === 'in_progress' ? ['t_greentape'] : [],
+    }
+    useGameStore.setState({ game })
+    renderCaseDetail('/cases/case-003?status=resolved&q=unrelated&case=case-001')
+
+    expect(screen.queryByRole('button', { name: /^assign /i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^remove green tape$/i })).not.toBeInTheDocument()
+    const link = screen.queryByRole('link', { name: 'Open incident planner' })
+    if (status === 'resolved') {
+      expect(link).not.toBeInTheDocument()
+    } else {
+      expect(link).toHaveAttribute('href', '/cases?case=case-003')
+      expect(screen.getByText(/requires a coordinated response/i)).toBeInTheDocument()
+    }
+  }
+)
 
 it('renders assignment timeline events for the selected case only', () => {
   const game = createStartingState()
@@ -201,7 +228,7 @@ it('shows infiltration prep and sets weekly probe action override', async () => 
   const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
   expect(within(weeklyPrep).getByText(/probe progress 20%/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getByText(/uniform guard/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getAllByText(/uniform guard/i).length).toBeGreaterThan(0)
 
   const cleanupRow = within(weeklyPrep).getByText(/clean up cover/i).closest('li')
   expect(cleanupRow).not.toBeNull()
@@ -236,15 +263,19 @@ it('shows stealth leave-behind tradeoff selection for eligible in-progress hidde
   const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
   expect(within(weeklyPrep).getAllByLabelText(/forensic investigation budget/i)).toHaveLength(1)
-  expect(within(weeklyPrep).getByText(/leave forensic trace/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getByRole('button', { name: /selected/i })).toBeInTheDocument()
 
-  const burnRow = within(weeklyPrep).getByText(/burn field tool/i).closest('li')
+  const leaveBehindGroup = within(weeklyPrep).getByRole('group', {
+    name: /stealth leave-behind tradeoff/i,
+  })
+  expect(within(leaveBehindGroup).getByText(/leave forensic trace/i)).toBeInTheDocument()
+  expect(within(leaveBehindGroup).getByRole('button', { name: /selected/i })).toBeInTheDocument()
+
+  const burnRow = within(leaveBehindGroup).getByText(/burn field tool/i).closest('li')
   expect(burnRow).not.toBeNull()
   await user.click(within(burnRow as HTMLElement).getByRole('button', { name: /^select$/i }))
 
-  expect(within(weeklyPrep).getByText(/burn field tool/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
+  expect(within(leaveBehindGroup).getByText(/burn field tool/i)).toBeInTheDocument()
+  expect(within(leaveBehindGroup).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
   expect(useGameStore.getState().game.cases['case-stealth-ui']?.stealthLeaveBehindId).toBe(
     'leave-behind:burn-tool'
   )
@@ -316,6 +347,38 @@ it('shows investigation prep empty state when no budget is granted yet', () => {
 
   expect(within(panel).getByText(/no investigation budget on this case yet/i)).toBeInTheDocument()
   expect(within(panel).queryByRole('region', { name: /forensic inquiry/i })).not.toBeInTheDocument()
+})
+
+it('shows safe naming-hazard descriptor labels in investigation prep', () => {
+  const game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    title: 'Canal Bridge Investigation',
+    status: 'in_progress',
+    weeksRemaining: 2,
+    assignedTeamIds: [],
+    requiredTags: [],
+    preferredTags: [],
+    tags: ['topic:canal-bridge-incident'],
+  }
+  game.namingHazardDescriptorRecords = {
+    [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
+  const panel = within(weeklyPrep).getByRole('group', { name: /investigation question prep/i })
+  const descriptorSection = within(panel).getByRole('region', {
+    name: /naming-hazard descriptor labels/i,
+  })
+
+  expect(within(descriptorSection).getByText(/east canal approach lane/i)).toBeInTheDocument()
+  expect(
+    within(descriptorSection).queryByText(CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.label)
+  ).not.toBeInTheDocument()
 })
 
 it('hides investigation question prep when the case is not in progress', () => {

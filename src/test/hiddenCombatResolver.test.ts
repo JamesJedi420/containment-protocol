@@ -42,6 +42,257 @@ describe('hiddenCombatResolver', () => {
     expect(failure.encounterPatch.status).toBe('active')
   })
 
+  it('uses computed SPE-54 priority in a volatile hidden-combat context without changing outcome math', () => {
+    const state = createStartingState()
+    const resolution = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority: {
+        mode: { kind: 'per_actor' },
+        actors: [
+          {
+            actorId: 'actor:slow',
+            sideId: 'responders',
+            readiness: 'strained',
+            posture: 'compromised',
+            exposure: 'exposed',
+            injury: 'minor',
+            toolState: 'damaged',
+            precision: 30,
+            aimCommitment: 'none',
+            targetingMode: 'explicit_designation',
+          },
+          {
+            actorId: 'actor:fast',
+            sideId: 'hostiles',
+            readiness: 'steady',
+            posture: 'braced',
+            exposure: 'concealed',
+            injury: 'none',
+            toolState: 'operational',
+            precision: 90,
+            aimCommitment: 'tracking',
+            targetingMode: 'rapid_nearest_valid',
+          },
+        ],
+      },
+    })
+
+    expect(resolution.outcome).toBe('partial')
+    expect(resolution.score).toBe(-5)
+    expect(resolution.actionPriority?.sequence).toEqual({
+      kind: 'per_actor',
+      actorIds: ['actor:fast', 'actor:slow'],
+    })
+    expect(resolution.actionPriority?.actorPriorities[0]).toMatchObject({
+      actorId: 'actor:fast',
+      priorityScore: 94,
+      dominantDriverCodes: ['readiness', 'targeting_mode', 'posture'],
+    })
+    expect(resolution.actionPhasePipeline?.bypassed).toBe(false)
+    expect(resolution.actionPhasePipeline?.phases.map((phase) => phase.id)).toEqual([
+      'posture_commit',
+      'environmental_read',
+      'clash_window',
+      'effect_emission',
+      'cleanup',
+    ])
+    expect(resolution.actionPhasePipeline?.mode).toBe('advanced_action')
+    expect(resolution.actionPhasePipeline?.variantId).toBe('volatile_action_v1')
+    expect(resolution.actionPhasePipeline?.actorIds).toEqual(['actor:fast', 'actor:slow'])
+    expect(resolution.actionPhasePipeline?.explanation.bypass).toEqual({
+      bypassed: false,
+      reason: 'stakes_present',
+    })
+    expect(
+      resolution.actionPhasePipeline?.explanation.phases.every((phase) => phase.status === 'ran')
+    ).toBe(true)
+    expect(JSON.stringify(resolution.actionPhasePipeline?.explanation)).not.toMatch(
+      /priorityScore|dominantDriver/
+    )
+  })
+
+  it('attaches a no-stakes SPE-62 phase bypass without changing hidden-combat outcome math', () => {
+    const state = createStartingState()
+    const actionPriority = {
+      mode: { kind: 'per_actor' as const },
+      actors: [
+        {
+          actorId: 'actor:fast',
+          sideId: 'hostiles',
+          readiness: 'steady' as const,
+          posture: 'braced' as const,
+          exposure: 'concealed' as const,
+          injury: 'none' as const,
+          toolState: 'operational' as const,
+          precision: 90,
+          aimCommitment: 'tracking' as const,
+          targetingMode: 'rapid_nearest_valid' as const,
+        },
+      ],
+    }
+    const withStakes = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+    })
+    const noStakes = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+      actionStakes: 'none',
+    })
+
+    expect(noStakes.outcome).toBe(withStakes.outcome)
+    expect(noStakes.score).toBe(withStakes.score)
+    expect(noStakes.actionPhasePipeline?.bypassed).toBe(true)
+    expect(noStakes.actionPhasePipeline?.phases).toEqual([
+      { id: 'posture_commit', status: 'ran' },
+      { id: 'environmental_read', status: 'ran' },
+      { id: 'clash_window', status: 'skipped' },
+      { id: 'effect_emission', status: 'skipped' },
+      { id: 'cleanup', status: 'ran' },
+    ])
+    expect(noStakes.actionPhasePipeline?.explanation.bypass).toEqual({
+      bypassed: true,
+      reason: 'stakes_none',
+    })
+    expect(noStakes.actionPhasePipeline?.explanation.phases[2]).toEqual({
+      id: 'clash_window',
+      status: 'skipped',
+      reason: 'skipped_stakes_none',
+    })
+  })
+
+  it('attaches authored wiring without changing hidden-combat outcome math or passing hazard', () => {
+    const state = createStartingState()
+    const actionPriority = {
+      mode: { kind: 'per_actor' as const },
+      actors: [
+        {
+          actorId: 'actor:fast',
+          sideId: 'hostiles',
+          readiness: 'steady' as const,
+          posture: 'braced' as const,
+          exposure: 'concealed' as const,
+          injury: 'none' as const,
+          toolState: 'operational' as const,
+          precision: 90,
+          aimCommitment: 'tracking' as const,
+          targetingMode: 'rapid_nearest_valid' as const,
+        },
+      ],
+    }
+    const baseline = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+    })
+    const wired = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+      actionWiring: {
+        kind: 'present',
+        readiness: { actorId: 'actor:fast', band: 'steady' },
+        actionBudget: { remaining: 0, freeTrigger: false },
+        spatial: { flags: ['ingress:service_door'], visibilityState: 'clear' },
+        condition: { kind: 'flag', id: 'encounter.clear', passes: true },
+      },
+    })
+
+    expect(wired.outcome).toBe(baseline.outcome)
+    expect(wired.score).toBe(baseline.score)
+    expect(wired.actionPhasePipeline?.hazard).toEqual({ kind: 'none' })
+    expect(wired.actionPhasePipeline?.wiring.kind).toBe('present')
+    expect(wired.actionPhasePipeline?.reactionWindow.actorIds).toEqual([])
+    expect(
+      wired.actionPhasePipeline?.phases.find((phase) => phase.id === 'clash_window')?.status
+    ).toBe('skipped')
+    expect(JSON.stringify(wired.actionPhasePipeline?.explanation)).not.toMatch(
+      /priorityScore|dominantDriver/
+    )
+  })
+
+  it('fails closed when wiring is attached without actionPriority', () => {
+    const state = createStartingState()
+    expect(() =>
+      resolveHiddenCombat(state, {
+        encounterId: 'encounter.priority',
+        basePower: 50,
+        baseDifficulty: 55,
+        actionWiring: { kind: 'none' },
+      })
+    ).toThrow('actionPriority is required.')
+  })
+
+  it('attaches authored iteration without changing hidden-combat outcome math', () => {
+    const state = createStartingState()
+    const actionPriority = {
+      mode: { kind: 'per_actor' as const },
+      actors: [
+        {
+          actorId: 'actor:fast',
+          sideId: 'hostiles',
+          readiness: 'steady' as const,
+          posture: 'braced' as const,
+          exposure: 'concealed' as const,
+          injury: 'none' as const,
+          toolState: 'operational' as const,
+          precision: 90,
+          aimCommitment: 'tracking' as const,
+          targetingMode: 'rapid_nearest_valid' as const,
+        },
+      ],
+    }
+    const baseline = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+    })
+    const iterated = resolveHiddenCombat(state, {
+      encounterId: 'encounter.priority',
+      basePower: 50,
+      baseDifficulty: 55,
+      actionPriority,
+      actionIteration: {
+        kind: 'present',
+        authority: 'authored_procedure',
+        procedureId: 'procedure:long-ritual',
+      },
+    })
+
+    expect(iterated.outcome).toBe(baseline.outcome)
+    expect(iterated.score).toBe(baseline.score)
+    expect(iterated.actionPhasePipeline?.iteration.kind).toBe('present')
+    expect(iterated.actionPhasePipeline?.phases).toHaveLength(5)
+    expect(
+      iterated.actionPhasePipeline?.iteration.kind === 'present' &&
+        iterated.actionPhasePipeline.iteration.extraSlicePass.phases.map((phase) => phase.id)
+    ).toEqual(iterated.actionPhasePipeline?.phases.map((phase) => phase.id))
+    expect(JSON.stringify(iterated.actionPhasePipeline?.explanation)).not.toMatch(
+      /priorityScore|dominantDriver/
+    )
+  })
+
+  it('fails closed when iteration is attached without actionPriority', () => {
+    const state = createStartingState()
+    expect(() =>
+      resolveHiddenCombat(state, {
+        encounterId: 'encounter.priority',
+        basePower: 50,
+        baseDifficulty: 55,
+        actionIteration: { kind: 'none' },
+      })
+    ).toThrow('actionPriority is required.')
+  })
+
   it('applies flag/clock modifier conditions to change threshold outcomes', () => {
     let state = createStartingState()
     state = setPersistentFlag(state, 'encounter.modifier.boost', true)
@@ -363,7 +614,9 @@ describe('hiddenCombatResolver', () => {
       ],
     })
     expect(readPersistentFlag(execution.apply.state, 'encounter.alpha.escalated')).toBe(true)
-    expect(getProgressClock(execution.apply.state, PROGRESS_CLOCK_IDS.breachFollowUpPosture)).toMatchObject({
+    expect(
+      getProgressClock(execution.apply.state, PROGRESS_CLOCK_IDS.breachFollowUpPosture)
+    ).toMatchObject({
       value: 1,
       max: 3,
     })

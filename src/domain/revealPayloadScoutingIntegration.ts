@@ -14,6 +14,26 @@ import {
   type SubjectTruthState,
 } from './revealPayload'
 import {
+  applyIllusionScanProjection,
+  formatIllusionDisproofSuffix,
+  illusionReadoutPrefixForState,
+  isIllusionLifecycleInert,
+  resolveIllusionKindFromCase,
+} from './hiddenStateIllusionLifecycle'
+import {
+  applyAntiScanCompartmentScanProjection,
+  applyFalsePositionScanProjection,
+  applyFalseDetectionScanProjection,
+  applyGlamourOverlayScanProjection,
+  applyOutOfPhaseScanProjection,
+  applySignatureMaskScanProjection,
+  buildSubjectTruthFromCaseHiddenState,
+  isAntiScanCompartmentAligned,
+  resolveHiddenStateModality,
+  scoutingOutcomeToDetectionScanForCase,
+} from './hiddenStateModality'
+import type { Agent, CaseInstance } from './models'
+import {
   computeEffectiveScoutingConcealment,
   resolveScouting,
   type ScoutingInput,
@@ -34,8 +54,27 @@ export interface ScoutingRevealIntegrationInput extends ScoutingInput {
   readonly subject: ScoutingRevealSubject
 }
 
+export interface CaseScoutingRevealIntegrationInput extends ScoutingRevealIntegrationInput {
+  readonly caseData: CaseInstance
+}
+
 export interface ScoutingRevealIntegrationResult extends ScoutingResult {
   readonly detectionScan: DetectionScanResult
+}
+
+export interface HiddenStateScoutingRevealIntegrationResult extends ScoutingRevealIntegrationResult {
+  readonly active: true
+  /** SPE-2285: prefix captured at compose time (survives post-resolution illusion collapse). */
+  readonly illusionReadoutPrefix?: string | null
+  readonly illusionDisproofSuffix?: string
+}
+
+export interface CaseScoutingRevealBuildResult {
+  readonly teamCapability: number
+  readonly anomalyConcealment: number
+  readonly teamTags: readonly string[]
+  readonly anomalyTags: readonly string[]
+  readonly subject: ScoutingRevealSubject
 }
 
 const GLAMOUR_LAYER: ConcealmentLayer = {
@@ -69,6 +108,141 @@ export function concealmentLayersFromRating(anomalyConcealment: number): readonl
   }
 
   return layers
+}
+
+function clampScoutingRating(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.max(0, Math.min(3, Math.floor(value)))
+}
+
+function averageAgentInvestigation(agents: readonly Agent[]): number {
+  if (agents.length === 0) {
+    return 0
+  }
+
+  return agents.reduce((sum, agent) => sum + agent.baseStats.investigation, 0) / agents.length
+}
+
+/** Deterministic team scouting capability (0–3) from assigned agents. */
+export function teamScoutingCapabilityFromAgents(agents: readonly Agent[]): number {
+  return clampScoutingRating(averageAgentInvestigation(agents) / 20)
+}
+
+/** Deterministic anomaly concealment rating (0–3) from case investigation pressure. */
+export function anomalyConcealmentFromCase(caseData: CaseInstance): number {
+  const investigation =
+    caseData.difficulty?.investigation ?? Math.round((caseData.weights?.investigation ?? 0) * 100)
+
+  return clampScoutingRating(investigation / 15)
+}
+
+function resolveScoutingSubjectCategory(caseData: CaseInstance): string {
+  if (caseData.hiddenState === 'displaced') {
+    return 'displaced contact'
+  }
+
+  if (caseData.tags?.includes('concealment')) {
+    return 'concealed presence'
+  }
+
+  return 'hidden contact'
+}
+
+function resolveScoutingSubjectHostility(caseData: CaseInstance): HostilityLevel {
+  if (caseData.counterDetection === true || caseData.infiltrationStage === 'violent') {
+    return 'active'
+  }
+
+  return 'latent'
+}
+
+/** Deterministic subject snapshot for weekly hidden-state scouting scans. */
+export function buildScoutingRevealSubjectFromCase(caseData: CaseInstance): ScoutingRevealSubject {
+  const present = caseData.hiddenState === 'hidden' || caseData.hiddenState === 'displaced'
+
+  return {
+    present,
+    exactIdentity: `entity:${caseData.id}`,
+    category: resolveScoutingSubjectCategory(caseData),
+    hostility: resolveScoutingSubjectHostility(caseData),
+    activeProtections: [],
+    activeEffects: caseData.tags?.includes('concealment') ? ['concealment field'] : [],
+    dormantEffects: caseData.hiddenState === 'hidden' ? ['undisclosed briefing detail'] : [],
+  }
+}
+
+/** Deterministic scouting input + subject for weekly hidden-state modality compose. */
+export function buildScoutingRevealInputFromCase(
+  caseData: CaseInstance,
+  agents: readonly Agent[],
+  teamTags: readonly string[] = []
+): CaseScoutingRevealBuildResult {
+  const agentTags = agents.flatMap((agent) => agent.tags ?? [])
+
+  return {
+    teamCapability: teamScoutingCapabilityFromAgents(agents),
+    anomalyConcealment: anomalyConcealmentFromCase(caseData),
+    teamTags: [...new Set([...teamTags, ...agentTags])],
+    anomalyTags: [...(caseData.tags ?? [])],
+    subject: buildScoutingRevealSubjectFromCase(caseData),
+  }
+}
+
+export function shouldRunHiddenStateScoutingCompose(
+  caseData: CaseInstance,
+  disguiseValidationActive: boolean
+): boolean {
+  const modality = resolveHiddenStateModality(caseData)
+
+  if (modality === 'none') {
+    return false
+  }
+
+  if (modality === 'disguised_identity' && disguiseValidationActive) {
+    return false
+  }
+
+  return true
+}
+
+/** SPE-2282: weekly hidden-state scouting + tiered scan when disguise path is inactive. */
+export function evaluateHiddenStateScoutingWithRevealPayload(input: {
+  readonly caseData: CaseInstance
+  readonly agents: readonly Agent[]
+  readonly teamTags?: readonly string[]
+  readonly disguiseValidationActive: boolean
+}): HiddenStateScoutingRevealIntegrationResult | undefined {
+  if (
+    input.agents.length === 0 ||
+    !shouldRunHiddenStateScoutingCompose(input.caseData, input.disguiseValidationActive)
+  ) {
+    return undefined
+  }
+
+  const built = buildScoutingRevealInputFromCase(
+    input.caseData,
+    input.agents,
+    input.teamTags ?? []
+  )
+
+  const integrated = resolveScoutingWithCaseHiddenState({
+    teamCapability: built.teamCapability,
+    anomalyConcealment: built.anomalyConcealment,
+    teamTags: [...built.teamTags],
+    anomalyTags: [...built.anomalyTags],
+    subject: built.subject,
+    caseData: input.caseData,
+  })
+
+  return {
+    active: true,
+    ...integrated,
+    illusionReadoutPrefix: illusionReadoutPrefixForState(input.caseData.hiddenStateIllusionState),
+    illusionDisproofSuffix: formatIllusionDisproofSuffix(input.caseData.hiddenStateIllusionState),
+  }
 }
 
 export function buildSubjectTruthFromScouting(
@@ -125,6 +299,68 @@ export function resolveScoutingWithRevealPayload(
   const truth = buildSubjectTruthFromScouting(input, input.subject)
   const scanInput = scoutingOutcomeToDetectionScan(scouting)
   const detectionScan = resolveDetectionScan(truth, scanInput)
+
+  return {
+    ...scouting,
+    detectionScan,
+  }
+}
+
+/** SPE-2281: scouting + tiered scan with case hidden-state modalities (SPE-70). */
+export function resolveScoutingWithCaseHiddenState(
+  input: CaseScoutingRevealIntegrationInput
+): ScoutingRevealIntegrationResult {
+  const scouting = resolveScouting(input)
+  const truth = buildSubjectTruthFromCaseHiddenState(input.caseData, input, input.subject)
+  const teamTags = input.teamTags ?? []
+  const modality = resolveHiddenStateModality(input.caseData)
+  let scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
+  if (
+    modality === 'anti_scan_compartment' &&
+    !isAntiScanCompartmentAligned(input.caseData, teamTags)
+  ) {
+    scanInput = { family: 'presence_sweep' }
+  }
+  let detectionScan = resolveDetectionScan(truth, scanInput)
+
+  if (modality === 'false_position') {
+    detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)
+  }
+
+  if (modality === 'signature_masking') {
+    detectionScan = applySignatureMaskScanProjection(detectionScan)
+  }
+
+  if (modality === 'false_detection_output') {
+    detectionScan = applyFalseDetectionScanProjection(detectionScan)
+  }
+
+  if (modality === 'glamour_overlay') {
+    detectionScan = applyGlamourOverlayScanProjection(detectionScan)
+  }
+
+  if (modality === 'out_of_phase_presence') {
+    detectionScan = applyOutOfPhaseScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
+  }
+
+  if (modality === 'anti_scan_compartment') {
+    detectionScan = applyAntiScanCompartmentScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
+  }
+
+  if (
+    resolveIllusionKindFromCase(input.caseData) !== null &&
+    !isIllusionLifecycleInert(input.caseData)
+  ) {
+    detectionScan = applyIllusionScanProjection(detectionScan, input.caseData)
+  }
 
   return {
     ...scouting,

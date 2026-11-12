@@ -332,6 +332,13 @@ export const MARKET_UI_TEXT = {
   availableFundingLabel: 'Available funding',
   buyOne: 'Buy 1 bundle',
   buyThree: 'Buy 3 bundles',
+  orderOne: 'Order supplier delivery (1 bundle)',
+  orderThree: 'Order supplier delivery (3 bundles)',
+  delayedDeliveryBlocked: 'Supplier delivery only — instant exchange unavailable for this line.',
+  redeemFavorOne: 'Redeem favor (1 bundle)',
+  redeemFavorThree: 'Redeem favor (3 bundles)',
+  callObligationOne: 'Call obligation (1 bundle)',
+  callObligationThree: 'Call obligation (3 bundles)',
   sellOne: 'Sell 1 bundle',
   sellThree: 'Sell 3 bundles',
   noListings: 'No listings match the current filters.',
@@ -517,7 +524,8 @@ export const MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS = {
   escalationCarryover: 'Carryover',
   covertPrepConcealmentDetail: 'Concealment or posture prep on case detail before advance week.',
   covertPrepLeaveBehindDetail: 'Leave-behind staged; forensic fallout may compound next resolve.',
-  covertPrepForensicDetail: 'Forensic budget strained; investigation questions cost more before resolve.',
+  covertPrepForensicDetail:
+    'Forensic budget strained; investigation questions cost more before resolve.',
   carryoverLinkLabel: 'Escalation carryover',
   carryoverLinkDetail:
     'Deferred work can worsen under escalation thresholds and incident pressure curves next week.',
@@ -571,10 +579,7 @@ export function formatMissionTriageDeferralCarryoverLink(
   return DEFERRAL_COMPARE_TONE_VALUES[tone]
 }
 
-export function formatMissionTriageDeferralCarryoverDetail(
-  stage: number,
-  kind: string
-): string {
+export function formatMissionTriageDeferralCarryoverDetail(stage: number, kind: string): string {
   const kindLabel = kind === 'raid' ? 'raid incident' : 'case'
   return `Stage ${stage} ${kindLabel} · unresolved work may carry into next week`
 }
@@ -862,6 +867,1102 @@ export const INTEL_UI_TEXT: Record<string, string> = {
   starterCoverageReady: 'Starter-ready',
   starterCoverageBlocked: 'Required-tag blocked',
   dominantStats: 'Dominant stats',
+}
+
+export const SELF_CENSORING_INFORMATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Self-censoring information registry',
+  pageSubtitle:
+    'Read-only operations view over persisted cognitive-hazard intake records and contradiction projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  retentionActiveLabel: 'Retention timers active',
+  rediscoveryActiveLabel: 'Rediscovery loops active',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Negative facts and rediscovery loops mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No self-censoring information records',
+  emptyBody:
+    'Persisted self-censoring information records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Contradiction signals come from dossier projection; negative facts display unverified absence predicates as stored.',
+  labelColumn: 'Label',
+  resistanceColumn: 'Propagation resistance',
+  negativeFactsColumn: 'Negative facts',
+  retentionColumn: 'Retention timer',
+  rediscoveryColumn: 'Rediscovery loop',
+  failureModeColumn: 'Failure / archive',
+  contradictionColumn: 'Contradiction signals',
+  confidenceColumn: 'Confidence',
+  parentCasePrefix: 'Parent case:',
+  lastAlarmPrefix: 'Last alarm:',
+  warningRefSuffix: 'forgotten warning ref(s)',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const COVER_STORY_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Cover-story lifecycle registry',
+  pageSubtitle:
+    'Read-only operations view over persisted cover-story records and weekly lifecycle projection snapshots.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  coverStressActiveLabel: 'Cover stress active',
+  coverCollapsedLabel: 'Cover collapsed',
+  repairInProgressLabel: 'Repair in progress',
+  weekLabel: 'Simulation week',
+  readOnlyNote:
+    'Lifecycle projections mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No cover-story records',
+  emptyBody:
+    'Persisted cover-story records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Contradiction channel hints show aggregate pressure only; weekly snapshot column displays persisted lifecycle projection when available.',
+  labelColumn: 'Label',
+  lifecycleColumn: 'Lifecycle',
+  contradictionColumn: 'Contradiction signals',
+  opsFlagsColumn: 'Ops flags',
+  weeklySnapshotColumn: 'Weekly snapshot',
+  contradictionPressureLabel: 'Contradiction pressure',
+  coverCapacityScoreLabel: 'Cover capacity score',
+  channelCountPrefix: 'Active channels:',
+  motivationPrefix: 'Motivation:',
+  exposurePrefix: 'Exposure:',
+  confidenceColumn: 'Confidence',
+  latestRepairPrefix: 'Latest repair:',
+  unknownFieldsPrefix: 'Unknown fields:',
+  snapshotWeekPrefix: 'Snapshot week',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const TRUTH_LAYER_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Truth-layer record registry',
+  pageSubtitle:
+    'Read-only operations view over persisted claim, doctrine, and verification layers plus weekly ops projection snapshots.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  layerDivergenceLabel: 'Layer divergence',
+  mythInfrastructureActiveLabel: 'Myth infrastructure active',
+  correctionPressureLabel: 'Correction pressure',
+  weekLabel: 'Simulation week',
+  readOnlyNote:
+    'Claim, doctrine, and verification slots mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No truth-layer records',
+  emptyBody:
+    'Persisted truth-layer records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Review slots stay separate; weekly snapshot column displays persisted ops projection when available.',
+  labelColumn: 'Label',
+  claimColumn: 'Claim layer',
+  doctrineColumn: 'Doctrine layer',
+  verificationColumn: 'Verification layer',
+  opsFlagsColumn: 'Ops flags',
+  weeklySnapshotColumn: 'Weekly snapshot',
+  claimSlotLabel: 'Claim',
+  doctrineSlotLabel: 'Doctrine',
+  verificationSlotLabel: 'Verification',
+  confidenceColumn: 'Confidence',
+  confidencePrefix: 'Source:',
+  tierPrefix: 'Tier:',
+  layerDivergencePrefix: 'Layer divergence:',
+  competingLayerSuffix: 'competing layer ref(s)',
+  unknownFieldsPrefix: 'Unknown fields:',
+  snapshotWeekPrefix: 'Snapshot week',
+  mythDrivesOpsPrefix: 'Myth drives ops without verification:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Public affairs briefing',
+  pageHeading: 'Disclosure campaign posture',
+  pageSubtitle:
+    'Institutional readout of post-secrecy disclosure progression and regional public-trust bands.',
+  backToDeskLabel: 'Back to Operations Desk',
+  activeDisclosureLabel: 'Active disclosures',
+  dominantAwarenessLabel: 'Dominant awareness band',
+  cooperationBandLabel: 'Public cooperation band',
+  segmentDivergenceLabel: 'Audience segment trust',
+  segmentTrustChipsHeading: 'Population and channel trust segments',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Awareness and regional trust reflect the latest weekly progression. Posture choices adjust projected cooperation bands without revealing raw trust scores.',
+  emptyTitle: 'No active disclosure campaigns',
+  emptyBody:
+    'When disclosure records enter play, campaign posture and regional trust bands will appear here.',
+  campaignsHeading: 'Active campaigns',
+  campaignsSubtitle:
+    'Each card summarizes public-awareness posture without operational or verification-layer detail.',
+  awarenessPrefix: 'Awareness:',
+  falloutPrefix: 'Fallout:',
+  objectivePrefix: 'Objective:',
+  regionalTrustHeading: 'Regional public trust',
+  coverNarrativePrefix: 'Linked cover narrative:',
+  confidencePrefix: 'Assessment:',
+  redactedSuffix: 'Partial redaction',
+  postureChoiceHeading: 'Disclosure posture choice',
+  postureChoiceSubtitle:
+    'Set institutional messaging posture for this campaign. Effects appear in cooperation bands and weekly trust outcomes.',
+  postureChoiceSelectedPrefix: 'Selected posture:',
+  postureChoiceUnselectedLabel: 'No posture selected',
+  postureChoiceEffectNote:
+    'Cooperation and segment-trust summaries above reflect your selected posture without exposing redacted trust scores.',
+}
+
+export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Public disclosure state registry',
+  pageSubtitle:
+    'Read-only operations view over persisted post-secrecy campaign records and regional trust projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  disclosureActiveLabel: 'Disclosure active',
+  normalizationInputLabel: 'Normalization inputs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Awareness, fallout, and regional trust mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No public disclosure records',
+  emptyBody:
+    'Persisted public disclosure records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Regional trust comes from disclosure regional projection; transition history displays scheduled awareness steps as stored.',
+  labelColumn: 'Label',
+  awarenessColumn: 'Awareness',
+  falloutColumn: 'Fallout phase',
+  regionalTrustColumn: 'Regional trust',
+  oversightColumn: 'Oversight pressure',
+  transitionColumn: 'Transition history',
+  normalizationColumn: 'Normalization / contracts',
+  confidenceColumn: 'Confidence',
+  campaignPivotPrefix: 'Campaign pivot:',
+  coverCapacityFailureSuffix: 'Cover capacity failure declared',
+  linkedContractSuffix: 'linked contract hook(s)',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const RECURRENT_CATASTROPHE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Recurrent catastrophe amelioration registry',
+  pageSubtitle:
+    'Read-only operations view over persisted recurrence-cycle records and next-recurrence risk projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  impossiblePreventionLabel: 'Impossible prevention ceiling',
+  criticalSeverityLabel: 'Critical severity band',
+  linkedReviewsLabel: 'Linked reviews',
+  unresolvedReviewRefsLabel: 'Unresolved review refs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Cadence, amelioration posture, and severity bands mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No recurrent catastrophe amelioration records',
+  emptyBody:
+    'Persisted recurrent catastrophe records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Severity bands and risk scores come from next-recurrence risk projection at the current simulation week.',
+  labelColumn: 'Label',
+  cadenceColumn: 'Cadence / amelioration',
+  preventionColumn: 'Prevention ceiling',
+  recurrenceColumn: 'Recurrence history',
+  riskColumn: 'Risk projection',
+  reviewLinksColumn: 'Linked review summaries',
+  confidenceColumn: 'Confidence',
+  failureModePrefix: 'Failure mode:',
+  ameliorationPrefix: 'Active amelioration:',
+  preventionTacticPrefix: 'Active prevention:',
+  lastOccurrencePrefix: 'Last occurrence:',
+  damageLedgerPrefix: 'Damage ledger:',
+  reviewRefPrefix: 'Post-incident review:',
+  unresolvedReviewRefPrefix: 'Unresolved review ref:',
+  riskScorePrefix: 'Risk score:',
+  activeAmeliorationCountPrefix: 'Active amelioration count:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident review registry',
+  pageSubtitle:
+    'Read-only operations view over persisted retrospective records and review summary projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  externalAuditRouteLabel: 'External audit route',
+  recurrenceObservedLabel: 'Recurrence observed',
+  qualifyingCaseCloseoutLabel: 'Qualifying case closeouts',
+  qualifyingNearCatastropheLabel: 'Near-catastrophe reviews',
+  orchestrationCreatedLabel: 'Orchestration-created',
+  stubFixtureLabel: 'Stub fixtures',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Review routes, closure outcomes, and milestone spans mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident review records',
+  emptyBody:
+    'Persisted post-incident review records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  qualifyingRecordsHeading: 'Qualifying incident reviews',
+  qualifyingRecordsSubtitle:
+    'Orchestration-created case closeout and near-catastrophe threshold retrospectives from weekly advance.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Milestone spans, adherence scores, and recurrence flags come from review summary projection.',
+  labelColumn: 'Label',
+  sourceColumn: 'Source',
+  caseIdColumn: 'Linked case',
+  orchestrationWeekColumn: 'Orchestration week',
+  routeColumn: 'Review route',
+  closureColumn: 'Closure outcome',
+  milestoneColumn: 'Milestone timings',
+  adherenceColumn: 'Procedure adherence',
+  recurrenceColumn: 'Recurrence observed',
+  confidenceColumn: 'Confidence',
+  milestoneSpanPrefix: 'Span (weeks):',
+  discoveryPrefix: 'Discovery:',
+  responsePrefix: 'Response:',
+  containmentPrefix: 'Containment:',
+  recoveryPrefix: 'Recovery:',
+  reportingPrefix: 'Reporting:',
+  unknownFieldsPrefix: 'Unknown fields:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_ACTION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation action registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on action stubs linked to recommendation and qualifying review records.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedRecommendationLabel: 'Linked recommendations',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Action ids, recommendation refs, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation action records',
+  emptyBody:
+    'Persisted action records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Actions whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Follow-on action-stub tokens materialized from recommendation registry entries during weekly advance.',
+  labelColumn: 'Label',
+  recommendationRefColumn: 'Recommendation ref',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  actionTokenColumn: 'Action token',
+  openReviewMirrorLabel: 'Open review mirror',
+  openRecommendationMirrorLabel: 'Open recommendation mirror',
+  linkedRecommendationPrefix: 'Linked recommendation:',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on recommendation stubs from orchestration-created reviews.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Recommendation ids, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation records',
+  emptyBody:
+    'Persisted recommendation records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Recommendations whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Follow-on stub tokens materialized from review unknownFields during weekly advance.',
+  labelColumn: 'Label',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  followOnTokenColumn: 'Follow-on token',
+  openReviewMirrorLabel: 'Open review mirror',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
+export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Rule document compliance registry',
+  pageSubtitle:
+    'Read-only operations view over persisted written-conduct binding records and compliance decay projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  breachCountLabel: 'Breach state',
+  criticalBandLabel: 'Critical decay band',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Binding posture, decay bands, and audit symptoms mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No rule document compliance records',
+  emptyBody:
+    'Persisted rule document compliance records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Decay bands and audit symptoms come from compliance decay projection at the current simulation week.',
+  labelColumn: 'Label',
+  bindingColumn: 'Binding',
+  complianceColumn: 'Compliance',
+  decayColumn: 'Decay band',
+  auditColumn: 'Audit symptoms',
+  confidenceColumn: 'Confidence',
+  documentRefPrefix: 'Document:',
+  physicalCopyPrefix: 'Physical copy:',
+  auditorPrefix: 'Auditors:',
+  breachConsequencePrefix: 'Breach consequence:',
+  driftProbabilityPrefix: 'Drift/week:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Mass anomalous population emergence registry',
+  pageSubtitle:
+    'Read-only operations view over persisted population emergence records and governance-surge projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  registrationBacklogActiveLabel: 'Registration backlog active',
+  collapsedMasqueradeLabel: 'Collapsed masquerade',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Magnitude, backlog, triage lanes, and governance surge mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No mass anomalous population emergence records',
+  emptyBody:
+    'Persisted population emergence records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Governance surge band comes from week-drift projection; education burden may elevate under collapsed masquerade.',
+  labelColumn: 'Label',
+  magnitudeColumn: 'Magnitude',
+  backlogColumn: 'Registration backlog',
+  governanceColumn: 'Governance / surge refs',
+  triageColumn: 'Triage / rights review',
+  educationColumn: 'Education burden',
+  surgeColumn: 'Governance surge',
+  confidenceColumn: 'Confidence',
+  populationEstimatePrefix: 'Population estimate:',
+  backlogWeeksSuffix: 'weeks remaining',
+  rightsReviewPrefix: 'Rights review:',
+  effectiveEducationPrefix: 'Effective:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Contained person integrated health bundles',
+  pageSubtitle:
+    'Read-only operations view over persisted integrated health bundles, therapeutic care schedule links, medication/custody/welfare-debt field links, and mental-state markers.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalBundlesLabel: 'Persisted bundles',
+  criticalMentalStateLabel: 'Critical mental state',
+  distressedMentalStateLabel: 'Distressed mental state',
+  coercedMedicationLabel: 'Coerced medication links',
+  rightsReviewPendingLabel: 'Rights review pending',
+  unresolvedWelfareDebtLabel: 'Unresolved welfare debt',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Mental-state bands, humane-care risk, and wired link groups mirror hydrated GameState only. Invalid bundles dropped on hydrate are not shown here.',
+  emptyTitle: 'No contained person integrated health bundles',
+  emptyBody:
+    'Persisted integrated health bundles will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted bundles',
+  recordsSubtitle:
+    'Therapeutic care, medication, custody, and welfare-debt links reflect persisted bundle fields; they are read-time routing aids, not objective truth.',
+  labelColumn: 'Label',
+  mentalStateColumn: 'Mental state',
+  humaneCareColumn: 'Humane care',
+  scheduleLinksColumn: 'Therapeutic care links',
+  medicationLinksColumn: 'Medication links',
+  custodyLinksColumn: 'Custody links',
+  welfareDebtLinksColumn: 'Welfare debt links',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  humaneCareRiskPrefix: 'Risk score:',
+  complianceRiskPrefix: 'Compliance risk:',
+  interactionRiskPrefix: 'Interaction risk:',
+  lockdownEscalationSuffix: 'Lockdown escalation likely',
+  adverseReactionSuffix: 'Adverse reaction flagged',
+  rightsReviewPendingSuffix: 'Rights review pending',
+  containmentBenefitPrefix: 'Containment benefit:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const NAMING_HAZARD_DESCRIPTOR_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Naming-hazard descriptor registry',
+  pageSubtitle:
+    'Read-only operations view over persisted naming-hazard descriptor records, safe-label projections, and intake cross-links.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  redactedSubstitutionLabel: 'Redacted substitution',
+  crossLinkedLabel: 'Cross-linked records',
+  orchestratedLabel: 'Orchestrated records',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Substitution policy, confidence erosion, and cross-link labels mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No naming-hazard descriptor records',
+  emptyBody:
+    'Persisted naming-hazard descriptor records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Safe briefing and map labels use projectSafeLabel at read time; they are not objective truth.',
+  labelColumn: 'Descriptor',
+  substitutionColumn: 'Substitution state',
+  crossLinkColumn: 'Intake cross-links',
+  orchestrationColumn: 'Weekly orchestration',
+  confidenceColumn: 'Confidence',
+  poolPrefix: 'Pool:',
+  mapModePrefix: 'Map mode:',
+  briefingLabelPrefix: 'Briefing:',
+  mapLabelPrefix: 'Map:',
+  intakeTopicPrefix: 'Topic:',
+  redactedFieldsPrefix: 'Redacted fields:',
+  redactedSuffix: 'Substitution redacted',
+  confidenceRedactedSuffix: 'Confidence redacted',
+  validationWarningPrefix: 'Validation warnings:',
+}
+
+export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Coercive contained-person protocol registry',
+  pageSubtitle:
+    'Read-only operations view over persisted coercive protocol records and read-time containment-care tradeoff plus coercion-risk review projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  stableContainmentLabel: 'Stable containment dominates',
+  abusivePostureLabel: 'Abusive posture',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Handling modes, tradeoff scores, and coercion-risk flags mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No coercive contained person protocol records',
+  emptyBody:
+    'Persisted coercive protocol records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Tradeoff and risk-review projections are read-time only, not objective truth. Owner refs display as stored.',
+  labelColumn: 'Label',
+  handlingColumn: 'Handling posture',
+  tradeoffColumn: 'Containment vs care',
+  riskReviewColumn: 'Coercion risk review',
+  ownerRefsColumn: 'Owner refs',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  subjectFitPrefix: 'Subject fit:',
+  consentPrefix: 'Consent confidence:',
+  stabilityGainPrefix: 'Stability gain:',
+  harmRiskPrefix: 'Harm risks:',
+  stableContainmentSuffix: 'Stable containment dominates care',
+  coercionRiskPrefix: 'Coercion risk:',
+  contradictionCheckPrefix: 'Contradiction checks:',
+  contradictionCheckUnknownFieldsPrefix: 'Unknown fields:',
+  crossSystemTensionPrefix: 'Cross-system tension:',
+  integratedHealthLinkedSubjectsLabel: 'Integrated health links',
+  crossSystemTensionSubjectsLabel: 'Cross-system tension subjects',
+  weeklySnapshotCountLabel: 'Weekly snapshots',
+  welfareDebtLinkedRecordsLabel: 'Welfare-debt links',
+  factionEthicsLinkedRecordsLabel: 'Faction ethics links',
+  accountabilityMatrixLinkedRecordsLabel: 'Accountability matrix links',
+  welfareDebtCrossLinkPrefix: 'Welfare-debt cross-links:',
+  factionEthicsCrossLinkPrefix: 'Faction ethics cross-links:',
+  accountabilityMatrixCrossLinkPrefix: 'Accountability matrix cross-links:',
+  factionEthicsProjectionPrefix: 'Permissibility verdict:',
+  accountabilityMatrixProjectionPrefix: 'Accountability outcomes:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const PSYCHOLOGICAL_RESILIENCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Psychological resilience registry',
+  pageSubtitle:
+    'Read-only operations view over persisted operator resilience records and read-time depletion, exposure, and treatment-gating projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  exposureElevatedLabel: 'Exposure elevated',
+  treatmentGatedLabel: 'Treatment gated',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Depletion bands, exposure scores, and treatment gates mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No psychological resilience records',
+  emptyBody:
+    'Persisted operator resilience records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Exposure, depletion, and treatment-gating projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  depletionColumn: 'Depletion posture',
+  exposureColumn: 'Exposure',
+  recoveryColumn: 'Recovery channel',
+  projectionColumn: 'Projection signals',
+  confidenceColumn: 'Confidence',
+  operatorRefPrefix: 'Operator:',
+  exposureScorePrefix: 'Exposure score:',
+  exposureEventPrefix: 'Exposure events:',
+  exposureSourcesPrefix: 'Sources:',
+  complicationsPrefix: 'Complications:',
+  counselingRefPrefix: 'Counseling ref:',
+  exposureElevatedSuffix: 'Exposure elevated',
+  treatmentGatedSuffix: 'Treatment gated',
+  depletionAdvancedSuffix: 'Depletion advanced',
+  dutyReliabilitySuffix: 'Duty reliability degraded',
+  restRecoverySuffix: 'Rest recovery eligible',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const COGNITIVE_HAZARD_EXPOSURE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Cognitive hazard exposure registry',
+  pageSubtitle:
+    'Read-only operations view over persisted unified cognitive hazard exposure records, review-band projections, and simulation trigger summaries.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  elevatedExposureLabel: 'Elevated exposure',
+  simulationTriggerSubjectsLabel: 'Simulation trigger subjects',
+  countermeasureFailedLabel: 'Countermeasure failed',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Exposure pressures, review bands, and trigger chips mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No cognitive hazard exposure records',
+  emptyBody:
+    'Persisted cognitive hazard exposure records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Review projections and simulation trigger labels are read-time only; pre-projection field values are not surfaced.',
+  labelColumn: 'Label',
+  subjectColumn: 'Subject / channels',
+  exposureColumn: 'Exposure pressures',
+  memoryColumn: 'Memory / countermeasure',
+  reviewColumn: 'Review band / effects',
+  triggerColumn: 'Simulation triggers',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  fearPressurePrefix: 'Fear:',
+  memeticExposurePrefix: 'Memetic:',
+  aggregateExposurePrefix: 'Aggregate:',
+  agentDutySuffix: 'Agent duty degraded',
+  knowledgeIntegritySuffix: 'Knowledge integrity degraded',
+  procedureRestrictionSuffix: 'Procedure restriction active',
+  countermeasureFailedSuffix: 'Countermeasure failed',
+  countermeasureShieldingSuffix: 'Shielding active',
+  memoryImpairmentAdvancedSuffix: 'Memory impairment advanced',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const SURVEILLANCE_INTERVENTION_TUNING_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Surveillance intervention tuning registry',
+  pageSubtitle:
+    'Read-only operations view over persisted intervention tuning records and read-time surveillance, contact, and collateral-strain projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  monitoringExceedsContactLabel: 'Monitoring exceeds contact',
+  sustainedUnderCollateralStrainLabel: 'Sustained under collateral strain',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Intervention levels, signal scores, and horizon outcomes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No surveillance intervention tuning records',
+  emptyBody:
+    'Persisted intervention tuning records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Monitoring/contact separation and collateral-strain projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  interventionColumn: 'Intervention level',
+  signalsColumn: 'Signal scores',
+  horizonColumn: 'Horizon outcomes',
+  projectionColumn: 'Projection signals',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  surveillanceSignalPrefix: 'Surveillance signal:',
+  meaningfulContactPrefix: 'Meaningful contact:',
+  healthcareLoadPrefix: 'Healthcare load:',
+  collateralStrainPrefix: 'Collateral strain:',
+  tuningRationalePrefix: 'Tuning rationale:',
+  monitoringExceedsContactSuffix: 'Monitoring exceeds contact',
+  sustainedUnderCollateralStrainSuffix: 'Sustained under collateral strain',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Contained person therapeutic care registry',
+  pageSubtitle:
+    'Read-only operations view over persisted therapeutic care schedule records and read-time compliance risk projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  degradedChannelLabel: 'Degraded channels',
+  suspendedChannelLabel: 'Suspended channels',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Care cadence, channel posture, and compliance risk mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No contained person therapeutic care records',
+  emptyBody:
+    'Persisted therapeutic care schedule records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Compliance risk and lockdown escalation projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  scheduleColumn: 'Care schedule',
+  channelColumn: 'Channel posture',
+  complianceColumn: 'Compliance risk',
+  staffColumn: 'Staff assignees',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  containmentDependencySuffix: 'Containment dependency',
+  missedStreakPrefix: 'Missed streak:',
+  suspensionCausePrefix: 'Suspension cause:',
+  complianceRiskPrefix: 'Risk score:',
+  lockdownEscalationSuffix: 'Lockdown escalation likely',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Welfare debt accounting registry',
+  pageSubtitle:
+    'Read-only operations view over persisted welfare-debt accounting records and read-time containment benefit projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  unresolvedCountLabel: 'Unresolved debt',
+  escalatedCountLabel: 'Escalated debt',
+  mitigatedCountLabel: 'Mitigated debt',
+  crossLinkedCountLabel: 'Cross-linked records',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Severity bands, mitigation states, and containment benefit scores mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No welfare debt accounting records',
+  emptyBody:
+    'Persisted welfare-debt accounting records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Containment benefit scores come from welfare-debt accounting projection at read time; unresolved and escalated states display as stored.',
+  labelColumn: 'Label',
+  debtColumn: 'Debt category / severity',
+  procedureColumn: 'Source procedure',
+  reviewColumn: 'Review / mitigation',
+  crossLinkColumn: 'Ledger cross-links',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  containmentBenefitPrefix: 'Containment benefit:',
+  reviewOwnerPrefix: 'Review owner:',
+  mitigationPathPrefix: 'Mitigation path:',
+  factionEthicsProjectionPrefix: 'Permissibility verdict:',
+  accountabilityMatrixProjectionPrefix: 'Outcome summary:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Entity welfare reclassification registry',
+  pageSubtitle:
+    'Read-only operations view over persisted entity welfare reclassification records and read-time pressure projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  pendingCountLabel: 'Pending review',
+  terminalCountLabel: 'Terminal decisions',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Disposition, review gates, and reclassification pressure mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No entity welfare reclassification records',
+  emptyBody:
+    'Persisted entity welfare reclassification records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Pressure forecasts come from reclassification projection at read time; pending and terminal states display as stored.',
+  labelColumn: 'Label',
+  dispositionColumn: 'Disposition / state',
+  permissionsColumn: 'Permissions',
+  accessOutcomeColumn: 'Access outcome',
+  siteClearanceColumn: 'Site clearance',
+  dualLoyaltyColumn: 'Dual loyalty',
+  protectedStatusColumn: 'Protected status',
+  pressureColumn: 'Reclassification pressure',
+  reviewColumn: 'Evidence / history',
+  confidenceColumn: 'Confidence',
+  priorThreatPrefix: 'Prior threat:',
+  reviewGatePrefix: 'Review gate:',
+  welfareDebtLinkedSuffix: 'Welfare debt linked',
+  staffMoralePrefix: 'Staff morale:',
+  liabilityPrefix: 'Liability:',
+  publicRiskPrefix: 'Public risk:',
+  containmentRevisionPrefix: 'Containment revision:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Affiliation person-status records',
+  pageSubtitle:
+    'Read-only operations view over persisted affiliation person-status evidence and composed clearance projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  candidateLinkedLabel: 'Candidate links',
+  welfareLinkedLabel: 'Welfare links',
+  restrictedOrBlockedLabel: 'Restricted / blocked',
+  missingReferenceLabel: 'Missing refs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Status records mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here, and this mirror does not mutate weekly state.',
+  emptyTitle: 'No affiliation person-status records',
+  emptyBody:
+    'Persisted affiliation person-status records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  fileAccessQueueHeading: 'File access work queue',
+  fileAccessQueueSubtitle:
+    'Read-only queue derived from existing file permission and site/facility clearance decisions.',
+  fileAccessQueueTotalLabel: 'Total',
+  fileAccessQueueBlockedLabel: 'Blocked',
+  fileAccessQueueRestrictedLabel: 'Restricted',
+  fileAccessQueueMissingLabel: 'Missing review',
+  fileAccessQueueStatusColumn: 'Queue status',
+  recommendedActionColumn: 'Recommended action',
+  actionStatusColumn: 'Action status',
+  recordActionButtonLabel: 'Record action',
+  pendingActionStatusLabel: 'Not recorded',
+  recordEvidenceResolutionButtonLabel: 'Record evidence resolution',
+  pendingEvidenceResolutionStatusLabel: 'Evidence unresolved',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Projection labels compose existing SPE-1046 evaluators at read time; mission routing still uses explicit team and member tags.',
+  subjectColumn: 'Subject',
+  linksColumn: 'Links',
+  onboardingColumn: 'Onboarding',
+  permissionsColumn: 'Permissions',
+  roomAccessColumn: 'Room access',
+  fileAccessColumn: 'File access',
+  facilityFileAccessColumn: 'Facility file access',
+  housingAccessColumn: 'Housing access',
+  siteClearanceColumn: 'Site clearance',
+  dualLoyaltyColumn: 'Dual loyalty',
+  protectedStatusColumn: 'Protected status',
+  revocationColumn: 'Revocation',
+  reasonCodesColumn: 'Reason codes',
+  candidateRefPrefix: 'Candidate:',
+  welfareRefPrefix: 'Welfare:',
+}
+
+export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Visual trigger hazard registry',
+  pageSubtitle:
+    'Read-only operations view over persisted visual-trigger hazard records and read-time compliance, exposure, and awareness projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  activePursuitLabel: 'Active pursuit',
+  disposalCompliancePendingLabel: 'Disposal compliance pending',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Disposal compliance, exposure-chain risk, and awareness escalation mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No visual trigger hazard records',
+  emptyBody:
+    'Persisted visual trigger hazard records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Compliance posture uses current campaign week; exposure and awareness projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  triggerColumn: 'Trigger / derivative',
+  pursuitColumn: 'Pursuit posture',
+  disposalColumn: 'Disposal compliance',
+  exposureColumn: 'Exposure chain',
+  awarenessColumn: 'Awareness escalation',
+  confidenceColumn: 'Confidence',
+  targetPrefix: 'Targets:',
+  projectedPursuitPrefix: 'Projected:',
+  pursuitPressurePrefix: 'Pressure:',
+  pendingMediaPrefix: 'Pending media:',
+  broadcastRiskPrefix: 'Broadcast risk:',
+  manifestationRiskPrefix: 'Manifestation:',
+  dreamIntrusionSuffix: 'Dream intrusion flagged',
+  validationWarningPrefix: 'Validation warnings:',
+}
+
+export const SPE_947_EVALUATOR_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Hazardous content propagation',
+  pageSubtitle:
+    'Read-only operations view over persisted SPE-947 platforms, counter-memetic plans, content owners, and post-case media cases.',
+  backToDeskLabel: 'Back to Operations Desk',
+  platformsLabel: 'Platforms',
+  plansLabel: 'Counter-memetic plans',
+  ownersLabel: 'Content owners',
+  mediaCasesLabel: 'Post-case media cases',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Labels mirror hydrated GameState fields only. This surface does not re-run SPE-947 evaluators or invent parent acceptance evidence.',
+  emptyTitle: 'No hazardous content evaluator records',
+  emptyBody:
+    'Persisted SPE-947 platform, plan, owner, and media-case maps will appear here after hydration. Empty maps do not satisfy parent acceptance criteria.',
+  platformsHeading: 'Persisted platforms',
+  platformsSubtitle: 'Reach, uptime, and weekly tick fields as stored — not evaluated outcomes.',
+  plansHeading: 'Persisted counter-memetic plans',
+  plansSubtitle: 'Lore, distributor, uptake, and elapsed propagation weeks as stored.',
+  ownersHeading: 'Persisted content owners',
+  ownersSubtitle: 'Incentive fields as stored — resistance outcomes are not computed here.',
+  mediaCasesHeading: 'Persisted post-case media cases',
+  mediaCasesSubtitle:
+    'Containment and artifact inventory as stored — residual risk is not computed here.',
+  labelColumn: 'Label',
+  viewCountColumn: 'View count',
+  uptimeColumn: 'Uptime',
+  reachColumn: 'Reach factor',
+  tickColumn: 'Last tick week',
+  loreColumn: 'Lore state',
+  distributorColumn: 'Distributor',
+  uptakeColumn: 'Uptake',
+  propagationColumn: 'Elapsed weeks',
+  incentivesColumn: 'Incentives',
+  containmentColumn: 'Local containment',
+  riskThresholdColumn: 'Risk threshold',
+  mediaArtifactsColumn: 'Media artifacts',
+  weeklyDeltaPrefix: 'Weekly delta:',
+  availableReachPrefix: 'Available reach:',
+  requiredWeeksPrefix: 'Required:',
+}
+
+export const SPE_956_PROPAGATION_GRAPH_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Propagation graphs',
+  pageSubtitle:
+    'Read-only operations view over persisted SPE-956 propagation graph records — authored nodes, edges, and week-close orchestration fields.',
+  backToDeskLabel: 'Back to Operations Desk',
+  graphsLabel: 'Graph records',
+  nodesLabel: 'Total nodes',
+  edgesLabel: 'Total edges',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Labels mirror hydrated GameState fields only. This surface does not re-run graph compose or SPE-947 evaluators or invent parent acceptance evidence.',
+  emptyTitle: 'No propagation graph records',
+  emptyBody:
+    'Persisted SPE-956 propagation graph records will appear here after hydration. Empty maps do not satisfy parent acceptance criteria.',
+  seedNodePrefix: 'Seed node:',
+  elapsedWeeksLabel: 'Elapsed propagation weeks',
+  weeklyDeltaLabel: 'Weekly elapsed delta',
+  lastTickWeekLabel: 'Last tick week',
+  nodesHeading: 'Persisted nodes',
+  edgesHeading: 'Persisted edges',
+  edgeEmptyLabel: 'Persisted edges empty',
+  edgeEmptyBody: 'No persisted edges are authored for this graph.',
+  labelColumn: 'Label',
+  kindColumn: 'Node kind',
+  entityColumn: 'Entity id',
+  edgeIdColumn: 'Edge id',
+  fromNodeColumn: 'From node',
+  toNodeColumn: 'To node',
+  spreadFactorColumn: 'Spread factor',
+}
+
+export const SPE_956_PARTICIPATORY_CHANNEL_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Participatory channels',
+  pageSubtitle:
+    'Read-only operations view over persisted SPE-956 participatory channel maps — survivor registries, memory channels, hotlines, async surfaces, and advisory bodies.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalChannelsLabel: 'Total channel records',
+  survivorRegistriesLabel: 'Survivor registries',
+  collectiveMemoryLabel: 'Memory channels',
+  hotlinesLabel: 'Hotline channels',
+  asyncDiscussionsLabel: 'Async surfaces',
+  communityAdvisoryLabel: 'Advisory bodies',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Labels mirror hydrated GameState fields only. This surface does not re-run SPE-2620–2631 evaluators or invent parent acceptance evidence.',
+  emptyTitle: 'No participatory channel records',
+  emptyBody:
+    'Persisted SPE-956 participatory channel records will appear here after hydration. Empty maps do not satisfy parent acceptance criteria.',
+  survivorRegistryHeading: 'Survivor informal registry',
+  collectiveMemoryHeading: 'Collective memory channel',
+  hotlineHeading: 'Hotline channel',
+  asyncDiscussionHeading: 'Async discussion surface',
+  communityAdvisoryHeading: 'Community advisory body',
+  recognitionStanceLabel: 'Recognition stance',
+  catalogRuleLabel: 'Catalog rule',
+  supportKnowledgeBandLabel: 'Support knowledge band',
+  credibilityCeilingLabel: 'Credibility ceiling',
+  narrativeStanceLabel: 'Narrative stance',
+  recallWindowLabel: 'Recall window',
+  stabilizationRuleLabel: 'Stabilization rule',
+  scriptQualityLabel: 'Script quality',
+  staffingCapacityLabel: 'Staffing capacity',
+  languageSupportLabel: 'Language support',
+  escalationRulesLabel: 'Escalation rules',
+  unansweredModeLabel: 'Unanswered mode',
+  angerModeLabel: 'Anger mode',
+  handleThresholdLabel: 'Handle threshold',
+  participationWindowLabel: 'Participation window',
+  transcriptRetentionModeLabel: 'Transcript retention',
+  wideningRuleLabel: 'Widening rule',
+  memoryStabilizationLabel: 'Memory stabilization',
+  missionLabel: 'Mission',
+  membershipRuleLabel: 'Membership rule',
+  representedStakeholderClassesLabel: 'Represented stakeholder classes',
+  authorizedDecisionScopesLabel: 'Authorized decision scopes',
+  influenceThresholdLabel: 'Influence threshold',
+  decisionCriteriaLabel: 'Decision criteria',
+}
+
+export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Publish queue',
+  pageSubtitle:
+    'Read-only operations view over persisted publish-queue records and execution receipts.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Queue records',
+  readyToPublishLabel: 'Ready to publish',
+  publishedLabel: 'Published (dry-run)',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Statuses reflect hydrated GameState only. Weekly dry-run execution transitions ready records without real CI or GitHub publish side effects.',
+  emptyTitle: 'No publish queue records',
+  emptyBody:
+    'Persisted publish-queue records will appear here after hydration. Invalid records dropped on hydrate are not shown here.',
+  recordsHeading: 'Persisted queue records',
+  recordsSubtitle:
+    'Ready vs published discrimination uses queue status only — no hidden channel truth.',
+  labelColumn: 'Label',
+  statusColumn: 'Status',
+  artifactColumn: 'Release artifact',
+  queuedWeekColumn: 'Queued week',
+  hooksColumn: 'Hook counts',
+  receiptsHeading: 'Execution receipt ledger',
+  receiptsSubtitle:
+    'Persisted executor receipts keyed by record and week — hydrated map entries only, no re-validation.',
+  totalReceiptsLabel: 'Execution receipts',
+  completedDryRunLabel: 'Completed (dry-run)',
+  completedLiveLabel: 'Completed (live)',
+  rejectedOrSkippedLabel: 'Rejected / skipped',
+  receiptsEmptyTitle: 'No execution receipts',
+  receiptsEmptyBody:
+    'Persisted publish-queue execution receipts will appear here after weekly ticks. Invalid receipts dropped on hydrate are not shown here.',
+  receiptLabelColumn: 'Label',
+  receiptWeekColumn: 'Execution week',
+  receiptOutcomeColumn: 'Outcome',
+  receiptModeColumn: 'Mode',
+  receiptChannelColumn: 'Channel',
+  receiptHooksColumn: 'Hooks',
+}
+
+export const DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Workshop mirror',
+  pageHeading: 'Department workshops',
+  pageSubtitle:
+    'Read-only view over durable workshop slots, queued work, blockers, and completion consequences.',
+  backToDeskLabel: 'Back to Operations Desk',
+  departmentsLabel: 'Departments',
+  activeWorkLabel: 'Active work',
+  queuedWorkLabel: 'Queued work',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Values reflect hydrated GameState only. Blockers come from slot capacity and lane membership — not live facility or staff projection.',
+  emptyTitle: 'No department workshop activity',
+  emptyBody:
+    'Persisted workshop snapshots, completion receipts, and unsafe secondary-incident markers will appear here after hydration. Invalid entries dropped on hydrate are not shown.',
+  emptyLanesTitle: 'No workshop lanes currently active',
+  emptyLanesBody:
+    'No department snapshots are in lanes right now. Completion receipts and unsafe consequences still appear below when present.',
+  departmentsHeading: 'Workshop lanes by department',
+  departmentsSubtitle:
+    'Active, queued, and paused work with slot capacity and snapshot-derived blockers.',
+  freeSlotsSuffix: 'free slots',
+  noBlockersLabel: 'No capacity blockers',
+  noWorkItemsLabel: 'No work currently in lanes for this department.',
+  workOrderColumn: 'Work order',
+  laneColumn: 'Lane',
+  taskColumn: 'Task',
+  caseColumn: 'Case',
+  progressColumn: 'Progress',
+  outcomesHeading: 'Completion quality and safety ledger',
+  outcomesSubtitle:
+    'Stored completion receipt grades only — this surface does not re-grade quality or safety.',
+  outcomesEmptyTitle: 'No completion receipts',
+  outcomesEmptyBody:
+    'Workshop completion outcomes appear here after week-close registration. Invalid receipts dropped on hydrate are not shown.',
+  weekColumn: 'Completed week',
+  qualityColumn: 'Quality',
+  safetyColumn: 'Safety',
+  consequencesHeading: 'Unsafe completion consequences',
+  consequencesSubtitle:
+    'Durable secondary-incident spawn markers joined to unsafe completion receipts.',
+  consequencesEmptyTitle: 'No unsafe secondary incidents',
+  consequencesEmptyBody:
+    'Spawn markers appear here after unsafe completion receipts produce secondary cases.',
+  spawnedCaseColumn: 'Spawned case',
+}
+
+export const MODIFIABLE_DATA_PACK_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Modifiable data packs',
+  pageSubtitle:
+    'Read-only operations view over persisted modifiable data-pack records and safe-fail import posture.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Pack records',
+  appliedLabel: 'Applied',
+  needsRevisionLabel: 'Needs revision',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Records reflect hydrated GameState only. Rejected or invalid payloads dropped on hydrate are not shown here.',
+  emptyTitle: 'No modifiable data-pack records',
+  emptyBody:
+    'Persisted modifiable data-pack records will appear here after hydration. Invalid records dropped on hydrate are not shown here.',
+  recordsHeading: 'Persisted pack records',
+  recordsSubtitle:
+    'Applied vs needs-revision discrimination uses import status only — no hidden validation truth.',
+  packIdColumn: 'Pack id',
+  statusColumn: 'Import status',
+  kindColumn: 'Pack kind',
+  schemaColumn: 'Schema version',
+  sectionsColumn: 'Sections',
+}
+
+export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Pattern source series intake',
+  pageSubtitle:
+    'Read-only operations view over persisted intake records and readiness-ranked processing queue.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  queueEligibleLabel: 'Queue entries',
+  pipelineActiveLabel: 'Pipeline active',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Queue rank follows readiness and CP utility — publication date is a tie-breaker only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No intake records',
+  emptyBody:
+    'Persisted pattern source series records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  queueHeading: 'Processing queue projection',
+  queueSubtitle: 'Ranked by readiness score and CP utility, not publication recency.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Queue rank column reflects projection rank; raw fields come from hydrated GameState.',
+  emptyQueueBody: 'No records currently qualify for queue projection at default policy thresholds.',
+  rankColumn: 'Rank',
+  queueRankColumn: 'Queue rank',
+  titleColumn: 'Title',
+  readinessColumn: 'Readiness',
+  utilityColumn: 'CP utility',
+  statusColumn: 'Processing status',
+  familyColumn: 'Source family',
+  publicationColumn: 'Publication order',
+  editorialColumn: 'Editorial status',
+  domainsColumn: 'Domain hints',
 }
 
 export const RUN_TRANSFER_TEXT: Record<string, string> = {

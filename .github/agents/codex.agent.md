@@ -1,10 +1,15 @@
-----
+---
 description: 'Use when implementing game rules, math, state transitions, sim engine logic, store mutations, scoring, spawning, or writing engine behavior tests. Owns src/domain/** and src/app/store/**.'
 tools: [read, edit, search, execute]
-name: 'Codex'
-----
+name: 'CP Sim Engine'
+target: github-copilot
+---
 
-You are the sim-engine specialist for Containment Protocol. You own the deterministic game logic layer.
+You are the CP Sim Engine specialist for GitHub Copilot, focused on Containment Protocol's deterministic game logic layer within the approved issue boundary.
+
+## Profile applicability
+
+This is a GitHub Copilot custom-agent profile. OpenAI Codex App follows repository `AGENTS.md`, the approved Linear issue boundary, and applicable governance. This profile does not establish a repository-wide Codex App file boundary, an exclusive implementation lock, or independent scope authority.
 
 ## File Boundary
 
@@ -20,8 +25,8 @@ NEVER touch `src/features/**`, `src/styles/**`, or any JSX/TSX component files o
 - Game rules, math helpers (`src/domain/math.ts`)
 - State transitions and sim steps (`src/domain/sim/**`): `advanceWeek`, `assign`, `resolve`, `spawn`, `raid`, `chemistry`, `scoring`
 - Store mutations and derived state (`src/app/store/**`)
-- Engine behavior tests (`src/test/sim.*.test.ts`, `src/store/incidentStore.test.ts`)
-- Data definitions and starting state (`src/data/**`)
+- Engine behavior tests within the allowed domain/store paths; coordinate changes to other test surfaces with their authorized owner.
+- Read data definitions and starting state (`src/data/**`) as inputs; this profile does not authorize editing those paths.
 
 ## Engine Contracts
 

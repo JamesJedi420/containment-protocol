@@ -186,10 +186,7 @@ export default function RecruitmentPage() {
                 label="Outstanding leads"
                 value={String(scoutingOverview.outstandingLeadCount)}
               />
-              <ShellMetric
-                label="Scout support"
-                value={`${scoutingOverview.supportScore} / 100`}
-              />
+              <ShellMetric label="Scout support" value={`${scoutingOverview.supportScore} / 100`} />
               <ShellMetric
                 label="Scout-capable operatives"
                 value={String(scoutingOverview.operativeCount)}
@@ -200,9 +197,14 @@ export default function RecruitmentPage() {
               />
             </div>
             <div className="space-y-2 text-sm opacity-75">
-              {scoutingOverview.revealSummary && /recon plateau|diminish|no new|few new|repeat/i.test(scoutingOverview.revealSummary) && (
-                <span className="rounded-full border border-amber-400/35 bg-amber-500/10 text-amber-200 px-2 py-0.5 text-[11px] font-bold">Recon Plateau</span>
-              )}
+              {scoutingOverview.revealSummary &&
+                /recon plateau|diminish|no new|few new|repeat/i.test(
+                  scoutingOverview.revealSummary
+                ) && (
+                  <span className="rounded-full border border-amber-400/35 bg-amber-500/10 text-amber-200 px-2 py-0.5 text-[11px] font-bold">
+                    Recon Plateau
+                  </span>
+                )}
               <p>{scoutingOverview.supportSummary}</p>
               <p>{scoutingOverview.revealSummary}</p>
               <p>{scoutingOverview.costSummary}</p>
@@ -221,16 +223,30 @@ export default function RecruitmentPage() {
             {scoutingOverview.recentOutcomes.length > 0 ? (
               <ul className="mt-3 space-y-3">
                 {scoutingOverview.recentOutcomes.map((entry) => (
-                  <li key={entry.id} className="rounded border border-white/10 bg-black/10 px-3 py-2">
+                  <li
+                    key={entry.id}
+                    className="rounded border border-white/10 bg-black/10 px-3 py-2"
+                  >
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <p className="text-sm font-medium">{entry.title}</p>
-                      <Badge tone={entry.tone === 'danger' ? 'warning' : entry.tone === 'success' ? 'success' : 'neutral'}>
+                      <Badge
+                        tone={
+                          entry.tone === 'danger'
+                            ? 'warning'
+                            : entry.tone === 'success'
+                              ? 'success'
+                              : 'neutral'
+                        }
+                      >
                         {entry.tone}
                       </Badge>
                     </div>
                     <p className="mt-1 text-sm opacity-70">{entry.detail}</p>
                     {entry.href ? (
-                      <Link to={entry.href} className="mt-2 inline-flex text-xs uppercase tracking-[0.18em] opacity-60">
+                      <Link
+                        to={entry.href}
+                        className="mt-2 inline-flex text-xs uppercase tracking-[0.18em] opacity-60"
+                      >
                         Open source
                       </Link>
                     ) : null}
@@ -285,31 +301,56 @@ export default function RecruitmentPage() {
                       <Badge tone={view.hiddenOverall ? 'neutral' : 'success'}>
                         Overall fit {view.overallLabel}
                       </Badge>
-                      {view.scoutIdentityLabel ? <Badge tone="success">{view.scoutIdentityLabel}</Badge> : null}
+                      {view.scoutIdentityLabel ? (
+                        <Badge tone="success">{view.scoutIdentityLabel}</Badge>
+                      ) : null}
                     </div>
                   </div>
 
                   <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-4">
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">Intel</span>
+                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">
+                        Intel
+                      </span>
                       <p className="opacity-70">Potential: {view.potentialLabel}</p>
-                      <p className="opacity-70">{view.capIntelLabel}: {view.capIntelDetails.join(', ')}</p>
+                      <p className="opacity-70">
+                        {view.capIntelLabel}: {view.capIntelDetails.join(', ')}
+                      </p>
                     </div>
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">Confidence</span>
+                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">
+                        Confidence
+                      </span>
                       <p className="opacity-70">Scout confidence: {view.scoutConfidenceLabel}</p>
                       <p className="opacity-70">Hire outcome: {view.hireOutcomeLabel ?? '—'}</p>
                     </div>
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">Recon / Scouting</span>
+                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">
+                        Recon / Scouting
+                      </span>
                       <p className="opacity-70">Scout report: {view.scoutLabel}</p>
                       <p className="opacity-70">Scout depth: {view.scoutDepthLabel}</p>
                     </div>
                     <div>
-                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">Profile</span>
+                      <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">
+                        Profile
+                      </span>
                       <p className="opacity-70">Weekly wage: ${wage}</p>
                       <p className="opacity-70">Teamwork: {candidate.evaluation.teamwork}</p>
                       <p className="opacity-70">Outlook: {candidate.evaluation.outlook}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-75">
+                    <span className="mb-1 block text-[11px] uppercase tracking-[0.18em] opacity-60">
+                      Clearance readiness
+                    </span>
+                    <p>{view.onboardingStageLabel}</p>
+                    <p>{view.onboardingAccessLabel}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                      {view.onboardingCheckpointLabels.map((label) => (
+                        <span key={label}>{label}</span>
+                      ))}
                     </div>
                   </div>
 

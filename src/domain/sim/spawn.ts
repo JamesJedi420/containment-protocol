@@ -4,6 +4,7 @@ import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type CompromisedAuthorityState, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { normalizePartialResolutionRule } from '../partialResolutionRule'
 import { copyInfiltrationCoverProfile } from '../infiltrationCover'
 import { copyInfiltrationProbePlan } from '../infiltrationProbe'
 import { applySiteGenerationToCase } from '../siteGeneration'
@@ -26,6 +27,7 @@ export interface SpawnedCaseRecord {
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
   parentCaseId?: string
   factionId?: string
   factionLabel?: string
@@ -40,7 +42,7 @@ export interface SpawnedCaseRecord {
 }
 
 function nextId(usedIds: Set<string>, rng: () => number): string {
-  let id = ''
+  let id: string
 
   do {
     id = `case-spawned-${randInt(rng, 1000, 999999999)}`
@@ -157,6 +159,7 @@ export function instantiateFromTemplate(
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
     ...createMissionIntelState(week),
     assignedTeamIds: [],
+    onPartial: normalizePartialResolutionRule(template.onPartial),
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
     raid: template.raid,

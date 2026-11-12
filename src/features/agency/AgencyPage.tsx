@@ -3,9 +3,27 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
+import { FacilityRegisterPanel } from './FacilityRegisterPanel'
+import { projectFacilityRegisterView } from './facilityRegisterView'
+import { BreachOriginRecoveryPanel } from './BreachOriginRecoveryPanel'
+import { projectBreachOriginRecoveryGameplayView } from './breachOriginRecoveryGameplayView'
+import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
+import { OperationalStaffingPanel } from './OperationalStaffingPanel'
+import { projectOperationalStaffingView } from './operationalStaffingView'
+import { MaintenanceConversionPanel } from './MaintenanceConversionPanel'
 
 export default function AgencyPage() {
-  const { game } = useGameStore()
+  const {
+    game,
+    orderFacilityMaintenanceRecovery,
+    purchaseFacilityMaintenancePackage,
+    convertFacilityMaintenanceResources,
+    applyBreachOriginRecoveryStep,
+  } = useGameStore()
+  const maintenance = projectFacilityMaintenanceView(game)
+  const staffing = projectOperationalStaffingView(game)
+  const facilityRegister = projectFacilityRegisterView(game)
+  const breachOriginRecovery = projectBreachOriginRecoveryGameplayView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -62,6 +80,75 @@ export default function AgencyPage() {
         </div>
       </article>
 
+      <OperationalStaffingPanel staffing={staffing} />
+
+      <FacilityRegisterPanel register={facilityRegister} />
+
+      <BreachOriginRecoveryPanel
+        game={game}
+        view={breachOriginRecovery}
+        applyStep={applyBreachOriginRecoveryStep}
+      />
+
+      <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">
+        <h3 id="facility-maintenance-heading" className="text-base font-semibold">
+          Facility maintenance
+        </h3>
+        <p className="text-sm">
+          Maintenance debt: {maintenance.debt ?? 'Unavailable'} · Pressure: {maintenance.pressure}
+        </p>
+        <p className="text-sm">
+          Recovery budget:{' '}
+          {maintenance.resources
+            ? `${maintenance.resources.maintenanceHours} hours / ${maintenance.resources.partsReserve} parts`
+            : 'Unavailable'}
+        </p>
+        {maintenance.required && (
+          <p className="text-sm">
+            Recovery cost: {maintenance.required.maintenanceHours} hours /{' '}
+            {maintenance.required.partsReserve} parts
+          </p>
+        )}
+        <p id="facility-maintenance-explanation" className="text-sm opacity-80" aria-live="polite">
+          {maintenance.explanation}
+        </p>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          disabled={!maintenance.canOrder}
+          aria-describedby="facility-maintenance-explanation"
+          onClick={orderFacilityMaintenanceRecovery}
+        >
+          Order facility recovery
+        </button>
+        <p className="text-sm">
+          Maintenance package: {maintenance.purchase.package.maintenanceHours} hours /{' '}
+          {maintenance.purchase.package.partsReserve} parts · Price:{' '}
+          {maintenance.purchase.package.price} funding · Available funding:{' '}
+          {maintenance.purchase.availableFunding ?? 'Unavailable'}
+        </p>
+        <p
+          id="facility-maintenance-purchase-explanation"
+          className="text-sm opacity-80"
+          aria-live="polite"
+        >
+          {maintenance.purchase.explanation}
+        </p>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          disabled={!maintenance.purchase.canPurchase}
+          aria-describedby="facility-maintenance-purchase-explanation"
+          onClick={purchaseFacilityMaintenancePackage}
+        >
+          Buy maintenance package
+        </button>
+        <MaintenanceConversionPanel
+          conversion={maintenance.conversion}
+          onConvert={convertFacilityMaintenanceResources}
+        />
+      </article>
+
       <div className="grid gap-4 xl:grid-cols-2">
         <article className="panel space-y-3">
           <h3 className="text-base font-semibold">Command posture</h3>
@@ -72,9 +159,18 @@ export default function AgencyPage() {
               value={`${summary.pressure.score} (${summary.pressure.level})`}
             />
             <Metric
+              label="Rival pressure"
+              value={`${summary.rivalPressure.score} (${summary.rivalPressure.band})`}
+            />
+            <Metric
               label="Stability"
               value={`${summary.stability.score} (${summary.stability.level})`}
             />
+            <Metric
+              label="Institutional legitimacy"
+              value={summary.legitimacyCover.institutionalLabel}
+            />
+            <Metric label="Operational cover" value={summary.legitimacyCover.coverLabel} />
             <Metric
               label="Major incidents active"
               value={String(summary.activeOperations.majorIncidents)}
@@ -95,6 +191,8 @@ export default function AgencyPage() {
               {summary.pressure.faction}, operations {summary.pressure.operations}, procurement{' '}
               {summary.pressure.market}
             </li>
+            <li>{summary.rivalPressure.summary}</li>
+            <li>{summary.legitimacyCover.summary}</li>
             <li>
               Stability split: containment {summary.stability.containment}, funding{' '}
               {summary.stability.funding}, readiness {summary.stability.readiness}, logistics{' '}
@@ -102,8 +200,12 @@ export default function AgencyPage() {
             </li>
             {summary.supportStaff && (
               <li>
-                Support staff: total {summary.supportStaff.total} (admin {summary.supportStaff.admin}, logistics {summary.supportStaff.logistics}, medical {summary.supportStaff.medical}, intel {summary.supportStaff.intel})
-                {summary.supportStaff.pressure > 0 ? ` | Pressure: ${summary.supportStaff.pressure}` : ''}
+                Support staff: total {summary.supportStaff.total} (admin{' '}
+                {summary.supportStaff.admin}, logistics {summary.supportStaff.logistics}, medical{' '}
+                {summary.supportStaff.medical}, intel {summary.supportStaff.intel})
+                {summary.supportStaff.pressure > 0
+                  ? ` | Pressure: ${summary.supportStaff.pressure}`
+                  : ''}
               </li>
             )}
           </ul>

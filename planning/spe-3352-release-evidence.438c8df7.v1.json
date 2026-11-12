@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "438c8df709cdb568d156c1581a44d1833983e576",
+  "assessments": [
+    {
+      "id": "ac-01",
+      "result": "pass",
+      "rationale": "Named existing fixtures have stable authored inputs and checkable assertions. This establishes the bounded fixture set, not whole-release completeness.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/e2e/intervention-comparison.spec.ts",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Default-seed intervention and available-information comparisons."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/e2e/quiet-period.spec.ts",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Authored quiet-period hiring comparison."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/src/test/goldenPressureCampaign.integration.test.ts",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Existing calibrated pressure fixture consumes weekly-loop helpers."
+        }
+      ]
+    },
+    {
+      "id": "ac-02",
+      "result": "warning",
+      "rationale": "New browser comparisons repeat complete initial/final saved state at equivalent checkpoints. The older calibrated pressure fixture still compares selected fields and may exceed hydration stat limits; universal canonical equivalence across the fixture set is not established.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Current intervention, information-access and quiet-period repetitions passed."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/src/test/goldenPressureCampaign.integration.test.ts",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Explicit selected-field hydration limitation remains."
+        }
+      ]
+    },
+    {
+      "id": "ac-03",
+      "result": "pass",
+      "rationale": "Current default-campaign browser fixtures cover fresh entry, two weekly advances and report reload, with causal later mission choices and repeated full saved outcomes in the intervention comparison.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Connected weekly-loop and intervention tests passed on retry zero."
+        }
+      ]
+    },
+    {
+      "id": "ac-04",
+      "result": "pass",
+      "rationale": "Current full suite exercises the existing calibrated partial/high-pressure fixture and ordinary-range imported support/maintenance consequences. The browser maintenance queue progresses after reload; no terminal defeat or complete recovery claim is added.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Full suite includes goldenPressureCampaign and supportCampaignFixtures; the unrelated route test failed separately."
+        },
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Support shortfall and delayed maintenance browser tests passed."
+        }
+      ]
+    },
+    {
+      "id": "ac-05",
+      "result": "pass",
+      "rationale": "The existing pressure fixture consumes SPE-2251 helpers rather than rebuilding its harness; its integration tests remain in the current full execution.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/src/test/goldenPressureCampaign.integration.test.ts",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Imports weeklyMvpLoopProof helpers."
+        },
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Current full unit execution includes the baseline integration suites."
+        }
+      ]
+    },
+    {
+      "id": "ac-06",
+      "result": "unavailable",
+      "rationale": "Current release applicability has not been reconciled across all eight authoritative owner dimensions.",
+      "evidence": []
+    },
+    {
+      "id": "ac-07",
+      "result": "pass",
+      "rationale": "Every stable row is explicitly classified with rationale; required unit failure and advisory formatting failure remain visible. The reporter/native contract tests passed.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "55 native reporter/model tests passed; original validator result preserved."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/scripts/release-acceptance/report.mjs",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Stable result classes, missing-evidence handling and failure ownership projection."
+        }
+      ]
+    },
+    {
+      "id": "ac-08",
+      "result": "unavailable",
+      "rationale": "The current unit failure is recorded but its specific remediation owner and causal diagnosis are unverified. SPE-10 is the registry owner, not a verified repair owner; the passing isolated diagnostic does not waive the failure.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "App.test.tsx:384 failed in full execution; unchanged focused 44-test diagnostic passed. SPE-3723 scope is a different file."
+        }
+      ]
+    },
+    {
+      "id": "ac-09",
+      "result": "unavailable",
+      "rationale": "Measured durations and ordinary test timeouts are not reviewed fixture runtime/state-growth budgets. No new threshold is invented in this evidence slice.",
+      "evidence": []
+    },
+    {
+      "id": "ac-10",
+      "result": "unavailable",
+      "rationale": "No accepted exceptions are supplied. Missing evidence and the required failure are not waived; complete exception assessment remains open.",
+      "evidence": []
+    },
+    {
+      "id": "ac-11",
+      "result": "pass",
+      "rationale": "The inspected fixtures and reporter remain CP-core ongoing-lifecycle evidence without Academy-only or terminal-success assumptions.",
+      "evidence": [
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/docs/cp-core-release-evidence.md",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Existing CP-only/lifecycle boundary at the assessed revision."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/planning/spe-3352-quiet-period-slice.md",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Explicit two-week authored-scenario limits."
+        }
+      ]
+    },
+    {
+      "id": "ac-12",
+      "result": "pass",
+      "rationale": "The current reporter/native tests establish deterministic summary generation; publication additionally checks repeated JSON/Markdown bytes for this separately authored manifest. Reproducibility does not establish release readiness.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "55 native tests passed at subject revision; publication checks are recorded separately."
+        },
+        {
+          "source": "https://github.com/JamesJedi420/containment-protocol/blob/438c8df709cdb568d156c1581a44d1833983e576/scripts/release-acceptance/report.mjs",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Deterministic generator already exists at subject revision."
+        }
+      ]
+    },
+    {
+      "id": "comparison-intervention",
+      "result": "pass",
+      "rationale": "Same initial state and production rules, varying only the Archive assignment, produces causal stage/follow-up and later team-requirement differences. Both alternatives repeat.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Intervention stage1/no outbreaks versus inaction stage5/three outbreaks; real UI assignments and next choices."
+        }
+      ]
+    },
+    {
+      "id": "comparison-incidents",
+      "result": "unavailable",
+      "rationale": "Mission follow-ups exist in the observed campaigns, but a representative controlled comparison of broader incident activation/coexistence/collision arbitration has not been established.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Follow-up observations are bounded to authored mission consequences, not a complete incident-interaction assessment."
+        }
+      ]
+    },
+    {
+      "id": "comparison-information",
+      "result": "unavailable",
+      "rationale": "Available-dossier reading preserves state and converges, but witness/reporting changes and distinctions among world truth, assessment, public belief and knowledge remain unverified.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Current read-versus-unread UI comparison is bounded reference-information access."
+        }
+      ]
+    },
+    {
+      "id": "comparison-delayed",
+      "result": "pass",
+      "rationale": "The intervention/inaction comparison verifies a later operational difference through existing mission escalation/follow-up owners over two weeks; maintenance also retains its delayed queue across reload.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Later mission eligibility/team requirements and maintenance continuation are asserted; no invented consequence system."
+        }
+      ]
+    },
+    {
+      "id": "comparison-quiet",
+      "result": "pass",
+      "rationale": "A supported authored two-week interval produces no new case outcome/follow-up while recruitment and market refresh continue. Hiring is a normal UI decision and persists. The pending case countdown remains active, so indefinite quietness is not claimed.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Quiet-period comparison passed four fresh contexts with full state replay and a 9-versus-8 agent roster."
+        }
+      ]
+    },
+    {
+      "id": "comparison-divergence",
+      "result": "pass",
+      "rationale": "A consequential mission assignment produces the expected divergence; reading reference intel produces legitimate convergence; quiet-period hiring produces an enduring roster difference. No forced dramatic divergence is required.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Three current bounded comparisons exercise causal difference and legitimate convergence."
+        }
+      ]
+    },
+    {
+      "id": "comparison-continuity",
+      "result": "warning",
+      "rationale": "Identical path inputs reproduce complete saved outputs in the new comparisons. Within-run history/report/agent and selected outcome reload assertions pass, but complete history/information/event identity across every campaign fixture is not established.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/browser-observations.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "New full-state replay plus bounded within-run reload checks; no fields are discarded from repeated-run comparisons."
+        }
+      ]
+    },
+    {
+      "id": "owner-persistence",
+      "result": "unavailable",
+      "rationale": "SPE-2607 remains the authoritative persistence and migration evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-accessibility",
+      "result": "unavailable",
+      "rationale": "SPE-1080 remains the authoritative accessibility and explainability evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-ux",
+      "result": "unavailable",
+      "rationale": "SPE-1245 remains the authoritative observed-player and ux evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-telemetry",
+      "result": "unavailable",
+      "rationale": "SPE-1119 remains the authoritative telemetry and diagnostic evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-replay",
+      "result": "unavailable",
+      "rationale": "SPE-3162 remains the authoritative canonical stochastic identity and replay evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-continuity",
+      "result": "unavailable",
+      "rationale": "SPE-1464 remains the authoritative continuity-validation evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-calibration",
+      "result": "unavailable",
+      "rationale": "SPE-25 remains the authoritative calibration evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "owner-simulation",
+      "result": "unavailable",
+      "rationale": "SPE-26 remains the authoritative simulation-validation evidence owner. This snapshot has not reconciled its complete current release applicability; passing component/browser checks are not a substitute for that owner assessment.",
+      "evidence": []
+    },
+    {
+      "id": "full-build",
+      "result": "pass",
+      "rationale": "Literal npm run build (tsc -b plus Vite) passed at the clean pinned revision. This is separate from the required bundle gate; large-chunk warning retained.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/438c8df7/execution-index.json",
+          "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+          "scope": "Full-build exit0, typecheck census zero; source revision and raw log hash retained."
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "revision": "438c8df709cdb568d156c1581a44d1833983e576",
+    "source": "repo:planning/release-evidence/438c8df7/requirements-execution.json",
+    "report": {
+      "policyOwner": "SPE-3348",
+      "files": [
+        "e2e/intervention-comparison.spec.ts",
+        "e2e/quiet-period.spec.ts",
+        "planning/spe-3352-information-access-slice.md",
+        "planning/spe-3352-intervention-comparison-slice.md",
+        "planning/spe-3352-quiet-period-slice.md",
+        "SCHEMA_REGISTRY.md",
+        "src/app/store/missionResultHydration.test.ts",
+        "src/app/store/runTransfer.ts",
+        "src/components/TrendSummaryPanel.tsx",
+        "src/features/report/reportTrendView.ts",
+        "src/features/report/TrendSummaryPanel.test.tsx"
+      ],
+      "activeClasses": ["application", "e2e", "planning"],
+      "requiredIds": ["backlog-handoff", "lint", "playwright-e2e", "unit-tests", "vite-build"],
+      "advisoryIds": ["format-check", "typecheck"],
+      "skippedExceptionIds": [],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "failed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "missingRequired": [],
+      "ok": false,
+      "advisoryFailures": ["format-check"]
+    }
+  }
+}

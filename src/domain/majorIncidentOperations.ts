@@ -781,7 +781,7 @@ export function buildPlannedMajorIncidentRuntime(
   currentCase: CaseInstance,
   state: GameState,
   options: MajorIncidentLaunchOptions = {}
-) {
+): ActiveMajorIncidentRuntime | null {
   const base = buildDerivedMajorIncidentRuntime(currentCase, state)
   if (!base) {
     return null
@@ -793,8 +793,13 @@ export function buildPlannedMajorIncidentRuntime(
   ]
   const durationWeeks = Math.max(1, base.durationWeeks - getProvisionEffects(provisions).durationReduction)
 
+  // SPE-3076: relaunch starts a new attempt — drop prior attempt settlement receipt.
+  const baseWithoutSettlement: ActiveMajorIncidentRuntime = { ...base }
+  delete baseWithoutSettlement.settlementReceipt
+  delete baseWithoutSettlement.settlementReceiptId
+
   return {
-    ...base,
+    ...baseWithoutSettlement,
     strategy,
     provisions,
     durationWeeks,

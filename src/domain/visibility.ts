@@ -1,4 +1,7 @@
-import { buildTeamDeploymentReadinessState, evaluateDeploymentEligibility } from './deploymentReadiness'
+import {
+  buildTeamDeploymentReadinessState,
+  evaluateDeploymentEligibility,
+} from './deploymentReadiness'
 import { getMissionIntelSummary } from './intel'
 import { routeMission, triageMission } from './missionIntakeRouting'
 import type {
@@ -14,6 +17,7 @@ import {
   type ValidationPressureSource,
 } from './sim/validation'
 import { WEAKEST_LINK_CALIBRATION } from './sim/calibration'
+import { getTeamAssignedCaseId } from './teamSimulation'
 import type {
   WeakestLinkMissionResolutionResult,
   WeakestLinkPenaltyBucket,
@@ -31,10 +35,7 @@ export const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
   'Mixed exploration, inspection, combat, and recovery accounting stays on the shared readiness/time-cost clock; archive-instability does not add a parallel operational timer.'
 
 export type VisibilityExplanationCategory =
-  | 'routing'
-  | 'deployment-readiness'
-  | 'weakest-link'
-  | 'weekly-pressure'
+  'routing' | 'deployment-readiness' | 'weakest-link' | 'weekly-pressure'
 
 export type VisibilityExplanationSeverity = 'info' | 'warning' | 'error'
 
@@ -79,6 +80,11 @@ const ROUTING_BLOCKER_LABELS: Record<MissionRoutingBlockerCode, string> = {
   'missing-coverage': 'missing coverage',
   'training-blocked': 'training blocked',
   'invalid-loadout-gate': 'loadout gate failed',
+  'site-clearance-required': 'site clearance required',
+  'authority-mission-access-restricted': 'mission access restricted',
+  'dual-loyalty-restricted': 'dual loyalty restricted',
+  'protected-status-restricted': 'protected status restricted',
+  'revocation-restricted': 'revocation restricted',
   'missing-certification': 'missing certification',
   'fatigue-over-threshold': 'fatigue threshold exceeded',
   'no-eligible-teams': 'no eligible teams',
@@ -93,6 +99,10 @@ const DEPLOYMENT_HARD_BLOCKER_LABELS: Record<DeploymentHardBlockerCode, string> 
   'missing-coverage': 'missing coverage',
   'training-blocked': 'training blocked',
   'invalid-loadout-gate': 'loadout gate failed',
+  'site-clearance-required': 'site clearance required',
+  'dual-loyalty-restricted': 'dual loyalty restricted',
+  'protected-status-restricted': 'protected status restricted',
+  'revocation-restricted': 'revocation restricted',
   'missing-certification': 'missing certification',
   'team-state-incompatible': 'team state incompatible',
   'routing-state-blocked': 'routing state blocked',
@@ -133,7 +143,10 @@ function uniqueStrings(values: Array<string | undefined | null>) {
   return [...new Set(values.filter((value): value is string => Boolean(value && value.length > 0)))]
 }
 
-function takeBoundedDetails(values: Array<string | undefined | null>, limit = MAX_EXPLANATION_DETAILS) {
+function takeBoundedDetails(
+  values: Array<string | undefined | null>,
+  limit = MAX_EXPLANATION_DETAILS
+) {
   return uniqueStrings(values).slice(0, limit)
 }
 
@@ -231,12 +244,18 @@ function buildRoutingSeverity(routingState: ReturnType<typeof routeMission>['rou
   return 'info' as const
 }
 
-function buildReadinessSeverity(readinessCategory: ReturnType<typeof buildTeamDeploymentReadinessState>['readinessCategory']) {
+function buildReadinessSeverity(
+  readinessCategory: ReturnType<typeof buildTeamDeploymentReadinessState>['readinessCategory']
+) {
   if (readinessCategory === 'hard_blocked') {
     return 'error' as const
   }
 
-  if (readinessCategory === 'conditional' || readinessCategory === 'temporarily_blocked' || readinessCategory === 'recovery_required') {
+  if (
+    readinessCategory === 'conditional' ||
+    readinessCategory === 'temporarily_blocked' ||
+    readinessCategory === 'recovery_required'
+  ) {
     return 'warning' as const
   }
 
@@ -352,7 +371,9 @@ export function explainMissionRouting(state: GameState, missionId: Id): RoutingE
   const triage = triageMission(state, mission)
   const routing = routeMission(state, missionId)
   const intel = getMissionIntelSummary(mission, state.week)
-  const inProgressCount = Object.values(state.cases).filter((currentCase) => currentCase.status === 'in_progress').length
+  const inProgressCount = Object.values(state.cases).filter(
+    (currentCase) => currentCase.status === 'in_progress'
+  ).length
   const candidateReason = buildRoutingCandidateReason(routing)
   const triageContributors = sortByMagnitude([
     {
@@ -395,7 +416,11 @@ export function explainMissionRouting(state: GameState, missionId: Id): RoutingE
   const dominantBlocker =
     routing.routingBlockers.find((blocker) => blocker !== 'no-eligible-teams') ??
     routing.routingBlockers[0]
-  const dominantFactor = dominantBlocker ?? candidateReason?.dominantFactor ?? triageContributors[0]?.factor ?? routing.routingState
+  const dominantFactor =
+    dominantBlocker ??
+    candidateReason?.dominantFactor ??
+    triageContributors[0]?.factor ??
+    routing.routingState
 
   const topCandidateId = routing.candidateTeamIds[0]
   const summary =
@@ -418,7 +443,9 @@ export function explainMissionRouting(state: GameState, missionId: Id): RoutingE
         : undefined,
       candidateReason?.detail,
       triageContributors[0]?.detail,
-      triage.dimensions.intelRisk > 0 ? triageContributors.find((entry) => entry.factor === 'intel-risk')?.detail : undefined,
+      triage.dimensions.intelRisk > 0
+        ? triageContributors.find((entry) => entry.factor === 'intel-risk')?.detail
+        : undefined,
     ]),
     relatedIds: uniqueStrings([missionId, ...routing.candidateTeamIds.slice(0, 2)]),
     severity: buildRoutingSeverity(routing.routingState),
@@ -433,8 +460,7 @@ export function explainDeploymentReadiness(
 ): DeploymentReadinessExplanation {
   const team = state.teams[teamId]
   const effectiveMissionId =
-    missionId ??
-    (team?.status?.assignedCaseId ?? team?.assignedCaseId ?? Object.keys(state.cases)[0] ?? '')
+    missionId ?? (team ? getTeamAssignedCaseId(team) : null) ?? Object.keys(state.cases)[0] ?? ''
   const mission = state.cases[effectiveMissionId]
 
   if (!team || !mission) {
@@ -455,7 +481,9 @@ export function explainDeploymentReadiness(
   const readiness = buildTeamDeploymentReadinessState(state, teamId, effectiveMissionId)
   const eligibility = evaluateDeploymentEligibility(state, effectiveMissionId, teamId)
   const intel = getMissionIntelSummary(mission, state.week)
-  const nonIntelSoftRiskCount = readiness.softRisks.filter((risk) => risk !== 'intel-uncertainty').length
+  const nonIntelSoftRiskCount = readiness.softRisks.filter(
+    (risk) => risk !== 'intel-uncertainty'
+  ).length
   const dominantFactor = (() => {
     if (readiness.hardBlockers.length > 0) {
       return readiness.hardBlockers[0]!
@@ -543,7 +571,9 @@ export function explainWeakestLinkResolution(
     relatedIds?: string[]
   }
 ): WeakestLinkExplanation {
-  const positiveBuckets = result.weakestLinkPenaltyBuckets.filter((bucket) => bucket.appliedPenalty > 0).sort(sortBucketsByPenalty)
+  const positiveBuckets = result.weakestLinkPenaltyBuckets
+    .filter((bucket) => bucket.appliedPenalty > 0)
+    .sort(sortBucketsByPenalty)
   const dominantBucket = positiveBuckets[0]
   const dominantFactor = dominantBucket?.code ?? 'clean-success'
   const summary = result.executionInstability
@@ -556,8 +586,11 @@ export function explainWeakestLinkResolution(
   const recoveryDetail =
     result.outcomeCategory === 'failure_recovery_pressure'
       ? `Recovery-pressure promotion triggered because fatigue concentration reached ${(
-          positiveBuckets.find((bucket) => bucket.code === 'fatigue-concentration')?.appliedPenalty ?? 0
-        ).toFixed(2)} against threshold ${WEAKEST_LINK_CALIBRATION.recoveryPressureFailureThreshold.toFixed(2)}.`
+          positiveBuckets.find((bucket) => bucket.code === 'fatigue-concentration')
+            ?.appliedPenalty ?? 0
+        ).toFixed(
+          2
+        )} against threshold ${WEAKEST_LINK_CALIBRATION.recoveryPressureFailureThreshold.toFixed(2)}.`
       : result.recoveryPressureBand
         ? `Recovery pressure band is ${result.recoveryPressureBand}.`
         : undefined
@@ -581,10 +614,12 @@ export function explainWeakestLinkResolution(
         result.deploymentDebtSignals?.includes('ally-reliability-fracture')
           ? 'Ally reliability degraded: instability fractured support confidence during execution.'
           : undefined,
-        ...positiveBuckets.slice(1, 3).map(
-          (bucket) =>
-            `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
-        ),
+        ...positiveBuckets
+          .slice(1, 3)
+          .map(
+            (bucket) =>
+              `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
+          ),
         buildThresholdDetail(result),
         recoveryDetail,
       ],
@@ -599,15 +634,28 @@ export function explainWeakestLinkResolution(
 }
 
 function countUnresolvedInReport(report: GameState['reports'][number]) {
-  return Object.values(report.caseSnapshots ?? {}).filter((snapshot) => snapshot.status !== 'resolved').length
+  return Object.values(report.caseSnapshots ?? {}).filter(
+    (snapshot) => snapshot.status !== 'resolved'
+  ).length
 }
 
-function buildUnresolvedTrend(state: GameState, currentValue: number, limit = DEFAULT_TREND_WINDOW) {
-  const values = (state.reports ?? []).slice(-limit).map(countUnresolvedInReport).filter((value) => Number.isFinite(value))
+function buildUnresolvedTrend(
+  state: GameState,
+  currentValue: number,
+  limit = DEFAULT_TREND_WINDOW
+) {
+  const values = (state.reports ?? [])
+    .slice(-limit)
+    .map(countUnresolvedInReport)
+    .filter((value) => Number.isFinite(value))
   return values.length > 0 ? values : [currentValue]
 }
 
-function buildBudgetPressureTrend(state: GameState, currentValue: number, limit = DEFAULT_TREND_WINDOW) {
+function buildBudgetPressureTrend(
+  state: GameState,
+  currentValue: number,
+  limit = DEFAULT_TREND_WINDOW
+) {
   const values: number[] = []
 
   for (const event of state.events ?? []) {
@@ -645,7 +693,10 @@ function buildIntelConfidenceTrend(currentValue: number) {
   return [Number(currentValue.toFixed(2))]
 }
 
-function compareUnresolvedCases(left: GameState['cases'][string], right: GameState['cases'][string]) {
+function compareUnresolvedCases(
+  left: GameState['cases'][string],
+  right: GameState['cases'][string]
+) {
   if (left.deadlineRemaining !== right.deadlineRemaining) {
     return left.deadlineRemaining - right.deadlineRemaining
   }
@@ -675,11 +726,19 @@ export function explainWeeklyPressureState(
     })
     .map(([source]) => source as Exclude<ValidationPressureSource, 'stable'>)
   const dominantPressureSource =
-    Math.max(...Object.values(pressure.pressureScores)) < 0.5 ? 'stable' : pressure.dominantPressureSource
-  const secondaryFactors = sortedSources.filter((source) => source !== pressure.dominantPressureSource).slice(0, 2)
+    Math.max(...Object.values(pressure.pressureScores)) < 0.5
+      ? 'stable'
+      : pressure.dominantPressureSource
+  const secondaryFactors = sortedSources
+    .filter((source) => source !== pressure.dominantPressureSource)
+    .slice(0, 2)
   const unresolvedTrend = buildUnresolvedTrend(state, pressure.unresolvedCaseCount, trendWindow)
   const budgetPressureTrend = buildBudgetPressureTrend(state, pressure.budgetPressure, trendWindow)
-  const attritionPressureTrend = buildAttritionTrend(state, pressure.attritionPressureCount, trendWindow)
+  const attritionPressureTrend = buildAttritionTrend(
+    state,
+    pressure.attritionPressureCount,
+    trendWindow
+  )
   const intelConfidenceTrend = buildIntelConfidenceTrend(pressure.intelConfidence)
   const maxPressure = Math.max(...Object.values(pressure.pressureScores))
   const criticalCases = Object.values(state.cases)
@@ -700,22 +759,24 @@ export function explainWeeklyPressureState(
     secondaryFactors,
     details: takeBoundedDetails(
       sortByMagnitude(
-        (Object.entries(pressure.pressureScores) as Array<[Exclude<ValidationPressureSource, 'stable'>, number]>).map(
-          ([factor, magnitude]) => ({
-            factor,
-            magnitude,
-            detail:
-              factor === 'case-load'
-                ? `${pressure.unresolvedCaseCount} unresolved case(s) are consuming ${state.config.maxActiveCases} active-case slots.`
-                : factor === 'budget'
-                  ? `Funding/procurement state maps to budget pressure ${pressure.budgetPressure}/4 at $${state.funding}.`
-                  : factor === 'attrition'
-                    ? `${pressure.attritionPressureCount} agent(s) are currently in loss, injury, or recovery pressure states.`
-                    : factor === 'intel'
-                      ? `Active-case intel confidence is ${pressure.intelConfidence.toFixed(2)}.`
-                      : `Escalation burden is ${pressure.escalationBurden} from global escalation, threat drift, and time pressure.`,
-          })
-        )
+        (
+          Object.entries(pressure.pressureScores) as Array<
+            [Exclude<ValidationPressureSource, 'stable'>, number]
+          >
+        ).map(([factor, magnitude]) => ({
+          factor,
+          magnitude,
+          detail:
+            factor === 'case-load'
+              ? `${pressure.unresolvedCaseCount} unresolved case(s) are consuming ${state.config.maxActiveCases} active-case slots.`
+              : factor === 'budget'
+                ? `Funding/procurement state maps to budget pressure ${pressure.budgetPressure}/4 at $${state.funding}.`
+                : factor === 'attrition'
+                  ? `${pressure.attritionPressureCount} agent(s) are currently in loss, injury, or recovery pressure states.`
+                  : factor === 'intel'
+                    ? `Active-case intel confidence is ${pressure.intelConfidence.toFixed(2)}.`
+                    : `Escalation burden is ${pressure.escalationBurden} from global escalation, threat drift, and time pressure.`,
+        }))
       ).map((entry) => entry.detail)
     ),
     relatedIds: criticalCases,

@@ -152,7 +152,6 @@ export function assignTeam(state: GameState, caseId: Id, teamId: Id): GameState 
     ...teams,
     [teamId]: {
       ...teams[teamId],
-      assignedCaseId: caseId,
       status: teams[teamId]?.status
         ? { ...teams[teamId].status, assignedCaseId: caseId }
         : teams[teamId]?.status,
@@ -274,7 +273,6 @@ export function launchMajorIncident(
   for (const teamId of selectedTeamIds) {
     nextTeams[teamId] = {
       ...nextTeams[teamId]!,
-      assignedCaseId: caseId,
       status: nextTeams[teamId]?.status
         ? { ...nextTeams[teamId]!.status, assignedCaseId: caseId }
         : nextTeams[teamId]?.status,

@@ -3,9 +3,16 @@ import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
 import { queueFabrication } from '../../domain/sim/production'
 import {
+  assessFundingPressure,
+  createInitialFundingState,
+  normalizeFundingState,
+} from '../../domain/funding'
+import { getProcurementListings } from '../../domain/market'
+import {
   getCurrentWeekMarketTransactions,
   getFilteredMarketListings,
   getMarketListings,
+  getProcurementScreenView,
   readMarketFilters,
   type MarketFilters,
 } from './marketView'
@@ -32,6 +39,31 @@ describe('marketView', () => {
     expect(listings.some((listing) => listing.featured)).toBe(true)
     expect(listings.every((listing) => listing.buyPrice >= listing.sellPrice)).toBe(true)
     expect(listings.every((listing) => listing.availableBundles >= 0)).toBe(true)
+  })
+
+  it('does not expose fabricated-lot-reserved equipment as sellable stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.fabricatedEquipmentLots = {
+      batch: {
+        queueId: 'batch',
+        recipeId: 'signal-jammers',
+        itemId: 'signal_jammers',
+        quantity: 1,
+        gradeId: 'grade_2',
+        completedWeek: 1,
+        trackedInstanceUnits: 0,
+      },
+    }
+
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'signal_jammers'
+    )
+
+    expect(listing).toBeDefined()
+    expect(listing!.inventoryStock).toBe(1)
+    expect(listing!.canSellOne).toBe(false)
+    expect(listing!.sellBlockedReason).toMatch(/no matching stock/i)
   })
 
   it('filters by featured category and material query text', () => {
@@ -134,13 +166,13 @@ describe('marketView', () => {
 
   it('surfaces supplier attention substitution after a competing use commits the slot', () => {
     const game = createStartingState()
-    const fieldPlate = getMarketListings(game).find(
-      (candidate) => candidate.itemId === 'field_plate'
+    const emfSensors = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'emf_sensors'
     )
 
-    expect(fieldPlate).toBeDefined()
+    expect(emfSensors).toBeDefined()
 
-    const afterFieldPlate = purchaseMarketInventory(game, fieldPlate!.id, 1)
+    const afterFieldPlate = purchaseMarketInventory(game, emfSensors!.id, 1)
     const hazmatSuit = getMarketListings(afterFieldPlate).find(
       (candidate) => candidate.itemId === 'hazmat_suit'
     )
@@ -250,6 +282,188 @@ describe('marketView', () => {
     )
     expect(combatStims!.canBuyOne).toBe(false)
     expect(combatStims!.buyBlockedReason).toMatch(/doctrine attestation is stale/i)
+  })
+
+  it('surfaces vendor shortage pressure in procurement budget summary and listing blockers', () => {
+    const game = {
+      ...createStartingState(),
+      inventory: {
+        ...createStartingState().inventory,
+        medkits: 25,
+      },
+    }
+    const listing = getProcurementListings(game).find(
+      (entry) => entry.id === 'material:medical_supplies'
+    )
+
+    expect(listing).toBeDefined()
+    expect(assessFundingPressure(game).reasonCodes).toContain('vendor-shortage-pressure')
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Vendor shortage pressure/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.blockerDetails.join(' ')).toMatch(/Vendor shortage pressure/i)
+  })
+
+  it('surfaces compromised-authority procurement diversion in budget summary and listing blockers', () => {
+    const game = {
+      ...createStartingState(),
+      compromisedAuthority: {
+        officialRole: 'watchCommander' as const,
+        benefittingFactionId: 'corporate_supply',
+        distortedCategories: ['evidence' as const],
+        corruptionDepth: 'embedded_control' as const,
+        patrolAnomalyCount: 0,
+      },
+    }
+    const listing = getProcurementListings(game).find(
+      (entry) => entry.id === 'material:electronic_parts'
+    )
+
+    expect(listing).toBeDefined()
+    expect(assessFundingPressure(game).reasonCodes).toContain(
+      'compromised-authority-procurement-diversion'
+    )
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Compromised authority is diverting/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.blockerDetails.join(' ')).toMatch(/Compromised authority diverted/i)
+  })
+
+  it('surfaces inventory holding cost in procurement budget summary when stock tightens headroom', () => {
+    const game = createStartingState()
+    const fundingState = normalizeFundingState(
+      12,
+      game.config,
+      {
+        ...createInitialFundingState(
+          game.config.fundingBasePerWeek,
+          game.config.fundingPerResolution,
+          game.config.fundingPenaltyPerFail,
+          game.config.fundingPenaltyPerUnresolved,
+          12
+        ),
+        fundingHistory: [
+          {
+            week: game.week,
+            delta: -30,
+            reason: 'inventory_holding_cost',
+            sourceId: 'weekly-inventory-holding-cost',
+          },
+        ],
+      },
+      game.week
+    )
+    const pressuredGame = {
+      ...game,
+      funding: 12,
+      agency: {
+        ...game.agency!,
+        fundingState,
+      },
+    }
+
+    expect(assessFundingPressure(pressuredGame).reasonCodes).toContain(
+      'weekly-inventory-holding-cost'
+    )
+
+    const view = getProcurementScreenView(pressuredGame, {
+      q: '',
+      category: 'all',
+      sort: 'recommended',
+    })
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Inventory carrying costs/i)
+  })
+
+  it('surfaces callable obligation leverage in budget summary and listing blockers when funding is tight', () => {
+    const baseline = createStartingState()
+    const listing = getProcurementListings(baseline).find(
+      (entry) => entry.id === 'material:occult_reagents'
+    )
+
+    expect(listing).toBeDefined()
+    const game = {
+      ...baseline,
+      funding: Math.max(0, listing!.buyPrice - 1),
+      agency: {
+        ...baseline.agency!,
+        funding: Math.max(0, listing!.buyPrice - 1),
+      },
+    }
+
+    expect(assessFundingPressure(game).reasonCodes).toContain(
+      'callable-obligation-procurement-leverage'
+    )
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/research lab boon/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(false)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(listingView?.canCallObligationOne).toBe(true)
+    expect(listingView?.buyBlockedReason).toMatch(/call obligation instead of cash purchase/i)
+    expect(view.selectedDetail?.acquisitionDetails.join(' ')).toMatch(/Callable obligation/i)
+  })
+
+  it('allows 3-bundle obligation call when one bundle is affordable but three are not', () => {
+    const baseline = createStartingState()
+    const listing = getProcurementListings(baseline).find(
+      (entry) => entry.id === 'material:occult_reagents'
+    )
+
+    expect(listing).toBeDefined()
+    const game = {
+      ...baseline,
+      funding: listing!.buyPrice * 2,
+      agency: {
+        ...baseline.agency!,
+        funding: listing!.buyPrice * 2,
+      },
+    }
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canAffordThree).toBe(false)
+    expect(listingView?.canCallObligationOne).toBe(false)
+    expect(listingView?.canCallObligationThree).toBe(true)
   })
 
   it('normalizes invalid market query params to defaults', () => {

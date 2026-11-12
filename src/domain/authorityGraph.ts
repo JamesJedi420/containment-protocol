@@ -117,6 +117,7 @@ export interface AuthorityGraphNode {
   linkedFactionIds?: readonly string[]
   linkedPopulationIds?: readonly string[]
   linkedDepartmentIds?: readonly string[]
+  linkedUnitIds?: readonly string[]
   linkedSiteIds?: readonly string[]
   metadata?: Readonly<Record<string, string | number | boolean>>
 }
@@ -1188,6 +1189,10 @@ export function collectAuthorityGraphTokens(graph: AuthorityGraph): readonly str
     }
 
     for (const linkedId of node.linkedDepartmentIds ?? []) {
+      tokens.push(linkedId)
+    }
+
+    for (const linkedId of node.linkedUnitIds ?? []) {
       tokens.push(linkedId)
     }
 

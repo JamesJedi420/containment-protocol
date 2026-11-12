@@ -26,18 +26,18 @@ describe('infiltrationProbeAuthoring', () => {
   })
 
   it('sorts progress rules and drops invalid rows', () => {
-    const authored: AuthoredInfiltrationProbePlan = {
+    const authored = {
       defaultAction: 'probe_access',
       actionWhenProbeProgressBelow: [
         { belowProbeProgress: 0.5, action: 'probe_route' },
         { belowProbeProgress: 0.2, action: 'cleanup' },
         { belowProbeProgress: 1.5, action: 'probe_access' },
         { belowProbeProgress: 0.35, action: 'not-valid' },
-        null as unknown as AuthoredInfiltrationProbePlan,
+        null,
       ],
     }
 
-    expect(buildInfiltrationProbePlanFromAuthored(authored)).toEqual({
+    expect(buildInfiltrationProbePlanFromAuthoredRecord(authored)).toEqual({
       defaultAction: 'probe_access',
       actionWhenProbeProgressBelow: [
         { belowProbeProgress: 0.2, action: 'cleanup' },
@@ -50,6 +50,8 @@ describe('infiltrationProbeAuthoring', () => {
     expect(() =>
       buildInfiltrationProbePlanFromAuthored({ defaultAction: 'probe_everything' })
     ).not.toThrow()
-    expect(buildInfiltrationProbePlanFromAuthored({ defaultAction: 'probe_everything' })).toBeUndefined()
+    expect(
+      buildInfiltrationProbePlanFromAuthored({ defaultAction: 'probe_everything' })
+    ).toBeUndefined()
   })
 })

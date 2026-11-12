@@ -49,6 +49,7 @@ describe('infiltrationEncounterReportCopy', () => {
     expect(summary).toContain('uniform guard cover')
     expect(summary).toContain('Expose cooperating witness')
     expect(summary).toContain('access probe')
+    expect(summary).toContain('badge chains and restricted corridors')
   })
 
   it('prefixes threshold summaries with weekly prep context', () => {
@@ -116,6 +117,7 @@ describe('infiltrationEncounterReportCopy', () => {
 
     const weeklyNote = report?.notes.find((note) => note.type === 'infiltration.weekly_encounter')
     expect(weeklyNote?.content).toContain('Public Safety Briefing')
+    expect(weeklyNote?.content).toMatch(/badge chains|patrol gaps|back-channel contacts/)
     expect(weeklyNote?.metadata?.probeAction).toBeDefined()
   })
 

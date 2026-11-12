@@ -124,6 +124,24 @@ export function DeveloperOverlay() {
             />
 
             <OverlaySection
+              title="Branch Continuity Audit (SPE-2362)"
+              rows={[
+                `Active: ${snapshot.branchContinuityAudit.active ? 'yes' : 'no'}`,
+                `Audit id: ${snapshot.branchContinuityAudit.auditId ?? 'n/a'}`,
+                `Path: ${snapshot.branchContinuityAudit.pathId ?? 'n/a'}`,
+                `Nodes: ${snapshot.branchContinuityAudit.nodeCount}`,
+                `Warnings: ${snapshot.branchContinuityAudit.warningCount}`,
+                `Errors: ${snapshot.branchContinuityAudit.errorCount}`,
+                ...(snapshot.branchContinuityAudit.active
+                  ? snapshot.branchContinuityAudit.topWarnings.map(
+                      (warning) =>
+                        `${warning.nodeId} [${warning.warningClass}/${warning.severity}]: ${warning.summary}`
+                    )
+                  : snapshot.branchContinuityAudit.reportLines),
+              ]}
+            />
+
+            <OverlaySection
               title="Weekly Pressure"
               rows={[
                 `Summary: ${snapshot.pressure.summary}`,

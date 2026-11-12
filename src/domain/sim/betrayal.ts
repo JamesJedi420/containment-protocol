@@ -75,6 +75,41 @@ function roundToTwo(value: number) {
   return Math.round(value * 100) / 100
 }
 
+/** Hydration: reconcile agent.betrayed trust-damage fields to finite nonnegative totals. */
+export function reconcileAgentBetrayedFields(payload: {
+  trustDamageDelta?: unknown
+  trustDamageTotal?: unknown
+}) {
+  const trustDamageDelta = Math.max(0, coerceFiniteNumber(payload.trustDamageDelta, 0))
+  const trustDamageTotalRaw = Math.max(
+    0,
+    coerceFiniteNumber(payload.trustDamageTotal, trustDamageDelta)
+  )
+  const trustDamageTotal = Math.max(trustDamageTotalRaw, trustDamageDelta)
+
+  return { trustDamageDelta, trustDamageTotal }
+}
+
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+
+    if (trimmed.length > 0) {
+      const parsed = Number(trimmed)
+
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+  }
+
+  return fallback
+}
+
 function toDirectedPairKey(fromId: string, toId: string) {
   return `${fromId}->${toId}`
 }

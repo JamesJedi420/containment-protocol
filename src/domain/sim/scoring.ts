@@ -14,7 +14,11 @@ import {
   type WeeklyReport,
 } from '../models'
 import { clamp, sigmoid } from '../math'
-import { RECOVERY_CALIBRATION } from './calibration'
+import { COGNITIVE_HAZARD_CALIBRATION, RECOVERY_CALIBRATION } from './calibration'
+import {
+  vitalsHasCognitiveHazardDutyDegraded,
+  vitalsHasCognitiveHazardKnowledgeDegraded,
+} from '../cognitiveHazardSimulationTriggerVitals'
 import {
   buildAgentSquadCompositionProfile,
   dotResolutionProfile,
@@ -823,6 +827,36 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     reasons.push(`Impaired: ${impairedPenalty.toFixed(1)}`)
   }
 
+  const cognitiveHazardDutyCount = agents.filter((a) =>
+    vitalsHasCognitiveHazardDutyDegraded(a.vitals)
+  ).length
+  const cognitiveHazardDutyPenalty =
+    cognitiveHazardDutyCount > 0
+      ? -(
+          base *
+          (1 - COGNITIVE_HAZARD_CALIBRATION.dutyDegradedTeamPenaltyMultiplier) *
+          (cognitiveHazardDutyCount / Math.max(1, agents.length))
+        )
+      : 0
+  if (cognitiveHazardDutyPenalty !== 0) {
+    reasons.push(`Cognitive hazard duty strain: ${cognitiveHazardDutyPenalty.toFixed(1)}`)
+  }
+
+  const cognitiveHazardKnowledgeCount = agents.filter((a) =>
+    vitalsHasCognitiveHazardKnowledgeDegraded(a.vitals)
+  ).length
+  const cognitiveHazardKnowledgePenalty =
+    cognitiveHazardKnowledgeCount > 0
+      ? -(
+          base *
+          (1 - COGNITIVE_HAZARD_CALIBRATION.knowledgeDegradedTeamPenaltyMultiplier) *
+          (cognitiveHazardKnowledgeCount / Math.max(1, agents.length))
+        )
+      : 0
+  if (cognitiveHazardKnowledgePenalty !== 0) {
+    reasons.push(`Cognitive hazard knowledge strain: ${cognitiveHazardKnowledgePenalty.toFixed(1)}`)
+  }
+
   const nonAxisModifierTotal = computeNonAxisModifierTotal({
     leaderBonus,
     synergyBonus,
@@ -831,7 +865,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     preferredBonus,
     equipmentScore: equipment.score,
     partyCardScore: partyCardBonus,
-    contextAdjustment: contextAdjustment + impairedPenalty,
+    contextAdjustment: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty,
   })
   const comparison = compareResolutionAgainstCase(
     profile.resolutionProfile,
@@ -875,7 +909,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       { id: 'preferred-tags', label: 'Preferred tags', delta: preferredBonus },
       { id: 'equipment', label: 'Equipment', delta: equipment.score },
       { id: 'party-cards', label: 'Party cards', delta: partyCardBonus },
-      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment + impairedPenalty },
+      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty },
     ],
   }
 
@@ -893,7 +927,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
         equippedItemCount: profile.equipmentSummary.equippedItemCount,
         emptySlotCount: profile.equipmentSummary.emptySlotCount,
         activeContextItemCount: profile.equipmentSummary.activeContextItemCount,
-        loadoutQuality: profile.equipmentSummary.loadoutQuality,
+        loadoutEffectScale: profile.equipmentSummary.loadoutEffectScale,
         equippedItemIds: [...profile.equipmentSummary.equippedItemIds],
         equippedTags: [...profile.equipmentSummary.equippedTags],
       },
@@ -911,7 +945,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       preferredTagBonus: preferredBonus,
       equipmentBonus: equipment.score,
       partyCardBonus,
-      contextAdjustment: contextAdjustment + impairedPenalty,
+      contextAdjustment: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty,
     }),
     layerBreakdown,
     comparison,
@@ -1041,6 +1075,22 @@ function createEmptyResolutionProfile(): TeamResolutionProfile {
     investigation: 0,
     support: 0,
   }
+}
+
+/**
+ * Hydration 570: cap persisted partialMargin to a score band derived from the threshold resolution model.
+ * Threshold missions treat delta in [-partialMargin, 0) as partial; the cap tracks stage-scaling headroom.
+ */
+export function resolvePartialMarginUpperBound(
+  config: Pick<GameConfig, 'stageScalar' | 'durationModel' | 'challengeModeEnabled' | 'attritionPerWeek'>
+): number {
+  const stageHeadroom = Math.ceil(32 * Math.max(0.05, config.stageScalar))
+  const attritionHeadroom =
+    config.challengeModeEnabled === true && config.durationModel === 'attrition'
+      ? Math.ceil(Math.max(1, config.attritionPerWeek) * 3)
+      : 0
+
+  return Math.max(1, stageHeadroom + attritionHeadroom)
 }
 
 function createDefaultScoringConfig(): GameConfig {

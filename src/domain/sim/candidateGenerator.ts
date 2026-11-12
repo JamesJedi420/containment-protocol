@@ -3,6 +3,10 @@ import { clamp, createSeededRng, randInt } from '../math'
 import { scoreToExactPotentialTier } from '../agentPotential'
 import { getFactionRecruitQualityModifier, getFactionRecruitUnlocks } from '../factions'
 import {
+  applyRivalPressureToRecruitQuality,
+  buildRivalPressure,
+} from '../rivalPressure'
+import {
   type AgentData,
   type Candidate,
   type CandidateRevealLevel,
@@ -138,6 +142,7 @@ interface RecruitmentGenerationSignals {
   activeAgentCount: number
   weekNumber: number
   reputationScore: number
+  rivalRecruitQualityDelta: number
 }
 
 export interface RecruitmentGenerationState {
@@ -151,6 +156,7 @@ export interface RecruitmentGenerationState {
   staff: GameState['staff']
   factions: GameState['factions']
   candidatePool: Candidate[]
+  rivalRecruitQualityDelta: number
 }
 
 export function buildRecruitmentGenerationState(
@@ -167,6 +173,8 @@ export function buildRecruitmentGenerationState(
     | 'staff'
     | 'factions'
     | 'candidates'
+    | 'reports'
+    | 'events'
   >
 ): RecruitmentGenerationState {
   return {
@@ -180,6 +188,7 @@ export function buildRecruitmentGenerationState(
     staff: state.staff,
     factions: state.factions ?? {},
     candidatePool: [...state.candidates],
+    rivalRecruitQualityDelta: buildRivalPressure(state).recruitQualityDelta,
   }
 }
 
@@ -270,6 +279,7 @@ function getRecruitmentGenerationSignals(
     activeAgentCount,
     weekNumber,
     reputationScore,
+    rivalRecruitQualityDelta: state.rivalRecruitQualityDelta,
   }
 }
 
@@ -576,7 +586,7 @@ function createFactionSponsoredAgentData(
 }
 
 function buildFactionSponsoredCandidate(
-  state: Pick<RecruitmentGenerationState, 'week' | 'factions'>,
+  state: Pick<RecruitmentGenerationState, 'week' | 'factions' | 'rivalRecruitQualityDelta'>,
   rng: () => number,
   usedIds: Set<string>
 ): Candidate | null {
@@ -613,7 +623,10 @@ function buildFactionSponsoredCandidate(
       contactId: unlock.contactId,
     }
   )
-  const boostedOverallScore = clamp(overallScore + recruitQualityBonus, 0, 100)
+  const boostedOverallScore = applyRivalPressureToRecruitQuality(
+    overallScore + recruitQualityBonus,
+    { recruitQualityDelta: state.rivalRecruitQualityDelta }
+  )
   const actualPotentialScore = clamp(boostedOverallScore + randInt(rng, 2, 10), 0, 100)
   const potentialTier = scoreToCandidatePotentialTier(actualPotentialScore)
 
@@ -705,7 +718,9 @@ function buildCandidate(
     state.week + randInt(rng, CANDIDATE_EXPIRY_MIN_WEEKS, CANDIDATE_EXPIRY_MAX_WEEKS)
   const normalizedCategory = normalizeCandidateCategory(category)
   const qualityBias =
-    Math.round((signals.reputationScore - 50) / 10) + Math.min(signals.weekNumber, 12) / 6
+    Math.round((signals.reputationScore - 50) / 10) +
+    Math.min(signals.weekNumber, 12) / 6 +
+    signals.rivalRecruitQualityDelta
 
   if (normalizedCategory === 'agent') {
     const agentData = generateAgentData(rng)

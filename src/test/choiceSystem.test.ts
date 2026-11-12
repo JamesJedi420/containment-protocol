@@ -9,6 +9,7 @@ import type { Candidate } from '../domain/recruitment/types'
 import {
   buildBreachFollowUpChoices,
   buildHostileFactionResponseChoices,
+  buildPublicDisclosurePostureChoices,
   buildSpecialRecruitOpportunityChoices,
   buildWeeklyReportTutorialChoices,
 } from '../features/operations/frontDeskChoices'
@@ -17,6 +18,7 @@ import {
   getEligibleFrontDeskSceneTriggerIds,
 } from '../features/operations/frontDeskTriggers'
 import { getFrontDeskBriefingView } from '../features/operations/frontDeskView'
+import { DISCLOSURE_PROGRESSION_FIXTURE } from '../domain/publicDisclosureStateRegistry'
 
 function createSpecialRecruitCandidate(): Candidate {
   return {
@@ -239,5 +241,41 @@ describe('choiceSystem', () => {
       'followup.alpha',
       'followup.beta',
     ])
+  })
+
+  it('applies disclosure posture choices through the authored-choice executor', () => {
+    const state = createStartingState()
+    state.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    const choice = buildPublicDisclosurePostureChoices(
+      DISCLOSURE_PROGRESSION_FIXTURE.id,
+      DISCLOSURE_PROGRESSION_FIXTURE.label
+    ).find((entry) => entry.id.endsWith('.managed_secrecy'))!
+
+    const first = applyAuthoredChoice(state, choice)
+    const second = applyAuthoredChoice(first.state, choice)
+
+    expect(first).toMatchObject({
+      applied: true,
+      choiceId: choice.id,
+      appliedConsequences: [
+        {
+          type: 'set_public_disclosure_posture',
+          key: `${DISCLOSURE_PROGRESSION_FIXTURE.id}:managed_secrecy`,
+          changed: true,
+        },
+      ],
+    })
+    expect(first.state.publicDisclosurePostureChoices?.[DISCLOSURE_PROGRESSION_FIXTURE.id]).toBe(
+      'managed_secrecy'
+    )
+    expect(second.applied).toBe(false)
+    expect(
+      getFrontDeskBriefingView(first.state).notices.some((notice) =>
+        notice.id.startsWith('disclosure-posture-')
+      )
+    ).toBe(false)
   })
 })

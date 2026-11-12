@@ -1,3 +1,7 @@
+import {
+  getFrontDeskAuthoredState,
+  type FrontDeskDirectorRouteId,
+} from '../../domain/frontDeskAuthored'
 import { APP_ROUTES } from '../../app/routes'
 import {
   buildShellStatusBarView,
@@ -8,22 +12,18 @@ import { assessAttritionPressure } from '../../domain/agent/attrition'
 import { buildCourierNetworkCapacityGapReport } from '../../domain/capabilityGap'
 import type { CapabilityGapReport } from '../../domain/capabilityGap'
 import type { AuthoredChoiceDefinition } from '../../domain/choiceSystem'
-import {
-  buildAuthoredBranchContext,
-  selectAuthoredBranch,
-  type AuthoredBranch,
-  type AuthoredBranchContext,
-} from '../../domain/contentBranching'
 import { buildFactionStates } from '../../domain/factions'
 import {
   assessFundingPressure,
   getCanonicalFundingState,
+  getProcurementBacklog,
 } from '../../domain/funding'
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
+import { generateHubState } from '../../domain/hub/hubState'
 import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
 import type { GameState } from '../../domain/models'
+import { getProcurementListings } from '../../domain/market'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
-import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
 import {
   getDashboardMetrics,
@@ -34,21 +34,19 @@ import {
 import { buildEventFeedView } from '../dashboard/eventFeedView'
 import {
   getOperationsReportView,
+  type OperationsReportView,
   type WeakestLinkOutcomeReportItemView,
 } from '../report/operationsReportView'
-import {
-  buildBreachFollowUpChoices,
-  buildHostileFactionResponseChoices,
-  buildSpecialRecruitOpportunityChoices,
-  buildWeeklyReportTutorialChoices,
-} from './frontDeskChoices'
-import {
-  FRONT_DESK_TRIGGER_IDS,
-  getEligibleFrontDeskSceneTriggerIdSet,
-} from './frontDeskTriggers'
+import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
+import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
+import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
+import { projectConcealmentPendingActivationAttention } from '../../domain/concealmentPendingActivationAttention'
+import { projectInfiltrationPendingEncounterAttention } from '../../domain/infiltrationPendingEncounterAttention'
+import { projectStrategicActionBudget } from '../../domain/strategicActionBudgetProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
-export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
+export type FrontDeskNoticeActionTarget =
+  'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
 
 const MAX_QUEUE_DETAILS = 3
 const MAX_RECENT_ITEMS = 3
@@ -167,6 +165,98 @@ export interface FrontDeskCourierCapacityOpportunityView {
   guidanceNote: string
 }
 
+/** SPE-31: deterministic hub opportunity derived from canonical procurement pressure only. */
+export interface FrontDeskProcurementPressureOpportunityView {
+  id: 'procurement-pressure'
+  title: string
+  summary: string
+  severityLabel: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref?: string
+  secondaryLinkLabel?: string
+}
+
+/** SPE-31: deterministic hub opportunity derived from existing staffing/readiness pressure only. */
+export interface FrontDeskStaffingReadinessOpportunityView {
+  id: 'staffing-readiness-pressure'
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  href: string
+  linkLabel: string
+  secondaryHref?: string
+  secondaryLinkLabel?: string
+}
+
+/** SPE-31: deterministic hub opportunity lead from existing hub simulation state. */
+export interface FrontDeskHubOpportunityLeadView {
+  id: string
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  factionId: string
+  confidenceLabel: string
+  statusLabel?: string
+  statusDetail?: string
+  misleading: boolean
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
+/** SPE-31: deterministic hub rumor lead from existing hub simulation state. */
+export interface FrontDeskHubRumorLeadView {
+  id: string
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  confidenceLabel: string
+  misleading: boolean
+  filtered: boolean
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
+/** SPE-31: deterministic hub opportunity derived from strategic-turn support/action capacity. */
+export interface FrontDeskStrategicActionBudgetOpportunityView {
+  id: 'strategic-action-budget'
+  title: string
+  summary: string
+  pressureLaneLabel: string
+  budgetLine: string
+  severityLabel: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
+/** SPE-31: deterministic hub opportunity derived from existing case region tags and value-stream hints. */
+export interface FrontDeskTagConflictValueStreamOpportunityView {
+  id: 'tag-conflict-value-stream'
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  conflictLabel: string
+  valueStreamLabel: string
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
 /** SPE-1734: Bounded player-facing readout of the canonical campaign ledger. */
 export interface FrontDeskCampaignRulesSummaryView {
   title: string
@@ -197,434 +287,188 @@ export interface FrontDeskHubView {
   standingSummary: FrontDeskStandingSummaryView
   latestReport: FrontDeskLatestReportView | null
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
+  procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
+  staffingReadinessOpportunity: FrontDeskStaffingReadinessOpportunityView | null
+  strategicActionBudgetOpportunity: FrontDeskStrategicActionBudgetOpportunityView | null
+  tagConflictValueStreamOpportunity: FrontDeskTagConflictValueStreamOpportunityView | null
+  hubOpportunityLead: FrontDeskHubOpportunityLeadView | null
+  hubRumorLead: FrontDeskHubRumorLeadView | null
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
-function buildDirectorMessage(
-  game: GameState,
-  context: AuthoredBranchContext,
-  hasHostileFaction: boolean
+function buildNoticePresentation(
+  title: string,
+  body: string,
+  tone: FrontDeskNoticeTone,
+  actionTarget?: FrontDeskNoticeActionTarget,
+  actionLabel?: string
+): Omit<FrontDeskNoticeView, 'id' | 'choices'> {
+  return {
+    title,
+    body,
+    tone,
+    ...(actionTarget ? { actionTarget } : {}),
+    ...(actionLabel ? { actionLabel } : {}),
+  }
+}
+
+function buildReportNotice(title: string, body: string, actionLabel: string) {
+  return buildNoticePresentation(title, body, 'info', 'report', actionLabel)
+}
+
+function buildCaseNotice(
+  title: string,
+  body: string,
+  tone: FrontDeskNoticeTone,
+  actionLabel: string
 ) {
-  const global = getGlobalStateMetrics(game)
-  const recent = game.reports.at(-1)
-
-  const routes: AuthoredBranch<string>[] = [
-    {
-      id: 'hostile-faction-pressure',
-      when: {
-        predicates: [
-          {
-            id: 'hostile-faction-present',
-            test: () => hasHostileFaction,
-          },
-        ],
-      },
-      value:
-        'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
-    },
-    {
-      id: 'breach-posture-escalated',
-      when: {
-        progressClocks: [
-          {
-            clockId: PROGRESS_CLOCK_IDS.breachFollowUpPosture,
-            threshold: 2,
-          },
-        ],
-      },
-      value:
-        'Breach follow-up posture is escalating. Prioritize teams with stable recovery profiles and preserve surge capacity.',
-    },
-    {
-      id: 'critical-pressure',
-      when: {
-        predicates: [
-          {
-            id: 'pressure-critical',
-            test: () => global.pressureLevel === 'critical',
-          },
-        ],
-      },
-      value:
-        'Threat posture is elevated across active incidents. Prioritize rapid containment and keep reserve teams flexible.',
-    },
-    {
-      id: 'clean-resolution-week',
-      when: {
-        predicates: [
-          {
-            id: 'recent-clean-report',
-            test: () =>
-              Boolean(recent && recent.resolvedCases.length >= 2 && recent.failedCases.length === 0),
-          },
-        ],
-      },
-      value:
-        'Containment tempo is holding. Maintain momentum, but do not overextend fatigued units.',
-    },
-    {
-      id: 'recent-failure-week',
-      when: {
-        predicates: [
-          {
-            id: 'recent-failure-report',
-            test: () => Boolean(recent && recent.failedCases.length > 0),
-          },
-        ],
-      },
-      value:
-        'Recent failures shifted confidence. Tighten assignment discipline and stabilize high-stage operations before expansion.',
-    },
-    {
-      id: 'routine-even-week',
-      when: {
-        predicates: [
-          {
-            id: 'even-week',
-            test: ({ state }) => state.week % 2 === 0,
-          },
-        ],
-      },
-      value:
-        'Routine systems are stable this cycle. Keep recon, training, and fabrication queues synchronized.',
-    },
-    {
-      id: 'routine-odd-week',
-      value:
-        'Signals are mixed this week. Keep eyes on deadline risk and preserve mission-ready reserves.',
-    },
-  ]
-
-  const selection = selectAuthoredBranch(game, routes, context)
-
-  return {
-    routeId: selection?.branchId,
-    message: selection?.value ?? '',
-  }
+  return buildNoticePresentation(title, body, tone, 'cases', actionLabel)
 }
 
-function buildWeeklyReportNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView {
-  const routes: AuthoredBranch<FrontDeskNoticeView>[] = [
-    {
-      id: 'weekly-report-tutorial',
-      when: {
-        predicates: [
-          {
-            id: 'weekly-report-tutorial-trigger-eligible',
-            test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.weeklyReportTutorial),
-          },
-        ],
-      },
-      value: {
-        id: 'weekly-report-tutorial',
-        title: 'Weekly report orientation',
-        body:
-          'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Open report',
-        choices: buildWeeklyReportTutorialChoices(),
-      },
-    },
-    {
-      id: 'weekly-report-steady-consumed',
-      when: {
-        flags: {
-          consumedOneShots: ['frontdesk.tutorial.weekly-report'],
-        },
-      },
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report on quiet cadence',
-        body:
-          'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Open report',
-      },
-    },
-    {
-      id: 'weekly-report-follow-up-priority',
-      when: {
-        followUps: {
-          anyOf: ['recruit.special.frontdesk.review', 'frontdesk.faction.occult_networks.response'],
-        },
-      },
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report ready',
-        body:
-          'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Review dossier',
-      },
-    },
-    {
-      id: 'weekly-report-returning',
-      value: {
-        id: 'weekly-report-returning',
-        title: 'Weekly report ready',
-        body:
-          'The latest dossier is ready for review. Check it before you commit teams so you can react to last week\'s fatigue, fallout, and unlocked follow-ups.',
-        tone: 'info',
-        actionTarget: 'report',
-        actionLabel: 'Review dossier',
-      },
-    },
-  ]
-
-  return selectAuthoredBranch(game, routes, context)?.value ?? {
-    id: 'weekly-report-returning',
-    title: 'Weekly report ready',
-    body: 'The latest dossier is ready for review.',
-    tone: 'info',
-  }
+const DIRECTOR_MESSAGES: Record<FrontDeskDirectorRouteId, string> = {
+  'hostile-faction-pressure':
+    'Hostile external actors are actively probing this cycle. Keep counter-intel posture tight and avoid avoidable escalation.',
+  'breach-posture-escalated':
+    'Breach follow-up posture is escalating. Prioritize teams with stable recovery profiles and preserve surge capacity.',
+  'critical-pressure':
+    'Threat posture is elevated across active incidents. Prioritize rapid containment and keep reserve teams flexible.',
+  'clean-resolution-week':
+    'Containment tempo is holding. Maintain momentum, but do not overextend fatigued units.',
+  'recent-failure-week':
+    'Recent failures shifted confidence. Tighten assignment discipline and stabilize high-stage operations before expansion.',
+  'routine-even-week':
+    'Routine systems are stable this cycle. Keep recon, training, and fabrication queues synchronized.',
+  'routine-odd-week':
+    'Signals are mixed this week. Keep eyes on deadline risk and preserve mission-ready reserves.',
 }
 
-function buildBreachFollowUpNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(
-      game,
-      [
-      {
-        id: 'breach-follow-up-queued',
-        when: {
-          followUps: {
-            anyOf: [
-              'containment.breach.followup.cautious-brief',
-              'containment.breach.followup.aggressive-brief',
-            ],
-          },
-        },
-        value: {
-          id: 'breach-follow-up-queued',
-          title: 'Breach follow-up queued for command review',
-          body:
-            'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review queued follow-up',
-        },
-      },
-      {
-        id: 'breach-follow-up-cautious-brief',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-cautious-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpCautiousBrief),
-            },
-          ],
-        },
-        value: {
-          id: 'breach-follow-up-cautious-brief',
-          title: 'Cautious breach posture logged',
-          body:
-            'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
-        },
-      },
-      {
-        id: 'breach-follow-up-aggressive-brief',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-aggressive-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpAggressiveBrief),
-            },
-          ],
-        },
-        value: {
-          id: 'breach-follow-up-aggressive-brief',
-          title: 'Aggressive breach posture logged',
-          body:
-            'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
-          tone: 'danger',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
-        },
-      },
-      {
-        id: 'breach-follow-up-open',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-open-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpOpen),
-            },
-          ],
-        },
-        value: {
-          id: 'breach-follow-up-open',
-          title: 'Containment breach follow-up available',
-          body:
-            'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Inspect cases',
-          choices: buildBreachFollowUpChoices(),
-        },
-      },
-      {
-        id: 'breach-follow-up-none',
-        value: null,
-      },
-    ],
-      context
-    )?.value ?? null
-  )
-}
-
-function buildHostileFactionNotice(
-  game: GameState,
-  hostileFaction: ReturnType<typeof buildFactionStates>[number] | undefined,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(game, [
-      {
-        id: 'hostile-faction-response',
-        when: {
-          flags: hostileFaction
-            ? {
-                allFlags: [
-                  {
-                    flagId: `faction.${hostileFaction.id}.frontdesk-response`,
-                    equals: 'containment',
-                  },
-                ],
-              }
-            : undefined,
-        },
-        value: hostileFaction
-          ? {
-              id: 'hostile-faction-response',
-              title: `${hostileFaction.label} response posture set`,
-              body:
-                'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
-              tone: 'warning',
-              actionTarget: 'factions',
-              actionLabel: 'Review standing',
-            }
-          : null,
-      },
-      {
-        id: 'hostile-faction-alert',
-        when: {
-          predicates: [
-            {
-              id: 'hostile-faction-present',
-              test: () => Boolean(hostileFaction),
-            },
-          ],
-        },
-        value: hostileFaction
-          ? {
-              id: 'hostile-faction-alert',
-              title: `${hostileFaction.label} pressure rising`,
-              body: hostileFaction.feedback,
-              tone: 'warning',
-              actionTarget: 'factions',
-              actionLabel: 'Review standing',
-              choices: buildHostileFactionResponseChoices(hostileFaction),
-            }
-          : null,
-      },
-      {
-        id: 'hostile-faction-none',
-        value: null,
-      },
-    ], context)?.value ?? null
-  )
-}
-
-function buildSpecialRecruitNotice(
-  game: GameState,
-  eligibleTriggerIds: ReadonlySet<string>,
-  context: AuthoredBranchContext
-): FrontDeskNoticeView | null {
-  const specialRecruit = game.candidates.find(
-    (candidate) =>
-      candidate.hireStatus === 'available' &&
-      candidate.sourceDisposition !== 'adversarial' &&
-      Boolean(candidate.sourceFactionId || candidate.sourceContactId)
-  )
-
-  return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(game, [
-      {
-        id: 'special-recruit-opportunity',
-        when: {
-          predicates: [
-            {
-              id: 'special-recruit-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity),
-            },
-          ],
-        },
-        value: specialRecruit
-          ? {
-              id: 'special-recruit-opportunity',
-              title: `Special recruit opportunity: ${specialRecruit.name}`,
-              body:
-                specialRecruit.sourceSummary ??
-                `${specialRecruit.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
-              tone: 'success',
-              actionTarget: 'recruitment',
-              actionLabel: 'Open recruitment',
-              choices: buildSpecialRecruitOpportunityChoices(specialRecruit),
-            }
-          : null,
-      },
-      {
-        id: 'special-recruit-none',
-        value: null,
-      },
-    ], context)?.value ?? null
-  )
-}
-
-/**
- * Author-facing front-desk example surface for conditional content selection.
- * Add new notices here instead of scattering one-off `if/else` branches across
- * UI components when the decision is based on shared game state.
- */
+/** Project canonical authored selections into operations notice copy and navigation. */
 export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView {
-  const eligibleTriggerIds = getEligibleFrontDeskSceneTriggerIdSet(game)
-  const branchContext = buildAuthoredBranchContext(game, {
-    activeContextId: 'frontdesk.dashboard',
+  const authored = getFrontDeskAuthoredState(game)
+  const { hostileFaction, specialRecruit } = authored
+  const notices = authored.notices.map((notice): FrontDeskNoticeView => {
+    const pending = authored.pendingDisclosure.find(
+      (item) => notice.id === `disclosure-posture-${item.recordId}`
+    )
+    let presentation: Omit<FrontDeskNoticeView, 'id' | 'choices'>
+    switch (notice.presentationKey) {
+      case 'weekly-report-tutorial':
+        presentation = buildReportNotice(
+          'Weekly report orientation',
+          'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
+          'Open report'
+        )
+        break
+      case 'weekly-report-consumed':
+        presentation = buildReportNotice(
+          'Weekly report on quiet cadence',
+          'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
+          'Open report'
+        )
+        break
+      case 'weekly-report-follow-up':
+        presentation = buildReportNotice(
+          'Weekly report ready',
+          'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
+          'Review dossier'
+        )
+        break
+      case 'weekly-report-returning':
+        presentation = buildReportNotice(
+          'Weekly report ready',
+          "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
+          'Review dossier'
+        )
+        break
+      case 'weekly-report-fallback':
+        presentation = buildNoticePresentation(
+          'Weekly report ready',
+          'The latest dossier is ready for review.',
+          'info'
+        )
+        break
+      case 'breach-follow-up-queued':
+        presentation = buildCaseNotice(
+          'Breach follow-up queued for command review',
+          'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
+          'warning',
+          'Review queued follow-up'
+        )
+        break
+      case 'breach-follow-up-cautious':
+        presentation = buildCaseNotice(
+          'Cautious breach posture logged',
+          'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
+          'warning',
+          'Review cases'
+        )
+        break
+      case 'breach-follow-up-aggressive':
+        presentation = buildCaseNotice(
+          'Aggressive breach posture logged',
+          'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
+          'danger',
+          'Review cases'
+        )
+        break
+      case 'breach-follow-up-open':
+        presentation = buildCaseNotice(
+          'Containment breach follow-up available',
+          'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
+          'warning',
+          'Inspect cases'
+        )
+        break
+      case 'hostile-faction-response':
+        presentation = buildNoticePresentation(
+          `${hostileFaction!.label} response posture set`,
+          'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
+          'warning',
+          'factions',
+          'Review standing'
+        )
+        break
+      case 'hostile-faction-alert':
+        presentation = buildNoticePresentation(
+          `${hostileFaction!.label} pressure rising`,
+          hostileFaction!.feedback,
+          'warning',
+          'factions',
+          'Review standing'
+        )
+        break
+      case 'special-recruit-opportunity':
+        presentation = buildNoticePresentation(
+          `Special recruit opportunity: ${specialRecruit!.name}`,
+          specialRecruit!.sourceSummary ??
+            `${specialRecruit!.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
+          'success',
+          'recruitment',
+          'Open recruitment'
+        )
+        break
+      case 'disclosure-posture':
+        presentation = buildNoticePresentation(
+          'Disclosure posture decision required',
+          `${pending!.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
+          'warning',
+          'disclosure',
+          'Open campaign briefing'
+        )
+        break
+      default:
+        throw new Error(`Unknown front-desk authored presentation: ${notice.presentationKey}`)
+    }
+    return {
+      id: notice.id,
+      ...presentation,
+      ...(notice.choices ? { choices: notice.choices } : {}),
+    }
   })
-  const hostileFaction = buildFactionStates(game).find(
-    (faction) => faction.stance === 'hostile' || faction.reputationTier === 'hostile'
-  )
-  const director = buildDirectorMessage(game, branchContext, Boolean(hostileFaction))
-  const notices = [
-    buildWeeklyReportNotice(game, eligibleTriggerIds, branchContext),
-    buildBreachFollowUpNotice(game, eligibleTriggerIds, branchContext),
-    buildHostileFactionNotice(game, hostileFaction, branchContext),
-    buildSpecialRecruitNotice(game, eligibleTriggerIds, branchContext),
-  ].filter((notice): notice is FrontDeskNoticeView => Boolean(notice))
-
   return {
-    directorMessage: director.message,
+    directorMessage: authored.directorRouteId ? DIRECTOR_MESSAGES[authored.directorRouteId] : '',
     notices,
-    debug: {
-      ...(director.routeId ? { directorMessageRouteId: director.routeId } : {}),
-      noticeRouteIds: notices.map((notice) => notice.id),
-      choiceIds: notices.flatMap((notice) => notice.choices?.map((choice) => choice.id) ?? []),
-    },
+    debug: authored.debug,
   }
 }
 
@@ -639,6 +483,10 @@ export function getFrontDeskNoticeActionHref(target?: FrontDeskNoticeActionTarge
 
   if (target === 'factions') {
     return APP_ROUTES.factions
+  }
+
+  if (target === 'disclosure') {
+    return APP_ROUTES.publicDisclosureCampaign
   }
 
   return APP_ROUTES.report
@@ -702,8 +550,9 @@ function getAttentionPriority(tone: FrontDeskNoticeTone) {
 
 function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
   const shell = buildShellStatusBarView(game)
+  const disclosureCampaign = getPublicDisclosureCampaignView(game)
 
-  return [
+  const links: FrontDeskQuickLinkView[] = [
     {
       label: 'Open contracts',
       href: APP_ROUTES.contracts,
@@ -735,6 +584,175 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description: 'Open the current or latest weekly report.',
     },
   ]
+
+  if (!disclosureCampaign.isEmpty) {
+    links.push({
+      label: 'Open disclosure campaign briefing',
+      href: APP_ROUTES.publicDisclosureCampaign,
+      description: 'Review post-secrecy awareness posture and regional public-trust bands.',
+    })
+  }
+
+  links.push(
+    {
+      label: 'Open series intake mirror',
+      href: APP_ROUTES.patternSourceSeries,
+      description: 'Review pattern source series queue rank and processing posture.',
+    },
+    {
+      label: 'Open publish queue mirror',
+      href: APP_ROUTES.publishQueue,
+      description: 'Review publish-queue records and persisted execution receipts.',
+    },
+    {
+      label: 'Open department workshop mirror',
+      href: APP_ROUTES.departmentWorkshop,
+      description:
+        'Inspect workshop slots, queued work, blockers, and completion quality or safety consequences.',
+    },
+    {
+      label: 'Open modifiable data-pack mirror',
+      href: APP_ROUTES.modifiableDataPacks,
+      description: 'Review persisted modifiable data-pack records and import validation posture.',
+    },
+    {
+      label: 'Open self-censoring information mirror',
+      href: APP_ROUTES.selfCensoringInformation,
+      description: 'Review retention timers, rediscovery loops, and negative-fact posture.',
+    },
+    {
+      label: 'Open public disclosure mirror',
+      href: APP_ROUTES.publicDisclosureState,
+      description: 'Review awareness levels, fallout phases, and regional trust projections.',
+    },
+    {
+      label: 'Open truth-layer mirror',
+      href: APP_ROUTES.truthLayerRecords,
+      description:
+        'Review separate claim, doctrine, and verification layers plus myth infrastructure ops flags.',
+    },
+    {
+      label: 'Open cover-story mirror',
+      href: APP_ROUTES.coverStoryRecords,
+      description:
+        'Review cover-story lifecycle phases, contradiction pressure, and weekly projection snapshots.',
+    },
+    {
+      label: 'Open population emergence mirror',
+      href: APP_ROUTES.massAnomalousPopulationEmergence,
+      description: 'Review registration backlog, triage lanes, and governance-surge projections.',
+    },
+    {
+      label: 'Open visual trigger hazard mirror',
+      href: APP_ROUTES.visualTriggerHazard,
+      description:
+        'Review disposal compliance, exposure-chain risk, and awareness escalation projections.',
+    },
+    {
+      label: 'Open hazardous content propagation mirror',
+      href: APP_ROUTES.hazardousContentPropagation,
+      description:
+        'Review persisted SPE-947 platforms, counter-memetic plans, content owners, and post-case media cases.',
+    },
+    {
+      label: 'Open propagation graph mirror',
+      href: APP_ROUTES.propagationGraph,
+      description:
+        'Review persisted SPE-956 propagation graph structure, nodes, edges, and week-close orchestration fields.',
+    },
+    {
+      label: 'Open participatory channel mirror',
+      href: APP_ROUTES.participatoryChannels,
+      description:
+        'Review persisted SPE-956 survivor registries, memory channels, hotlines, async surfaces, and advisory bodies.',
+    },
+    {
+      label: 'Open entity welfare reclassification mirror',
+      href: APP_ROUTES.entityWelfareReclassification,
+      description:
+        'Review disposition review posture, reclassification pressure forecasts, and pending vs terminal states.',
+    },
+    {
+      label: 'Open affiliation person-status mirror',
+      href: APP_ROUTES.affiliationPersonStatus,
+      description:
+        'Review durable person-status evidence, status permissions, and composed clearance outcomes.',
+    },
+    {
+      label: 'Open contained person therapeutic care mirror',
+      href: APP_ROUTES.containedPersonTherapeuticCare,
+      description:
+        'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
+    },
+    {
+      label: 'Open coercive contained-person protocol mirror',
+      href: APP_ROUTES.coerciveContainedPersonProtocol,
+      description:
+        'Review handling modes, containment-care tradeoffs, coercion-risk flags, and owner refs.',
+    },
+    {
+      label: 'Open psychological resilience mirror',
+      href: APP_ROUTES.psychologicalResilience,
+      description:
+        'Review depletion bands, exposure posture, treatment gating, and duty-reliability projections.',
+    },
+    {
+      label: 'Open surveillance intervention tuning mirror',
+      href: APP_ROUTES.surveillanceInterventionTuning,
+      description:
+        'Review intervention levels, surveillance/contact signal separation, horizon outcomes, and collateral-strain projections.',
+    },
+    {
+      label: 'Open naming-hazard descriptor mirror',
+      href: APP_ROUTES.namingHazardDescriptor,
+      description:
+        'Review substitution policy, confidence erosion markers, and intake cross-link labels.',
+    },
+    {
+      label: 'Open contained person integrated health bundle mirror',
+      href: APP_ROUTES.containedPersonIntegratedHealthBundle,
+      description:
+        'Review mental-state bands, humane-care risk, and wired therapeutic care schedule links.',
+    },
+    {
+      label: 'Open welfare debt accounting mirror',
+      href: APP_ROUTES.welfareDebtAccounting,
+      description:
+        'Review coercive-procedure welfare debt severity, mitigation state, and containment benefit projections.',
+    },
+    {
+      label: 'Open rule document compliance mirror',
+      href: APP_ROUTES.ruleDocumentCompliance,
+      description:
+        'Review written-conduct binding posture, compliance decay bands, and revision audit symptoms.',
+    },
+    {
+      label: 'Open recurrent catastrophe amelioration mirror',
+      href: APP_ROUTES.recurrentCatastropheAmelioration,
+      description:
+        'Review recurrence cadence, prevention ceilings, amelioration posture, and next-recurrence risk projections.',
+    },
+    {
+      label: 'Open post-incident review mirror',
+      href: APP_ROUTES.postIncidentReview,
+      description:
+        'Review retrospective routes, closure outcomes, milestone spans, procedure adherence, and recurrence flags.',
+    },
+    {
+      label: 'Open post-incident recommendation mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendations,
+      description:
+        'Review follow-on recommendation stubs linked to orchestration-created post-incident reviews.',
+    },
+    {
+      label: 'Open post-incident recommendation action mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendationActions,
+      description:
+        'Review follow-on action stubs linked to persisted recommendation and qualifying review records.',
+    }
+  )
+
+  return links
 }
 
 function buildStatCards(game: GameState): FrontDeskStatCardView[] {
@@ -787,7 +805,9 @@ function buildQueueCards(
   const blockedMissionCount = operationsReport.missionRouting.filter(
     (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
   ).length
-  const pendingBacklog = fundingState.procurementBacklog.filter((entry) => entry.status === 'pending')
+  const pendingBacklog = fundingState.procurementBacklog.filter(
+    (entry) => entry.status === 'pending'
+  )
 
   return [
     {
@@ -806,7 +826,9 @@ function buildQueueCards(
           ? reconLeads.map((candidate) => {
               const stage = candidate.scoutReport?.stage ?? 1
               const tier =
-                candidate.scoutReport?.confirmedTier ?? candidate.scoutReport?.projectedTier ?? 'unknown'
+                candidate.scoutReport?.confirmedTier ??
+                candidate.scoutReport?.projectedTier ??
+                'unknown'
               const confidence = candidate.scoutReport?.confidence
                 ? candidate.scoutReport.confidence === 'confirmed'
                   ? 'confirmed intel'
@@ -837,7 +859,9 @@ function buildQueueCards(
         game.trainingQueue.length > 0
           ? game.trainingQueue
               .slice(0, MAX_QUEUE_DETAILS)
-              .map((entry) => `${entry.agentName}: ${entry.trainingName} / ${entry.remainingWeeks}w`)
+              .map(
+                (entry) => `${entry.agentName}: ${entry.trainingName} / ${entry.remainingWeeks}w`
+              )
           : ['No academy queue entries are active.'],
     },
     {
@@ -868,10 +892,16 @@ function buildQueueCards(
         [
           ...pendingBacklog
             .slice(0, 2)
-            .map((entry) => `${entry.itemId}: supplier handoff pending from week ${entry.requestedWeek}`),
+            .map(
+              (entry) =>
+                `${entry.itemId}: supplier handoff pending from week ${entry.requestedWeek}`
+            ),
           ...game.productionQueue
             .slice(0, 2)
-            .map((entry) => `${entry.outputItemName}: fabrication completes in ${entry.remainingWeeks}w`),
+            .map(
+              (entry) =>
+                `${entry.outputItemName}: fabrication completes in ${entry.remainingWeeks}w`
+            ),
           fundingPressure.staleProcurementRequestIds.length > 0
             ? `${pluralize(
                 fundingPressure.staleProcurementRequestIds.length,
@@ -958,7 +988,8 @@ function buildAttentionItems(
   }))
 
   const debriefAttention =
-    operationsReport.contractDebrief.attentionSummary && operationsReport.contractDebrief.records.length > 0
+    operationsReport.contractDebrief.attentionSummary &&
+    operationsReport.contractDebrief.records.length > 0
       ? [
           {
             id: 'debrief:latest',
@@ -994,7 +1025,9 @@ function buildAttentionItems(
     }))
 
   const routingItems = operationsReport.missionRouting
-    .filter((entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred')
+    .filter(
+      (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
+    )
     .map((entry) => ({
       id: `routing:${entry.missionId}`,
       title: `${entry.routingStateLabel}: ${entry.missionTitle}`,
@@ -1013,7 +1046,77 @@ function buildAttentionItems(
       href: APP_ROUTES.teamDetail(entry.teamId),
     }))
 
-  return [...noticeItems, ...debriefAttention, ...signalItems, ...routingItems, ...readinessItems]
+  const disclosureTrustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
+  const disclosureSegmentedTrust = projectPublicDisclosureSegmentedTrustOutcomeFromGame(game)
+  const disclosureAttentionSummary = disclosureSegmentedTrust.frontDeskDivergenceSummary
+    ? `${disclosureTrustOutcome.frontDeskAttentionSummary} ${disclosureSegmentedTrust.frontDeskDivergenceSummary}`
+    : disclosureTrustOutcome.frontDeskAttentionSummary
+  const disclosureAttentionTone =
+    disclosureSegmentedTrust.frontDeskDivergenceTone ??
+    disclosureTrustOutcome.frontDeskAttentionTone
+  const disclosureAttention =
+    disclosureTrustOutcome.activeCampaignCount > 0
+      ? [
+          {
+            id: 'disclosure:campaign-briefing',
+            title: 'Disclosure campaign posture requires review',
+            summary: disclosureAttentionSummary,
+            tone: disclosureAttentionTone,
+            href: APP_ROUTES.publicDisclosureCampaign,
+          } as const,
+        ]
+      : []
+
+  const concealmentPendingActivation = projectConcealmentPendingActivationAttention(game)
+  const concealmentAttention =
+    concealmentPendingActivation.pendingCount > 0
+      ? [
+          {
+            id: 'concealment:pending-activation',
+            title:
+              concealmentPendingActivation.pendingCount === 1
+                ? 'Covert activation pending on next weekly tick'
+                : `${concealmentPendingActivation.pendingCount} covert activations pending on next weekly tick`,
+            summary: concealmentPendingActivation.frontDeskAttentionSummary,
+            tone: concealmentPendingActivation.frontDeskAttentionTone,
+            href:
+              concealmentPendingActivation.frontDeskAttentionCaseId !== null
+                ? APP_ROUTES.caseDetail(concealmentPendingActivation.frontDeskAttentionCaseId)
+                : APP_ROUTES.cases,
+          } as const,
+        ]
+      : []
+
+  const infiltrationPendingEncounter = projectInfiltrationPendingEncounterAttention(game)
+  const infiltrationAttention =
+    infiltrationPendingEncounter.pendingCount > 0
+      ? [
+          {
+            id: 'infiltration:pending-encounter',
+            title:
+              infiltrationPendingEncounter.pendingCount === 1
+                ? 'Infiltration encounter pending on next weekly tick'
+                : `${infiltrationPendingEncounter.pendingCount} infiltration encounters pending on next weekly tick`,
+            summary: infiltrationPendingEncounter.frontDeskAttentionSummary,
+            tone: infiltrationPendingEncounter.frontDeskAttentionTone,
+            href:
+              infiltrationPendingEncounter.frontDeskAttentionCaseId !== null
+                ? APP_ROUTES.caseDetail(infiltrationPendingEncounter.frontDeskAttentionCaseId)
+                : APP_ROUTES.cases,
+          } as const,
+        ]
+      : []
+
+  return [
+    ...noticeItems,
+    ...debriefAttention,
+    ...disclosureAttention,
+    ...concealmentAttention,
+    ...infiltrationAttention,
+    ...signalItems,
+    ...routingItems,
+    ...readinessItems,
+  ]
     .sort((left, right) => {
       const priorityDelta = getAttentionPriority(right.tone) - getAttentionPriority(left.tone)
 
@@ -1077,7 +1180,9 @@ function buildTeamStatusViews(game: GameState): FrontDeskTeamStatusView[] {
 function buildProcurementSnapshot(game: GameState): FrontDeskProcurementSnapshotView {
   const fundingPressure = assessFundingPressure(game)
   const fundingState = getCanonicalFundingState(game)
-  const pendingBacklog = fundingState.procurementBacklog.filter((entry) => entry.status === 'pending')
+  const pendingBacklog = fundingState.procurementBacklog.filter(
+    (entry) => entry.status === 'pending'
+  )
 
   return {
     summary:
@@ -1129,7 +1234,8 @@ function buildStandingSummary(game: GameState): FrontDeskStandingSummaryView {
       faction.reputationTier === 'allied'
   )
   const activeContacts = factions.reduce(
-    (sum, faction) => sum + faction.contacts.filter((contact) => contact.status === 'active').length,
+    (sum, faction) =>
+      sum + faction.contacts.filter((contact) => contact.status === 'active').length,
     0
   )
   const hiddenEffects = factions.reduce((sum, faction) => sum + faction.hiddenModifierCount, 0)
@@ -1210,7 +1316,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
 }
 
 export function buildCourierNetworkCapacityOpportunityCard(
-  report: CapabilityGapReport,
+  report: CapabilityGapReport
 ): FrontDeskCourierCapacityOpportunityView | null {
   if (!report.unresolved || report.gapKind === 'none') {
     return null
@@ -1251,6 +1357,414 @@ export function buildCourierNetworkCapacityOpportunityCard(
   }
 
   return null
+}
+
+export function buildProcurementPressureOpportunityCard(
+  game: GameState
+): FrontDeskProcurementPressureOpportunityView | null {
+  const fundingPressure = assessFundingPressure(game)
+  const fundingState = getCanonicalFundingState(game)
+  const backlog = getProcurementBacklog(fundingState)
+  const pendingBacklog = backlog.filter((entry) => entry.status === 'pending')
+  const staleRequestIds = new Set(fundingPressure.staleProcurementRequestIds)
+  const staleBacklog = pendingBacklog.filter((entry) => staleRequestIds.has(entry.requestId))
+  const activeFabrication = game.productionQueue
+
+  if (
+    staleBacklog.length === 0 &&
+    pendingBacklog.length === 0 &&
+    activeFabrication.length === 0 &&
+    !fundingPressure.constrained &&
+    !fundingPressure.severeConstraint
+  ) {
+    return null
+  }
+
+  const listingsByItemId = new Map(
+    getProcurementListings(game).map((listing) => [listing.itemId, listing.itemName])
+  )
+  const formatBacklogEntry = (entry: (typeof pendingBacklog)[number]) =>
+    listingsByItemId.get(entry.itemId) ?? entry.itemId
+  const tone: FrontDeskNoticeTone =
+    staleBacklog.length > 0 || fundingPressure.severeConstraint ? 'danger' : 'warning'
+  const severityLabel =
+    staleBacklog.length > 0
+      ? 'Stale backlog'
+      : fundingPressure.severeConstraint
+        ? 'Severe pressure'
+        : fundingPressure.constrained
+          ? 'Budget pressure'
+          : 'Queued'
+
+  return {
+    id: 'procurement-pressure',
+    title:
+      staleBacklog.length > 0
+        ? 'Procurement backlog needs attention'
+        : fundingPressure.constrained
+          ? 'Procurement pressure is constraining operations'
+          : 'Procurement queue has open follow-through',
+    summary: `${pluralize(pendingBacklog.length, 'supplier request')} pending, ${pluralize(
+      staleBacklog.length,
+      'stale request'
+    )}, ${pluralize(activeFabrication.length, 'fabrication order')} active. Budget pressure ${
+      fundingPressure.budgetPressure
+    }/4.`,
+    severityLabel,
+    tone,
+    details: uniqueBounded(
+      [
+        staleBacklog.length > 0
+          ? `${staleBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} have exceeded the expected supplier handoff window.`
+          : '',
+        pendingBacklog.length > 0
+          ? `${pendingBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} remain in the procurement backlog.`
+          : '',
+        activeFabrication.length > 0
+          ? `${activeFabrication[0]!.outputItemName} is the next fabrication completion.`
+          : '',
+        fundingPressure.constrained
+          ? `Funding signal: ${fundingPressure.reasonCodes[0] ?? `budget-pressure:${fundingPressure.budgetPressure}`}.`
+          : '',
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.marketsSuppliers,
+    primaryLinkLabel: 'Open procurement',
+    ...(activeFabrication.length > 0
+      ? {
+          secondaryHref: APP_ROUTES.fabrication,
+          secondaryLinkLabel: 'Open fabrication',
+        }
+      : {}),
+  }
+}
+
+export function buildStaffingReadinessOpportunityCard(
+  game: GameState,
+  operationsReport: OperationsReportView = getOperationsReportView(game)
+): FrontDeskStaffingReadinessOpportunityView | null {
+  const attritionPressure = assessAttritionPressure(game)
+  const hardBlockedReadiness = operationsReport.deploymentReadiness.filter(
+    (entry) => entry.hardBlockers.length > 0
+  )
+  const blockedOrDeferredRouting = operationsReport.missionRouting.filter(
+    (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
+  )
+
+  if (
+    attritionPressure.staffingGap === 0 &&
+    hardBlockedReadiness.length === 0 &&
+    blockedOrDeferredRouting.length === 0
+  ) {
+    return null
+  }
+
+  const blockedRoutingCount = blockedOrDeferredRouting.filter(
+    (entry) => entry.routingStateLabel === 'Blocked'
+  ).length
+  const tone: FrontDeskNoticeTone =
+    attritionPressure.severeConstraint || hardBlockedReadiness.length > 0 || blockedRoutingCount > 0
+      ? 'danger'
+      : 'warning'
+  const leadReadiness = hardBlockedReadiness[0]
+  const leadRouting = blockedOrDeferredRouting[0]
+
+  return {
+    id: 'staffing-readiness-pressure',
+    title:
+      attritionPressure.staffingGap > 0
+        ? 'Staffing gap is pressuring readiness'
+        : hardBlockedReadiness.length > 0
+          ? 'Readiness blockers need team review'
+          : 'Mission routing is deferred by readiness pressure',
+    summary: `${pluralize(attritionPressure.staffingGap, 'staffing gap')}, ${pluralize(
+      hardBlockedReadiness.length,
+      'hard-blocked team pairing'
+    )}, ${pluralize(blockedOrDeferredRouting.length, 'blocked or deferred mission')}.`,
+    tone,
+    details: uniqueBounded(
+      [
+        attritionPressure.staffingGap > 0
+          ? `${pluralize(attritionPressure.staffingGap, 'operative')} need replacement coverage before the roster is fully staffed.`
+          : '',
+        leadReadiness
+          ? `${leadReadiness.teamName} -> ${leadReadiness.missionTitle}: ${leadReadiness.hardBlockers.join(', ')}.`
+          : '',
+        leadRouting
+          ? `${leadRouting.routingStateLabel}: ${leadRouting.missionTitle} / ${leadRouting.dominantFactorLabel}.`
+          : '',
+        attritionPressure.reasonCodes[0]
+          ? `Attrition signal: ${attritionPressure.reasonCodes[0]}.`
+          : '',
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    href: APP_ROUTES.teams,
+    linkLabel: 'Open teams',
+    ...(attritionPressure.staffingGap > 0
+      ? {
+          secondaryHref: APP_ROUTES.recruitment,
+          secondaryLinkLabel: 'Open recruitment',
+        }
+      : {}),
+  }
+}
+
+const TAG_CONFLICT_GROUPS: ReadonlyArray<{
+  id: 'authority' | 'criminal' | 'occult' | 'civilian'
+  label: string
+  tags: readonly string[]
+}> = [
+  {
+    id: 'authority',
+    label: 'Authority',
+    tags: ['authority', 'police', 'government', 'institution'],
+  },
+  { id: 'criminal', label: 'Criminal', tags: ['criminal', 'smuggling', 'gang', 'blackmarket'] },
+  { id: 'occult', label: 'Occult', tags: ['occult', 'cult', 'ritual', 'esoteric'] },
+  { id: 'civilian', label: 'Civilian', tags: ['civilian', 'public', 'community', 'witness'] },
+]
+
+const VALUE_STREAM_GROUPS: ReadonlyArray<{ label: string; tags: readonly string[] }> = [
+  { label: 'Public legitimacy', tags: ['public', 'civilian', 'authority', 'community'] },
+  { label: 'Cover integrity', tags: ['covert', 'cover', 'infiltration', 'smuggling'] },
+  { label: 'Funding', tags: ['funding', 'procurement', 'resource', 'supply'] },
+  { label: 'Evidence quality', tags: ['evidence', 'intel', 'signal', 'verification'] },
+  { label: 'Doctrine risk', tags: ['occult', 'cult', 'ritual', 'classified'] },
+]
+
+function hasAnyTag(haystack: readonly string[], needles: readonly string[]) {
+  return needles.some((needle) => haystack.includes(needle))
+}
+
+type TagConflictRegionCandidate = {
+  regionTag: string
+  regionCases: Array<NonNullable<GameState['cases'][string]>>
+  mergedTags: string[]
+  presentGroups: Array<(typeof TAG_CONFLICT_GROUPS)[number]>
+}
+
+function compareTagConflictRegionCandidates(
+  left: TagConflictRegionCandidate,
+  right: TagConflictRegionCandidate
+) {
+  const groupDelta = right.presentGroups.length - left.presentGroups.length
+  if (groupDelta !== 0) {
+    return groupDelta
+  }
+
+  const caseDelta = right.regionCases.length - left.regionCases.length
+  if (caseDelta !== 0) {
+    return caseDelta
+  }
+
+  return left.regionTag.localeCompare(right.regionTag)
+}
+
+function buildTagConflictValueStreamOpportunityCardFromCandidate(
+  candidate: TagConflictRegionCandidate
+): FrontDeskTagConflictValueStreamOpportunityView {
+  const { regionTag, regionCases, mergedTags, presentGroups } = candidate
+  const conflictLabel = `${presentGroups[0]!.label} vs ${presentGroups[1]!.label}`
+  const scoredStreams = VALUE_STREAM_GROUPS.map((stream) => ({
+    label: stream.label,
+    score: stream.tags.filter((tag) => mergedTags.includes(tag)).length,
+  })).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label))
+  const valueStreamLabel =
+    scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
+
+  return {
+    id: 'tag-conflict-value-stream',
+    title: 'Town-tag conflict lead requires routing',
+    summary: `${regionTag} carries a deterministic ${conflictLabel.toLowerCase()} tag conflict. Surface it as a ${valueStreamLabel.toLowerCase()} lead before it diffuses into low-signal queue noise.`,
+    tone: presentGroups.length >= 3 ? 'danger' : 'warning',
+    conflictLabel,
+    valueStreamLabel,
+    details: uniqueBounded(
+      [
+        `${pluralize(regionCases.length, 'open case')} share the ${regionTag} region tag.`,
+        `Conflict lane: ${conflictLabel}.`,
+        `Lead value stream: ${valueStreamLabel}.`,
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.cases,
+    primaryLinkLabel: 'Open cases',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
+}
+
+export function buildStrategicActionBudgetOpportunityCard(
+  game: GameState
+): FrontDeskStrategicActionBudgetOpportunityView | null {
+  const projection = projectStrategicActionBudget(game)
+  if (!projection.constrained || !projection.leadLane) {
+    return null
+  }
+
+  const tone: FrontDeskNoticeTone =
+    projection.deficit >= 2 || projection.totalBudget === 0 ? 'danger' : 'warning'
+  const severityLabel =
+    projection.totalBudget === 0
+      ? 'Budget exhausted'
+      : projection.deficit >= 2
+        ? 'Severe shortfall'
+        : 'Constrained'
+
+  return {
+    id: 'strategic-action-budget',
+    title: 'Strategic action budget is constrained',
+    summary: `${projection.leadLane.label} deployments are competing for a support pool that cannot cover every committed field action this week. Re-prioritize before the weekly tick assigns support shortfalls.`,
+    pressureLaneLabel: projection.leadLane.label,
+    budgetLine: `Support pool ${projection.totalBudget} · ${pluralize(projection.committedDemand, 'committed deployment')} · ${pluralize(projection.deficit, 'projected shortfall')}`,
+    severityLabel,
+    tone,
+    details: uniqueBounded(
+      [
+        `Lead pressure lane: ${projection.leadLane.label} (${projection.leadLane.score} deployment${projection.leadLane.score === 1 ? '' : 's'}).`,
+        projection.pressureLanes[1]
+          ? `Next lane: ${projection.pressureLanes[1].label} (${projection.pressureLanes[1].score}).`
+          : '',
+        projection.remainingBudget === 0
+          ? 'No discretionary support remains after committed deployments.'
+          : `${projection.remainingBudget} support unit${projection.remainingBudget === 1 ? '' : 's'} remain before the pool is exhausted.`,
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.agency,
+    primaryLinkLabel: 'Open agency',
+    secondaryHref: APP_ROUTES.teams,
+    secondaryLinkLabel: 'Open teams',
+  }
+}
+
+export function buildTagConflictValueStreamOpportunityCard(
+  game: GameState
+): FrontDeskTagConflictValueStreamOpportunityView | null {
+  const openCases = Object.values(game.cases).filter(
+    (currentCase) => currentCase.status !== 'resolved'
+  )
+  const casesByRegion = new Map<string, typeof openCases>()
+  for (const currentCase of openCases) {
+    if (!currentCase.regionTag) continue
+    const existing = casesByRegion.get(currentCase.regionTag) ?? []
+    existing.push(currentCase)
+    casesByRegion.set(currentCase.regionTag, existing)
+  }
+
+  const rankedCandidates = [...casesByRegion.entries()]
+    .filter(([, regionCases]) => regionCases.length >= 2)
+    .map(([regionTag, regionCases]) => {
+      const mergedTags = [...new Set(regionCases.flatMap((currentCase) => currentCase.tags))].sort(
+        (left, right) => left.localeCompare(right)
+      )
+      const presentGroups = TAG_CONFLICT_GROUPS.filter((group) => hasAnyTag(mergedTags, group.tags))
+      return { regionTag, regionCases, mergedTags, presentGroups }
+    })
+    .filter((candidate) => candidate.presentGroups.length >= 2)
+    .sort(compareTagConflictRegionCandidates)
+
+  const lead = rankedCandidates[0]
+  if (!lead) {
+    return null
+  }
+
+  return buildTagConflictValueStreamOpportunityCardFromCandidate(lead)
+}
+
+function formatHubDistrictLabel(districtKey: string) {
+  return districtKey.replace(/_/g, ' ')
+}
+
+function formatHubConfidenceLabel(confidence: number) {
+  return `${Math.round(confidence * 100)}% confidence`
+}
+
+function hubOpportunityTone(
+  accessState?: 'allowed' | 'blocked' | 'risky' | 'costly',
+  misleading?: boolean
+): FrontDeskNoticeTone {
+  if (accessState === 'blocked') return 'danger'
+  if (accessState === 'risky' || misleading) return 'warning'
+  if (accessState === 'costly') return 'warning'
+  return 'info'
+}
+
+function hubRumorTone(misleading?: boolean, filtered?: boolean): FrontDeskNoticeTone {
+  if (misleading) return 'warning'
+  if (filtered) return 'info'
+  return 'info'
+}
+
+export function buildHubOpportunityLeadCard(
+  game: GameState
+): FrontDeskHubOpportunityLeadView | null {
+  const hub = generateHubState(game)
+  const opportunity = hub.opportunities[0]
+  if (!opportunity) return null
+
+  const details = uniqueBounded(
+    [
+      `District: ${formatHubDistrictLabel(hub.districtKey)}.`,
+      opportunity.misleading ? 'Signal may be misleading — verify before acting.' : '',
+    ].filter((line) => line.length > 0),
+    MAX_PRESSURE_DETAILS
+  )
+
+  return {
+    id: opportunity.id,
+    title: opportunity.label,
+    summary: opportunity.detail,
+    tone: hubOpportunityTone(opportunity.accessState, opportunity.misleading),
+    factionId: opportunity.factionId,
+    confidenceLabel: formatHubConfidenceLabel(opportunity.confidence),
+    statusLabel: opportunity.accessState,
+    statusDetail: opportunity.accessExplanation,
+    misleading: opportunity.misleading === true,
+    details,
+    primaryHref: APP_ROUTES.factions,
+    primaryLinkLabel: 'Open factions',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
+}
+
+export function buildHubRumorLeadCard(game: GameState): FrontDeskHubRumorLeadView | null {
+  const hub = generateHubState(game)
+  const rumor = hub.rumors[0]
+  if (!rumor) return null
+
+  const details = uniqueBounded(
+    [
+      `District: ${formatHubDistrictLabel(hub.districtKey)}.`,
+      rumor.filtered ? 'Social filtering may be suppressing parts of this lead.' : '',
+      rumor.misleading ? 'Treat as potentially misleading until corroborated.' : '',
+    ].filter((line) => line.length > 0),
+    MAX_PRESSURE_DETAILS
+  )
+
+  return {
+    id: rumor.id,
+    title: rumor.label,
+    summary: rumor.detail,
+    tone: hubRumorTone(rumor.misleading, rumor.filtered),
+    confidenceLabel: formatHubConfidenceLabel(rumor.confidence),
+    misleading: rumor.misleading === true,
+    filtered: rumor.filtered === true,
+    details,
+    primaryHref: APP_ROUTES.factions,
+    primaryLinkLabel: 'Open factions',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
 }
 
 export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
@@ -1307,8 +1821,14 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     standingSummary: buildStandingSummary(game),
     latestReport: buildLatestReportView(game),
     courierCapacityOpportunity: buildCourierNetworkCapacityOpportunityCard(
-      buildCourierNetworkCapacityGapReport(game),
+      buildCourierNetworkCapacityGapReport(game)
     ),
+    procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
+    staffingReadinessOpportunity: buildStaffingReadinessOpportunityCard(game, operationsReport),
+    strategicActionBudgetOpportunity: buildStrategicActionBudgetOpportunityCard(game),
+    tagConflictValueStreamOpportunity: buildTagConflictValueStreamOpportunityCard(game),
+    hubOpportunityLead: buildHubOpportunityLeadCard(game),
+    hubRumorLead: buildHubRumorLeadCard(game),
     campaignRulesSummary: {
       title: 'Campaign profile & rules ledger',
       headline: rulesSummary.headline,

@@ -11,6 +11,24 @@ import {
   type DisguiseRevealIntegrationResult,
 } from './revealPayloadDisguiseIntegration'
 import {
+  applyHiddenStateIllusionLifecyclePass,
+  buildIllusionLifecycleContext,
+} from './hiddenStateIllusionLifecycle'
+import {
+  antiScanCompartmentScoutingScoreAdjustment,
+  outOfPhaseScoutingScoreAdjustment,
+} from './hiddenStateModality'
+import { evaluateHiddenStateModalityTell } from './hiddenStateModalityTells'
+import type { HiddenStateModalityTellResult } from './hiddenStateModalityTells'
+import {
+  applyHiddenStateScoutingReconCacheToCase,
+  scoutingReconCacheScoreAdjustment,
+} from './hiddenStateScoutingReconCache'
+import {
+  evaluateHiddenStateScoutingWithRevealPayload,
+  type HiddenStateScoutingRevealIntegrationResult,
+} from './revealPayloadScoutingIntegration'
+import {
   evaluateInfiltrationStageMissionPressure,
   type InfiltrationStageMissionPressureResult,
 } from './infiltrationProbe'
@@ -25,6 +43,7 @@ import { resolveWeakestLinkMission } from './weakestLinkResolution'
 import { resolveMajorIncidentOutcome, buildMajorIncidentEffectiveCase, isOperationalMajorIncidentCase } from './majorIncidentOperations'
 import { resolveRaid } from './sim/raid'
 import { resolveCase } from './sim/resolve'
+import type { CaseLifecycleTerminalDisposition } from './caseLifecycleWeeklyOrchestration'
 
 export interface WeeklyCaseResolutionStrategy {
   effectiveCase: CaseInstance
@@ -32,7 +51,10 @@ export interface WeeklyCaseResolutionStrategy {
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
+  terminalDisposition?: CaseLifecycleTerminalDisposition
   behaviorValidation?: DisguiseRevealIntegrationResult
+  hiddenStateModalityTell?: HiddenStateModalityTellResult
+  hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
   stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
@@ -142,22 +164,67 @@ export function resolveAssignedCaseForWeek(
       infiltrationAwareness: effectiveCase.infiltrationAwareness,
     },
   })
-  const resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
+  let resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
     effectiveCase,
     behaviorValidation
+  )
+  resolvedEffectiveCase = applyHiddenStateIllusionLifecyclePass(
+    resolvedEffectiveCase,
+    buildIllusionLifecycleContext(resolvedEffectiveCase)
+  )
+  const hiddenStateModalityTell = evaluateHiddenStateModalityTell({
+    caseData: resolvedEffectiveCase,
+    agents: assignedAgents,
+    disguiseValidationActive: behaviorValidation.active,
+  })
+  const hiddenStateScouting = evaluateHiddenStateScoutingWithRevealPayload({
+    caseData: resolvedEffectiveCase,
+    agents: assignedAgents,
+    teamTags: supportTags,
+    disguiseValidationActive: behaviorValidation.active,
+  })
+  if (hiddenStateScouting !== undefined) {
+    resolvedEffectiveCase = applyHiddenStateScoutingReconCacheToCase(
+      resolvedEffectiveCase,
+      hiddenStateScouting.detectionScan,
+      state.week
+    )
+  }
+  const reconCacheScore = scoutingReconCacheScoreAdjustment(resolvedEffectiveCase)
+  const scoutingAlignmentTags = [
+    ...new Set([
+      ...supportTags,
+      ...assignedAgents.flatMap((agent) => agent.tags ?? []),
+    ]),
+  ]
+  const outOfPhaseScore = outOfPhaseScoutingScoreAdjustment(
+    resolvedEffectiveCase,
+    scoutingAlignmentTags
+  )
+  const antiScanScore = antiScanCompartmentScoutingScoreAdjustment(
+    resolvedEffectiveCase,
+    scoutingAlignmentTags
   )
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
   const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =
     factionContext.scoreAdjustment +
     behaviorValidation.scoreAdjustment +
+    hiddenStateModalityTell.scoreAdjustment +
     infiltrationStageMission.scoreAdjustment +
-    stealthLeaveBehindMission.scoreAdjustment
+    stealthLeaveBehindMission.scoreAdjustment +
+    reconCacheScore.delta +
+    outOfPhaseScore.delta +
+    antiScanScore.delta
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
+    hiddenStateModalityTell.scoreAdjustmentReason,
     infiltrationStageMission.scoreAdjustmentReason,
     stealthLeaveBehindMission.scoreAdjustmentReason,
+    reconCacheScore.reason,
+    outOfPhaseScore.reason,
+    antiScanScore.reason,
   ]
     .filter(Boolean)
     .join(' / ')
@@ -275,13 +342,33 @@ export function resolveAssignedCaseForWeek(
             partyCardReasons: cardBonus?.reasons,
           })
   }
+
+  const missionResult =
+    outcome.result === 'success' || outcome.result === 'partial' || outcome.result === 'fail'
+      ? outcome.result
+      : undefined
+  resolvedEffectiveCase = applyHiddenStateIllusionLifecyclePass(resolvedEffectiveCase, {
+    ...buildIllusionLifecycleContext(resolvedEffectiveCase),
+    missionResult,
+  })
+
   return {
     effectiveCase: resolvedEffectiveCase,
     assignedAgents,
     assignedAgentLeaderBonuses,
     activeTeamStressModifiers,
     outcome,
+    terminalDisposition:
+      outcome.result === 'fail'
+        ? {
+            caseId: currentCase.id,
+            reason: 'failed',
+            terminalWeek: state.week,
+          }
+        : undefined,
     behaviorValidation,
+    hiddenStateModalityTell,
+    hiddenStateScouting,
     infiltrationStageMission,
     stealthLeaveBehindMission,
     weakestLinkResult,

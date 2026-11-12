@@ -71,7 +71,7 @@ describe('IntelPage', () => {
 
     expect(filterRegion).toBeInTheDocument()
     expect(screen.getByLabelText(/^search$/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/^mode$/i)).toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Mode' })).toBeInTheDocument()
     expect(screen.getByLabelText(/^kind$/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/^pressure$/i)).toBeInTheDocument()
   })
@@ -80,7 +80,7 @@ describe('IntelPage', () => {
     renderIntelPage(['/intel?mode=threshold'])
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/^mode$/i)).toHaveValue('threshold')
+      expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
     })
 
     expect(screen.getByTestId('location-search')).toHaveTextContent('?mode=threshold')
@@ -114,7 +114,7 @@ describe('IntelPage', () => {
     })
 
     expect(screen.getByLabelText(/^search$/i)).toHaveValue('')
-    expect(screen.getByLabelText(/^mode$/i)).toHaveValue('all')
+    expect(screen.getByRole('button', { name: 'All modes', pressed: true })).toBeInTheDocument()
     expect(screen.getByLabelText(/^kind$/i)).toHaveValue('all')
     expect(screen.getByLabelText(/^pressure$/i)).toHaveValue('all')
   })
@@ -124,7 +124,7 @@ describe('IntelPage', () => {
     renderIntelPage()
 
     await user.type(screen.getByLabelText(/^search$/i), 'incident')
-    await user.selectOptions(screen.getByLabelText(/^mode$/i), 'threshold')
+    await user.click(screen.getByRole('button', { name: 'Threshold' }))
     await user.selectOptions(screen.getByLabelText(/^kind$/i), 'case')
     await user.selectOptions(screen.getByLabelText(/^pressure$/i), 'critical')
 
@@ -146,7 +146,7 @@ describe('IntelPage', () => {
     expect(filterRegion).toBeInTheDocument()
 
     expect(screen.getByLabelText(/^search$/i)).toHaveAttribute('id')
-    expect(screen.getByLabelText(/^mode$/i)).toHaveAttribute('id')
+    expect(screen.getByRole('group', { name: 'Mode' })).toHaveAttribute('id')
     expect(screen.getByLabelText(/^kind$/i)).toHaveAttribute('id')
     expect(screen.getByLabelText(/^pressure$/i)).toHaveAttribute('id')
   })
@@ -158,7 +158,7 @@ describe('IntelPage', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/^search$/i)).toHaveValue('incident')
-      expect(screen.getByLabelText(/^mode$/i)).toHaveValue('threshold')
+      expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
       expect(screen.getByLabelText(/^kind$/i)).toHaveValue('case')
       expect(screen.getByLabelText(/^pressure$/i)).toHaveValue('critical')
     })
@@ -169,7 +169,7 @@ describe('IntelPage', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/^search$/i)).toHaveValue('incident')
-      expect(screen.getByLabelText(/^mode$/i)).toHaveValue('threshold')
+      expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
       expect(screen.getByLabelText(/^kind$/i)).toHaveValue('case')
       expect(screen.getByLabelText(/^pressure$/i)).toHaveValue('critical')
     })
@@ -189,7 +189,7 @@ describe('IntelPage', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText(/^search$/i)).toHaveValue('incident')
-      expect(screen.getByLabelText(/^mode$/i)).toHaveValue('threshold')
+      expect(screen.getByRole('button', { name: 'Threshold', pressed: true })).toBeInTheDocument()
       expect(screen.getByLabelText(/^kind$/i)).toHaveValue('case')
       expect(screen.getByLabelText(/^pressure$/i)).toHaveValue('critical')
     })

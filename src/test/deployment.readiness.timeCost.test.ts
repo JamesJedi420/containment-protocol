@@ -37,7 +37,8 @@ describe('deployment readiness and time-cost', () => {
       requiredRoles: [],
       requiredTags: [],
     }
-    for (const memberId of state.teams.t_nightwatch.memberIds ?? state.teams.t_nightwatch.agentIds) {
+    for (const memberId of state.teams.t_nightwatch.memberIds ??
+      state.teams.t_nightwatch.agentIds) {
       state.agents[memberId] = {
         ...state.agents[memberId],
         fatigue: 62,
@@ -104,7 +105,6 @@ describe('deployment readiness and time-cost', () => {
     }
     state.teams.t_nightwatch = {
       ...state.teams.t_nightwatch,
-      assignedCaseId: 'case-999',
       status: {
         ...(state.teams.t_nightwatch.status ?? { state: 'deployed', assignedCaseId: null }),
         state: 'deployed',
@@ -184,7 +184,8 @@ describe('deployment readiness and time-cost', () => {
     const state = createStartingState()
     const baseline = buildTeamDeploymentReadinessState(state, 't_nightwatch', 'case-001')
 
-    const memberId = state.teams.t_nightwatch.memberIds?.[0] ?? state.teams.t_nightwatch.agentIds[0]!
+    const memberId =
+      state.teams.t_nightwatch.memberIds?.[0] ?? state.teams.t_nightwatch.agentIds[0]!
     state.agents[memberId] = {
       ...state.agents[memberId],
       assignment: { state: 'training', startedWeek: state.week, teamId: 't_nightwatch' },
@@ -203,7 +204,9 @@ describe('deployment readiness and time-cost', () => {
     }
 
     const roundTripped = loadGameSave(serializeGameSave(state))
-    expect(roundTripped.teams.t_nightwatch.deploymentReadinessState?.readinessScore).toBeLessThanOrEqual(100)
+    expect(
+      roundTripped.teams.t_nightwatch.deploymentReadinessState?.readinessScore
+    ).toBeLessThanOrEqual(100)
   })
 
   // SPE-110: Construction burden tests
@@ -215,10 +218,15 @@ describe('deployment readiness and time-cost', () => {
       requiredTags: [],
     }
     // Add fatigue so the formula value sits below 100, making the 8-pt burden penalty observable.
-    for (const memberId of baseline.teams.t_nightwatch.memberIds ?? baseline.teams.t_nightwatch.agentIds) {
+    for (const memberId of baseline.teams.t_nightwatch.memberIds ??
+      baseline.teams.t_nightwatch.agentIds) {
       baseline.agents[memberId] = { ...baseline.agents[memberId]!, fatigue: 50 }
     }
-    const baseScore = buildTeamDeploymentReadinessState(baseline, 't_nightwatch', 'case-001').readinessScore
+    const baseScore = buildTeamDeploymentReadinessState(
+      baseline,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
 
     let withBurden = createStartingState()
     const clockId = getConstructionProgressClockId('case-001')
@@ -231,7 +239,8 @@ describe('deployment readiness and time-cost', () => {
         CONSTRUCTION_INCOMPLETE_FLAG,
       ],
     }
-    for (const memberId of withBurden.teams.t_nightwatch.memberIds ?? withBurden.teams.t_nightwatch.agentIds) {
+    for (const memberId of withBurden.teams.t_nightwatch.memberIds ??
+      withBurden.teams.t_nightwatch.agentIds) {
       withBurden.agents[memberId] = { ...withBurden.agents[memberId]!, fatigue: 50 }
     }
     withBurden = advanceDefinedProgressClock(withBurden, clockId, 1, {
@@ -239,14 +248,26 @@ describe('deployment readiness and time-cost', () => {
       max: CONSTRUCTION_PROGRESS_MAX,
     })
 
-    const burdenScore = buildTeamDeploymentReadinessState(withBurden, 't_nightwatch', 'case-001').readinessScore
+    const burdenScore = buildTeamDeploymentReadinessState(
+      withBurden,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
     expect(baseScore - burdenScore).toBe(CONSTRUCTION_READINESS_PENALTY)
   })
 
   it('does not apply construction burden when construction is complete', () => {
     const baseline = createStartingState()
-    baseline.cases['case-001'] = { ...baseline.cases['case-001']!, requiredRoles: [], requiredTags: [] }
-    const baseScore = buildTeamDeploymentReadinessState(baseline, 't_nightwatch', 'case-001').readinessScore
+    baseline.cases['case-001'] = {
+      ...baseline.cases['case-001']!,
+      requiredRoles: [],
+      requiredTags: [],
+    }
+    const baseScore = buildTeamDeploymentReadinessState(
+      baseline,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
 
     let withComplete = createStartingState()
     const clockId = getConstructionProgressClockId('case-001')
@@ -265,7 +286,11 @@ describe('deployment readiness and time-cost', () => {
       max: CONSTRUCTION_PROGRESS_MAX,
     })
 
-    const completedScore = buildTeamDeploymentReadinessState(withComplete, 't_nightwatch', 'case-001').readinessScore
+    const completedScore = buildTeamDeploymentReadinessState(
+      withComplete,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
     expect(completedScore).toBe(baseScore)
   })
 
@@ -276,10 +301,7 @@ describe('deployment readiness and time-cost', () => {
         ...s.cases['case-001']!,
         requiredRoles: [],
         requiredTags: [],
-        spatialFlags: [
-          ...(s.cases['case-001']?.spatialFlags ?? []),
-          CONSTRUCTION_INCOMPLETE_FLAG,
-        ],
+        spatialFlags: [...(s.cases['case-001']?.spatialFlags ?? []), CONSTRUCTION_INCOMPLETE_FLAG],
       }
       return advanceDefinedProgressClock(s, clockId, 1, {
         label: 'Construction: Test',
@@ -292,8 +314,16 @@ describe('deployment readiness and time-cost', () => {
     for (const key of Object.keys(lowStock.inventory)) lowStock.inventory[key] = 0
     highStock.inventory['medical_supplies'] = 20
 
-    const scoreA = buildTeamDeploymentReadinessState(lowStock, 't_nightwatch', 'case-001').readinessScore
-    const scoreB = buildTeamDeploymentReadinessState(highStock, 't_nightwatch', 'case-001').readinessScore
+    const scoreA = buildTeamDeploymentReadinessState(
+      lowStock,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
+    const scoreB = buildTeamDeploymentReadinessState(
+      highStock,
+      't_nightwatch',
+      'case-001'
+    ).readinessScore
     expect(scoreA).toBe(scoreB)
   })
 })

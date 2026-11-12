@@ -1,0 +1,104 @@
+# Playwright E2E harness (SPE-3458)
+
+Shared Chromium browser verification for Containment Protocol. Academy may later reuse the same config; do not add a second framework.
+
+## Commands
+
+| Task                         | Command                           |
+| ---------------------------- | --------------------------------- |
+| Local E2E                    | `npm run test:e2e`                |
+| CI-shaped E2E                | `npm run test:e2e:ci`             |
+| Intercepted error SDK checks | `npm run test:errors`             |
+| Install Chromium             | `npx playwright install chromium` |
+| HTML report (after run)      | `npx playwright show-report`      |
+
+Vite starts via Playwright `webServer` (`npm run dev` on `127.0.0.1:5173`). Locally, an already-running dev server is reused when `CI` is unset.
+
+## Scope
+
+Bounded Chromium player smokes (`e2e/cp-smoke.spec.ts`) — player-loop proof, not page-count coverage. Deep sim stays Vitest.
+
+1. Startup + primary navigation with page-error detection
+2. Agents roster surface load
+3. One Advance Week through `data-testid="topbar-advance-button"`
+4. Hard reload continuity via Zustand `localStorage` key `containment-protocol-game-state`
+5. Mission Board “Launch with…” (open case + recommended assign)
+6. Manual Assign from open triage (distinct from Launch)
+7. Hire after week advance (roster total increases)
+8. Agency maintenance package purchase (funding + recovery budget deltas)
+9. Containment Site `SystemBoundaryPage` load + Cases handoff
+10. Shell accessibility contract — skip link, single `main`, week-close announcement (`e2e/a11y-keyboard-landmarks.spec.ts`, SPE-1080)
+
+Harness isolation specs live in `e2e/harness-isolation.spec.ts`.
+
+### Error-reporting verification (SPE-3729)
+
+`npm run test:errors` reuses this Chromium harness with a dedicated Vite server on
+port 5198. It verifies disabled ordinary automation, blocked storage, unavailable
+ingest and explicitly opted-in React/global errors. All ingest requests are
+intercepted; no live report is sent by this suite. The React error case uses a
+constructed fixture, while the normal-startup and unavailable-ingest checks load
+the real game. `test:e2e:ci` runs the player suite followed by these checks, with
+separate error artifacts/report output. See [Better Stack errors](better-stack-errors.md)
+for the distinct live synthetic verification procedure.
+
+### Accessibility spec boundary
+
+`e2e/a11y-keyboard-landmarks.spec.ts` asserts only what the browser accessibility tree and focus model can prove: the skip link is the first tab stop and moves focus to `#main-content`, the shell exposes exactly one `main` with routed regions nested inside it, the week-close status is a polite atomic live region with a report link, a second advance updates that same live region in place, and the agent detail routes render the dossier as a named region instead of a second `main`.
+
+It is **not** a screen-reader pass, and it does not use axe. Audit rows S5–S6 and the axe proposal in [accessibility-audit.md](./accessibility-audit.md) §5.2 stay open until a human runs NVDA/VoiceOver and the axe dependency is approved.
+
+## Artifacts
+
+Failures retain Playwright traces and screenshots under `test-results/playwright/` and HTML under `playwright-report/`. Both are gitignored. CI uploads them from the `playwright-e2e` job.
+
+## CI selection (SPE-3348 / SPE-3481 / SPE-3482 / SPE-3483)
+
+Playwright is registered in `scripts/validation/validators.v1.json` as `playwright-e2e`.
+
+- **Required** when `e2e/**`, `playwright.config.ts`, or listed player-critical / smoke-path surfaces change (Front Desk, Advance Week shell, `gameStore`, `AppShell`, Cases + `caseView` / Case detail, Agents, Recruitment, Agency maintenance, Containment Site `SystemBoundaryPage` — see `requiredWhen` in the registry).
+- **Advisory** when selected for other player-path UI changes (`src/app/**`, `src/features/**`, …) that do not match `requiredWhen`.
+- **Not selected** when the change set does not match activation rules (job skips install/run).
+
+The `playwright-e2e` job uses `emit-playwright-gate.mjs` for `selected` / `enforcement`. `continue-on-error` applies only when enforcement is not `required`. See [repository-validation-requirements.md](./repository-validation-requirements.md).
+
+Existing Vitest/lint/governance gates run through the shared `verify:requirements` orchestrator in the `test` job (Playwright excluded there because of browser install).
+
+## Dependency review (SPE-3458)
+
+| Package            | Version  | License    | Notes                                                     |
+| ------------------ | -------- | ---------- | --------------------------------------------------------- |
+| `@playwright/test` | `1.65.0` | Apache-2.0 | DevDependency only; Chromium via `npx playwright install` |
+
+Sonatype MCP was unavailable during install (`mcp_auth` timeout). npm registry metadata: maintained Apache-2.0 Playwright Test. Optional Snyk package health was not authenticated. Re-run Sonatype `/check-dependency` when MCP is ready; do not weaken lockfile discipline.
+
+`1.65.0` is the declared and locked version. The 1.64.1 → 1.65.0 review is recorded in [the SPE-3737 slice](../planning/spe-3737-dependency-upgrades-slice.md): exact registry metadata plus OSV queries found no advisory on the changed packages or on the seven changed bundled identities, while two unchanged bundled identities (`minimatch 10.2.5`, `ip-address 10.7.2`) remain unresolved moderate findings — present at the same versions in 1.64.1. This table records review provenance and version state only; it does not assert an absence of vulnerabilities.
+
+## Optional Cursor Playwright MCP
+
+Local browser inspection only — not an implementation or approval agent.
+
+1. Install the Playwright MCP / Cursor Playwright plugin in the Cursor UI (human install).
+2. Keep credentials and MCP server lists in **local** `.cursor/mcp.json` (gitignored). Do not commit MCP config or tokens.
+3. Prefer least privilege: navigate/snapshot/console against `http://127.0.0.1:5173` only.
+4. Do not treat MCP sessions as CI evidence or as a rival work-selection authority.
+
+## Flaky / unavailable environments
+
+- Prefer one worker, Chromium-only, bounded retries (`playwright.config.ts`).
+- Do not skip failing assertions to force green.
+- If Vite/Chromium fails to boot, leave the failure visible and attribute underlying app/compiler defects to their owners (e.g. SPE-3375 / SPE-3376). Do not invent production debug commands for setup.
+
+## Preflight evidence (base `5eac65c7`)
+
+| Check                | Result                                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node                 | CI uses Node 22; local preflight observed Node 24 — harness targets CI Node 22                                                                                              |
+| `npm run dev`        | Vite ready on `:5173`                                                                                                                                                       |
+| Prior Chromium error | **Reproduced** before fix: `SyntaxError: Identifier 'buildReportCaseSnapshots' has already been declared` from `runTransfer.ts` importing and re-declaring the same binding |
+| Attribution          | Duplicate local export removed as SPE-3458 preflight unblock; broader TypeScript census remains SPE-3375 / SPE-3376                                                         |
+| After unblock        | Front Desk renders; no page errors on cold load                                                                                                                             |
+
+## Hermes / Cursor handoff
+
+One approved Linear issue ([SPE-3458](https://linear.app/spectranoir/issue/SPE-3458)) owns this harness. Hermes may carry authorized handoffs; Playwright does not select work or approve backlog.

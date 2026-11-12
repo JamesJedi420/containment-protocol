@@ -21,7 +21,7 @@ import {
   getWeeklyDirectiveDefinitions,
 } from '../../domain/directives'
 import { formatLatestReportRollup } from '../../domain/reportNotes'
-import { RunTransferPanel } from './RunTransferPanel'
+import { RunTransferPanel } from '../../components/RunTransferPanel'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { EventFeedPanel } from './EventFeedPanel'
 import { OperationsDeskPanels } from './OperationsDeskPanels'
@@ -31,9 +31,9 @@ import {
   getPriorityCaseViews,
   getAtRiskTeamViews,
 } from './dashboardView'
-import { TrendSummaryPanel } from './TrendSummaryPanelProjection'
+import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 import { getDashboardRunTrendSummary } from './dashboardReportProjection'
-import { OperationsLeftPanel } from './OperationsLeftPanelProjection'
+import { OperationsLeftPanel } from '../../components/OperationsLeftPanel'
 
 const presetConfigs = {
   forgiving: {

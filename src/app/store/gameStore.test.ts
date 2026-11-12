@@ -1,24 +1,38 @@
+import { buildAgentCandidate } from '../../test/recruitment/fixtures'
+import { buildCandidateEvaluation } from '../../domain/recruitment'
 // cspell:words cand greentape medkits unassigns unequip
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import { createStartingState } from '../../data/startingState'
 import {
+  attemptContainmentRequirementFulfillment,
+  containmentRequirementRegistryKey,
+  openContainmentRequirementWindow,
+} from '../../domain/containmentRequirementFulfillment'
+import {
   applySuccessfulInvestigation,
   buildInvestigationAskedFlagId,
 } from '../../domain/investigationEconomy'
 import { readPersistentFlag } from '../../domain/flagSystem'
+import type { AuthoredChoiceDefinition } from '../../domain/choiceSystem'
 import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
 import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
 import type { AgentData, Candidate } from '../../domain/models'
 import { advanceWeek as advanceWeekDomain } from '../../domain/sim/advanceWeek'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import { hireCandidate as hireCandidateDomain } from '../../domain/sim/hire'
 import { scoutCandidate as scoutCandidateDomain } from '../../domain/sim/recruitmentScouting'
 import {
   equipAgentItem as equipAgentItemDomain,
   unequipAgentItem as unequipAgentItemDomain,
 } from '../../domain/sim/equipment'
+import { instantiateEquipmentInstance } from '../../domain/equipmentInstance'
+import {
+  BLAST_DOOR_SPARE_PART_ID,
+  PRESSURE_SEAL_SPARE_PART_ID,
+} from '../../domain/sparePartSuitability'
 import { queueFabrication as queueFabricationDomain } from '../../domain/sim/production'
 import { GAME_STORE_VERSION } from './runTransfer'
 import { hydrateGame, parseRunExport, serializeRunExport } from './runTransfer'
@@ -48,14 +62,69 @@ import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
 import { assignSquadKit } from '../../domain/squadKitAssignment'
 import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { recomputeMissionRouting } from '../../domain/missionIntakeRouting'
+import { COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE } from '../../domain/affiliationPersonStatusRecords'
+import * as affiliationPersonStatusRecords from '../../domain/affiliationPersonStatusRecords'
+import {
+  HOSTILE_TO_COOPERATIVE_FIXTURE,
+  PENDING_TO_APPROVED_FIXTURE,
+  validateEntityWelfareReclassificationRecord,
+} from '../../domain/entityWelfareReclassificationRegistry'
+import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
+import {
+  buildAffiliationFileWorkQueueEvidenceResolutionRecord,
+  buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
+} from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecord,
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecordId,
+} from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
+import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { buildAffiliationFileWorkQueueNonMissionEnforcementRecordId } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
+import {
+  buildAffiliationFileWorkQueueEvidenceRepairWorkflowId,
+  buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
+} from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
+import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
+import {
+  createHistoricalRouteMemoryGraph,
+  reactivateHistoricalRouteEdges,
+  rememberHistoricalRouteActivation,
+} from '../../domain/historicalRouteMemory'
+import type { HistoricalRouteReplayActivationCandidate } from '../../domain/historicalRouteReplayActivation'
+import { normalizeHistoricalRouteReplayRegistry } from '../../domain/historicalRouteReplay'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
+function makeCooperativeContractorCandidate(): Candidate {
+  return buildAgentCandidate({
+    id: 'candidate:cooperative-contractor',
+    name: 'Cooperative Contractor',
+    age: 31,
+    category: 'agent',
+    hireStatus: 'available',
+    weeklyCost: 20,
+    weeklyWage: 20,
+    revealLevel: 2,
+    expiryWeek: 8,
+    origin: 'open-call',
+    roleInclination: 'field',
+    skills: ['recon-sweep', 'pathing'],
+    liabilities: ['deadline-pressure'],
+    funnelStage: 'hired',
+    createdWeek: 1,
+    lastUpdatedWeek: 1,
+    evaluation: buildCandidateEvaluation(2, {}),
+    agentData: { role: 'field', specialization: 'field', traits: [] },
+  })
+}
+
 function getPersistedState() {
   return useGameStore.persist.getOptions().storage?.getItem(STORE_KEY) as
-    | { state: { game: Record<string, unknown> }; version: number }
-    | null
-    | undefined
+    { state: { game: Record<string, unknown> }; version: number } | null | undefined
 }
 
 function makeLiveSupportOperationState() {
@@ -178,7 +247,9 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().game).toBe(afterFirstAsk)
 
-    useGameStore.getState().askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
 
     expect(useGameStore.getState().game).toBe(afterFirstAsk)
 
@@ -217,7 +288,9 @@ describe('gameStore', () => {
       status: 'in_progress',
       hiddenState: 'hidden',
       tags: ['infiltration'],
-      infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+      infiltrationProbePlan: copyInfiltrationProbePlan(
+        caseTemplateMap['ops-004'].infiltrationProbePlan
+      ),
       requiredTags: [],
       preferredTags: [],
       assignedTeamIds: [],
@@ -225,16 +298,20 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game })
 
-    useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', 'probe_route')
+    useGameStore
+      .getState()
+      .setInfiltrationWeeklyProbeAction('case-infiltration-store', 'probe_route')
 
     expect(
-      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+      useGameStore.getState().game.cases['case-infiltration-store']
+        ?.infiltrationWeeklyProbeActionOverride
     ).toBe('probe_route')
 
     useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', null)
 
     expect(
-      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+      useGameStore.getState().game.cases['case-infiltration-store']
+        ?.infiltrationWeeklyProbeActionOverride
     ).toBeUndefined()
 
     useGameStore.getState().setInfiltrationWeeklyProbeAction('missing-case', 'cleanup')
@@ -246,12 +323,14 @@ describe('gameStore', () => {
     useGameStore.getState().assign('case-001', 't_nightwatch')
 
     expect(useGameStore.getState().game.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(useGameStore.getState().game.teams['t_nightwatch'].assignedCaseId).toBe('case-001')
+    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBe(
+      'case-001'
+    )
 
     useGameStore.getState().unassign('case-001', 't_nightwatch')
 
     expect(useGameStore.getState().game.cases['case-001'].assignedTeamIds).toEqual([])
-    expect(useGameStore.getState().game.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBeNull()
   })
 
   it('advances the simulation and appends a report', () => {
@@ -289,8 +368,12 @@ describe('gameStore', () => {
     useGameStore.getState().advanceWeek()
 
     const next = useGameStore.getState().game
-    const baselineShortfalls = Object.values(baselineResult.cases).filter((currentCase) => currentCase.supportShortfall)
-    const nextShortfalls = Object.values(next.cases).filter((currentCase) => currentCase.supportShortfall)
+    const baselineShortfalls = Object.values(baselineResult.cases).filter(
+      (currentCase) => currentCase.supportShortfall
+    )
+    const nextShortfalls = Object.values(next.cases).filter(
+      (currentCase) => currentCase.supportShortfall
+    )
 
     expect(nextShortfalls).toHaveLength(0)
     expect(baselineShortfalls).toHaveLength(2)
@@ -339,6 +422,767 @@ describe('gameStore', () => {
     expect(game.inventory.debug_supplies).toBe(2)
   })
 
+  it('recordSceneVisit fires SPE-1605 enter_zone historical-route replay interaction start (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().recordSceneVisit({
+      locationId: 'location:old-coach-road',
+      sceneId: 'scene:old-coach-road-moor',
+    })
+
+    const afterMatch = useGameStore.getState().game
+    const matched = normalizeHistoricalRouteReplayRegistry(afterMatch.historicalRouteReplays)
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-enter'])
+    expect(matched['event:phantom-coach-enter']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-enter']?.currentAnchorId).toBe('anchor:moor-road')
+
+    useGameStore.getState().recordSceneVisit({
+      locationId: 'location:old-coach-road',
+      sceneId: 'scene:unrelated-yard',
+    })
+
+    const afterNoMatch = useGameStore.getState().game
+    expect(normalizeHistoricalRouteReplayRegistry(afterNoMatch.historicalRouteReplays)).toEqual(
+      matched
+    )
+    expect(afterNoMatch.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
+  })
+
+  it('applyAuthoredChoice scene visits fire SPE-1605 enter_zone historical-route replay starts (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-authored-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+    const choice: AuthoredChoiceDefinition = {
+      id: 'choice:old-coach-road-enter',
+      label: 'Enter the old coach road',
+      consequences: [
+        {
+          type: 'record_scene_visit',
+          entry: {
+            locationId: 'location:old-coach-road',
+            sceneId: 'scene:old-coach-road-moor',
+          },
+        },
+      ],
+    }
+    const missingLocationChoice: AuthoredChoiceDefinition = {
+      ...choice,
+      id: 'choice:old-coach-road-enter-missing-location',
+      consequences: [
+        {
+          type: 'record_scene_visit',
+          entry: {
+            locationId: '',
+            sceneId: 'scene:old-coach-road-moor',
+          },
+        },
+      ],
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    const missingLocation = useGameStore.getState().applyAuthoredChoice(missingLocationChoice)
+    expect(missingLocation.sceneVisits).toEqual(['scene:old-coach-road-moor'])
+    expect(
+      normalizeHistoricalRouteReplayRegistry(missingLocation.state.historicalRouteReplays)
+    ).toEqual({})
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    const result = useGameStore.getState().applyAuthoredChoice(choice)
+
+    const matched = normalizeHistoricalRouteReplayRegistry(result.state.historicalRouteReplays)
+    expect(result.sceneVisits).toEqual(['scene:old-coach-road-moor'])
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-authored-enter'])
+    expect(matched['event:phantom-coach-authored-enter']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-authored-enter']?.currentAnchorId).toBe('anchor:moor-road')
+    expect(useGameStore.getState().game.historicalRouteReplays).toEqual(
+      result.state.historicalRouteReplays
+    )
+  })
+
+  it('week-close still ignores interaction-only historical-route replay candidates (SPE-3034)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const interactionOnly: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-enter',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'enter_zone',
+        interactionId: 'scene:old-coach-road-moor',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        week: 3,
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [interactionOnly],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
+  it('askInvestigationQuestion fires SPE-1605 interview_witness historical-route replay start (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    let game = createStartingState()
+    game.cases['case-investigation-store'] = {
+      ...createStarterCase({ id: 'case-investigation-store', templateId: 'ops-003' }),
+      status: 'in_progress',
+      weeksRemaining: 2,
+      assignedTeamIds: [],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    game = applySuccessfulInvestigation(game, {
+      caseId: 'case-investigation-store',
+      forensicBudget: 2,
+      tacticalBudget: 0,
+    })
+    game = {
+      ...game,
+      historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+      historicalRouteReplayActivationCandidates: [matchingCandidate],
+      historicalRouteReplays: {},
+    }
+
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    const afterMatch = useGameStore.getState().game
+    const matched = normalizeHistoricalRouteReplayRegistry(afterMatch.historicalRouteReplays)
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-interview'])
+    expect(matched['event:phantom-coach-interview']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-interview']?.currentAnchorId).toBe('anchor:moor-road')
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('case-investigation-store', 'forensic', 'forensic.missing-proof')
+
+    const afterDifferentQuestion = useGameStore.getState().game
+    expect(
+      normalizeHistoricalRouteReplayRegistry(afterDifferentQuestion.historicalRouteReplays)
+    ).toEqual(matched)
+    expect(afterDifferentQuestion.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
+
+    const frozenRegistry = afterDifferentQuestion.historicalRouteReplays
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(useGameStore.getState().game.historicalRouteReplays).toBe(frozenRegistry)
+  })
+
+  it('rejected askInvestigationQuestion does not activate interview_witness candidates (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    let game = createStartingState()
+    game.cases['case-investigation-store'] = {
+      ...createStarterCase({ id: 'case-investigation-store', templateId: 'ops-003' }),
+      status: 'in_progress',
+      weeksRemaining: 2,
+      assignedTeamIds: [],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    game = applySuccessfulInvestigation(game, {
+      caseId: 'case-investigation-store',
+      forensicBudget: 1,
+      tacticalBudget: 0,
+    })
+    game = {
+      ...game,
+      historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+      historicalRouteReplayActivationCandidates: [matchingCandidate],
+      historicalRouteReplays: {},
+    }
+
+    useGameStore.setState({ game })
+    const beforeMissingCase = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
+
+    expect(useGameStore.getState().game).toBe(beforeMissingCase)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+
+    useGameStore.setState({
+      game: {
+        ...beforeMissingCase,
+        cases: {
+          ...beforeMissingCase.cases,
+          'case-investigation-store': {
+            ...beforeMissingCase.cases['case-investigation-store']!,
+            status: 'resolved',
+          },
+        },
+      },
+    })
+    const resolvedSnapshot = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(useGameStore.getState().game).toBe(resolvedSnapshot)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
+  it('week-close still ignores interview_witness-only historical-route replay candidates (SPE-3035)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const interactionOnly: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-interview',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'interview_witness',
+        interactionId: 'forensic.present-signature',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        week: 3,
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [interactionOnly],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
+  it('applySiteExplorationSearch fires SPE-1605 search historical-route replay start (SPE-3040)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-search',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'search',
+        interactionId: 'case-site-search-store',
+      },
+    }
+
+    const starter = createStartingState()
+    const explorationCase = {
+      ...createStarterCase({ id: 'case-site-search-store', templateId: 'ops-003' }),
+      status: 'in_progress' as const,
+      weeksRemaining: 2,
+      assignedTeamIds: [] as string[],
+      requiredTags: [] as string[],
+      preferredTags: [] as string[],
+      spatialFlags: ['ingress:service_door'],
+      mapLayer: {
+        authoringMode: 'map-metadata-first' as const,
+        legend: [],
+        zones: [],
+        routes: [],
+        occupierKnownRouteIds: [],
+        scaleAnchors: [],
+      },
+    }
+    const otherExplorationCase = {
+      ...explorationCase,
+      id: 'case-site-search-other',
+      title: 'Other exploration site',
+    }
+
+    useGameStore.setState({
+      game: {
+        ...starter,
+        cases: {
+          ...starter.cases,
+          'case-site-search-store': explorationCase,
+          'case-site-search-other': otherExplorationCase,
+        },
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().applySiteExplorationSearch('case-site-search-store')
+
+    const afterMatch = useGameStore.getState().game
+    const matched = normalizeHistoricalRouteReplayRegistry(afterMatch.historicalRouteReplays)
+    expect(Object.keys(matched)).toEqual(['event:phantom-coach-search'])
+    expect(matched['event:phantom-coach-search']?.phase).toBe('approaching')
+    expect(matched['event:phantom-coach-search']?.currentAnchorId).toBe('anchor:moor-road')
+
+    useGameStore.getState().applySiteExplorationSearch('case-site-search-other')
+
+    const afterDifferentCase = useGameStore.getState().game
+    expect(
+      normalizeHistoricalRouteReplayRegistry(afterDifferentCase.historicalRouteReplays)
+    ).toEqual(matched)
+    expect(afterDifferentCase.historicalRouteReplays).toEqual(afterMatch.historicalRouteReplays)
+
+    // Search can apply again mid-week; activator must stay approaching (no SPE-3018 advance).
+    useGameStore.getState().applySiteExplorationSearch('case-site-search-store')
+
+    const afterRepeat = useGameStore.getState().game
+    const repeated = normalizeHistoricalRouteReplayRegistry(afterRepeat.historicalRouteReplays)
+    expect(repeated).toEqual(matched)
+    expect(repeated['event:phantom-coach-search']?.phase).toBe('approaching')
+    expect(repeated['event:phantom-coach-search']?.currentAnchorId).toBe('anchor:moor-road')
+  })
+
+  it('rejected applySiteExplorationSearch does not activate search candidates (SPE-3040)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const matchingCandidate: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-search',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'search',
+        interactionId: 'case-site-search-store',
+      },
+    }
+
+    const starter = createStartingState()
+    const explorationCase = {
+      ...createStarterCase({ id: 'case-site-search-store', templateId: 'ops-003' }),
+      status: 'in_progress' as const,
+      weeksRemaining: 2,
+      assignedTeamIds: [] as string[],
+      requiredTags: [] as string[],
+      preferredTags: [] as string[],
+      spatialFlags: ['ingress:service_door'],
+      mapLayer: {
+        authoringMode: 'map-metadata-first' as const,
+        legend: [],
+        zones: [],
+        routes: [],
+        occupierKnownRouteIds: [],
+        scaleAnchors: [],
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...starter,
+        cases: {
+          ...starter.cases,
+          'case-site-search-store': explorationCase,
+        },
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [matchingCandidate],
+        historicalRouteReplays: {},
+      },
+    })
+    const beforeMissingCase = useGameStore.getState().game
+
+    useGameStore.getState().applySiteExplorationSearch('missing-case')
+
+    expect(useGameStore.getState().game).toBe(beforeMissingCase)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+
+    useGameStore.setState({
+      game: {
+        ...beforeMissingCase,
+        cases: {
+          ...beforeMissingCase.cases,
+          'case-site-search-store': {
+            ...beforeMissingCase.cases['case-site-search-store']!,
+            spatialFlags: [],
+            mapLayer: undefined,
+          },
+        },
+      },
+    })
+    const notExplorationSnapshot = useGameStore.getState().game
+
+    useGameStore.getState().applySiteExplorationSearch('case-site-search-store')
+
+    expect(useGameStore.getState().game).toBe(notExplorationSnapshot)
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
+  it('week-close still ignores search-only historical-route replay candidates (SPE-3040)', () => {
+    const empty = createHistoricalRouteMemoryGraph('site:old-coach-road')
+    if (!empty) throw new Error('fixture graph was not created')
+    const remembered = rememberHistoricalRouteActivation(empty, {
+      activationId: 'activation:historical-crash',
+      anchors: [
+        { id: 'anchor:moor-road', kind: 'activation_point' },
+        { id: 'anchor:coach-road', kind: 'landmark' },
+        { id: 'anchor:broken-parapet', kind: 'historical_exit' },
+      ],
+      edges: [
+        {
+          id: 'edge:moor-coach-road',
+          routeKind: 'recurring_site',
+          fromAnchorId: 'anchor:moor-road',
+          toAnchorId: 'anchor:coach-road',
+        },
+        {
+          id: 'edge:coach-road-parapet',
+          routeKind: 'historical_exit',
+          fromAnchorId: 'anchor:coach-road',
+          toAnchorId: 'anchor:broken-parapet',
+        },
+      ],
+    })
+    const graph = reactivateHistoricalRouteEdges(remembered, 'activation:current-night', [
+      'edge:moor-coach-road',
+      'edge:coach-road-parapet',
+    ])
+    const interactionOnly: HistoricalRouteReplayActivationCandidate = {
+      eventId: 'event:phantom-coach-search',
+      activationId: 'activation:current-night',
+      originAnchorId: 'anchor:moor-road',
+      terminalAnchorId: 'anchor:broken-parapet',
+      startCondition: {
+        kind: 'interaction',
+        interactionKind: 'search',
+        interactionId: 'case-site-search-store',
+      },
+    }
+
+    useGameStore.setState({
+      game: {
+        ...createStartingState(),
+        week: 3,
+        historicalRouteMemoryGraphs: { [graph.siteId]: graph },
+        historicalRouteReplayActivationCandidates: [interactionOnly],
+        historicalRouteReplays: {},
+      },
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    expect(
+      normalizeHistoricalRouteReplayRegistry(useGameStore.getState().game.historicalRouteReplays)
+    ).toEqual({})
+  })
+
   it('executes authored choices through the store and returns structured results', () => {
     const choice = buildWeeklyReportTutorialChoices()[0]
 
@@ -353,7 +1197,9 @@ describe('gameStore', () => {
       consumedOneShots: ['frontdesk.tutorial.weekly-report'],
     })
     expect(
-      useGameStore.getState().game.runtimeState?.globalFlags['frontdesk.tutorial.weekly-report.acknowledged']
+      useGameStore.getState().game.runtimeState?.globalFlags[
+        'frontdesk.tutorial.weekly-report.acknowledged'
+      ]
     ).toBe(true)
     expect(useGameStore.getState().game.runtimeState?.ui.debug.eventLog).toEqual(
       expect.arrayContaining([
@@ -366,12 +1212,12 @@ describe('gameStore', () => {
   })
 
   it('logs one-shot consumption only once when repeat-trigger prevention holds', () => {
-    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
-      true
-    )
-    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
-      false
-    )
+    expect(
+      useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')
+    ).toBe(true)
+    expect(
+      useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')
+    ).toBe(false)
 
     const oneShotLogs = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).filter(
       (entry) => entry.type === 'one_shot.consumed'
@@ -400,15 +1246,20 @@ describe('gameStore', () => {
     expect(firstId).toBe('qevt-0001')
     expect(secondId).toBe('qevt-0002')
     expect(useGameStore.getState().peekRuntimeEvent()).toBe('qevt-0001')
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
-      'followup.alpha',
-      'followup.beta',
-    ])
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toEqual(['followup.alpha', 'followup.beta'])
 
     expect(useGameStore.getState().dequeueRuntimeEvent()).toBe('qevt-0001')
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
-      'followup.beta',
-    ])
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toEqual(['followup.beta'])
 
     expect(useGameStore.getState().clearRuntimeEventQueue()).toBe(1)
     expect(useGameStore.getState().listRuntimeEventQueue()).toEqual([])
@@ -424,7 +1275,7 @@ describe('gameStore', () => {
   it('runs bounded debug reset actions without mutating unrelated simulation state', () => {
     useGameStore.getState().setPersistentFlag('reset.test.flag', true)
     useGameStore.getState().markOneShotEvent('reset.test.one-shot', 'debug')
-    useGameStore.getState().advanceProgressClock('reset.test.clock', 2, {
+    useGameStore.getState().advanceProgressClock('debug.reset.test.clock', 2, {
       label: 'Reset Test Clock',
       max: 4,
     })
@@ -451,7 +1302,7 @@ describe('gameStore', () => {
       clearEncounterRuntime: { clearAll: true },
       resetFlags: { flagIds: ['reset.test.flag'] },
       resetOneShots: { contentIds: ['reset.test.one-shot'] },
-      resetProgressClocks: { clockIds: ['reset.test.clock'], resetToDefaults: false },
+      resetProgressClocks: { clockIds: ['debug.reset.test.clock'], resetToDefaults: false },
       resetAuthoredDebugContext: true,
     })
 
@@ -469,7 +1320,7 @@ describe('gameStore', () => {
     const game = useGameStore.getState().game
     expect(game.runtimeState?.globalFlags['reset.test.flag']).toBeUndefined()
     expect(game.runtimeState?.oneShotEvents['reset.test.one-shot']).toBeUndefined()
-    expect(game.runtimeState?.progressClocks['reset.test.clock']).toMatchObject({
+    expect(game.runtimeState?.progressClocks['debug.reset.test.clock']).toMatchObject({
       value: 0,
       max: 4,
     })
@@ -571,9 +1422,12 @@ describe('gameStore', () => {
       value: 1,
       max: 3,
     })
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toContain(
-      'frontdesk.encounter.alpha.after-action'
-    )
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toContain('frontdesk.encounter.alpha.after-action')
 
     const logs = game.runtimeState?.ui.debug.eventLog ?? []
     expect(logs).toEqual(
@@ -751,7 +1605,9 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game: initial })
 
-    expect(useGameStore.getState().contactCandidate('cand-funnel-store', 'initial outreach')).toBe(true)
+    expect(useGameStore.getState().contactCandidate('cand-funnel-store', 'initial outreach')).toBe(
+      true
+    )
     expect(useGameStore.getState().screenCandidate('cand-funnel-store', 'screen packet')).toBe(true)
 
     expect(useGameStore.getState().game.candidates[0]).toMatchObject({
@@ -776,6 +1632,492 @@ describe('gameStore', () => {
     expectCanonicalTeams(useGameStore.getState().game)
   })
 
+  it('destroyStoredEquipmentInstance clears an idle equipped ordinary copy without restoring stock', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().destroyStoredEquipmentInstance(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(1)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_destroyed')
+    ).toHaveLength(1)
+  })
+
+  it('repairStoredEquipmentInstanceCondition supplies the blast-door spare part without clearing hard-stop', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.facilityStockpile = { [BLAST_DOOR_SPARE_PART_ID]: 2 }
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    const instance = next.equipmentInstances?.[created.instance.instanceId]
+    expect(instance?.condition).toBe('operational')
+    expect(instance?.containmentIntegrity?.deficiency).toEqual({ kind: 'hard_stop' })
+    expect(next.inventory.ward_seals).toBe(0)
+    expect(next.facilityStockpile).toEqual({ [BLAST_DOOR_SPARE_PART_ID]: 1 })
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
+  })
+
+  it('repairs a pressure seal with one gasket and emits only the existing repair event', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.facilityStockpile = { [PRESSURE_SEAL_SPARE_PART_ID]: 2 }
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const integrityBefore = structuredClone(created.instance.containmentIntegrity)
+    const eventCountBefore = created.state.events.length
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    const instance = next.equipmentInstances?.[created.instance.instanceId]
+    expect(instance?.condition).toBe('operational')
+    expect(instance?.containmentIntegrity).toEqual(integrityBefore)
+    expect(next.inventory.ward_seals).toBe(0)
+    expect(next.facilityStockpile).toEqual({ [PRESSURE_SEAL_SPARE_PART_ID]: 1 })
+    expect(next.events).toHaveLength(eventCountBefore + 1)
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          previousCondition: 'damaged',
+          condition: 'operational',
+          reason: 'manual_condition_repair',
+        }),
+      }),
+    ])
+  })
+
+  it('does not mutate a pressure seal or emit a repair event when gasket stock is unavailable', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'pressure_seal',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const before = structuredClone(created.state)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.equipmentInstances?.[created.instance.instanceId]).toEqual(
+      before.equipmentInstances?.[created.instance.instanceId]
+    )
+    expect(next.facilityStockpile).toBeUndefined()
+    expect(next.inventory).toEqual(before.inventory)
+    expect(next.events).toEqual(before.events)
+  })
+
+  it('repairStoredEquipmentInstanceCondition fail-closes missing named stock without a repair event', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      condition: 'damaged',
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().repairStoredEquipmentInstanceCondition(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.equipmentInstances?.[created.instance.instanceId]?.condition).toBe('damaged')
+    expect(next.facilityStockpile).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_condition_repaired')
+    ).toEqual([])
+  })
+
+  it('stabilizeContainmentClassDeficiency wires technician relief without replacing week-close inspect', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.week = 5
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+
+    const relieved = useGameStore.getState().game
+    const relievedInstance = relieved.equipmentInstances?.[created.instance.instanceId]
+    expect(relievedInstance?.containmentIntegrity).toMatchObject({
+      lastInspectionWeek: 1,
+      cycleCount: 1,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      relieved.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'blast_door',
+          previousDeficiencyKind: 'hard_stop',
+          deficiencyKind: 'compensating_continue',
+          compensatingControlId: 'secondary_interlock_watch',
+          previousCycleCount: 0,
+          cycleCount: 1,
+          inService: true,
+          reason: 'technician_stabilization',
+        }),
+      }),
+    ])
+
+    useGameStore.getState().advanceWeek()
+    const closed = useGameStore.getState().game
+    expect(closed.week).toBe(6)
+    expect(
+      closed.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity
+    ).toMatchObject({
+      lastInspectionWeek: 5,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      closed.events.filter(
+        (event) =>
+          event.type === 'equipment.containment_class_inspected' &&
+          event.payload.instanceId === created.instance.instanceId
+      )
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          status: 'due',
+          reason: 'week_close_auto_advance',
+          previousLastInspectionWeek: 1,
+          lastInspectionWeek: 5,
+        }),
+      }),
+    ])
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+    const cleared = useGameStore.getState().game
+    expect(
+      cleared.equipmentInstances?.[created.instance.instanceId]?.containmentIntegrity?.deficiency
+    ).toEqual({ kind: 'none' })
+    expect(
+      cleared.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(2)
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(2)
+  })
+
+  it('stabilizeContainmentClassDeficiency fail-closes missing, ordinary, and none identities', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.inventory.ward_seals = 1
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const none = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!none.ok) throw new Error(none.code)
+
+    useGameStore.setState({ game: none.state })
+    const snapshot = none.state.equipmentInstances
+
+    useGameStore.getState().stabilizeContainmentClassDeficiency('missing-instance')
+    useGameStore.getState().stabilizeContainmentClassDeficiency(ordinary.instance.instanceId)
+    useGameStore.getState().stabilizeContainmentClassDeficiency(none.instance.instanceId)
+
+    expect(useGameStore.getState().game.equipmentInstances).toEqual(snapshot)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toHaveLength(0)
+  })
+
+  it('stabilizeContainmentClassDeficiency relieves extra-class hard-stop with the authored control', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().stabilizeContainmentClassDeficiency(created.instance.instanceId)
+
+    const relieved = useGameStore.getState().game
+    expect(relieved.equipmentInstances?.[created.instance.instanceId]).toMatchObject({
+      condition: 'operational',
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 1,
+        deficiency: {
+          kind: 'compensating_continue',
+          compensatingControlId: 'dual_circuit_watch',
+        },
+      },
+    })
+    expect(
+      relieved.events.filter((event) => event.type === 'equipment.containment_class_stabilized')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'interlock',
+          previousDeficiencyKind: 'hard_stop',
+          deficiencyKind: 'compensating_continue',
+          compensatingControlId: 'dual_circuit_watch',
+          previousCycleCount: 0,
+          cycleCount: 1,
+          inService: true,
+          reason: 'technician_stabilization',
+        }),
+      }),
+    ])
+  })
+
+  it('inspectContainmentClassIntegrity wires mid-week inspect without replacing week-close auto-advance', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.week = 5
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().inspectContainmentClassIntegrity(created.instance.instanceId)
+
+    const inspected = useGameStore.getState().game
+    const inspectedInstance = inspected.equipmentInstances?.[created.instance.instanceId]
+    expect(inspectedInstance?.containmentIntegrity).toMatchObject({
+      lastInspectionWeek: 5,
+      cycleCount: 0,
+      deficiency: {
+        kind: 'compensating_continue',
+        compensatingControlId: 'secondary_interlock_watch',
+      },
+    })
+    expect(
+      inspected.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'blast_door',
+          status: 'due',
+          previousLastInspectionWeek: 1,
+          lastInspectionWeek: 5,
+          deficiencyKind: 'compensating_continue',
+          compensatingControlId: 'secondary_interlock_watch',
+          inService: true,
+          reason: 'mid_week_player_inspect',
+        }),
+      }),
+    ])
+    expect(
+      inspected.events.filter(
+        (event) => event.type === 'equipment.containment_class_deficiency_recorded'
+      )
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          status: 'due',
+          deficiencyKind: 'compensating_continue',
+          reason: 'inspection_cadence_deficiency',
+        }),
+      }),
+    ])
+
+    useGameStore.getState().inspectContainmentClassIntegrity(created.instance.instanceId)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toHaveLength(1)
+    expect(
+      useGameStore.getState().game.equipmentInstances?.[created.instance.instanceId]
+        ?.containmentIntegrity?.lastInspectionWeek
+    ).toBe(5)
+  })
+
+  it('inspectContainmentClassIntegrity fail-closes missing, ordinary, and current identities', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 1
+    game.inventory.ward_seals = 1
+    const ordinary = instantiateEquipmentInstance(game, 'signal_jammers')
+    if (!ordinary.ok) throw new Error(ordinary.code)
+    const current = instantiateEquipmentInstance(ordinary.state, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'blast_door',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!current.ok) throw new Error(current.code)
+    const snapshot = current.state.equipmentInstances
+
+    useGameStore.setState({ game: current.state })
+    useGameStore.getState().inspectContainmentClassIntegrity('missing-instance')
+    useGameStore.getState().inspectContainmentClassIntegrity(ordinary.instance.instanceId)
+    useGameStore.getState().inspectContainmentClassIntegrity(current.instance.instanceId)
+
+    expect(useGameStore.getState().game.equipmentInstances).toEqual(snapshot)
+    expect(
+      useGameStore
+        .getState()
+        .game.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toHaveLength(0)
+  })
+
+  it('inspectContainmentClassIntegrity stamps extra-class overdue hard-stop with the authored membrane', () => {
+    const game = createStartingState()
+    game.inventory.ward_seals = 1
+    game.week = 4
+    const created = instantiateEquipmentInstance(game, 'ward_seals', {
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 1,
+        cycleCount: 0,
+        deficiency: { kind: 'none' },
+      },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().inspectContainmentClassIntegrity(created.instance.instanceId)
+
+    const inspected = useGameStore.getState().game
+    expect(inspected.equipmentInstances?.[created.instance.instanceId]).toMatchObject({
+      condition: 'operational',
+      containmentIntegrity: {
+        classId: 'interlock',
+        lastInspectionWeek: 4,
+        cycleCount: 0,
+        deficiency: { kind: 'hard_stop' },
+      },
+    })
+    expect(
+      inspected.events.filter((event) => event.type === 'equipment.containment_class_inspected')
+    ).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: created.instance.instanceId,
+          classId: 'interlock',
+          status: 'overdue',
+          deficiencyKind: 'hard_stop',
+          inService: false,
+          reason: 'mid_week_player_inspect',
+        }),
+      }),
+    ])
+  })
+
+  it('reaggregateStoredEquipmentInstance credits stock and clears an idle equipped ordinary copy', () => {
+    const game = createStartingState()
+    game.inventory.signal_jammers = 2
+    const created = instantiateEquipmentInstance(game, 'signal_jammers', {
+      location: { state: 'equipped', agentId: 'a_mina', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+
+    useGameStore.setState({ game: created.state })
+    useGameStore.getState().reaggregateStoredEquipmentInstance(created.instance.instanceId)
+
+    const next = useGameStore.getState().game
+    expect(next.inventory.signal_jammers).toBe(2)
+    expect(next.equipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
+    expect(
+      next.events.filter((event) => event.type === 'equipment.instance_reaggregated')
+    ).toHaveLength(1)
+  })
+
   it('prepared support procedure actions: domain helpers equal store actions and persist encounter-local state', () => {
     const initial = createStartingState()
     initial.inventory.medkits = 2
@@ -792,8 +2134,12 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game: equipped })
 
-    const storeApplied = useGameStore.getState().applyPreparedSupportProcedure('case-001', 'a_casey')
-    const storeRefreshed = useGameStore.getState().refreshPreparedSupportProcedure('case-001', 'a_casey')
+    const storeApplied = useGameStore
+      .getState()
+      .applyPreparedSupportProcedure('case-001', 'a_casey')
+    const storeRefreshed = useGameStore
+      .getState()
+      .refreshPreparedSupportProcedure('case-001', 'a_casey')
 
     expect(storeApplied).toMatchObject({
       applied: true,
@@ -1068,6 +2414,12 @@ describe('gameStore', () => {
 
   it('resets to a fresh starting state after mutations', () => {
     const initialGame = useGameStore.getState().game
+    useGameStore.setState({
+      game: {
+        ...initialGame,
+        facilityMaintenanceRecoveryResources: { maintenanceHours: 0, partsReserve: 0 },
+      },
+    })
 
     useGameStore.getState().assign('case-001', 't_nightwatch')
     useGameStore.getState().advanceWeek()
@@ -1080,6 +2432,14 @@ describe('gameStore', () => {
 
     expect(resetGame).toEqual(createStartingState())
     expect(resetGame).not.toBe(initialGame)
+    expect(resetGame.facilityMaintenanceRecoveryResources).toEqual({
+      maintenanceHours: 10,
+      partsReserve: 6,
+    })
+    expect(initialGame.facilityMaintenanceRecoveryResources).toEqual({
+      maintenanceHours: 10,
+      partsReserve: 6,
+    })
   })
 
   it('exports a save payload and imports it back through the store actions', () => {
@@ -1290,6 +2650,88 @@ describe('gameStore persistence', () => {
     })
   })
 
+  it('persists recurring requirement deficiency through real weekly store write and restart', async () => {
+    const game = createStartingState()
+    game.week = 12
+    const window = { windowId: 'window:10-12', startWeek: 10, endWeek: 12 }
+    const information = {
+      requirementId: 'req:intake',
+      subjectRef: 'subject:anomaly',
+      requirementClass: 'information_input' as const,
+      acceptableInputClasses: ['information' as const],
+      deficiencySeverity: 'major' as const,
+      deficiencyConsequenceRef: 'consequence:information-gap',
+      createsWork: false,
+    }
+    const material = {
+      requirementId: 'req:coolant',
+      subjectRef: 'subject:entity',
+      requirementClass: 'material_service' as const,
+      acceptableInputClasses: ['material' as const],
+      constraints: { quantityMin: 2 },
+      deficiencySeverity: 'critical' as const,
+      deficiencyConsequenceRef: 'consequence:thermal-risk',
+      createsWork: true,
+    }
+    const passiveKey = containmentRequirementRegistryKey(
+      information.subjectRef,
+      information.requirementId
+    )
+    const materialKey = containmentRequirementRegistryKey(
+      material.subjectRef,
+      material.requirementId
+    )
+    const acceptedMaterial = attemptContainmentRequirementFulfillment(
+      openContainmentRequirementWindow({ definition: material, currentWindow: window })!,
+      {
+        fulfillmentRef: 'fulfill:coolant',
+        inputRef: 'inventory:coolant',
+        inputClass: 'material',
+        campaignWeek: 11,
+        quantity: 2,
+      }
+    )!
+    expect(acceptedMaterial.outcome).toBe('accepted')
+    game.containmentRequirementStates = {
+      [passiveKey]: openContainmentRequirementWindow({
+        definition: information,
+        currentWindow: window,
+      })!,
+      [materialKey]: acceptedMaterial.state,
+    }
+
+    useGameStore.setState({ game })
+    expect(getPersistedState()?.state.game.containmentRequirementStates).toBeDefined()
+
+    useGameStore.getState().advanceWeek()
+    const after = useGameStore.getState().game
+    expect(after.week).toBe(13)
+    expect(after.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(after.containmentRequirementStates?.[materialKey]?.state).toBe('satisfied')
+    const stored = getPersistedState()
+    expect(stored?.version).toBe(GAME_STORE_VERSION)
+    expect(stored?.state.game.containmentRequirementStates).toMatchObject({
+      [passiveKey]: { state: 'deficient' },
+      [materialKey]: { state: 'satisfied' },
+    })
+
+    await useGameStore.persist.rehydrate()
+    const restored = useGameStore.getState().game
+    expect(restored.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(restored.containmentRequirementStates?.[materialKey]?.lastFulfillmentRef).toBe(
+      'fulfill:coolant'
+    )
+    expect(Object.isFrozen(restored.containmentRequirementStates)).toBe(true)
+
+    useGameStore.getState().advanceWeek()
+    const repeated = useGameStore.getState().game
+    expect(repeated.week).toBe(14)
+    expect(repeated.containmentRequirementStates?.[passiveKey]?.state).toBe('deficient')
+    expect(repeated.containmentRequirementStates?.[materialKey]?.state).toBe('satisfied')
+    expect(repeated.containmentRequirementStates?.[passiveKey]?.fulfilledWindowIds).toEqual([])
+    expect(getPersistedState()?.state.game.containmentRequirementStates).toBeDefined()
+  })
+
   it('does not persist templates - they are static and always reloaded from source', () => {
     useGameStore.getState().advanceWeek()
 
@@ -1372,7 +2814,9 @@ describe('gameStore persistence', () => {
 
     expect(next.agents['a_kellan']!.attritionState).toBeUndefined()
     expect(next.deploymentMomentum?.stacks).toBe(0)
-    expect(next.deploymentMomentum?.lastSummary).toContain('Chapter break cleared deployment momentum')
+    expect(next.deploymentMomentum?.lastSummary).toContain(
+      'Chapter break cleared deployment momentum'
+    )
     expect(next.replacementPressureState).toEqual(buildReplacementPressureState(next))
     expect(next.missionRouting).toEqual(recomputeMissionRouting(next))
     expect(next.teams.t_nightwatch?.deploymentReadinessState).toBeDefined()
@@ -1425,7 +2869,7 @@ describe('gameStore persistence', () => {
       partialMargin: 0,
       stageScalar: 0.05,
       challengeModeEnabled: false,
-      attritionPerWeek: 1,
+      attritionPerWeek: persistedGame.config.attritionPerWeek,
       probabilityK: 2.4,
       raidCoordinationPenaltyPerExtraTeam: 0,
       durationModel: 'capacity',
@@ -1590,6 +3034,1939 @@ describe('gameStore persistence', () => {
       durationModel: 'attrition',
     })
     expect(useGameStore.getState().game.templates).toEqual(caseTemplateMap)
+  })
+})
+
+describe('affiliation file work queue action ledger store action (SPE-2529 slice 1)', () => {
+  it('records deterministic operator actions for reachable queue recommendation kinds', () => {
+    const game = createStartingState()
+    game.week = 9
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+
+    useGameStore.setState({ game })
+
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:missing-review')
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:file-blocked')
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const next = useGameStore.getState().game
+    const missingId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      actionKind: 'resolve_missing_review',
+    })
+    const blockedId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: 'person-status:file-blocked',
+      actionKind: 'hold_blocked_access',
+    })
+    const restrictedId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      actionKind: 'route_restricted_review',
+    })
+
+    expect(next.affiliationFileWorkQueueActionRecords?.[missingId]).toMatchObject({
+      id: missingId,
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      actionKind: 'resolve_missing_review',
+      actionLabel: 'Resolve missing review',
+      sourceBucket: 'missing_review',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationFileWorkQueueActionRecords?.[blockedId]).toMatchObject({
+      actionKind: 'hold_blocked_access',
+      actionLabel: 'Hold access',
+      sourceBucket: 'blocked',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationFileWorkQueueActionRecords?.[restrictedId]).toMatchObject({
+      actionKind: 'route_restricted_review',
+      actionLabel: 'Route restricted review',
+      sourceBucket: 'restricted',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+  })
+
+  it('no-ops when the requested work queue entry is absent', () => {
+    const before = useGameStore.getState().game
+
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:missing')
+
+    expect(useGameStore.getState().game).toBe(before)
+  })
+})
+
+describe('affiliation file work queue release action store action', () => {
+  it('records restricted release review routing without mutating source evidence', () => {
+    const game = createStartingState()
+    game.week = 14
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalWelfareRecords = game.entityWelfareReclassificationRecords
+    const originalEvidenceResolutionRecords = game.affiliationFileWorkQueueEvidenceResolutionRecords
+    const originalRepairActionRecords = game.affiliationFileWorkQueueRepairActionRecords
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const next = useGameStore.getState().game
+    const releaseActionId = buildAffiliationFileWorkQueueReleaseActionRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      actionKind: 'restricted_release_review_routed',
+    })
+
+    expect(next.affiliationFileWorkQueueReleaseActionRecords?.[releaseActionId]).toEqual({
+      id: releaseActionId,
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      actionKind: 'restricted_release_review_routed',
+      actionLabel: 'Restricted release review routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: [
+        'approved_cooperative_file_restricted',
+        'file_permission_restricted',
+        'missing_onboarding_clearance',
+        'site_clearance_restricted',
+      ],
+      recordedWeek: 14,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords).toBe(
+      originalEvidenceResolutionRecords
+    )
+    expect(next.affiliationFileWorkQueueRepairActionRecords).toBe(originalRepairActionRecords)
+  })
+
+  it('no-ops for blocked, missing-review, absent, and already-recorded release rows', () => {
+    const game = createStartingState()
+    game.week = 14
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeBlocked = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction('person-status:file-blocked')
+    expect(useGameStore.getState().game).toBe(beforeBlocked)
+
+    const beforeMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction('person-status:missing-review')
+    expect(useGameStore.getState().game).toBe(beforeMissingReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleaseAction('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    const afterFirstRecord = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(afterFirstRecord)
+  })
+})
+
+describe('affiliation file work queue release outcome store action', () => {
+  it('records restricted release review outcomes without mutating source evidence or release actions', () => {
+    const game = createStartingState()
+    game.week = 15
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const afterReleaseAction = useGameStore.getState().game
+    const originalPersonStatusRecords = afterReleaseAction.affiliationPersonStatusRecords
+    const originalWelfareRecords = afterReleaseAction.entityWelfareReclassificationRecords
+    const originalEvidenceResolutionRecords =
+      afterReleaseAction.affiliationFileWorkQueueEvidenceResolutionRecords
+    const originalRepairActionRecords =
+      afterReleaseAction.affiliationFileWorkQueueRepairActionRecords
+    const originalReleaseActionRecords =
+      afterReleaseAction.affiliationFileWorkQueueReleaseActionRecords
+
+    useGameStore.setState({ game: { ...afterReleaseAction, week: 16 } })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const next = useGameStore.getState().game
+    const outcomeId = buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceActionKind: 'restricted_release_review_routed',
+    })
+
+    expect(next.affiliationFileWorkQueueReleaseOutcomeRecords?.[outcomeId]).toEqual({
+      id: outcomeId,
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceActionKind: 'restricted_release_review_routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: [
+        'approved_cooperative_file_restricted',
+        'file_permission_restricted',
+        'missing_onboarding_clearance',
+        'site_clearance_restricted',
+      ],
+      outcomeKind: 'restricted_review_pending',
+      outcomeLabel: 'Restricted review pending',
+      recordedWeek: 16,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords).toBe(
+      originalEvidenceResolutionRecords
+    )
+    expect(next.affiliationFileWorkQueueRepairActionRecords).toBe(originalRepairActionRecords)
+    expect(next.affiliationFileWorkQueueReleaseActionRecords).toBe(originalReleaseActionRecords)
+  })
+
+  it('no-ops for missing release action, blocked, missing-review, absent, and already-recorded rows', () => {
+    const game = createStartingState()
+    game.week = 15
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingAction = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeMissingAction)
+
+    const beforeBlocked = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome('person-status:file-blocked')
+    expect(useGameStore.getState().game).toBe(beforeBlocked)
+
+    const beforeMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome('person-status:missing-review')
+    expect(useGameStore.getState().game).toBe(beforeMissingReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleaseOutcome('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    const afterFirstOutcome = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(afterFirstOutcome)
+  })
+})
+
+describe('affiliation file work queue release fulfillment store action', () => {
+  it('no-ops for missing outcome, restricted review outcomes, absent rows, and already ineligible rows', () => {
+    const game = createStartingState()
+    game.week = 15
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingOutcome = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseFulfillment(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeMissingOutcome)
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const beforeRestrictedReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseFulfillment(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeRestrictedReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleaseFulfillment('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleaseFulfillmentRecords).toBe(
+      undefined
+    )
+    expect(
+      buildAffiliationFileWorkQueueReleaseFulfillmentRecordId({
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourceOutcomeKind: 'file_released',
+      })
+    ).toBe(
+      `affiliation-file-release-fulfillment:${COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id}:file_released`
+    )
+  })
+})
+
+describe('affiliation file work queue release package store action', () => {
+  it('records deterministic package handoff records only after allowed release fulfillment', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeFulfillment = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeFulfillment)
+
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 15,
+    })
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          [fulfillment.id]: fulfillment,
+        },
+      },
+    })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const packageId = buildAffiliationFileWorkQueueReleasePackageRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceFulfillmentKind: 'file_release_fulfilled',
+    })
+    const next = useGameStore.getState().game
+
+    expect(next.affiliationFileWorkQueueReleasePackageRecords).toEqual({
+      [packageId]: expect.objectContaining({
+        id: packageId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourceOutcomeKind: 'file_released',
+        sourceFulfillmentKind: 'file_release_fulfilled',
+        sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+        packageKind: 'safe_file_handoff_package',
+        packageLabel: 'Safe file handoff package',
+        packageRef: `release-package:${COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id}:file_release_fulfilled`,
+        recordedWeek: 16,
+      }),
+    })
+    expect(next.affiliationFileWorkQueueReleaseFulfillmentRecords).toBeDefined()
+
+    const afterFirstPackage = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(afterFirstPackage)
+  })
+
+  it('no-ops for restricted review outcomes and absent rows', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingFulfillment = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeMissingFulfillment)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleasePackage('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleasePackageRecords).toBe(
+      undefined
+    )
+  })
+})
+
+describe('affiliation file work queue file-release delivery store action', () => {
+  it('records metadata-only file-release delivery receipts only after package handoff', () => {
+    const game = createStartingState()
+    game.week = 17
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 15,
+    })
+    const packageId = buildAffiliationFileWorkQueueReleasePackageRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceFulfillmentKind: 'file_release_fulfilled',
+    })
+    useGameStore.setState({
+      game: {
+        ...game,
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          [fulfillment.id]: fulfillment,
+        },
+        affiliationFileWorkQueueReleasePackageRecords: {
+          [packageId]: {
+            id: packageId,
+            workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+            subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+            subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+            sourceOutcomeKind: 'file_released',
+            sourceFulfillmentKind: 'file_release_fulfilled',
+            sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+            packageKind: 'safe_file_handoff_package',
+            packageLabel: 'Safe file handoff package',
+            packageRef:
+              'release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled',
+            recordedWeek: 16,
+          },
+        },
+      },
+    })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const deliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourcePackageKind: 'safe_file_handoff_package',
+    })
+    const next = useGameStore.getState().game
+
+    expect(next.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual({
+      [deliveryId]: expect.objectContaining({
+        id: deliveryId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourcePackageKind: 'safe_file_handoff_package',
+        sourcePackageRef:
+          'release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled',
+        deliveryKind: 'metadata_only_file_release_delivered',
+        deliveryLabel: 'Metadata-only file release delivered',
+        deliveryRef:
+          'file-release-delivery:person-status:cooperative-contractor-cleared:safe_file_handoff_package',
+        recordedWeek: 17,
+      }),
+    })
+    expect(next.affiliationFileWorkQueueReleasePackageRecords).toBeDefined()
+    expect(next.affiliationFileWorkQueueReleaseFulfillmentRecords).toBeDefined()
+  })
+
+  it('no-ops when package handoff is missing or the row is absent, then records actual-content delivery as a second step', () => {
+    const game = createStartingState()
+    game.week = 17
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingPackage = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeMissingPackage)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    const packageId = buildAffiliationFileWorkQueueReleasePackageRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceFulfillmentKind: 'file_release_fulfilled',
+    })
+    const deliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourcePackageKind: 'safe_file_handoff_package',
+    })
+    const actualDeliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourcePackageKind: 'safe_file_handoff_package',
+      deliveryKind: 'actual_file_content_release_delivered',
+    })
+
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          'affiliation-file-release-fulfillment:person-status:cooperative-contractor-cleared:file_released':
+            {
+              id: 'affiliation-file-release-fulfillment:person-status:cooperative-contractor-cleared:file_released',
+              workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+              subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+              subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+              sourceOutcomeKind: 'file_released',
+              sourceBucket: 'allowed',
+              sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+              fulfillmentKind: 'file_release_fulfilled',
+              fulfillmentLabel: 'File release fulfilled',
+              recordedWeek: 16,
+            },
+        },
+        affiliationFileWorkQueueReleasePackageRecords: {
+          [packageId]: {
+            id: packageId,
+            workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+            subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+            subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+            sourceOutcomeKind: 'file_released',
+            sourceFulfillmentKind: 'file_release_fulfilled',
+            sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+            packageKind: 'safe_file_handoff_package',
+            packageLabel: 'Safe file handoff package',
+            packageRef:
+              'release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled',
+            recordedWeek: 16,
+          },
+        },
+      },
+    })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    const afterFirstDelivery = useGameStore.getState().game
+
+    expect(afterFirstDelivery.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      expect.objectContaining({
+        [deliveryId]: expect.objectContaining({
+          deliveryKind: 'metadata_only_file_release_delivered',
+        }),
+      })
+    )
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const afterSecondDelivery = useGameStore.getState().game
+    expect(afterSecondDelivery.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      expect.objectContaining({
+        [deliveryId]: expect.objectContaining({
+          deliveryKind: 'metadata_only_file_release_delivered',
+        }),
+        [actualDeliveryId]: expect.objectContaining({
+          deliveryKind: 'actual_file_content_release_delivered',
+          deliveryLabel: 'Actual file content release delivered',
+        }),
+      })
+    )
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(afterSecondDelivery)
+  })
+})
+
+describe('affiliation file work queue non-mission enforcement store action', () => {
+  it('records deterministic non-mission enforcement receipts for blocked and restricted queue rows', () => {
+    const game = createStartingState()
+    game.week = 18
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement('person-status:file-blocked')
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const next = useGameStore.getState().game
+    const blockedId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+      workQueueEntryId: 'person-status:file-blocked',
+      sourceBucket: 'blocked',
+    })
+    const restrictedId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceBucket: 'restricted',
+    })
+
+    expect(next.affiliationFileWorkQueueNonMissionEnforcementRecords).toEqual({
+      [blockedId]: expect.objectContaining({
+        id: blockedId,
+        workQueueEntryId: 'person-status:file-blocked',
+        sourceBucket: 'blocked',
+        enforcementKind: 'blocked_non_mission_access_enforced',
+        enforcementLabel: 'Blocked non-mission access enforced',
+        recordedWeek: 18,
+      }),
+      [restrictedId]: expect.objectContaining({
+        id: restrictedId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourceBucket: 'restricted',
+        enforcementKind: 'restricted_non_mission_access_enforced',
+        enforcementLabel: 'Restricted non-mission access enforced',
+        recordedWeek: 18,
+      }),
+    })
+  })
+
+  it('no-ops for missing-review, absent, and duplicate requests', () => {
+    const game = createStartingState()
+    game.week = 19
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        candidateRef: 'candidate:missing-review',
+        entityWelfareReclassificationRef: undefined,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeMissingReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        entityWelfareReclassificationRecords: {
+          [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+        },
+        affiliationPersonStatusRecords: {
+          [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+            ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+            entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+          },
+        },
+      },
+    })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    const afterFirstRecord = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(afterFirstRecord)
+  })
+})
+
+describe('affiliation file work queue evidence repair workflow store action', () => {
+  it('records deterministic welfare evidence repair workflows for missing_review queue rows', () => {
+    const game = createStartingState()
+    game.week = 13
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const workflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+    })
+    const next = useGameStore.getState().game
+
+    expect(next.affiliationFileWorkQueueEvidenceRepairWorkflows).toEqual({
+      [workflowId]: expect.objectContaining({
+        id: workflowId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        evidenceType: 'missing_entity_welfare_reclassification_ref',
+        subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+        subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+        repairLabel: 'Restore minimal welfare evidence',
+        recordedWeek: 13,
+      }),
+    })
+  })
+
+  it('no-ops when entry is missing, not in missing_review, or lacks welfare evidence gap', () => {
+    const game = createStartingState()
+    game.week = 14
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    // Change to not missing_review state
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationPersonStatusRecords: {
+          [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+            ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+            permissionSurface: 'mission', // A valid surface with no missing review.
+          },
+        },
+        entityWelfareReclassificationRecords: {
+          [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+        },
+      },
+    })
+
+    const beforeNotMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeNotMissingReview)
+  })
+
+  it('no-ops when welfare evidence repair workflow is already recorded', () => {
+    const game = createStartingState()
+    game.week = 15
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+
+    const workflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+    })
+    const existingWorkflow = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      repairLabel: 'Restore minimal welfare evidence',
+      recordedWeek: 14,
+    })
+
+    game.affiliationFileWorkQueueEvidenceRepairWorkflows = {
+      [workflowId]: existingWorkflow,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    expect(useGameStore.getState().game).toBe(before)
+    expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceRepairWorkflows).toEqual({
+      [workflowId]: existingWorkflow,
+    })
+  })
+
+  it('maintains isolation: welfare repair workflows do not affect other ledgers', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeReleaseDeliveries =
+      useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+    const beforeRepairActions =
+      useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const after = useGameStore.getState().game
+    expect(after.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      beforeReleaseDeliveries
+    )
+    expect(after.affiliationFileWorkQueueRepairActionRecords).toEqual(beforeRepairActions)
+  })
+})
+
+describe('affiliation file work queue evidence resolution store action', () => {
+  it('records deterministic evidence-resolution records for reachable missing-review queue rows', () => {
+    const game = createStartingState()
+    game.week = 11
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalWelfareRecords = game.entityWelfareReclassificationRecords
+
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceResolution('person-status:missing-review')
+
+    const next = useGameStore.getState().game
+    const resolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+    })
+
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords?.[resolutionId]).toMatchObject({
+      id: resolutionId,
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+  })
+
+  it('no-ops for absent and non-missing-review queue entries', () => {
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeRestricted = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceResolution(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    expect(useGameStore.getState().game).toBe(beforeRestricted)
+
+    const beforeMissing = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueEvidenceResolution('person-status:absent')
+
+    expect(useGameStore.getState().game).toBe(beforeMissing)
+  })
+})
+
+describe('affiliation file work queue repair action store action', () => {
+  it('records deterministic repair-action records and restores candidate evidence for resolved missing-review candidates', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalEvidenceResolutionRecords = game.affiliationFileWorkQueueEvidenceResolutionRecords
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+
+    const next = useGameStore.getState().game
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      reasonCode: 'missing_candidate_ref',
+    })
+
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]).toEqual({
+      id: repairActionId,
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      reasonCode: 'missing_candidate_ref',
+      repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+      recordedWeek: 12,
+    })
+    expect(next.candidates).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+        category: 'agent',
+        hireStatus: 'available',
+        funnelStage: 'hired',
+        createdWeek: 12,
+        lastUpdatedWeek: 12,
+      }),
+    ])
+    expect(next.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords).toBe(
+      originalEvidenceResolutionRecords
+    )
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]?.reasonCode).toBe(
+      'missing_candidate_ref'
+    )
+  })
+
+  it('keeps repaired candidate rows in missing-review when other missing evidence still blocks derivation', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    expect(before.candidates).toEqual([])
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+
+    const next = useGameStore.getState().game
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:missing-review',
+      bucket: 'missing_review',
+      fileAccessLabel: 'File access: -',
+      facilityFileAccessLabel: 'Facility file access: -',
+    })
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
+    expect(view.records[0]?.reasonCodeLabels).toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+  })
+
+  it('records repair actions and restores welfare evidence for resolved welfare-link rows', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.candidates = [
+      buildAgentCandidate({
+        id: 'candidate:present',
+        name: 'Welfare Repair Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 2,
+        evaluation: buildCandidateEvaluation(2, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
+    ]
+    game.recruitmentPool = [...game.candidates]
+    game.affiliationPersonStatusRecords = {
+      'person-status:welfare-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:welfare-missing',
+        subjectId: 'subject:welfare-missing',
+        subjectLabel: 'Welfare Repair Subject',
+        candidateRef: 'candidate:present',
+        entityWelfareReclassificationRef: 'reclass:welfare-missing',
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:welfare-missing',
+      subjectId: 'subject:welfare-missing',
+      subjectLabel: 'Welfare Repair Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_entity_welfare_reclassification_ref'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalCandidates = game.candidates
+    const originalRecruitmentPool = game.recruitmentPool
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:welfare-missing',
+        'missing_entity_welfare_reclassification_ref'
+      )
+
+    const next = useGameStore.getState().game
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:welfare-missing',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
+    })
+    const restored = next.entityWelfareReclassificationRecords?.['reclass:welfare-missing']
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]).toEqual({
+      id: repairActionId,
+      workQueueEntryId: 'person-status:welfare-missing',
+      subjectId: 'subject:welfare-missing',
+      subjectLabel: 'Welfare Repair Subject',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
+      repairLabel:
+        'Welfare link repair: attach or restore entity welfare reclassification evidence.',
+      recordedWeek: 12,
+    })
+    expect(restored).toMatchObject({
+      id: 'reclass:welfare-missing',
+      label: 'Welfare Repair Subject welfare link repair',
+      proposedDisposition: 'unknown',
+      reclassificationState: 'pending',
+    })
+    expect(restored ? validateEntityWelfareReclassificationRecord(restored).valid : false).toBe(
+      true
+    )
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.candidates).toBe(originalCandidates)
+    expect(next.recruitmentPool).toBe(originalRecruitmentPool)
+    expect(view.records[0]?.reasonCodeLabels).not.toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+  })
+
+  it('records repair actions and restores onboarding evidence for resolved onboarding-clearance rows', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-missing',
+        subjectId: 'subject:onboarding-missing',
+        subjectLabel: 'Onboarding Repair Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:onboarding-welfare-missing',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-missing',
+      subjectId: 'subject:onboarding-missing',
+      subjectLabel: 'Onboarding Repair Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const originalWelfareRecords = game.entityWelfareReclassificationRecords
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:onboarding-missing',
+        'missing_onboarding_clearance'
+      )
+
+    const next = useGameStore.getState().game
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:onboarding-missing',
+      reasonCode: 'missing_onboarding_clearance',
+    })
+    const candidateId = 'candidate:subject:onboarding-missing:onboarding-repair'
+    const repairedRecord = next.affiliationPersonStatusRecords?.['person-status:onboarding-missing']
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]).toEqual({
+      id: repairActionId,
+      workQueueEntryId: 'person-status:onboarding-missing',
+      subjectId: 'subject:onboarding-missing',
+      subjectLabel: 'Onboarding Repair Subject',
+      reasonCode: 'missing_onboarding_clearance',
+      repairLabel: 'Onboarding repair: attach or restore clearance readiness evidence.',
+      recordedWeek: 12,
+    })
+    expect(repairedRecord).toMatchObject({
+      candidateRef: candidateId,
+      backgroundCleared: true,
+      trainingCompleted: true,
+      oathContractSigned: true,
+    })
+    expect(next.candidates).toEqual([
+      expect.objectContaining({
+        id: candidateId,
+        name: 'Onboarding Repair Subject',
+        funnelStage: 'hired',
+      }),
+    ])
+    expect(next.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: candidateId,
+        name: 'Onboarding Repair Subject',
+      }),
+    ])
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_onboarding_clearance')
+    expect(view.records[0]?.reasonCodeLabels).toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+    expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+  })
+
+  it('uses canonical candidates for the mirror when the legacy recruitment pool is empty', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.candidates = [
+      buildAgentCandidate({
+        id: 'candidate:onboarding-canonical',
+        name: 'Canonical Onboarding Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 1,
+        funnelStage: 'screening',
+        evaluation: buildCandidateEvaluation(1, {}),
+        agentData: { role: 'field', specialization: 'field', traits: [] },
+      }),
+    ]
+    game.recruitmentPool = []
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-canonical': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-canonical',
+        subjectId: 'subject:onboarding-canonical',
+        subjectLabel: 'Canonical Onboarding Subject',
+        candidateRef: 'candidate:onboarding-canonical',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-canonical',
+      subjectId: 'subject:onboarding-canonical',
+      subjectLabel: 'Canonical Onboarding Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_onboarding_clearance'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
+  })
+
+  it('does not record repair actions when onboarding evidence repair cannot apply', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-absent-candidate': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-absent-candidate',
+        subjectId: 'subject:onboarding-absent-candidate',
+        subjectLabel: 'Absent Candidate Onboarding Subject',
+        candidateRef: 'candidate:onboarding-absent',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-absent-candidate',
+      subjectId: 'subject:onboarding-absent-candidate',
+      subjectLabel: 'Absent Candidate Onboarding Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_candidate_ref', 'missing_onboarding_clearance'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:onboarding-absent-candidate',
+        'missing_onboarding_clearance'
+      )
+
+    expect(useGameStore.getState().game).toBe(before)
+  })
+
+  it('no-ops for absent, unresolved, non-matching, and already-recorded rows', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction('person-status:absent', 'missing_candidate_ref')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    const beforeUnresolved = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+    expect(useGameStore.getState().game).toBe(beforeUnresolved)
+
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_candidate_ref'],
+      recordedWeek: 11,
+    })
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueEvidenceResolutionRecords: {
+          [resolutionRecord.id]: resolutionRecord,
+        },
+      },
+    })
+
+    const beforeMismatched = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_entity_welfare_reclassification_ref'
+      )
+    expect(useGameStore.getState().game).toBe(beforeMismatched)
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+    const beforeAlreadyRecorded = useGameStore.getState().game
+    useGameStore.setState({
+      game: {
+        ...beforeAlreadyRecorded,
+        week: 15,
+      },
+    })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+    expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toBe(
+      beforeAlreadyRecorded.affiliationFileWorkQueueRepairActionRecords
+    )
+
+    const beforeUnsupported = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction('person-status:missing-review', 'missing_unknown')
+    expect(useGameStore.getState().game.candidates).toBe(beforeUnsupported.candidates)
+
+    const beforeWelfareUnresolved = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_entity_welfare_reclassification_ref'
+      )
+    expect(useGameStore.getState().game).toBe(beforeWelfareUnresolved)
+
+    const welfareResolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_entity_welfare_reclassification_ref'],
+      recordedWeek: 14,
+    })
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueEvidenceResolutionRecords: {
+          [welfareResolutionRecord.id]: welfareResolutionRecord,
+        },
+        entityWelfareReclassificationRecords: {
+          'reclass:missing': PENDING_TO_APPROVED_FIXTURE,
+        },
+      },
+    })
+
+    const beforeWelfarePresent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_entity_welfare_reclassification_ref'
+      )
+    expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toBe(
+      beforeWelfarePresent.affiliationFileWorkQueueRepairActionRecords
+    )
+    expect(useGameStore.getState().game.entityWelfareReclassificationRecords).toBe(
+      beforeWelfarePresent.entityWelfareReclassificationRecords
+    )
+  })
+})
+
+describe('affiliation file work queue command persistence (SPE-3436)', () => {
+  it('preserves allowed release command records and separate delivery steps across save/load', () => {
+    const game = createStartingState()
+    game.week = 18
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [...game.candidates]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    const status = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      permissionSurface: 'file' as const,
+    }
+    game.affiliationPersonStatusRecords = { [status.id]: status }
+    const [snapshot] = affiliationPersonStatusRecords.projectAffiliationPersonStatusSnapshots({
+      records: game.affiliationPersonStatusRecords,
+      candidates: game.candidates,
+      entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
+    })
+    if (!snapshot?.facilityFileAccessDecision) {
+      throw new Error('Expected a concrete facility file-access decision for the command fixture')
+    }
+
+    // Current welfare policy restricts file access. Exercise the retained allowed
+    // command contract with an authored snapshot without changing that policy.
+    const sourceReasonCodes = ['file_permission_allowed', 'site_clearance_allowed']
+    const snapshotSpy = vi
+      .spyOn(affiliationPersonStatusRecords, 'projectAffiliationPersonStatusSnapshots')
+      .mockReturnValue([
+        {
+          ...snapshot,
+          facilityFileAccessDecision: {
+            ...snapshot.facilityFileAccessDecision,
+            outcome: 'allowed',
+            outcomeLabel: 'Allowed',
+            decisionLabel: 'Facility file access: Allowed',
+            reasonCodes: sourceReasonCodes,
+          },
+        },
+      ])
+
+    try {
+      useGameStore.setState({ game })
+      const entryId = status.id
+      for (const action of [
+        'recordAffiliationFileWorkQueueReleaseOutcome',
+        'recordAffiliationFileWorkQueueReleaseFulfillment',
+        'recordAffiliationFileWorkQueueReleasePackage',
+        'recordAffiliationFileWorkQueueFileReleaseDelivery',
+      ] as const) {
+        useGameStore.getState()[action](entryId)
+        expect(useGameStore.getState().game).toBe(game)
+      }
+
+      for (const action of [
+        'recordAffiliationFileWorkQueueReleaseAction',
+        'recordAffiliationFileWorkQueueReleaseOutcome',
+        'recordAffiliationFileWorkQueueReleaseFulfillment',
+        'recordAffiliationFileWorkQueueReleasePackage',
+      ] as const) {
+        useGameStore.getState()[action](entryId)
+        const afterFirstRecord = useGameStore.getState().game
+        expect(afterFirstRecord).not.toBe(game)
+        useGameStore.getState()[action](entryId)
+        expect(useGameStore.getState().game).toBe(afterFirstRecord)
+      }
+
+      const source = {
+        workQueueEntryId: entryId,
+        subjectId: status.subjectId,
+        subjectLabel: status.subjectLabel,
+        sourceReasonCodes,
+        recordedWeek: 18,
+      }
+      const actionId = `affiliation-file-release-action:${entryId}:file_release_authorized`
+      const outcomeId = `affiliation-file-release-outcome:${entryId}:file_release_authorized`
+      const fulfillmentId = `affiliation-file-release-fulfillment:${entryId}:file_released`
+      const packageId = `affiliation-file-release-package:${entryId}:file_release_fulfilled`
+      const packageRef = `release-package:${entryId}:file_release_fulfilled`
+      const deliveryId = `affiliation-file-release-delivery:${entryId}:safe_file_handoff_package`
+      const deliveryRef = `file-release-delivery:${entryId}:safe_file_handoff_package`
+      const expectedLedgers = {
+        affiliationFileWorkQueueReleaseActionRecords: {
+          [actionId]: {
+            ...source,
+            id: actionId,
+            actionKind: 'file_release_authorized',
+            actionLabel: 'File release authorized',
+            sourceBucket: 'allowed',
+          },
+        },
+        affiliationFileWorkQueueReleaseOutcomeRecords: {
+          [outcomeId]: {
+            ...source,
+            id: outcomeId,
+            sourceActionKind: 'file_release_authorized',
+            sourceBucket: 'allowed',
+            outcomeKind: 'file_released',
+            outcomeLabel: 'File released',
+          },
+        },
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          [fulfillmentId]: {
+            ...source,
+            id: fulfillmentId,
+            sourceOutcomeKind: 'file_released',
+            sourceBucket: 'allowed',
+            fulfillmentKind: 'file_release_fulfilled',
+            fulfillmentLabel: 'File release fulfilled',
+          },
+        },
+        affiliationFileWorkQueueReleasePackageRecords: {
+          [packageId]: {
+            ...source,
+            id: packageId,
+            sourceOutcomeKind: 'file_released',
+            sourceFulfillmentKind: 'file_release_fulfilled',
+            packageKind: 'safe_file_handoff_package',
+            packageLabel: 'Safe file handoff package',
+            packageRef,
+          },
+        },
+      }
+      const beforeDelivery = useGameStore.getState().game
+      expect(beforeDelivery).toMatchObject(expectedLedgers)
+      expect(beforeDelivery.affiliationPersonStatusRecords).toBe(
+        game.affiliationPersonStatusRecords
+      )
+      expect(beforeDelivery.entityWelfareReclassificationRecords).toBe(
+        game.entityWelfareReclassificationRecords
+      )
+      expect(beforeDelivery.candidates).toBe(game.candidates)
+      expect(beforeDelivery.recruitmentPool).toBe(game.recruitmentPool)
+
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      const metadataDelivery = {
+        ...source,
+        id: deliveryId,
+        sourcePackageKind: 'safe_file_handoff_package',
+        sourcePackageRef: packageRef,
+        deliveryKind: 'metadata_only_file_release_delivered',
+        deliveryLabel: 'Metadata-only file release delivered',
+        deliveryRef,
+      }
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+      expect(
+        getPersistedState()?.state.game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+
+      const exported = useGameStore.getState().exportSave()
+      useGameStore.getState().reset()
+      useGameStore.getState().importSave(exported)
+      expect(useGameStore.getState().game).toMatchObject(expectedLedgers)
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+      ).toEqual({
+        [deliveryId]: metadataDelivery,
+      })
+
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      const actualDeliveryId = `${deliveryId}:actual_file_content_release_delivered`
+      const expectedDeliveries = {
+        [deliveryId]: metadataDelivery,
+        [actualDeliveryId]: {
+          ...metadataDelivery,
+          id: actualDeliveryId,
+          deliveryKind: 'actual_file_content_release_delivered',
+          deliveryLabel: 'Actual file content release delivered',
+          deliveryRef: `${deliveryRef}:actual_file_content_release_delivered`,
+        },
+      }
+      const afterActualDelivery = useGameStore.getState().game
+      expect(afterActualDelivery.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+        expectedDeliveries
+      )
+      useGameStore.getState().recordAffiliationFileWorkQueueFileReleaseDelivery(entryId)
+      expect(useGameStore.getState().game).toBe(afterActualDelivery)
+
+      const completedSave = loadGameSave(useGameStore.getState().exportSave())
+      expect(completedSave).toMatchObject(expectedLedgers)
+      expect(completedSave.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+        expectedDeliveries
+      )
+    } finally {
+      snapshotSpy.mockRestore()
+    }
+  })
+
+  it('preserves repaired evidence, receipts, and unrelated records across save/load', () => {
+    const game = createStartingState()
+    game.week = 19
+    const unrelatedCandidate = makeCooperativeContractorCandidate()
+    game.candidates = [unrelatedCandidate]
+    game.recruitmentPool = [unrelatedCandidate]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    const entryId = 'person-status:repair-round-trip'
+    const status = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      id: entryId,
+      subjectId: 'subject:repair-round-trip',
+      subjectLabel: 'Repair Round Trip Subject',
+      candidateRef: undefined,
+      entityWelfareReclassificationRef: 'reclass:repair-round-trip',
+      backgroundCleared: undefined,
+      trainingCompleted: undefined,
+      oathContractSigned: undefined,
+    }
+    const candidateStatus = {
+      ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+      id: `${entryId}:candidate`,
+      subjectId: 'subject:repair-round-trip-candidate',
+      subjectLabel: 'Candidate Repair Subject',
+      candidateRef: 'candidate:repair-round-trip',
+      entityWelfareReclassificationRef: status.entityWelfareReclassificationRef,
+    }
+    const repairedCandidateId = 'candidate:subject:repair-round-trip:onboarding-repair'
+    game.affiliationPersonStatusRecords = {
+      [entryId]: status,
+      [candidateStatus.id]: candidateStatus,
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]:
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+    }
+    useGameStore.setState({ game })
+    useGameStore.getState().recordAffiliationFileWorkQueueAction(entryId)
+    useGameStore.getState().recordAffiliationFileWorkQueueEvidenceRepairWorkflow(entryId)
+
+    for (const [repairEntryId, reasonCode] of [
+      [candidateStatus.id, 'missing_candidate_ref'],
+      [entryId, 'missing_onboarding_clearance'],
+      [entryId, 'missing_entity_welfare_reclassification_ref'],
+    ]) {
+      useGameStore.getState().recordAffiliationFileWorkQueueEvidenceResolution(repairEntryId)
+      useGameStore.getState().recordAffiliationFileWorkQueueRepairAction(repairEntryId, reasonCode)
+      expect(
+        useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords?.[
+          buildAffiliationFileWorkQueueRepairActionRecordId({
+            workQueueEntryId: repairEntryId,
+            reasonCode,
+          })
+        ]
+      ).toMatchObject({ reasonCode, recordedWeek: 19 })
+    }
+
+    const repaired = useGameStore.getState().game
+    expect(repaired.candidates.find((candidate) => candidate.id === unrelatedCandidate.id)).toBe(
+      unrelatedCandidate
+    )
+    expect(
+      repaired.affiliationPersonStatusRecords?.[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]
+    ).toBe(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE)
+    expect(repaired.entityWelfareReclassificationRecords?.[PENDING_TO_APPROVED_FIXTURE.id]).toBe(
+      PENDING_TO_APPROVED_FIXTURE
+    )
+    expect(repaired.affiliationPersonStatusRecords?.[entryId]).toMatchObject({
+      candidateRef: repairedCandidateId,
+      backgroundCleared: true,
+      trainingCompleted: true,
+      oathContractSigned: true,
+    })
+    expect(
+      repaired.candidates.find((candidate) => candidate.id === repairedCandidateId)
+    ).toMatchObject({
+      name: status.subjectLabel,
+      funnelStage: 'hired',
+    })
+    const restoredWelfare =
+      repaired.entityWelfareReclassificationRecords?.[status.entityWelfareReclassificationRef]
+    expect(
+      restoredWelfare && validateEntityWelfareReclassificationRecord(restoredWelfare).valid
+    ).toBe(true)
+    const repairedReasonCodes = getAffiliationPersonStatusMirrorView(repaired).records.find(
+      (record) => record.id === entryId
+    )?.reasonCodeLabels
+    for (const reasonCode of [
+      'missing_candidate_ref',
+      'missing_onboarding_clearance',
+      'missing_entity_welfare_reclassification_ref',
+    ]) {
+      expect(repairedReasonCodes).not.toContain(reasonCode)
+    }
+
+    const exported = useGameStore.getState().exportSave()
+    useGameStore.getState().reset()
+    useGameStore.getState().importSave(exported)
+    const loaded = useGameStore.getState().game
+    for (const field of [
+      'affiliationPersonStatusRecords',
+      'entityWelfareReclassificationRecords',
+      'affiliationFileWorkQueueActionRecords',
+      'affiliationFileWorkQueueEvidenceRepairWorkflows',
+      'affiliationFileWorkQueueEvidenceResolutionRecords',
+      'affiliationFileWorkQueueRepairActionRecords',
+    ] as const) {
+      expect(loaded[field]).toEqual(repaired[field])
+    }
+    const loadedCandidate = loaded.candidates.find(
+      (candidate) => candidate.id === repairedCandidateId
+    )
+    expect(loadedCandidate).toMatchObject({
+      id: repairedCandidateId,
+      name: status.subjectLabel,
+      category: 'agent',
+      hireStatus: 'available',
+      funnelStage: 'hired',
+      origin: 'affiliation-file-work-queue-repair',
+      skills: ['affiliation-evidence-repaired'],
+      createdWeek: 19,
+      lastUpdatedWeek: 19,
+      agentData: repaired.candidates.find((candidate) => candidate.id === repairedCandidateId)
+        ?.agentData,
+    })
+    expect(
+      loaded.recruitmentPool?.find((candidate) => candidate.id === repairedCandidateId)
+    ).toEqual(loadedCandidate)
   })
 })
 

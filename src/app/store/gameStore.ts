@@ -1,11 +1,58 @@
+import { convertFacilityMaintenanceResources } from '../../domain/facilityMaintenanceConversion'
+import { UnsupportedInventoryQuantityError } from '../../domain/inventoryQuantity'
+import { applyTutorialCommand as applyTutorialCommandState } from '../../domain/gameStateManager'
+import { applyTutorialDelivery, unavailableTutorialResult } from '../../domain/tutorialDelivery'
+import type { TutorialDeliveryCommand, TutorialDispatchResult } from '../../domain/tutorialDelivery'
+import type {
+  TutorialDefinition,
+  TutorialCommand,
+  TutorialEligibility,
+} from '../../domain/tutorialLifecycle'
+import type {
+  MaintenanceConversionRequest,
+  MaintenanceConversionResult,
+} from '../../domain/facilityMaintenanceConversion'
+import { reserveWorkshopStaffTime, releaseWorkshopStaffTime } from '../../domain/workshopStaffTime'
+import type { StaffTimeRequest, StaffTimeResult } from '../../domain/staffTimeAllocation'
 // cspell:words partialize unequip
 import { create } from 'zustand'
+import {
+  assertMissionEscalationCompatibility,
+  InvalidMissionEscalationRuleError,
+} from './missionEscalationCompatibility'
+import { applyFacilityMaintenanceRecovery } from '../../domain/facilityMaintenanceRecovery'
+import {
+  applyBreachOriginRecoveryStep,
+  type BreachOriginRecoveryStepCommand,
+} from '../../domain/breachOriginRecoveryLivePath'
+import type { BreachRecoveryResult } from '../../domain/breachOriginRecovery'
+import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
+import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
+import {
+  assignOperationalStaffPost,
+  reassignOperationalStaffPost,
+  unassignOperationalStaffPost,
+} from '../../domain/operationalStaffPosts'
+import type {
+  OperationalStaffPostAssignmentRequest,
+  OperationalStaffPostRequest,
+  OperationalStaffPostResult,
+} from '../../domain/operationalStaffPosts'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import {
   appendOperationEventDrafts,
   createAgencyFrontBusinessOpenedDraft,
   createAgentInstructorAssignedDraft,
   createAgentInstructorUnassignedDraft,
+  createEquipmentInstanceDestroyedDraft,
+  createEquipmentInstanceMaterializedDraft,
+  createEquipmentInstanceReaggregatedDraft,
+  createEquipmentInstanceConditionRepairedDraft,
+  createContainmentClassStabilizedDraft,
+  createContainmentClassInspectedDraft,
+  createContainmentClassDeficiencyRecordedDraft,
+  createCombatStimDisposedDraft,
+  createCombatStimReaggregatedDraft,
   createSystemAcademyUpgradedDraft,
 } from '../../domain/events'
 import {
@@ -79,36 +126,90 @@ import {
   type StatKey,
   type WeeklyDirectiveId,
 } from '../../domain/models'
-import { createSeededRng, normalizeSeed } from '../../domain/math'
-import type { EquipmentSlotKind } from '../../domain/equipment'
-import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
+import { normalizeSeed } from '../../domain/math'
+import { getEquipmentDefinition, type EquipmentSlotKind } from '../../domain/equipment'
+import {
+  COMBAT_STIM_DEFINITION_ID,
+  destroyStoredOrdinaryEquipmentInstance,
+  getEquipmentInstanceAtAgentSlot,
+  reaggregateStoredOrdinaryEquipmentInstance,
+  isContainmentClassInService,
+  stabilizeContainmentClassDeficiency as stabilizeContainmentClassDeficiencyState,
+  inspectContainmentClassIntegrity as inspectContainmentClassIntegrityState,
+} from '../../domain/equipmentInstance'
+import {
+  getContainmentClassCadenceSpec,
+  isContainmentClassId,
+} from '../../domain/containmentClassInspection'
+import { getRequiredRepairSparePartId } from '../../domain/sparePartSuitability'
+import { drawPartyCardsWithScopedContinuation } from '../../domain/partyCards/drawContinuation'
+import { discardPartyCard, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
+import {
+  activateHistoricalRouteReplayRegistryForInteractionStart,
+  type HistoricalRouteReplayInteractionKind,
+} from '../../domain/historicalRouteReplayActivation'
+import { normalizeHistoricalRouteMemoryGraphsFromGameState } from '../../domain/historicalRouteMemory'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import {
   askInvestigationQuestion as applyAskInvestigationQuestion,
+  canAskInvestigationQuestionOnCase,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
-import { canAskInvestigationQuestionOnCase } from '../../features/cases/investigationCasePrepView'
+import { applySiteExplorationAction } from '../../domain/siteOperationalExploration'
 import type { InfiltrationProbeAction } from '../../domain/infiltrationProbe'
 import {
   applyInfiltrationWeeklyProbeActionOverride,
   canConfigureInfiltrationWeeklyProbeOnCase,
 } from '../../domain/infiltrationProbeOverride'
+import { applyInfiltrationEncounterCoverStance } from '../../domain/infiltrationEncounterCoverStance'
+import type { InfiltrationEncounterCoverStance } from '../../domain/infiltrationEncounterCoverStance'
+import {
+  applyPublicDisclosurePostureChoice,
+  type PublicDisclosurePostureChoice,
+} from '../../domain/publicDisclosurePostureChoice'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
+import {
+  queueEquipmentDeconstruction,
+  type EquipmentDeconstructionSourceRef,
+} from '../../domain/sim/equipmentDeconstruction'
+import {
+  disableEquipmentAutoScrapPolicy,
+  enableEquipmentAutoScrapPolicy,
+} from '../../domain/equipmentAutoScrap'
+import type { EquipmentGradeId } from '../../domain/equipmentGrade'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
 import {
   acknowledgeLicensedHandlingDoctrine,
+  placeDelayedMarketOrder,
   purchaseMarketInventory,
+  redeemFactionFavorProcurement,
+  callCallableObligationProcurement,
   sellMarketInventory,
 } from '../../domain/sim/market'
 import { hireCandidate } from '../../domain/sim/hire'
 import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { transitionRecruitmentCandidate } from '../../domain/recruitment'
-import { equipAgentItem, unequipAgentItem } from '../../domain/sim/equipment'
+import {
+  equipAgentItem,
+  equipStoredEquipmentInstance,
+  materializeStoredCombatStimInstance,
+  materializeStoredOrdinaryEquipmentInstance,
+  returnFabricatedOrdinaryEquipmentInstanceToLot,
+  unequipAgentItem,
+} from '../../domain/sim/equipment'
+import { authorizePersonnelPpeFulfillment } from '../../domain/personnelPpeReplacementDemand'
+import {
+  activateCombatStim,
+  destroyStoredCombatStimInstance,
+  equipStoredCombatStimInstance,
+  reaggregateStoredCombatStimInstance as reaggregateStoredCombatStimInstanceState,
+  returnFabricatedCombatStimInstanceToLot as returnFabricatedCombatStimInstanceToLotState,
+} from '../../domain/combatStim'
 import {
   createTeam,
   deleteEmptyTeam,
@@ -140,10 +241,44 @@ import {
   applyMissionTriageDisposition,
   clearMissionTriageDisposition,
   recomputeMissionRouting,
+  routeMission,
   routeMissionToTeam,
 } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
+import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import {
+  applyAffiliationFileWorkQueueEvidenceRepair,
+  buildAffiliationFileWorkQueueRepairActionRecord,
+} from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseActionRecord,
+  getAffiliationFileWorkQueueReleaseActionForBucket,
+} from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseOutcomeRecord,
+  getAffiliationFileWorkQueueReleaseOutcomeForAction,
+} from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecord,
+  getAffiliationFileWorkQueueReleaseFulfillmentForOutcome,
+} from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import {
+  buildAffiliationFileWorkQueueReleasePackageRecord,
+  getAffiliationFileWorkQueueReleasePackageForFulfillment,
+} from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
+import {
+  buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
+  getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode,
+} from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueNonMissionEnforcementRecord,
+  buildAffiliationFileWorkQueueNonMissionEnforcementRecordId,
+  getAffiliationFileWorkQueueNonMissionEnforcementForBucket,
+} from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
+import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
+import { getAffiliationFileWorkQueueEntry } from '../../domain/affiliationFileWorkQueueDecisions'
 import {
   clearContractNextIntent,
   launchContract as launchContractDomain,
@@ -164,15 +299,52 @@ import {
 } from './runTransfer'
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave, serializeGameSave } from './saveSystem'
 import {
+  cancelCase as cancelCaseState,
+  type CaseCancellationCommandResult,
+} from '../../domain/caseLifecycleWeeklyOrchestration'
+import {
   applyPreparedSupportProcedure as applyPreparedSupportProcedureState,
   refreshPreparedSupportProcedure as refreshPreparedSupportProcedureState,
 } from '../../domain/supportLoadout'
 import type { SquadMetadata } from '../../domain/squadMetadata'
 import type { SquadKitTemplate } from '../../domain/squadKitTemplate'
 import type { SquadKitAssignment } from '../../domain/squadKitAssignment'
+import {
+  enqueueDepartmentWorkshopWorkOrder as enqueueDepartmentWorkshopWorkOrderState,
+  prioritizeDepartmentWorkshopWorkOrder as prioritizeDepartmentWorkshopWorkOrderState,
+  type DepartmentWorkshopWorkOrder,
+  type DepartmentWorkshopWriteResult,
+} from '../../domain/departmentWorkshopQueue'
+import {
+  routeAndEnqueueDepartmentWorkshopWorkOrder as routeAndEnqueueDepartmentWorkshopWorkOrderState,
+  type DepartmentWorkshopRoutingRequest,
+  type DepartmentWorkshopRoutingResult,
+} from '../../domain/departmentWorkshopRouting'
+import {
+  activateDepartmentWorkshopFromConstruction as activateDepartmentWorkshopFromConstructionState,
+  type DepartmentWorkshopActivationRequest,
+  type DepartmentWorkshopActivationResult,
+} from '../../domain/departmentWorkshopActivation'
+import {
+  activateCaseScopedPrerequisiteProcessingOrder,
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder,
+  type CaseScopedPrerequisiteReservationResult,
+} from '../../domain/prerequisiteProcessingOrders'
 
 interface GameStore {
+  /** Session-only signal for replacing a campaign; excluded by partialize. */
+  gameReplacementRevision: number
   game: GameState
+  dispatchTutorialCommand: (
+    definition: TutorialDefinition,
+    command: TutorialDeliveryCommand,
+    eligibility?: TutorialEligibility
+  ) => TutorialDispatchResult
+  applyTutorialCommand: (
+    definition: TutorialDefinition,
+    command: TutorialCommand,
+    eligibility?: TutorialEligibility
+  ) => boolean
   appendDeveloperLogEvent: (event: DeveloperLogEventInput) => void
   clearDeveloperLog: () => void
   debugReset: (request: DebugResetRequest) => ReturnType<typeof applyDebugReset>['summary']
@@ -189,6 +361,25 @@ interface GameStore {
   peekRuntimeEvent: () => string | null
   listRuntimeEventQueue: () => ReturnType<typeof listQueuedRuntimeEvents>
   clearRuntimeEventQueue: () => number
+  enqueueDepartmentWorkshopWorkOrder: (
+    workOrder: DepartmentWorkshopWorkOrder
+  ) => DepartmentWorkshopWriteResult
+  routeAndEnqueueDepartmentWorkshopWorkOrder: (
+    request: DepartmentWorkshopRoutingRequest
+  ) => DepartmentWorkshopRoutingResult
+  activateDepartmentWorkshopFromConstruction: (
+    request: DepartmentWorkshopActivationRequest
+  ) => DepartmentWorkshopActivationResult
+  prioritizeDepartmentWorkshopWorkOrder: (
+    departmentId: string,
+    workOrderId: string
+  ) => DepartmentWorkshopWriteResult
+  reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (
+    workOrderId: string
+  ) => CaseScopedPrerequisiteReservationResult
+  activateCaseScopedPrerequisiteProcessingOrder: (
+    workOrderId: string
+  ) => CaseScopedPrerequisiteReservationResult
   applyAuthoredChoice: (
     choice: AuthoredChoiceDefinition,
     context?: ScreenRouteContext
@@ -235,6 +426,8 @@ interface GameStore {
     strategy?: MajorIncidentStrategy,
     provisions?: MajorIncidentProvisionType[]
   ) => void
+  /** SPE-2763: explicitly emit cancellation proof without closing or mutating the case. */
+  cancelCase: (caseId: Id) => CaseCancellationCommandResult
   assign: (caseId: Id, teamId: Id) => void
   unassign: (caseId: Id, teamId?: Id) => void
   /** SPE-2247: set stealth leave-behind tradeoff on an eligible in-progress infiltration case. */
@@ -245,12 +438,30 @@ interface GameStore {
     domain: InvestigationQuestionDomain,
     questionId: string
   ) => void
+  /**
+   * SPE-3040: apply the SPE-1610 site-exploration `search` action on an eligible case.
+   * Search-only — not a generic exploration-action store command.
+   */
+  applySiteExplorationSearch: (caseId: Id) => void
   /** SPE-521 deferred UX: override or clear weekly infiltration probe action on an eligible case. */
-  setInfiltrationWeeklyProbeAction: (
+  setInfiltrationWeeklyProbeAction: (caseId: Id, action: InfiltrationProbeAction | null) => void
+  /** SPE-521 follow-up: set or clear infiltration encounter cover stance on an eligible case. */
+  setInfiltrationEncounterCoverStance: (
     caseId: Id,
-    action: InfiltrationProbeAction | null
+    stance: InfiltrationEncounterCoverStance | null
   ) => void
+  /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
+  setPublicDisclosurePostureChoice: (recordId: Id, posture: PublicDisclosurePostureChoice) => void
   hireCandidate: (candidateId: Id) => void
+  reserveWorkshopStaffTime: (request: StaffTimeRequest) => StaffTimeResult
+  releaseWorkshopStaffTime: (id: string, revision: string) => StaffTimeResult
+  assignOperationalStaffPost: (
+    request: OperationalStaffPostAssignmentRequest
+  ) => OperationalStaffPostResult
+  reassignOperationalStaffPost: (
+    request: OperationalStaffPostAssignmentRequest
+  ) => OperationalStaffPostResult
+  unassignOperationalStaffPost: (request: OperationalStaffPostRequest) => OperationalStaffPostResult
   scoutCandidate: (candidateId: Id) => void
   transitionCandidateFunnel: (
     candidateId: Id,
@@ -289,10 +500,48 @@ interface GameStore {
   assignInstructor: (staffId: Id, agentId: Id) => void
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
+  materializeStoredEquipmentInstance: (
+    itemId: string,
+    source?: EquipmentDeconstructionSourceRef
+  ) => void
+  destroyStoredEquipmentInstance: (instanceId: string) => void
+  orderFacilityMaintenanceRecovery: () => void
+  /**
+   * SPE-3735: advance a durable breach-origin recovery via producer-backed
+   * caller-owned attempt facts. No UI; does not invent claim arbitration.
+   */
+  applyBreachOriginRecoveryStep: (
+    command: BreachOriginRecoveryStepCommand
+  ) => BreachRecoveryResult
+  purchaseFacilityMaintenancePackage: () => void
+  convertFacilityMaintenanceResources: (
+    request: MaintenanceConversionRequest
+  ) => MaintenanceConversionResult
+  repairStoredEquipmentInstanceCondition: (
+    instanceId: string,
+    expectedCost?: number
+  ) => PaidRepairResult
+  stabilizeContainmentClassDeficiency: (instanceId: string) => void
+  inspectContainmentClassIntegrity: (instanceId: string) => void
+  disposeStoredCombatStimInstance: (instanceId: string) => void
+  reaggregateStoredCombatStimInstance: (instanceId: string) => void
+  reaggregateStoredEquipmentInstance: (instanceId: string) => void
+  returnFabricatedStoredEquipmentInstanceToLot: (instanceId: string) => void
+  returnFabricatedStoredCombatStimInstanceToLot: (instanceId: string) => void
   equipAgentItem: (agentId: Id, slot: EquipmentSlotKind, itemId: string) => void
+  equipStoredEquipmentInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
+  equipStoredCombatStimInstance: (instanceId: string, agentId: Id, slot: EquipmentSlotKind) => void
+  activateCombatStim: (instanceId: string) => void
+  authorizePersonnelPpeFulfillment: (agentId: Id, requirementId: string) => void
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
+  queueEquipmentDeconstruction: (itemId: string, source?: EquipmentDeconstructionSourceRef) => void
+  enableEquipmentAutoScrap: (thresholdGradeId: EquipmentGradeId) => void
+  disableEquipmentAutoScrap: () => void
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
+  placeDelayedMarketOrder: (listingId: string, bundles?: number) => void
+  redeemFactionFavorProcurement: (listingId: string, bundles?: number) => void
+  callCallableObligationProcurement: (listingId: string, bundles?: number) => void
   /** Renew licensed-handling doctrine attestation for the current campaign week (SPE-874). */
   acknowledgeLicensedHandlingDoctrine: () => void
   /** Crisis waiver: temporarily unlock gray-market broker for sanctioned posture (SPE-1524). */
@@ -311,6 +560,16 @@ interface GameStore {
   ) => ReturnType<typeof evaluateDeploymentEligibility> | null
   assignMissionTeam: (missionId: Id, teamId: Id) => boolean
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
+  recordAffiliationFileWorkQueueAction: (entryId: string) => void
+  recordAffiliationFileWorkQueueEvidenceResolution: (entryId: string) => void
+  recordAffiliationFileWorkQueueRepairAction: (entryId: string, reasonCode: string) => void
+  recordAffiliationFileWorkQueueReleaseAction: (entryId: string) => void
+  recordAffiliationFileWorkQueueReleaseOutcome: (entryId: string) => void
+  recordAffiliationFileWorkQueueReleaseFulfillment: (entryId: string) => void
+  recordAffiliationFileWorkQueueReleasePackage: (entryId: string) => void
+  recordAffiliationFileWorkQueueFileReleaseDelivery: (entryId: string) => void
+  recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId: string) => void
+  recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -356,6 +615,33 @@ function areLocationStatesEqual(left: GameLocationState, right: GameLocationStat
     left.sceneId === right.sceneId &&
     left.updatedWeek === right.updatedWeek
   )
+}
+
+function activateHistoricalRouteReplayInteractionStartOnGame(
+  game: GameState,
+  interactionKind: HistoricalRouteReplayInteractionKind,
+  interactionId: string
+): GameState {
+  const normalizedInteractionId = interactionId.trim()
+  if (normalizedInteractionId.length === 0) {
+    return game
+  }
+
+  return {
+    ...game,
+    historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+      game.historicalRouteReplays,
+      normalizeHistoricalRouteMemoryGraphsFromGameState({
+        historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+        historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+      }),
+      game.historicalRouteReplayActivationCandidates,
+      {
+        interactionKind,
+        interactionId: normalizedInteractionId,
+      }
+    ),
+  }
 }
 
 function areProgressClocksEqual(
@@ -511,11 +797,96 @@ export function resolveGameStorage(): StateStorage {
   return gameStorageFallback
 }
 
+type AutomaticLoadError = InvalidMissionEscalationRuleError | UnsupportedInventoryQuantityError
+let automaticMissionLoadError: AutomaticLoadError | undefined
+const GAME_STORAGE_KEY = 'containment-protocol-game-state'
+
+export function getAutomaticMissionLoadError(): AutomaticLoadError | undefined {
+  return automaticMissionLoadError
+}
+
+/** Restore a validated run only after a separate copy of the rejected save exists. */
+export async function restoreCompatibleRun(raw: string): Promise<void> {
+  if (!automaticMissionLoadError) throw new Error('No rejected campaign is awaiting recovery.')
+  const game = parseRunExport(raw)
+  const payload: unknown = JSON.parse(raw)
+  const savedGame =
+    typeof payload === 'object' && payload !== null && 'game' in payload ? payload.game : undefined
+  const savedCases =
+    typeof savedGame === 'object' && savedGame !== null && 'cases' in savedGame
+      ? savedGame.cases
+      : undefined
+  if (
+    typeof savedCases !== 'object' ||
+    savedCases === null ||
+    Array.isArray(savedCases) ||
+    Object.keys(savedCases).length === 0 ||
+    Object.entries(savedCases).some(
+      ([id, value]) =>
+        typeof value !== 'object' ||
+        value === null ||
+        Array.isArray(value) ||
+        !Object.prototype.hasOwnProperty.call(game.cases, id)
+    )
+  ) {
+    throw new Error('This run export does not contain saved campaign cases.')
+  }
+  const storage = resolveGameStorage()
+  const original = await storage.getItem(GAME_STORAGE_KEY)
+  if (original === null) throw new Error('The original saved campaign is unavailable.')
+
+  const prefix = `${GAME_STORAGE_KEY}.recovery-${Date.now()}`
+  let backupKey: string | undefined
+  for (let index = 0; index < 100; index += 1) {
+    const candidate = `${prefix}-${index}`
+    if ((await storage.getItem(candidate)) === null) {
+      backupKey = candidate
+      break
+    }
+  }
+  if (!backupKey) throw new Error('Could not find a safe place for a copy of the original save.')
+  await storage.setItem(backupKey, original)
+  if ((await storage.getItem(backupKey)) !== original) {
+    throw new Error('Could not preserve the original save. No replacement was made.')
+  }
+  await storage.setItem(
+    GAME_STORAGE_KEY,
+    JSON.stringify({ state: { game: stripGameTemplates(game) }, version: GAME_STORE_VERSION })
+  )
+}
+
+function guardAutomaticLoad<T>(load: () => T): T {
+  try {
+    return load()
+  } catch (error) {
+    if (
+      error instanceof InvalidMissionEscalationRuleError ||
+      error instanceof UnsupportedInventoryQuantityError
+    ) {
+      automaticMissionLoadError = error
+    }
+    throw error
+  }
+}
+
+// The lock lasts for this page lifetime. Recovery writes only after preserving
+// the original and reloads the page before normal persistence resumes.
+const guardedGameStorage: StateStorage = {
+  getItem: (name) => resolveGameStorage().getItem(name),
+  setItem: (name, value) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().setItem(name, value)
+  },
+  removeItem: (name) => {
+    if (!automaticMissionLoadError) return resolveGameStorage().removeItem(name)
+  },
+}
+
 // ----- Store -----
 
 export const useGameStore = create<GameStore>()(
   persist(
     (set, get) => ({
+      gameReplacementRevision: 0,
       game: createStartingState(),
 
       appendDeveloperLogEvent: (event) =>
@@ -664,6 +1035,27 @@ export const useGameStore = create<GameStore>()(
         })
 
         return resetSummary
+      },
+
+      dispatchTutorialCommand: (definition, command, eligibility) => {
+        let result = unavailableTutorialResult()
+        set((s) => {
+          const delivered = applyTutorialDelivery(s.game, definition, command, eligibility)
+          result = delivered.result
+          return delivered.state === s.game ? s : { game: delivered.state }
+        })
+        return result
+      },
+
+      applyTutorialCommand: (definition, command, eligibility) => {
+        let changed = false
+        set((s) => {
+          const result = applyTutorialCommandState(s.game, definition, command, eligibility)
+          if (result.state === s.game) return s
+          changed = true
+          return { game: result.state }
+        })
+        return changed
       },
 
       setPersistentFlag: (flagId, value = true) =>
@@ -815,6 +1207,122 @@ export const useGameStore = create<GameStore>()(
         return removed
       },
 
+      enqueueDepartmentWorkshopWorkOrder: (workOrder) => {
+        let writeResult: DepartmentWorkshopWriteResult | null = null
+        set((s) => {
+          writeResult = enqueueDepartmentWorkshopWorkOrderState(s.game, workOrder)
+          if (writeResult.state === 'blocked') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return writeResult!
+      },
+
+      routeAndEnqueueDepartmentWorkshopWorkOrder: (request) => {
+        let routingResult: DepartmentWorkshopRoutingResult | null = null
+        set((s) => {
+          routingResult = routeAndEnqueueDepartmentWorkshopWorkOrderState(s.game, request)
+          const writeResult = routingResult.writeResult
+          if (routingResult.state === 'blocked' || !writeResult) {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return routingResult!
+      },
+
+      activateDepartmentWorkshopFromConstruction: (request) => {
+        let activationResult: DepartmentWorkshopActivationResult | null = null
+        set((s) => {
+          activationResult = activateDepartmentWorkshopFromConstructionState(s.game, request)
+          if (activationResult.state !== 'activated') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: activationResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: activationResult.workshopState.snapshots,
+            },
+          }
+        })
+        return activationResult!
+      },
+
+      prioritizeDepartmentWorkshopWorkOrder: (departmentId, workOrderId) => {
+        let writeResult: DepartmentWorkshopWriteResult | null = null
+        set((s) => {
+          writeResult = prioritizeDepartmentWorkshopWorkOrderState(
+            s.game,
+            departmentId,
+            workOrderId
+          )
+          if (writeResult.state === 'blocked') {
+            return { game: s.game }
+          }
+          return {
+            game: {
+              ...s.game,
+              departmentWorkshopWorkOrders: writeResult.workshopState.workOrders,
+              departmentWorkshopSnapshots: writeResult.workshopState.snapshots,
+            },
+          }
+        })
+        return writeResult!
+      },
+
+      reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder: (workOrderId) => {
+        let result: CaseScopedPrerequisiteReservationResult | null = null
+        set((s) => {
+          result = reserveAndEnqueueCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
+          if (result.state === 'blocked') return { game: s.game }
+          return {
+            game: {
+              ...s.game,
+              inventory: result.inventory,
+              caseScopedPrerequisiteProcessingReservations: result.reservations,
+              departmentWorkshopWorkOrders:
+                result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'],
+              departmentWorkshopSnapshots:
+                result.workshopSnapshots as GameState['departmentWorkshopSnapshots'],
+            },
+          }
+        })
+        return result!
+      },
+      activateCaseScopedPrerequisiteProcessingOrder: (workOrderId) => {
+        let result: CaseScopedPrerequisiteReservationResult | null = null
+        set((s) => {
+          result = activateCaseScopedPrerequisiteProcessingOrder(s.game, workOrderId)
+          if (result.state === 'blocked') return { game: s.game }
+          return {
+            game: {
+              ...s.game,
+              inventory: result.inventory,
+              caseScopedPrerequisiteProcessingReservations: result.reservations,
+              departmentWorkshopWorkOrders:
+                result.workshopWorkOrders as GameState['departmentWorkshopWorkOrders'],
+              departmentWorkshopSnapshots:
+                result.workshopSnapshots as GameState['departmentWorkshopSnapshots'],
+            },
+          }
+        })
+        return result!
+      },
+
       applyAuthoredChoice: (choice, context) => {
         let result: AuthoredChoiceExecutionResult = {
           state: get().game,
@@ -836,8 +1344,29 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           // Pure deterministic choice-application logic is handled by domain
           result = applyAuthoredChoiceState(s.game, choice, context)
+          let gameAfterChoice = result.state
+          if (result.applied) {
+            for (const consequence of choice.consequences) {
+              if (consequence.type !== 'record_scene_visit') continue
+              const sceneId =
+                typeof consequence.entry.sceneId === 'string'
+                  ? consequence.entry.sceneId.trim()
+                  : ''
+              const locationId =
+                typeof consequence.entry.locationId === 'string'
+                  ? consequence.entry.locationId.trim()
+                  : ''
+              if (sceneId.length === 0 || locationId.length === 0) continue
+
+              gameAfterChoice = activateHistoricalRouteReplayInteractionStartOnGame(
+                gameAfterChoice,
+                'enter_zone',
+                sceneId
+              )
+            }
+          }
           // Context logging, debug snapshotting, and event queue wiring remain in the store
-          let gameWithDebugSnapshot: GameState = setUiDebugState(result.state, {
+          let gameWithDebugSnapshot: GameState = setUiDebugState(gameAfterChoice, {
             authoring: {
               ...(context?.activeContextId ? { activeContextId: context.activeContextId } : {}),
               lastChoiceId: result.choiceId,
@@ -1027,6 +1556,22 @@ export const useGameStore = create<GameStore>()(
                 },
               })
 
+          // SPE-3034: existing site scene visit matches SPE-1605 enter_zone.
+          // interactionId is the visited sceneId. Creates approaching only;
+          // SPE-3018 advance stays week-close. No-match / empty candidates no-op.
+          // Gate on the same non-empty scene+location ids the domain visit requires
+          // so a rejected visit cannot re-fire against a stale currentLocation scene.
+          const visitSceneId = typeof entry.sceneId === 'string' ? entry.sceneId.trim() : ''
+          const visitLocationId =
+            typeof entry.locationId === 'string' ? entry.locationId.trim() : ''
+          if (visitSceneId.length > 0 && visitLocationId.length > 0) {
+            game = activateHistoricalRouteReplayInteractionStartOnGame(
+              game,
+              'enter_zone',
+              visitSceneId
+            )
+          }
+
           return {
             game,
           }
@@ -1143,15 +1688,55 @@ export const useGameStore = create<GameStore>()(
       setContractNextIntent: (intent) =>
         set((s) => ({ game: setContractNextIntent(s.game, intent) })),
 
-      clearContractNextIntent: () =>
-        set((s) => ({ game: clearContractNextIntent(s.game) })),
+      clearContractNextIntent: () => set((s) => ({ game: clearContractNextIntent(s.game) })),
 
       launchMajorIncident: (caseId, teamIds, strategy = 'balanced', provisions = []) =>
-        set((s) => ({
-          game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
-        })),
+        set((s) => {
+          if (
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: s.game }
+          }
 
-      assign: (caseId, teamId) => set((s) => ({ game: assignTeam(s.game, caseId, teamId) })),
+          return {
+            game: launchMajorIncident(s.game, caseId, teamIds, strategy, provisions),
+          }
+        }),
+
+      cancelCase: (caseId) => {
+        let result: CaseCancellationCommandResult | null = null
+        set((s) => {
+          result = cancelCaseState(s.game, caseId)
+          if (result.state === 'blocked' || result.registeredWorkOrderIds.length === 0) {
+            return { game: s.game }
+          }
+
+          return {
+            game: {
+              ...s.game,
+              caseScopedPrerequisiteProcessingTerminalSignals: result.signals,
+            },
+          }
+        })
+        return result!
+      },
+
+      assign: (caseId, teamId) =>
+        set((s) => {
+          const routed = routeMissionToTeam(s.game, caseId, teamId)
+          if (
+            !routed.assigned &&
+            routeMission(s.game, caseId).routingBlockers.includes(
+              'authority-mission-access-restricted'
+            )
+          ) {
+            return { game: routed.state }
+          }
+
+          return { game: assignTeam(s.game, caseId, teamId) }
+        }),
 
       unassign: (caseId, teamId) => set((s) => ({ game: unassignTeam(s.game, caseId, teamId) })),
 
@@ -1181,7 +1766,66 @@ export const useGameStore = create<GameStore>()(
             return { game: s.game }
           }
 
-          return { game: result.state }
+          // SPE-3035: applied investigation ask matches SPE-1605 interview_witness.
+          // interactionId is the trimmed questionId (same role sceneId plays for
+          // SPE-3034 enter_zone). Creates approaching only; SPE-3018 advance stays
+          // week-close. Rejected asks / empty candidates / no-match stay no-ops.
+          const askQuestionId = typeof questionId === 'string' ? questionId.trim() : ''
+          let game = result.state
+          if (askQuestionId.length > 0) {
+            game = {
+              ...game,
+              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+                game.historicalRouteReplays,
+                normalizeHistoricalRouteMemoryGraphsFromGameState({
+                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+                }),
+                game.historicalRouteReplayActivationCandidates,
+                {
+                  interactionKind: 'interview_witness',
+                  interactionId: askQuestionId,
+                }
+              ),
+            }
+          }
+
+          return { game }
+        }),
+
+      applySiteExplorationSearch: (caseId) =>
+        set((s) => {
+          const result = applySiteExplorationAction(s.game, caseId, 'search')
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          // SPE-3040: applied site-exploration search matches SPE-1605 search.
+          // interactionId is the trimmed caseId (same role sceneId / questionId
+          // play for SPE-3034 / SPE-3035). Creates approaching only; SPE-3018
+          // advance stays week-close. Rejected searches / empty candidates /
+          // no-match stay no-ops.
+          const searchCaseId = typeof caseId === 'string' ? caseId.trim() : ''
+          let game = result.state
+          if (searchCaseId.length > 0) {
+            game = {
+              ...game,
+              historicalRouteReplays: activateHistoricalRouteReplayRegistryForInteractionStart(
+                game.historicalRouteReplays,
+                normalizeHistoricalRouteMemoryGraphsFromGameState({
+                  historicalRouteMemoryGraphs: game.historicalRouteMemoryGraphs,
+                  historicalRouteMemoryGraph: game.historicalRouteMemoryGraph,
+                }),
+                game.historicalRouteReplayActivationCandidates,
+                {
+                  interactionKind: 'search',
+                  interactionId: searchCaseId,
+                }
+              ),
+            }
+          }
+
+          return { game }
         }),
 
       setInfiltrationWeeklyProbeAction: (caseId, action) =>
@@ -1202,7 +1846,59 @@ export const useGameStore = create<GameStore>()(
           return { game: result.state }
         }),
 
+      setInfiltrationEncounterCoverStance: (caseId, stance) =>
+        set((s) => {
+          const result = applyInfiltrationEncounterCoverStance(s.game, {
+            caseId,
+            stance,
+          })
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
+      setPublicDisclosurePostureChoice: (recordId, posture) =>
+        set((s) => {
+          const result = applyPublicDisclosurePostureChoice(s.game, {
+            recordId,
+            posture,
+          })
+
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
       hireCandidate: (candidateId) => set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+      reserveWorkshopStaffTime: (request) => {
+        const result = reserveWorkshopStaffTime(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      releaseWorkshopStaffTime: (id, revision) => {
+        const result = releaseWorkshopStaffTime(get().game, id, revision)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      assignOperationalStaffPost: (request) => {
+        const result = assignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      reassignOperationalStaffPost: (request) => {
+        const result = reassignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+      unassignOperationalStaffPost: (request) => {
+        const result = unassignOperationalStaffPost(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
 
       scoutCandidate: (candidateId) => set((s) => ({ game: scoutCandidate(s.game, candidateId) })),
 
@@ -1468,16 +2164,421 @@ export const useGameStore = create<GameStore>()(
       reconcileAgents: (leftId, rightId) =>
         set((s) => ({ game: reconcileAgents(s.game, leftId, rightId) })),
 
+      materializeStoredEquipmentInstance: (itemId, source) =>
+        set((s) => {
+          const result =
+            itemId === COMBAT_STIM_DEFINITION_ID
+              ? materializeStoredCombatStimInstance(s.game, source)
+              : materializeStoredOrdinaryEquipmentInstance(s.game, itemId, source)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(itemId)
+          const origin = result.instance.fabricationOrigin
+          const payload = result.instance.payload
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceMaterializedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: itemId,
+                definitionName: definition?.name ?? itemId,
+                condition: result.instance.condition,
+                locationState: 'stored',
+                ...(payload
+                  ? {
+                      resourceId: payload.resourceId,
+                      capacity: payload.capacity,
+                      remaining: payload.remaining,
+                    }
+                  : {}),
+                ...(origin
+                  ? {
+                      fabricationQueueId: origin.queueId,
+                      fabricationRecipeId: origin.recipeId,
+                      fabricationGradeId: origin.gradeId,
+                      fabricationCompletedWeek: origin.completedWeek,
+                    }
+                  : {}),
+              }),
+            ]),
+          }
+        }),
+
+      destroyStoredEquipmentInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredOrdinaryEquipmentInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceDestroyedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: result.instance.condition,
+                reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      orderFacilityMaintenanceRecovery: () =>
+        set((s) => {
+          const result = applyFacilityMaintenanceRecovery(s.game)
+          return result.status === 'recovered' ? { game: result.game } : s
+        }),
+
+      applyBreachOriginRecoveryStep: (command) => {
+        let outcome!: BreachRecoveryResult
+        set((s) => {
+          const result = applyBreachOriginRecoveryStep(s.game, command)
+          outcome = result
+          return result.state !== undefined ? { game: result.state } : s
+        })
+        return outcome
+      },
+
+      convertFacilityMaintenanceResources: (request) => {
+        const result = convertFacilityMaintenanceResources(get().game, request)
+        if (result.status === 'applied') set({ game: result.game })
+        return result
+      },
+
+      purchaseFacilityMaintenancePackage: () =>
+        set((s) => {
+          const result = purchaseFacilityMaintenancePackage(s.game)
+          return result.status === 'purchased' ? { game: result.game } : s
+        }),
+
+      repairStoredEquipmentInstanceCondition: (instanceId, expectedCost) => {
+        let outcome!: PaidRepairResult
+        set((s) => {
+          const game = s.game
+          const instance = game.equipmentInstances?.[instanceId]
+          const sparePartId = getRequiredRepairSparePartId(instance?.containmentIntegrity?.classId)
+          const result = settlePaidEquipmentRepair(game, instanceId, sparePartId, expectedCost)
+          outcome = result
+          if (result.payment !== 'paid') return s
+          const repaired = result.state.equipmentInstances![instanceId]!
+          const definition = getEquipmentDefinition(repaired.definitionId)
+          const nextGame = appendOperationEventDrafts(result.state, [
+            createEquipmentInstanceConditionRepairedDraft({
+              week: game.week,
+              instanceId: repaired.instanceId,
+              definitionId: repaired.definitionId,
+              definitionName: definition?.name ?? repaired.definitionId,
+              previousCondition: 'damaged',
+              condition: 'operational',
+              reason: 'manual_condition_repair',
+              repairCost: result.charged,
+            }),
+          ])
+          outcome = { ...result, state: nextGame }
+          return { game: nextGame }
+        })
+        return outcome
+      },
+
+      stabilizeContainmentClassDeficiency: (instanceId) =>
+        set((s) => {
+          const previousIntegrity = s.game.equipmentInstances?.[instanceId]?.containmentIntegrity
+          const result = stabilizeContainmentClassDeficiencyState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const previousKind = previousIntegrity?.deficiency.kind
+          const nextDeficiency = result.instance.containmentIntegrity?.deficiency
+          const nextCycleCount = result.instance.containmentIntegrity?.cycleCount
+          if (
+            (previousKind !== 'hard_stop' && previousKind !== 'compensating_continue') ||
+            !nextDeficiency ||
+            (nextDeficiency.kind !== 'none' && nextDeficiency.kind !== 'compensating_continue') ||
+            typeof previousIntegrity?.cycleCount !== 'number' ||
+            typeof nextCycleCount !== 'number' ||
+            !previousIntegrity
+          ) {
+            return { game: result.state }
+          }
+          const classId = previousIntegrity.classId
+          if (!isContainmentClassId(classId)) {
+            return { game: result.state }
+          }
+          const spec = getContainmentClassCadenceSpec(classId)
+          if (!spec) {
+            return { game: result.state }
+          }
+          if (
+            nextDeficiency.kind === 'compensating_continue' &&
+            nextDeficiency.compensatingControlId !== spec.compensatingControlId
+          ) {
+            return { game: result.state }
+          }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createContainmentClassStabilizedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                classId,
+                previousDeficiencyKind: previousKind,
+                deficiencyKind: nextDeficiency.kind,
+                ...(nextDeficiency.kind === 'compensating_continue'
+                  ? { compensatingControlId: nextDeficiency.compensatingControlId }
+                  : {}),
+                previousCycleCount: previousIntegrity.cycleCount,
+                cycleCount: nextCycleCount,
+                inService: isContainmentClassInService(result.instance.containmentIntegrity),
+                reason: 'technician_stabilization',
+              }),
+            ]),
+          }
+        }),
+
+      inspectContainmentClassIntegrity: (instanceId) =>
+        set((s) => {
+          const result = inspectContainmentClassIntegrityState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          const compensatingControlId =
+            result.inspection.deficiency.kind === 'compensating_continue'
+              ? result.inspection.deficiency.compensatingControlId
+              : undefined
+          const drafts: Array<
+            | ReturnType<typeof createContainmentClassInspectedDraft>
+            | ReturnType<typeof createContainmentClassDeficiencyRecordedDraft>
+          > = [
+            createContainmentClassInspectedDraft({
+              week: s.game.week,
+              instanceId: result.instance.instanceId,
+              definitionId: result.instance.definitionId,
+              definitionName: definition?.name ?? result.instance.definitionId,
+              classId: result.inspection.classId,
+              status: result.inspection.status,
+              previousLastInspectionWeek: result.inspection.previousLastInspectionWeek,
+              lastInspectionWeek: result.inspection.lastInspectionWeek,
+              intervalWeeks: result.inspection.intervalWeeks,
+              weeksSinceInspection: result.inspection.weeksSinceInspection,
+              deficiencyKind: result.inspection.deficiency.kind,
+              ...(compensatingControlId ? { compensatingControlId } : {}),
+              inService: result.inspection.inService,
+              reason: 'mid_week_player_inspect',
+            }),
+          ]
+          if (result.inspection.deficiencyChanged) {
+            drafts.push(
+              createContainmentClassDeficiencyRecordedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                classId: result.inspection.classId,
+                status: result.inspection.status,
+                intervalWeeks: result.inspection.intervalWeeks,
+                weeksSinceInspection: result.inspection.weeksSinceInspection,
+                deficiencyKind: result.inspection.deficiency.kind,
+                ...(compensatingControlId ? { compensatingControlId } : {}),
+                inService: result.inspection.inService,
+                reason: 'inspection_cadence_deficiency',
+              })
+            )
+          }
+          return { game: appendOperationEventDrafts(result.state, drafts) }
+        }),
+
+      disposeStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = destroyStoredCombatStimInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimDisposedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: result.instance.condition,
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: payload.remaining,
+                reason: 'manual_disposal',
+              }),
+            ]),
+          }
+        }),
+
+      reaggregateStoredCombatStimInstance: (instanceId) =>
+        set((s) => {
+          const result = reaggregateStoredCombatStimInstanceState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const payload = result.instance.payload
+          if (!payload) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredCombatStimInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedCombatStimInstanceToLotState(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createCombatStimReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: 'combat_stims',
+                definitionName: definition?.name ?? 'Combat Stims',
+                condition: 'operational',
+                resourceId: 'combat_stim_dose',
+                capacity: 2,
+                remaining: 2,
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
+              }),
+            ]),
+          }
+        }),
+
+      reaggregateStoredEquipmentInstance: (instanceId) =>
+        set((s) => {
+          const result = reaggregateStoredOrdinaryEquipmentInstance(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: 'operational',
+                reason: 'manual_untracking',
+              }),
+            ]),
+          }
+        }),
+
+      returnFabricatedStoredEquipmentInstanceToLot: (instanceId) =>
+        set((s) => {
+          const result = returnFabricatedOrdinaryEquipmentInstanceToLot(s.game, instanceId)
+          if (!result.ok) return { game: result.state }
+          const definition = getEquipmentDefinition(result.instance.definitionId)
+          const origin = result.instance.fabricationOrigin
+          if (!origin) return { game: result.state }
+          return {
+            game: appendOperationEventDrafts(result.state, [
+              createEquipmentInstanceReaggregatedDraft({
+                week: s.game.week,
+                instanceId: result.instance.instanceId,
+                definitionId: result.instance.definitionId,
+                definitionName: definition?.name ?? result.instance.definitionId,
+                condition: 'operational',
+                reason: 'fabricated_lot_return',
+                fabricationQueueId: origin.queueId,
+                fabricationRecipeId: origin.recipeId,
+                fabricationGradeId: origin.gradeId,
+                fabricationCompletedWeek: origin.completedWeek,
+              }),
+            ]),
+          }
+        }),
+
       equipAgentItem: (agentId, slot, itemId) =>
-        set((s) => ({ game: equipAgentItem(s.game, agentId, slot, itemId) })),
+        set((s) => {
+          const next = equipAgentItem(s.game, agentId, slot, itemId)
+          if (itemId !== COMBAT_STIM_DEFINITION_ID) return { game: next }
+          const instance = getEquipmentInstanceAtAgentSlot(next, agentId, slot)
+          if (!instance || s.game.equipmentInstances?.[instance.instanceId]) return { game: next }
+          const definition = getEquipmentDefinition(itemId)
+          const payload = instance.payload
+          return {
+            game: appendOperationEventDrafts(next, [
+              createEquipmentInstanceMaterializedDraft({
+                week: s.game.week,
+                instanceId: instance.instanceId,
+                definitionId: itemId,
+                definitionName: definition?.name ?? itemId,
+                condition: instance.condition,
+                locationState: 'equipped',
+                agentId,
+                slot,
+                ...(payload
+                  ? {
+                      resourceId: payload.resourceId,
+                      capacity: payload.capacity,
+                      remaining: payload.remaining,
+                    }
+                  : {}),
+              }),
+            ]),
+          }
+        }),
+
+      equipStoredEquipmentInstance: (instanceId, agentId, slot) =>
+        set((s) => ({ game: equipStoredEquipmentInstance(s.game, instanceId, agentId, slot) })),
+
+      equipStoredCombatStimInstance: (instanceId, agentId, slot) =>
+        set((s) => ({ game: equipStoredCombatStimInstance(s.game, instanceId, agentId, slot) })),
+
+      activateCombatStim: (instanceId) =>
+        set((s) => ({ game: activateCombatStim(s.game, instanceId).state })),
+
+      authorizePersonnelPpeFulfillment: (agentId, requirementId) =>
+        set((s) => {
+          const result = authorizePersonnelPpeFulfillment(
+            s.game,
+            { agentId, requirementId },
+            { equipAgentItem, equipStoredEquipmentInstance }
+          )
+          return { game: result.state }
+        }),
 
       unequipAgentItem: (agentId, slot) =>
         set((s) => ({ game: unequipAgentItem(s.game, agentId, slot) })),
 
       queueFabrication: (recipeId) => set((s) => ({ game: queueFabrication(s.game, recipeId) })),
 
+      queueEquipmentDeconstruction: (itemId, source) =>
+        set((s) => ({ game: queueEquipmentDeconstruction(s.game, itemId, source) })),
+
+      enableEquipmentAutoScrap: (thresholdGradeId) =>
+        set((s) => ({ game: enableEquipmentAutoScrapPolicy(s.game, thresholdGradeId) })),
+
+      disableEquipmentAutoScrap: () =>
+        set((s) => ({ game: disableEquipmentAutoScrapPolicy(s.game) })),
+
       purchaseMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: purchaseMarketInventory(s.game, listingId, bundles) })),
+
+      placeDelayedMarketOrder: (listingId, bundles = 1) =>
+        set((s) => ({ game: placeDelayedMarketOrder(s.game, listingId, bundles) })),
+
+      redeemFactionFavorProcurement: (listingId, bundles = 1) =>
+        set((s) => ({ game: redeemFactionFavorProcurement(s.game, listingId, bundles) })),
+      callCallableObligationProcurement: (listingId, bundles = 1) =>
+        set((s) => ({ game: callCallableObligationProcurement(s.game, listingId, bundles) })),
 
       acknowledgeLicensedHandlingDoctrine: () =>
         set((s) => ({ game: acknowledgeLicensedHandlingDoctrine(s.game) })),
@@ -1493,13 +2594,17 @@ export const useGameStore = create<GameStore>()(
             return s
           }
 
-          const rng = createSeededRng(s.game.rngState)
-          const draw = drawPartyCards(s.game.partyCards, count, rng.next)
+          const draw = drawPartyCardsWithScopedContinuation({
+            partyCards: s.game.partyCards,
+            count,
+            runSeed: s.game.rngSeed,
+            legacyRngState: s.game.rngState,
+            week: s.game.week,
+          })
 
           return {
             game: {
               ...s.game,
-              rngState: rng.getState(),
               partyCards: draw.nextState,
             },
           }
@@ -1636,7 +2741,444 @@ export const useGameStore = create<GameStore>()(
       applyRotatingRosterContinuityReconciliation: () =>
         set((s) => ({ game: applyRotatingRosterContinuityReconciliation(s.game) })),
 
-      reset: () => set({ game: createStartingState() }),
+      recordAffiliationFileWorkQueueAction: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (!entry) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            actionKind: entry.recommendedActionKind,
+            actionLabel: entry.recommendedActionLabel,
+            sourceBucket: entry.bucket,
+            sourceReasonCodes: entry.reasonCodes,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueActionRecords: {
+                ...(s.game.affiliationFileWorkQueueActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueEvidenceResolution: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (!entry || entry.bucket !== 'missing_review') {
+            return { game: s.game }
+          }
+
+          const missingReasonCodes = entry.reasonCodes.filter((reasonCode) =>
+            reasonCode.startsWith('missing_')
+          )
+
+          if (missingReasonCodes.length === 0) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceBucket: entry.bucket,
+            missingReasonCodes,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueEvidenceResolutionRecords: {
+                ...(s.game.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueRepairAction: (entryId, reasonCode) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+          const repairCandidate = entry?.evidenceRepairCandidates.find(
+            (candidate) => candidate.reasonCode === reasonCode
+          )
+
+          if (
+            !entry ||
+            !repairCandidate ||
+            repairCandidate.isRepairActionRecorded ||
+            !reasonCode.startsWith('missing_')
+          ) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueRepairActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            reasonCode: repairCandidate.reasonCode,
+            repairLabel: repairCandidate.repairLabel,
+            recordedWeek: s.game.week,
+          })
+
+          const repaired = applyAffiliationFileWorkQueueEvidenceRepair({
+            state: s.game,
+            workQueueEntryId: entry.id,
+            reasonCode: repairCandidate.reasonCode,
+            recordedWeek: s.game.week,
+          })
+
+          if (!repaired.applied) {
+            return { game: s.game }
+          }
+
+          return {
+            game: {
+              ...repaired.state,
+              affiliationFileWorkQueueRepairActionRecords: {
+                ...(repaired.state.affiliationFileWorkQueueRepairActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleaseAction: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+          const releaseAction = entry
+            ? getAffiliationFileWorkQueueReleaseActionForBucket(entry.bucket)
+            : null
+
+          if (!entry || !releaseAction || entry.isReleaseActionRecorded) {
+            return { game: s.game }
+          }
+
+          const sourceBucket = entry.bucket === 'allowed' ? 'allowed' : 'restricted'
+          const record = buildAffiliationFileWorkQueueReleaseActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            actionKind: releaseAction.actionKind,
+            actionLabel: releaseAction.actionLabel,
+            sourceBucket,
+            sourceReasonCodes: entry.reasonCodes,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleaseActionRecords: {
+                ...(s.game.affiliationFileWorkQueueReleaseActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleaseOutcome: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (
+            !entry ||
+            !entry.releaseActionKind ||
+            !entry.isReleaseActionRecorded ||
+            entry.isReleaseOutcomeRecorded
+          ) {
+            return { game: s.game }
+          }
+
+          const sourceBucket = entry.bucket === 'allowed' ? 'allowed' : 'restricted'
+          const outcome = getAffiliationFileWorkQueueReleaseOutcomeForAction(
+            entry.releaseActionKind
+          )
+          const record = buildAffiliationFileWorkQueueReleaseOutcomeRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceActionKind: entry.releaseActionKind,
+            sourceBucket,
+            sourceReasonCodes: entry.reasonCodes,
+            outcomeKind: outcome.outcomeKind,
+            outcomeLabel: outcome.outcomeLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleaseOutcomeRecords: {
+                ...(s.game.affiliationFileWorkQueueReleaseOutcomeRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleaseFulfillment: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (
+            !entry ||
+            entry.bucket !== 'allowed' ||
+            !entry.releaseOutcomeKind ||
+            !entry.isReleaseActionRecorded ||
+            !entry.isReleaseOutcomeRecorded ||
+            entry.isReleaseFulfillmentRecorded
+          ) {
+            return { game: s.game }
+          }
+
+          const fulfillment = getAffiliationFileWorkQueueReleaseFulfillmentForOutcome(
+            entry.releaseOutcomeKind
+          )
+
+          if (!fulfillment) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceOutcomeKind: entry.releaseOutcomeKind,
+            sourceBucket: 'allowed',
+            sourceReasonCodes: entry.reasonCodes,
+            fulfillmentKind: fulfillment.fulfillmentKind,
+            fulfillmentLabel: fulfillment.fulfillmentLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleaseFulfillmentRecords: {
+                ...(s.game.affiliationFileWorkQueueReleaseFulfillmentRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleasePackage: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (
+            !entry ||
+            !entry.releaseOutcomeKind ||
+            !entry.releaseFulfillmentKind ||
+            !entry.isReleaseFulfillmentRecorded ||
+            entry.isReleasePackageRecorded
+          ) {
+            return { game: s.game }
+          }
+
+          const releasePackage = getAffiliationFileWorkQueueReleasePackageForFulfillment(
+            entry.releaseFulfillmentKind
+          )
+          const record = buildAffiliationFileWorkQueueReleasePackageRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceOutcomeKind: entry.releaseOutcomeKind,
+            sourceFulfillmentKind: entry.releaseFulfillmentKind,
+            sourceReasonCodes: entry.releaseFulfillmentSourceReasonCodes ?? [],
+            packageKind: releasePackage.packageKind,
+            packageLabel: releasePackage.packageLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleasePackageRecords: {
+                ...(s.game.affiliationFileWorkQueueReleasePackageRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueFileReleaseDelivery: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (
+            !entry ||
+            !entry.releasePackageKind ||
+            !entry.releasePackageRef ||
+            !entry.isReleasePackageRecorded
+          ) {
+            return { game: s.game }
+          }
+
+          const existingDeliveries = Object.values(
+            s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}
+          ).filter(
+            (record) =>
+              record &&
+              record.workQueueEntryId === entry.id &&
+              record.sourcePackageKind === entry.releasePackageKind &&
+              record.sourcePackageRef === entry.releasePackageRef
+          )
+
+          const hasMetadataDelivery = existingDeliveries.some(
+            (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
+          )
+          const hasActualContentDelivery = existingDeliveries.some(
+            (record) => record.deliveryKind === 'actual_file_content_release_delivered'
+          )
+
+          if (hasActualContentDelivery) {
+            return { game: s.game }
+          }
+
+          const fileReleaseDelivery = getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
+            packageKind: entry.releasePackageKind,
+            mode: hasMetadataDelivery ? 'actual_file_content' : 'metadata_only',
+          })
+          const record = buildAffiliationFileWorkQueueFileReleaseDeliveryRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourcePackageKind: entry.releasePackageKind,
+            sourcePackageRef: entry.releasePackageRef,
+            sourceReasonCodes: entry.releasePackageSourceReasonCodes ?? [],
+            deliveryKind: fileReleaseDelivery.deliveryKind,
+            deliveryLabel: fileReleaseDelivery.deliveryLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueFileReleaseDeliveryRecords: {
+                ...(s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          if (!entry) {
+            return { game: s.game }
+          }
+
+          const enforcement = getAffiliationFileWorkQueueNonMissionEnforcementForBucket(
+            entry.bucket
+          )
+
+          if (!enforcement) {
+            return { game: s.game }
+          }
+
+          const recordId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+            workQueueEntryId: entry.id,
+            sourceBucket: entry.bucket,
+          })
+
+          if (s.game.affiliationFileWorkQueueNonMissionEnforcementRecords?.[recordId]) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueNonMissionEnforcementRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceBucket: entry.bucket,
+            sourceReasonCodes: entry.reasonCodes,
+            enforcementKind: enforcement.enforcementKind,
+            enforcementLabel: enforcement.enforcementLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueNonMissionEnforcementRecords: {
+                ...(s.game.affiliationFileWorkQueueNonMissionEnforcementRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId) =>
+        set((s) => {
+          const entry = getAffiliationFileWorkQueueEntry(s.game, entryId)
+
+          // No-op: missing entry, not missing_review, or already recorded
+          if (!entry || entry.bucket !== 'missing_review') {
+            return { game: s.game }
+          }
+
+          // Check if missing_entity_welfare_reclassification_ref is in the missing codes
+          const hasMissingWelfareRef = entry.reasonCodes.includes(
+            'missing_entity_welfare_reclassification_ref'
+          )
+          if (!hasMissingWelfareRef) {
+            return { game: s.game }
+          }
+
+          // Build the repair workflow record
+          const record = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+            workQueueEntryId: entry.id,
+            evidenceType: 'missing_entity_welfare_reclassification_ref',
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            repairLabel: 'Restore minimal welfare evidence',
+            recordedWeek: s.game.week,
+          })
+
+          // Check for duplicate (same entry + evidence type already recorded)
+          const existing = Object.values(
+            s.game.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}
+          )
+          const isDuplicate = existing.some(
+            (existing) =>
+              existing.workQueueEntryId === record.workQueueEntryId &&
+              existing.evidenceType === record.evidenceType
+          )
+
+          if (isDuplicate) {
+            return { game: s.game }
+          }
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueEvidenceRepairWorkflows: {
+                ...(s.game.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      reset: () =>
+        set((s) => ({
+          game: createStartingState(),
+          gameReplacementRevision: s.gameReplacementRevision + 1,
+        })),
 
       setSeed: (seed) =>
         set((s) => {
@@ -1656,7 +3198,9 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({
           game: {
             ...s.game,
-            config: sanitizeGameConfig(patch, s.game.config),
+            config: sanitizeGameConfig(patch, s.game.config, {
+              invalidAttritionPolicy: 'minimum',
+            }),
           },
         })),
 
@@ -1698,6 +3242,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         set({
+          gameReplacementRevision: get().gameReplacementRevision + 1,
           game: appendDeveloperLogEventState(importedGame, {
             type: 'save.imported',
             summary: 'Save imported',
@@ -1743,6 +3288,7 @@ export const useGameStore = create<GameStore>()(
         }
 
         set({
+          gameReplacementRevision: get().gameReplacementRevision + 1,
           game: appendDeveloperLogEventState(importedGame, {
             type: 'save.imported',
             summary: 'Run imported',
@@ -1757,11 +3303,12 @@ export const useGameStore = create<GameStore>()(
       newRunFromCurrentConfig: () =>
         set((s) => ({
           game: createRunFromCurrentConfig(s.game.config, s.game.rngSeed),
+          gameReplacementRevision: s.gameReplacementRevision + 1,
         })),
     }),
     {
-      name: 'containment-protocol-game-state',
-      storage: createJSONStorage(resolveGameStorage),
+      name: GAME_STORAGE_KEY,
+      storage: createJSONStorage(() => guardedGameStorage),
 
       // Persist all simulation-critical fields; `templates` is excluded and
       // reloaded fresh from source code on every app boot.
@@ -1773,17 +3320,33 @@ export const useGameStore = create<GameStore>()(
       // carry stale template data from an older version of the app code.
       merge: (persistedState, currentState) => {
         const ps = persistedState as Partial<PersistedStore>
-        if (!ps.game) return currentState
+        if (!ps?.game) return currentState
 
-        const mergedGame = hydrateGame(ps.game as Partial<GameState>, currentState.game)
+        const mergedGame = guardAutomaticLoad(() => {
+          assertMissionEscalationCompatibility(ps.game)
+          return hydrateGame(ps.game as Partial<GameState>, currentState.game)
+        })
 
-        return { ...currentState, game: mergedGame }
+        return {
+          ...currentState,
+          game: mergedGame,
+          gameReplacementRevision: currentState.gameReplacementRevision + 1,
+        }
       },
 
       version: GAME_STORE_VERSION,
 
       migrate: (persistedState: unknown, version: number): PersistedStore => {
-        return migratePersistedStore(persistedState, version, createStartingState())
+        return guardAutomaticLoad(() => {
+          if (
+            typeof persistedState === 'object' &&
+            persistedState !== null &&
+            'game' in persistedState
+          ) {
+            assertMissionEscalationCompatibility(persistedState.game)
+          }
+          return migratePersistedStore(persistedState, version, createStartingState())
+        })
       },
     }
   )

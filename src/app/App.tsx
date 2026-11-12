@@ -1,15 +1,9 @@
 import { lazy, Suspense, type ComponentType } from 'react'
 import { Route, Routes } from 'react-router'
 import AppShell from './AppShell'
-import OperationsDeskPage from '../features/operations/OperationsDeskPage'
-import ContractBoardPage from '../features/contracts/ContractBoardPage'
-import CasesPage from '../features/cases/CasesPage'
-import CaseDetailPage from '../features/cases/CaseDetailPage'
-import TeamsPage from '../features/teams/TeamsPage'
-import TeamDetailPage from '../features/teams/TeamDetailPage'
-import ReportPage from '../features/report/ReportPage'
-import ReportDetailPage from '../features/report/ReportDetailPage'
 import { APP_ROUTES } from './routes'
+import { getAutomaticMissionLoadError } from './store/gameStore'
+import { CampaignRecovery } from './CampaignRecovery'
 
 type RouteModule = { default: ComponentType }
 type RouteLoader = () => Promise<RouteModule>
@@ -38,6 +32,18 @@ function renderLazyRoute(Component: ComponentType) {
   )
 }
 
+const OperationsDeskPage = createRouteComponent(
+  () => import('../features/operations/OperationsDeskPage')
+)
+const ContractBoardPage = createRouteComponent(
+  () => import('../features/contracts/ContractBoardPage')
+)
+const CasesPage = createRouteComponent(() => import('../features/cases/CasesPage'))
+const CaseDetailPage = createRouteComponent(() => import('../features/cases/CaseDetailPage'))
+const TeamsPage = createRouteComponent(() => import('../features/teams/TeamsPage'))
+const TeamDetailPage = createRouteComponent(() => import('../features/teams/TeamDetailPage'))
+const ReportPage = createRouteComponent(() => import('../features/report/ReportPage'))
+const ReportDetailPage = createRouteComponent(() => import('../features/report/ReportDetailPage'))
 const AgentsPage = createRouteComponent(() => import('../features/agents/AgentsPage'))
 const AgentDetailPage = createRouteComponent(() => import('../features/agents/AgentDetailPage'))
 const IntelPage = createRouteComponent(() => import('../features/intel/IntelPage'))
@@ -50,6 +56,9 @@ const RegistryPage = createRouteComponent(() => import('../features/registry/Reg
 const EquipmentPage = createRouteComponent(() => import('../features/equipment/EquipmentPage'))
 const FabricationPage = createRouteComponent(
   () => import('../features/fabrication/FabricationPage')
+)
+const TrainingDivisionPage = createRouteComponent(
+  () => import('../features/training/TrainingDivisionPage')
 )
 const ContainmentSiteRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
@@ -67,14 +76,98 @@ const RankingsRoute = createRouteComponent(() =>
     },
   }))
 )
-const AgencyRoute = createRouteComponent(() =>
-  import('../features/divisions/SystemBoundaryPage').then((module) => ({
-    default: function AgencyRoute() {
-      return <module.SystemBoundaryPage boundary="agency" />
-    },
-  }))
-)
+const AgencyRoute = createRouteComponent(() => import('../features/agency/AgencyPage'))
 const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpPlaceholderPage'))
+const PatternSourceSeriesMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PatternSourceSeriesMirrorPage')
+)
+const PublishQueueMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PublishQueueMirrorPage')
+)
+const DepartmentWorkshopMirrorRoute = createRouteComponent(
+  () => import('../features/operations/DepartmentWorkshopMirrorPage')
+)
+const DepartmentWorkshopActivationCommandRoute = createRouteComponent(
+  () => import('../features/operations/DepartmentWorkshopActivationCommandPage')
+)
+const ModifiableDataPackMirrorRoute = createRouteComponent(
+  () => import('../features/operations/ModifiableDataPackMirrorPage')
+)
+const SelfCensoringInformationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/SelfCensoringInformationMirrorPage')
+)
+const PublicDisclosureMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PublicDisclosureMirrorPage')
+)
+const PublicDisclosureCampaignRoute = createRouteComponent(
+  () => import('../features/operations/PublicDisclosureCampaignPage')
+)
+const TruthLayerMirrorRoute = createRouteComponent(
+  () => import('../features/operations/TruthLayerMirrorPage')
+)
+const CoverStoryMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CoverStoryMirrorPage')
+)
+const MassAnomalousPopulationEmergenceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/MassAnomalousPopulationEmergenceMirrorPage')
+)
+const VisualTriggerHazardMirrorRoute = createRouteComponent(
+  () => import('../features/operations/VisualTriggerHazardMirrorPage')
+)
+const Spe947EvaluatorMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe947EvaluatorMirrorPage')
+)
+const Spe956PropagationGraphMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe956PropagationGraphMirrorPage')
+)
+const Spe956ParticipatoryChannelMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe956ParticipatoryChannelMirrorPage')
+)
+const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
+)
+const AffiliationPersonStatusMirrorRoute = createRouteComponent(
+  () => import('../features/operations/AffiliationPersonStatusMirrorPage')
+)
+const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
+  () => import('../features/operations/ContainedPersonTherapeuticCareMirrorPage')
+)
+const CoerciveContainedPersonProtocolMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CoerciveContainedPersonProtocolMirrorPage')
+)
+const PsychologicalResilienceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PsychologicalResilienceMirrorPage')
+)
+const CognitiveHazardExposureMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CognitiveHazardExposureMirrorPage')
+)
+const SurveillanceInterventionTuningMirrorRoute = createRouteComponent(
+  () => import('../features/operations/SurveillanceInterventionTuningMirrorPage')
+)
+const NamingHazardDescriptorMirrorRoute = createRouteComponent(
+  () => import('../features/operations/NamingHazardDescriptorMirrorPage')
+)
+const ContainedPersonIntegratedHealthBundleMirrorRoute = createRouteComponent(
+  () => import('../features/operations/ContainedPersonIntegratedHealthBundleMirrorPage')
+)
+const WelfareDebtAccountingMirrorRoute = createRouteComponent(
+  () => import('../features/operations/WelfareDebtAccountingMirrorPage')
+)
+const RuleDocumentComplianceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RuleDocumentComplianceMirrorPage')
+)
+const RecurrentCatastropheMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RecurrentCatastropheMirrorPage')
+)
+const PostIncidentReviewMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewMirrorPage')
+)
+const PostIncidentReviewRecommendationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewRecommendationMirrorPage')
+)
+const PostIncidentReviewRecommendationActionMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewRecommendationActionMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -84,11 +177,15 @@ const NotFoundRoute = createRouteComponent(() =>
 )
 
 export default function App() {
+  const loadError = getAutomaticMissionLoadError()
+  if (loadError) {
+    return <CampaignRecovery message={loadError.message} />
+  }
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<OperationsDeskPage />} />
-        <Route path="contracts" element={<ContractBoardPage />} />
+        <Route index element={renderLazyRoute(OperationsDeskPage)} />
+        <Route path="contracts" element={renderLazyRoute(ContractBoardPage)} />
         <Route path="agents">
           <Route index element={renderLazyRoute(AgentsPage)} />
           <Route path=":agentId" element={renderLazyRoute(AgentDetailPage)} />
@@ -98,13 +195,14 @@ export default function App() {
         <Route path="registry" element={renderLazyRoute(RegistryPage)} />
         <Route path="registry/:agentId" element={renderLazyRoute(AgentDetailPage)} />
         <Route path="cases">
-          <Route index element={<CasesPage />} />
-          <Route path=":caseId" element={<CaseDetailPage />} />
+          <Route index element={renderLazyRoute(CasesPage)} />
+          <Route path=":caseId" element={renderLazyRoute(CaseDetailPage)} />
         </Route>
         <Route path="teams">
-          <Route index element={<TeamsPage />} />
-          <Route path=":teamId" element={<TeamDetailPage />} />
+          <Route index element={renderLazyRoute(TeamsPage)} />
+          <Route path=":teamId" element={renderLazyRoute(TeamDetailPage)} />
         </Route>
+        <Route path="training-division" element={renderLazyRoute(TrainingDivisionPage)} />
         <Route path="equipment" element={renderLazyRoute(EquipmentPage)} />
         <Route path="fabrication" element={renderLazyRoute(FabricationPage)} />
         <Route path="containment-site" element={renderLazyRoute(ContainmentSiteRoute)} />
@@ -114,13 +212,124 @@ export default function App() {
         <Route path="agency" element={renderLazyRoute(AgencyRoute)} />
         <Route path="help" element={renderLazyRoute(HelpRoute)} />
         <Route path="report">
-          <Route index element={<ReportPage />} />
-          <Route path=":week" element={<ReportDetailPage />} />
+          <Route index element={renderLazyRoute(ReportPage)} />
+          <Route path=":week" element={renderLazyRoute(ReportDetailPage)} />
         </Route>
         <Route path="intel">
           <Route index element={renderLazyRoute(IntelPage)} />
           <Route path=":templateId" element={renderLazyRoute(IntelDetailPage)} />
         </Route>
+        <Route
+          path="pattern-source-series"
+          element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
+        />
+        <Route path="publish-queue" element={renderLazyRoute(PublishQueueMirrorRoute)} />
+        <Route
+          path="department-workshop"
+          element={renderLazyRoute(DepartmentWorkshopMirrorRoute)}
+        />
+        <Route
+          path="department-workshop/activate"
+          element={renderLazyRoute(DepartmentWorkshopActivationCommandRoute)}
+        />
+        <Route
+          path="modifiable-data-packs"
+          element={renderLazyRoute(ModifiableDataPackMirrorRoute)}
+        />
+        <Route
+          path="self-censoring-information"
+          element={renderLazyRoute(SelfCensoringInformationMirrorRoute)}
+        />
+        <Route
+          path="public-disclosure-state"
+          element={renderLazyRoute(PublicDisclosureMirrorRoute)}
+        />
+        <Route
+          path="campaign/public-disclosure"
+          element={renderLazyRoute(PublicDisclosureCampaignRoute)}
+        />
+        <Route path="truth-layer-records" element={renderLazyRoute(TruthLayerMirrorRoute)} />
+        <Route path="cover-story-records" element={renderLazyRoute(CoverStoryMirrorRoute)} />
+        <Route
+          path="mass-anomalous-population-emergence"
+          element={renderLazyRoute(MassAnomalousPopulationEmergenceMirrorRoute)}
+        />
+        <Route
+          path="visual-trigger-hazard"
+          element={renderLazyRoute(VisualTriggerHazardMirrorRoute)}
+        />
+        <Route
+          path="hazardous-content-propagation"
+          element={renderLazyRoute(Spe947EvaluatorMirrorRoute)}
+        />
+        <Route
+          path="propagation-graph"
+          element={renderLazyRoute(Spe956PropagationGraphMirrorRoute)}
+        />
+        <Route
+          path="participatory-channels"
+          element={renderLazyRoute(Spe956ParticipatoryChannelMirrorRoute)}
+        />
+        <Route
+          path="entity-welfare-reclassification"
+          element={renderLazyRoute(EntityWelfareReclassificationMirrorRoute)}
+        />
+        <Route
+          path="affiliation-person-status"
+          element={renderLazyRoute(AffiliationPersonStatusMirrorRoute)}
+        />
+        <Route
+          path="contained-person-therapeutic-care"
+          element={renderLazyRoute(ContainedPersonTherapeuticCareMirrorRoute)}
+        />
+        <Route
+          path="coercive-contained-person-protocol"
+          element={renderLazyRoute(CoerciveContainedPersonProtocolMirrorRoute)}
+        />
+        <Route
+          path="psychological-resilience"
+          element={renderLazyRoute(PsychologicalResilienceMirrorRoute)}
+        />
+        <Route
+          path="cognitive-hazard-exposure"
+          element={renderLazyRoute(CognitiveHazardExposureMirrorRoute)}
+        />
+        <Route
+          path="surveillance-intervention-tuning"
+          element={renderLazyRoute(SurveillanceInterventionTuningMirrorRoute)}
+        />
+        <Route
+          path="naming-hazard-descriptor"
+          element={renderLazyRoute(NamingHazardDescriptorMirrorRoute)}
+        />
+        <Route
+          path="contained-person-integrated-health-bundle"
+          element={renderLazyRoute(ContainedPersonIntegratedHealthBundleMirrorRoute)}
+        />
+        <Route
+          path="welfare-debt-accounting"
+          element={renderLazyRoute(WelfareDebtAccountingMirrorRoute)}
+        />
+        <Route
+          path="rule-document-compliance"
+          element={renderLazyRoute(RuleDocumentComplianceMirrorRoute)}
+        />
+        <Route
+          path="recurrent-catastrophe-amelioration"
+          element={renderLazyRoute(RecurrentCatastropheMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review"
+          element={renderLazyRoute(PostIncidentReviewMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review-recommendations"
+          element={renderLazyRoute(PostIncidentReviewRecommendationMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review-recommendation-actions"
+          element={renderLazyRoute(PostIncidentReviewRecommendationActionMirrorRoute)}
+        />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>
     </Routes>

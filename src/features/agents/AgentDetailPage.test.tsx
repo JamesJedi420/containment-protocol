@@ -48,6 +48,15 @@ beforeEach(() => {
   useGameStore.setState({ game: createStartingState() })
 })
 
+it('exposes the dossier as a region instead of a second main landmark', () => {
+  const agentId = Object.keys(useGameStore.getState().game.agents)[0]!
+
+  renderAgentDetailPage(`/agents/${agentId}`)
+
+  expect(screen.queryByRole('main')).not.toBeInTheDocument()
+  expect(screen.getByRole('region', { name: /agent detail panel/i })).toBeInTheDocument()
+})
+
 it('renders agent assignment, progression, history, and passive traits', async () => {
   const game = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
   const agent = game.agents[Object.keys(game.agents)[0]]!
@@ -75,7 +84,7 @@ it('renders agent assignment, progression, history, and passive traits', async (
       age: 34,
       background: 'Former anti-smuggling task force lead.',
     },
-    equipment: {
+    equipmentEffectScales: {
       silver_rounds: 2,
       medkits: 1,
     },
@@ -247,13 +256,13 @@ it('renders agent assignment, progression, history, and passive traits', async (
   expect(screen.getByText(/equipment and abilities/i)).toBeInTheDocument()
   expect(screen.getByText(/equipment loadout/i)).toBeInTheDocument()
   expect(screen.getByText(/equipped slots/i)).toBeInTheDocument()
-  expect(screen.getByText(/loadout quality/i)).toBeInTheDocument()
+  expect(screen.getByText(/loadout effect scale/i)).toBeInTheDocument()
   expect(screen.getByText(/nightglass/i)).toBeInTheDocument()
   expect(screen.getByText(/silver rounds/i)).toBeInTheDocument()
   expect(screen.getAllByText(/base additive/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/context bonus/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/total effect/i).length).toBeGreaterThan(0)
-  expect(screen.getAllByText(/quality 1/i).length).toBeGreaterThan(0)
+  expect(screen.getAllByText(/effect scale 1/i).length).toBeGreaterThan(0)
   expect(screen.getByText(/triage rhythm/i)).toBeInTheDocument()
   expect(screen.getByText(/keeps the team moving through casualty spikes/i)).toBeInTheDocument()
   expect(

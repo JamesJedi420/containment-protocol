@@ -63,12 +63,12 @@ describe('evaluateStealthLeaveBehindMissionPressure', () => {
   it('is inactive without hidden state, concealment tags, or leave-behind id', () => {
     const base = createStealthCase()
 
-    expect(evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'revealed' }).active).toBe(
-      false
-    )
-    expect(evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'displaced' }).active).toBe(
-      false
-    )
+    expect(
+      evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'revealed' }).active
+    ).toBe(false)
+    expect(
+      evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'displaced' }).active
+    ).toBe(false)
     expect(
       evaluateStealthLeaveBehindMissionPressure({
         ...base,
@@ -127,6 +127,7 @@ describe('resolveMissionSuccessDegradeHint leave-behind priority', () => {
 
     const hint = resolveMissionSuccessDegradeHint({
       behaviorValidation: {
+        detectionScan: { fields: [], remainingConcealmentLayers: [], strippedLayerIds: [] },
         active: true,
         level: 'strong',
         scoreAdjustment: 4.5,
@@ -149,7 +150,8 @@ describe('resolveMissionSuccessDegradeHint leave-behind priority', () => {
   })
 
   it('prefers infiltration stage degrade over leave-behind degrade', () => {
-    const stageReason = 'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
+    const stageReason =
+      'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
     const leaveBehindReason =
       'Stealth extraction tradeoff under authority scrutiny prevented a clean resolution.'
 
@@ -197,9 +199,9 @@ describe('stealth leave-behind mission-resolution fallout', () => {
     expect(inactive.stealthLeaveBehindMission?.active).toBe(false)
     expect(active.stealthLeaveBehindMission?.active).toBe(true)
     expect(active.stealthLeaveBehindMission?.scoreAdjustment).toBe(3.5)
-    expect(
-      active.outcome.reasons.some((reason) => reason.includes('Stealth leave-behind:'))
-    ).toBe(true)
+    expect(active.outcome.reasons.some((reason) => reason.includes('Stealth leave-behind:'))).toBe(
+      true
+    )
   })
 
   it('matches preview and live score context for authored leave-behind', () => {
@@ -220,7 +222,9 @@ describe('stealth leave-behind mission-resolution fallout', () => {
     const liveActive = resolveAssignedCaseForWeek(stealthCase, state, () => 0.5)
 
     const directPressure = evaluateStealthLeaveBehindMissionPressure(stealthCase)
-    expect(liveActive.stealthLeaveBehindMission?.scoreAdjustment).toBe(directPressure.scoreAdjustment)
+    expect(liveActive.stealthLeaveBehindMission?.scoreAdjustment).toBe(
+      directPressure.scoreAdjustment
+    )
     expect(directPressure.scoreAdjustment).toBe(2.8)
     expect(previewActive.odds.success).toBeLessThanOrEqual(previewBaseline.odds.success)
   })
@@ -306,8 +310,8 @@ describe('advanceWeek stealth leave-behind mission fallout', () => {
     expect(preAdvance.stealthLeaveBehindMission?.shouldDegradeSuccessToPartial).toBe(true)
 
     const nextState = advanceWeek(state)
-    const missionResult = nextState.reports[nextState.reports.length - 1]?.caseSnapshots?.['case-001']
-      ?.missionResult
+    const missionResult =
+      nextState.reports[nextState.reports.length - 1]?.caseSnapshots?.['case-001']?.missionResult
 
     expect(missionResult?.outcome).toBe('partial')
     const notes = missionResult?.explanationNotes ?? []
@@ -318,9 +322,7 @@ describe('advanceWeek stealth leave-behind mission fallout', () => {
           note.includes('Stealth leave-behind:')
       )
     ).toBe(true)
-    expect(
-      notes.some((note) => note.includes('Investigation custody strain'))
-    ).toBe(true)
+    expect(notes.some((note) => note.includes('Investigation custody strain'))).toBe(true)
     expect(countInvestigationCustodyLossRefs(nextState, 'case-001')).toBe(1)
     expect(nextState.cases['case-001'].status).toBe('open')
   })

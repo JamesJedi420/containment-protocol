@@ -72,6 +72,33 @@ A mission is the game’s operational execution unit.
 
 ---
 
+## Offscreen rival-expedition boundary
+
+Offscreen competitors may advance on their own campaign-week timeline without
+becoming a second mission resolver. The bounded foundation is an immutable
+rival-expedition packet with `searching`, `extracting`, `retreating`,
+`completed`, and `lost` phases.
+
+- Fixed work thresholds and caller-owned casualty/pace inputs keep progression
+  deterministic and explainable.
+- Head-start weeks replay through the same single-week transition rule, with
+  ordinary no-clue weeks fast-forwarded arithmetically.
+- At most one phase transition occurs per campaign week; progress never spills
+  across phase boundaries.
+- Downstream systems may surface coarse clue signals for attrition or phase
+  transitions, but those signals do not reveal exact hidden progress or
+  personnel counts.
+- Canonical packet and clue registries persist through campaign hydration and
+  advance once for the closing campaign week from explicit per-expedition
+  conditions. Production currently supplies zero casualty and pace pressure.
+- Pressure derivation, probabilistic search, live encounter crossover, objective
+  claims, and rewards require separate integration slices.
+
+This packet does not alter player mission eligibility, weakest-link scoring,
+resolution states, expedition recovery, or the global RNG stream.
+
+---
+
 ## Resolution philosophy
 
 Containment Protocol should use **deterministic graded resolution**.

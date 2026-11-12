@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { InPageLink } from '../../components/InPageLink'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   getBestContractTeamSuggestion,
@@ -35,6 +36,7 @@ import {
   IconStageWarn,
 } from '../../components/icons'
 import { FilterInput } from '../../components/FilterInput'
+import { FilterTagGroup } from '../../components/FilterTagGroup'
 import { FilterSelect } from '../../components/FilterSelect'
 import {
   MODE_LABELS,
@@ -96,7 +98,12 @@ export default function CasesPage() {
   >({})
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const searchParamsString = searchParams.toString()
-  const triageViewOptions = { includeCovertPrepSignals: true as const }
+  const triageViewOptions = {
+    includeCovertPrepSignals: true as const,
+    includeIntakeSignals: true as const,
+    includeModalitySignals: true as const,
+    includeCloseoutRewardPayoutSignals: true as const,
+  }
   const filters = normalizeCaseListFilters(
     game,
     readCaseListFilters(searchParams),
@@ -161,12 +168,12 @@ export default function CasesPage() {
   return (
     <section className="space-y-4">
       <nav className="skip-links" aria-label="Cases keyboard shortcuts">
-        <a href="#cases-filters" className="skip-link">
+        <InPageLink targetId="cases-filters" className="skip-link">
           Skip to case filters
-        </a>
-        <a href="#cases-results" className="skip-link">
+        </InPageLink>
+        <InPageLink targetId="cases-results" className="skip-link">
           Skip to case results
-        </a>
+        </InPageLink>
       </nav>
 
       <article
@@ -399,10 +406,21 @@ export default function CasesPage() {
 
       <article
         id="cases-filters"
-        className="panel panel-primary space-y-4"
+        tabIndex={-1}
+        className="panel panel-primary filter-facet-panel space-y-4"
         role="region"
         aria-label="Case filters"
       >
+        <FilterTagGroup
+          id="case-mode"
+          label="Mode"
+          value={filters.mode}
+          onChange={(mode) => updateFilters({ ...filters, mode: mode as CaseListFilters['mode'] })}
+          options={CASE_MODE_FILTERS.map((mode) => ({
+            value: mode,
+            label: mode === 'all' ? 'All modes' : MODE_LABELS[mode],
+          }))}
+        />
         <div className="flex flex-wrap items-end gap-3">
           <FilterInput
             id="case-search"
@@ -433,24 +451,6 @@ export default function CasesPage() {
             options={CASE_STATUS_FILTERS.map((value) => ({
               value,
               label: value === 'all' ? 'All statuses' : STATUS_LABELS[value],
-            }))}
-            containerClassName="form-row form-row-compact"
-            labelClassName="form-label opacity-85"
-            selectClassName="form-select"
-          />
-          <FilterSelect
-            id="case-mode"
-            label="Mode"
-            value={filters.mode}
-            onChange={(value) =>
-              updateFilters({
-                ...filters,
-                mode: value as CaseListFilters['mode'],
-              })
-            }
-            options={CASE_MODE_FILTERS.map((value) => ({
-              value,
-              label: value === 'all' ? 'All modes' : MODE_LABELS[value],
             }))}
             containerClassName="form-row form-row-compact"
             labelClassName="form-label opacity-85"
@@ -550,7 +550,13 @@ export default function CasesPage() {
         <p className="text-xs text-amber-200/90">⚠ {CASES_GUIDANCE.stageWarning}</p>
       </article>
 
-      <div id="cases-results" className="space-y-3" role="region" aria-label="Case triage queue">
+      <div
+        id="cases-results"
+        tabIndex={-1}
+        className="space-y-3"
+        role="region"
+        aria-label="Case triage queue"
+      >
         {cases.length > 0 ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
             <ul className="space-y-2" aria-label="Triage list">

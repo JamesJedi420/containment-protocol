@@ -328,13 +328,13 @@ describe('MarketPage', () => {
 
   it('shows degraded substitution when supplier attention is committed elsewhere', () => {
     const game = createStartingState()
-    const fieldPlate = getMarketListings(game).find(
-      (candidate) => candidate.itemId === 'field_plate'
+    const emfSensors = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'emf_sensors'
     )
 
-    expect(fieldPlate).toBeDefined()
+    expect(emfSensors).toBeDefined()
 
-    useGameStore.setState({ game: purchaseMarketInventory(game, fieldPlate!.id, 1) })
+    useGameStore.setState({ game: purchaseMarketInventory(game, emfSensors!.id, 1) })
 
     renderMarketPage(['/markets-suppliers?q=hazmat%20suit'])
 
@@ -343,7 +343,7 @@ describe('MarketPage', () => {
     expect(hazmatRow).toBeTruthy()
     expect(within(hazmatRow!).getByText(/supplier attention: 0\/1 open/i)).toBeInTheDocument()
     expect(within(hazmatRow!).getByText(/allocation state: substituted/i)).toBeInTheDocument()
-    expect(within(hazmatRow!).getByText(/displaced use: field plate/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/displaced use: emf sensors/i)).toBeInTheDocument()
     expect(within(hazmatRow!).getByText(/degraded substitute:/i)).toHaveTextContent(
       /gray-market broker/i
     )

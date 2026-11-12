@@ -8,8 +8,8 @@ import { type GameState } from '../../domain/models'
 import { getAdvisories } from '../../domain/advisory'
 import { getResponseGridConfig } from '../../domain/pressure'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
-import { getCaseListItemView, type CaseListItemView } from '../cases/caseView'
-import { getTeamListItemView, type TeamListItemView } from '../teams/teamView'
+import { getCaseListItemBaseView, type CaseListItemView } from '../shared/caseListItemView'
+import { getTeamListItemView, type TeamListItemView } from '../shared/teamView'
 
 function ensureScorableReport(report: GameState['reports'][number]): GameState['reports'][number] {
   return {
@@ -23,7 +23,7 @@ function ensureScorableReport(report: GameState['reports'][number]): GameState['
 
 export function getPriorityCaseViews(game: GameState, limit = 5): CaseListItemView[] {
   return Object.values(game.cases)
-    .map((currentCase) => getCaseListItemView(currentCase, game))
+    .map((currentCase) => getCaseListItemBaseView(currentCase, game))
     .filter((view) => view.currentCase.status !== 'resolved')
     .sort(
       (left, right) =>
@@ -57,7 +57,10 @@ export function getDashboardMetrics(game: GameState) {
     open: cases.filter((currentCase) => currentCase.status === 'open').length,
     inProgress: cases.filter((currentCase) => currentCase.status === 'in_progress').length,
     resolved: cases.filter((currentCase) => currentCase.status === 'resolved').length,
-    totalScore: game.reports.reduce((sum, report) => sum + calcWeekScore(ensureScorableReport(report)), 0),
+    totalScore: game.reports.reduce(
+      (sum, report) => sum + calcWeekScore(ensureScorableReport(report)),
+      0
+    ),
     avgFatigue:
       agents.length > 0
         ? Math.round(agents.reduce((sum, agent) => sum + agent.fatigue, 0) / agents.length)

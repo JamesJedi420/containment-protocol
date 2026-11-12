@@ -1,11 +1,13 @@
-import type {
-  GameState,
-  FacilityInstance,
-  FacilityUpgradeMetadata,
-  FacilityEffect,
-} from './models'
+import type { GameState, FacilityInstance, FacilityUpgradeMetadata, FacilityEffect } from './models'
+import { grantFacilitySupportedCapabilityUnlock } from './facilityCapabilityUnlock'
 import { assessFundingPressure, normalizeFundingState } from './funding'
 import { assessResearchRequirements } from './research'
+
+export {
+  applyFacilityLifecycleTransition,
+  resolveFacilityLifecycleTransition,
+} from './facilityLifecycle'
+export type { FacilityLifecycleRequest, FacilityLifecycleResult } from './facilityLifecycle'
 
 export interface FacilityUpgradeAssessment {
   canUpgrade: boolean
@@ -147,12 +149,19 @@ export function applyFacilityUpgrade(
 export function advanceFacilityUpgrades(state: GameState): GameState {
   if (!state.facilityState) return state
   const facilities: Record<string, FacilityInstance> = { ...state.facilityState.facilities }
+  const completedFacilityIds: string[] = []
   let changed = false
   for (const [id, facility] of Object.entries(facilities)) {
-    if (facility.upgradeInProgress && facility.upgradeCompleteWeek !== undefined && state.week >= facility.upgradeCompleteWeek) {
+    if (
+      facility.upgradeInProgress &&
+      facility.upgradeCompleteWeek !== undefined &&
+      state.week >= facility.upgradeCompleteWeek
+    ) {
       // Complete upgrade
       const pendingDeltas = facility.pendingEffectDeltas
-      const newEffects = pendingDeltas ? mergeEffects(facility.effects, pendingDeltas) : facility.effects
+      const newEffects = pendingDeltas
+        ? mergeEffects(facility.effects, pendingDeltas)
+        : facility.effects
       facilities[id] = {
         ...facility,
         level: facility.level + 1,
@@ -163,17 +172,21 @@ export function advanceFacilityUpgrades(state: GameState): GameState {
         effects: newEffects,
         pendingEffectDeltas: undefined,
       }
+      completedFacilityIds.push(id)
       changed = true
     }
   }
   if (!changed) return state
-  return {
-    ...state,
-    facilityState: {
-      ...state.facilityState,
-      facilities,
+  return grantFacilitySupportedCapabilityUnlock(
+    {
+      ...state,
+      facilityState: {
+        ...state.facilityState,
+        facilities,
+      },
     },
-  }
+    completedFacilityIds
+  )
 }
 
 // Summarize all facility effects for downstream systems

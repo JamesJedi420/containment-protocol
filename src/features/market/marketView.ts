@@ -7,6 +7,8 @@ import {
 import { inventoryItemLabels } from '../../data/production'
 import { assessFundingPressure, getCanonicalFundingState } from '../../domain/funding'
 import {
+  assessCallableObligationProcurement,
+  assessFactionFavorExchangeProcurement,
   getAvailableMarketCategories,
   getCurrentMarketTransactions,
   getProcurementListings,
@@ -14,7 +16,12 @@ import {
   type ProcurementTransactionView,
 } from '../../domain/market'
 import { type GameState } from '../../domain/models'
-import { purchaseMarketInventory as previewPurchaseMarketInventory } from '../../domain/sim/market'
+import {
+  getMarketSellableInventoryStock,
+  placeDelayedMarketOrder as previewPlaceDelayedMarketOrder,
+  purchaseMarketInventory as previewPurchaseMarketInventory,
+} from '../../domain/sim/market'
+import { FUNDING_CALIBRATION } from '../../domain/sim/calibration'
 import { MARKET_UI_TEXT } from '../../data/copy'
 
 const MARKET_LISTING_CATEGORIES = getAvailableMarketCategories()
@@ -40,6 +47,12 @@ export interface MarketFilters {
 export interface MarketListingView extends ProcurementListing {
   canBuyOne: boolean
   canBuyThree: boolean
+  canOrderOne: boolean
+  canOrderThree: boolean
+  canRedeemFavorOne: boolean
+  canRedeemFavorThree: boolean
+  canCallObligationOne: boolean
+  canCallObligationThree: boolean
   canAffordOne: boolean
   canAffordThree: boolean
   canSellOne: boolean
@@ -47,6 +60,7 @@ export interface MarketListingView extends ProcurementListing {
   budgetBlockedReason?: string
   availabilityBlockedReason?: string
   buyBlockedReason?: string
+  orderBlockedReason?: string
   sellBlockedReason?: string
 }
 
@@ -87,9 +101,12 @@ export interface ProcurementDetailView {
   tags: string[]
   canBuyOne: boolean
   canBuyThree: boolean
+  canOrderOne: boolean
+  canOrderThree: boolean
   canSellOne: boolean
   canSellThree: boolean
   buyBlockedReason?: string
+  orderBlockedReason?: string
   sellBlockedReason?: string
 }
 
@@ -203,13 +220,15 @@ export function getProcurementScreenView(
         listings.find((listing) => listing.itemId === entry.itemId)?.itemName ??
         inventoryItemLabels[entry.itemId] ??
         entry.itemId
+      const delayWeeks = entry.delayWeeks ?? FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
+      const etaWeek = entry.requestedWeek + delayWeeks
 
       return {
         id: entry.requestId,
         title: listingLabel,
-        statusLabel: staleRequestIds.has(entry.requestId) ? 'Stale pending' : 'Pending',
+        statusLabel: staleRequestIds.has(entry.requestId) ? 'Stale pending' : 'Pending delivery',
         costLabel: `$${entry.cost}`,
-        detail: `Queue ${index + 1} / requested week ${entry.requestedWeek} / qty ${entry.quantity}`,
+        detail: `Queue ${index + 1} / ordered week ${entry.requestedWeek} / ETA week ${etaWeek} / qty ${entry.quantity}`,
         tone: staleRequestIds.has(entry.requestId) ? 'danger' : 'warning',
       } satisfies ProcurementBacklogRowView
     }),
@@ -218,45 +237,114 @@ export function getProcurementScreenView(
 }
 
 function buildListingView(listing: ProcurementListing, game: GameState): MarketListingView {
+  const isDelayedSupplierListing =
+    typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0
+  const sellableInventoryStock = getMarketSellableInventoryStock(game, listing)
   const canAffordOne = game.funding >= listing.buyPrice
   const canAffordThree = game.funding >= listing.buyPrice * 3
   const canBuyOne =
+    !isDelayedSupplierListing &&
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     listing.availableBundles >= 1 &&
     canAffordOne
   const canBuyThree =
+    !isDelayedSupplierListing &&
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     !listing.resourceStatuses.some((status) => status.substitution) &&
     listing.availableBundles >= 3 &&
     canAffordThree
-  const canSellOne = listing.inventoryStock >= listing.bundleQuantity
-  const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
+  const canOrderOne =
+    isDelayedSupplierListing &&
+    listing.cashPurchaseAllowed &&
+    listing.accessAvailable &&
+    canAffordOne
+  const canOrderThree =
+    isDelayedSupplierListing &&
+    listing.cashPurchaseAllowed &&
+    listing.accessAvailable &&
+    canAffordThree
+  const canSellOne = sellableInventoryStock >= listing.bundleQuantity
+  const canSellThree = sellableInventoryStock >= listing.bundleQuantity * 3
+  const favorAssessment =
+    listing.favorExchange && assessFactionFavorExchangeProcurement(game, listing.id)
+  const obligationAssessment =
+    listing.callableObligation && assessCallableObligationProcurement(game, listing.id)
+  const favorResourcesReady = listing.resourceStatuses.every((status) => status.purchaseAvailable)
+  const canRedeemFavorOne =
+    !listing.cashPurchaseAllowed &&
+    Boolean(listing.favorExchange) &&
+    listing.favorRedeemAvailable &&
+    favorAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 1
+  const canRedeemFavorThree =
+    canRedeemFavorOne &&
+    !listing.resourceStatuses.some((status) => status.substitution) &&
+    listing.availableBundles >= 3
+  const canCallObligationOne =
+    listing.cashPurchaseAllowed &&
+    Boolean(listing.callableObligation) &&
+    listing.accessAvailable &&
+    obligationAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 1 &&
+    !canAffordOne
+  const canCallObligationThree =
+    listing.cashPurchaseAllowed &&
+    Boolean(listing.callableObligation) &&
+    listing.accessAvailable &&
+    obligationAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 3 &&
+    !listing.resourceStatuses.some((status) => status.substitution) &&
+    !canAffordThree
 
-  const budgetBlockedReason = canAffordOne
-    ? undefined
-    : MARKET_UI_TEXT.insufficientFundingBy.replace(
-        '{amount}',
-        formatCurrency(Math.max(0, listing.buyPrice - game.funding))
-      )
+  const budgetBlockedReason =
+    listing.cashPurchaseAllowed && !canAffordOne
+      ? MARKET_UI_TEXT.insufficientFundingBy.replace(
+          '{amount}',
+          formatCurrency(Math.max(0, listing.buyPrice - game.funding))
+        )
+      : undefined
   const availabilityBlockedReason =
     listing.availableBundles < 1 ? MARKET_UI_TEXT.exhaustedListing : undefined
   let buyBlockedReason: string | undefined
-  if (!listing.accessAvailable) {
+  let orderBlockedReason: string | undefined
+  if (isDelayedSupplierListing) {
+    buyBlockedReason = MARKET_UI_TEXT.delayedDeliveryBlocked
+    if (!listing.accessAvailable && listing.accessBlockedReason) {
+      orderBlockedReason = listing.accessBlockedReason
+    } else if (listing.marketPacket.blockedReason) {
+      orderBlockedReason = listing.marketPacket.blockedReason
+    } else if (!canAffordOne) {
+      orderBlockedReason = budgetBlockedReason
+    }
+  } else if (!listing.accessAvailable && listing.accessBlockedReason) {
     buyBlockedReason = listing.accessBlockedReason
+  } else if (listing.marketPacket.blockedReason) {
+    buyBlockedReason = listing.marketPacket.blockedReason
+  } else if (!listing.cashPurchaseAllowed && listing.favorExchange) {
+    buyBlockedReason = favorAssessment?.eligible
+      ? `${listing.favorExchange.exchangeLabel} ready — redeem favor instead of cash purchase.`
+      : favorAssessment?.detail
   } else if (listing.resourceStatuses.some((status) => !status.purchaseAvailable)) {
     buyBlockedReason = listing.resourceStatuses.find(
       (status) => !status.purchaseAvailable
     )?.blockerReason
   } else if (availabilityBlockedReason) {
     buyBlockedReason = availabilityBlockedReason
+  } else if (budgetBlockedReason && obligationAssessment?.eligible) {
+    buyBlockedReason = `${listing.callableObligation!.obligationLabel} ready — call obligation instead of cash purchase.`
   } else if (budgetBlockedReason) {
     buyBlockedReason = budgetBlockedReason
   }
 
   let sellBlockedReason: string | undefined
-  if (listing.inventoryStock < listing.bundleQuantity) {
+  if (sellableInventoryStock < listing.bundleQuantity) {
     sellBlockedReason = MARKET_UI_TEXT.noSellStock
   }
 
@@ -264,6 +352,12 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     ...listing,
     canBuyOne,
     canBuyThree,
+    canOrderOne,
+    canOrderThree,
+    canRedeemFavorOne,
+    canRedeemFavorThree,
+    canCallObligationOne,
+    canCallObligationThree,
     canAffordOne,
     canAffordThree,
     canSellOne,
@@ -271,6 +365,7 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     ...(budgetBlockedReason ? { budgetBlockedReason } : {}),
     ...(availabilityBlockedReason ? { availabilityBlockedReason } : {}),
     buyBlockedReason,
+    ...(orderBlockedReason ? { orderBlockedReason } : {}),
     sellBlockedReason,
   }
 }
@@ -343,10 +438,13 @@ function buildBudgetPreview(
   bundles: number
 ): ProcurementBudgetPreviewView {
   const totalCost = listing.buyPrice * bundles
+  const isDelayedSupplierListing =
+    typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0
+  const actionLabel = isDelayedSupplierListing ? 'Order' : 'Buy'
 
   if (!listing.accessAvailable) {
     return {
-      label: `Buy ${bundles}`,
+      label: `${actionLabel} ${bundles}`,
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
@@ -359,11 +457,14 @@ function buildBudgetPreview(
     }
   }
 
-  if (!listing.resourceStatuses.every((status) => status.purchaseAvailable)) {
+  if (
+    !isDelayedSupplierListing &&
+    !listing.resourceStatuses.every((status) => status.purchaseAvailable)
+  ) {
     const blockedStatus = listing.resourceStatuses.find((status) => !status.purchaseAvailable)
 
     return {
-      label: `Buy ${bundles}`,
+      label: `${actionLabel} ${bundles}`,
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
@@ -375,9 +476,9 @@ function buildBudgetPreview(
     }
   }
 
-  if (listing.availableBundles < bundles) {
+  if (!isDelayedSupplierListing && listing.availableBundles < bundles) {
     return {
-      label: `Buy ${bundles}`,
+      label: `${actionLabel} ${bundles}`,
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
@@ -395,7 +496,7 @@ function buildBudgetPreview(
 
   if (game.funding < totalCost) {
     return {
-      label: `Buy ${bundles}`,
+      label: `${actionLabel} ${bundles}`,
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
@@ -408,20 +509,28 @@ function buildBudgetPreview(
     }
   }
 
-  const nextGame = previewPurchaseMarketInventory(game, listing.id, bundles)
+  const nextGame =
+    typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0
+      ? previewPlaceDelayedMarketOrder(game, listing.id, bundles)
+      : previewPurchaseMarketInventory(game, listing.id, bundles)
   const nextFundingPressure = assessFundingPressure(nextGame)
   const currentFundingPressure = assessFundingPressure(game)
   const pressureDelta = nextFundingPressure.budgetPressure - currentFundingPressure.budgetPressure
 
+  const deliveryNote = isDelayedSupplierListing
+    ? ` Inventory arrives after ${listing.delayedFulfillmentWeeks} campaign week${listing.delayedFulfillmentWeeks === 1 ? '' : 's'} on week-close.`
+    : ''
+
   return {
-    label: `Buy ${bundles}`,
+    label: `${actionLabel} ${bundles}`,
     totalCostLabel: formatCurrency(totalCost),
     fundingAfterLabel: formatCurrency(nextGame.funding),
     pressureAfterLabel: `${nextFundingPressure.budgetPressure}/4`,
     consequenceSummary:
-      pressureDelta > 0
+      (pressureDelta > 0
         ? `Raises budget pressure by ${pressureDelta} step${pressureDelta === 1 ? '' : 's'} and leaves ${formatCurrency(nextGame.funding)} available.`
-        : `Leaves budget pressure steady and drops funding to ${formatCurrency(nextGame.funding)}.`,
+        : `Leaves budget pressure steady and drops funding to ${formatCurrency(nextGame.funding)}.`) +
+      deliveryNote,
     affordable: true,
   }
 }
@@ -465,6 +574,7 @@ function buildProcurementDetailView(
         `Legality: ${listing.marketPacket.legalityAccessMode} / ${listing.marketPacket.participantChannelType}.`,
         `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
         `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
+        ...listing.accessDetails,
         `Allocation: ${listing.allocationStatus.sourceLabel} supplier attention ${listing.allocationStatus.available}/${listing.allocationStatus.capacity} open.`,
         ...listing.resourceStatuses
           .filter((status) => status !== listing.allocationStatus)
@@ -476,6 +586,17 @@ function buildProcurementDetailView(
           status.substitution ? `Substitution: ${status.substitution.summary}` : ''
         ),
         `Current stock on hand: ${listing.inventoryStock}.`,
+        listing.shortagePressureDetail?.active
+          ? `Vendor shortage: supplier trimmed ${listing.shortagePressureDetail.availabilityPenaltyBundles} bundle${listing.shortagePressureDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.shortagePressureDetail.reasons.join(', ')}).`
+          : '',
+        listing.corruptionRoutingDetail?.active
+          ? `Office-mediated diversion: ${listing.corruptionRoutingDetail.officialRole ?? 'compromised office'} rerouted ${listing.corruptionRoutingDetail.availabilityPenaltyBundles} roster bundle${listing.corruptionRoutingDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.corruptionRoutingDetail.reasons.join(', ')}${listing.corruptionRoutingDetail.benefittingFactionId ? `; favors ${listing.corruptionRoutingDetail.benefittingFactionId}` : ''}).`
+          : '',
+        listing.callableObligationDetail?.active
+          ? `Callable obligation: ${listing.callableObligationDetail.obligationLabel} from ${listing.callableObligationDetail.factionId} can substitute cash when funding is tight.`
+          : listing.callableObligationDetail
+            ? listing.callableObligationDetail.detail
+            : '',
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
           ? `This week: ${selectedTransactions
@@ -486,7 +607,7 @@ function buildProcurementDetailView(
               .join('; ')}.`
           : 'No current-week transaction has hit this line yet.',
       ],
-      8
+      12
     ),
     blockerDetails: uniqueBounded(
       [
@@ -499,7 +620,11 @@ function buildProcurementDetailView(
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
-          ? 'Current-week supplier availability is exhausted for this listing.'
+          ? listing.corruptionRoutingDetail?.active
+            ? 'Compromised authority diverted roster bundles while funding still covers the line.'
+            : listing.shortagePressureDetail?.active
+              ? 'Vendor shortage pressure exhausted supplier bundles while funding still covers the line.'
+              : 'Current-week supplier availability is exhausted for this listing.'
           : '',
         typeof listing.fabricationCost === 'number'
           ? 'Fabrication remains the slower but stable fallback if supplier stock collapses.'
@@ -509,13 +634,18 @@ function buildProcurementDetailView(
     ),
     budgetPreviews: [buildBudgetPreview(game, listing, 1), buildBudgetPreview(game, listing, 3)],
     backlogImpactSummary:
-      'Direct market procurement resolves immediately through the live weekly exchange and does not add a new supplier backlog entry.',
+      typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0
+        ? `Supplier delivery order charges funding now and adds a backlog entry; inventory arrives after ${listing.delayedFulfillmentWeeks} campaign week${listing.delayedFulfillmentWeeks === 1 ? '' : 's'}.`
+        : 'Direct market procurement resolves immediately through the live weekly exchange and does not add a new supplier backlog entry.',
     tags: listing.tags.slice(0, 6),
     canBuyOne: listing.canBuyOne,
     canBuyThree: listing.canBuyThree,
+    canOrderOne: listing.canOrderOne,
+    canOrderThree: listing.canOrderThree,
     canSellOne: listing.canSellOne,
     canSellThree: listing.canSellThree,
     ...(listing.buyBlockedReason ? { buyBlockedReason: listing.buyBlockedReason } : {}),
+    ...(listing.orderBlockedReason ? { orderBlockedReason: listing.orderBlockedReason } : {}),
     ...(listing.sellBlockedReason ? { sellBlockedReason: listing.sellBlockedReason } : {}),
   }
 }
@@ -548,6 +678,26 @@ function buildProcurementBudgetSummary(
             : 'No current budget constraint is blocking wider campaign systems.',
         fundingPressure.pendingProcurementRequestIds.length > 0
           ? `${pluralize(fundingPressure.pendingProcurementRequestIds.length, 'backlog entry')} are already consuming supplier attention.`
+          : '',
+        fundingPressure.reasonCodes.includes('weekly-operating-cost')
+          ? 'Payroll and facility upkeep were charged at week close, tightening procurement headroom.'
+          : '',
+        fundingPressure.reasonCodes.includes('weekly-inventory-holding-cost')
+          ? 'Inventory carrying costs were charged at week close, tightening procurement headroom.'
+          : '',
+        fundingPressure.reasonCodes.includes('vendor-shortage-pressure')
+          ? 'Vendor shortage pressure is rationing agency-roster supplier bundles (availability, not quoted price or carrying fees).'
+          : '',
+        fundingPressure.reasonCodes.includes('compromised-authority-procurement-diversion')
+          ? 'Compromised authority is diverting office-mediated supplier roster attention (availability, not quoted price, carrying fees, or vendor shortage).'
+          : '',
+        fundingPressure.reasonCodes.includes('callable-obligation-procurement-leverage')
+          ? 'Open institutions research lab boon can substitute cash on occult reagent procurement when funding is tight.'
+          : '',
+        game.factions?.corporate_supply?.availableFavors?.some(
+          (favor) => favor.id === 'corporate-supply-salvage-credit'
+        )
+          ? 'Open salvage reclamation favor can redeem rare containment gear without spending funding.'
           : '',
       ],
       4

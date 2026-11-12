@@ -4,7 +4,9 @@ import { getAgencyProgressionUnlockLabel, hasAgencyProgressionUnlock } from './a
 import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
 import { sanitizePersistedFieldBasePacket } from './fieldBaseStaging'
 import { createMissionIntelState } from './intel'
+import { normalizePartialResolutionRule } from './partialResolutionRule'
 import { clamp, createSeededRng, normalizeSeed } from './math'
+import { applyRivalPressureToContractScalar, buildRivalPressure } from './rivalPressure'
 import { getCompletedResearchUnlockIds } from './research'
 import {
   buildContractInventoryRewards,
@@ -48,6 +50,11 @@ import { instantiateFromTemplate } from './sim/spawn'
 import { computeRequiredScore } from './sim/scoring'
 import { buildTeamCompositionProfile, getTeamAssignedCaseId } from './teamSimulation'
 import { evaluateContractRoleFit, getContractModifierTotal } from './contractsRuntime'
+import {
+  deriveTownContractPacketContext,
+  getTownContractSelectionBias,
+  mergeTownContractCaseTags,
+} from './townContractGeneration'
 
 const CONTRACT_STRATEGY_ORDER: ContractStrategyTag[] = [
   'income',
@@ -1077,8 +1084,13 @@ function buildContractCaseSkeleton(
   >,
   template: CaseTemplate,
   caseId: string,
-  week = 1
+  week = 1,
+  state?: GameState
 ): CaseInstance {
+  const townContext = state ? deriveTownContractPacketContext(state) : null
+  const baseTags = [...new Set([...template.tags, 'contract', `strategy-${offer.strategyTag}`])]
+  const tags = mergeTownContractCaseTags(baseTags, townContext, template.tags)
+
   return {
     id: caseId,
     templateId: template.templateId,
@@ -1124,7 +1136,7 @@ function buildContractCaseSkeleton(
     status: 'open',
     difficulty: { ...offer.caseDifficulty },
     weights: { ...template.weights },
-    tags: [...new Set([...template.tags, 'contract', `strategy-${offer.strategyTag}`])],
+    tags,
     requiredTags: [...(template.requiredTags ?? [])],
     requiredRoles: [...(template.requiredRoles ?? [])],
     preferredTags: [...(template.preferredTags ?? [])],
@@ -1134,6 +1146,7 @@ function buildContractCaseSkeleton(
     deadlineRemaining: template.deadlineWeeks,
     ...createMissionIntelState(week),
     assignedTeamIds: [],
+    onPartial: normalizePartialResolutionRule(template.onPartial),
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
     pressureValue: template.pressureValue,
@@ -1148,6 +1161,11 @@ function buildOfferId(state: GameState, templateId: string, slotIndex: number) {
 
 function getContractDefinition(templateId: string) {
   return CONTRACT_TEMPLATES.find((definition) => definition.id === templateId)
+}
+
+/** Hydration: resolve a persisted contract template id against the canonical catalog. */
+export function resolveContractTemplateDefinition(templateId: string) {
+  return getContractDefinition(templateId)
 }
 
 /** Contract modifier id that triggers SPE-17 execution-instability overlay (not intel-friction scoring). */
@@ -1296,6 +1314,11 @@ function buildSelectionScore(
     ? 0.85
     : 0
   const nextIntentBias = getNextIntentSelectionBias(state, definition)
+  const template = state.templates[definition.caseTemplateId]
+  const townContext = deriveTownContractPacketContext(state)
+  const townBias = template
+    ? getTownContractSelectionBias(townContext, template.tags)
+    : 0
 
   return (
     rng.next() +
@@ -1304,7 +1327,8 @@ function buildSelectionScore(
     factionBias +
     progressionUnlockBias +
     recentChainCompletionBias +
-    nextIntentBias -
+    nextIntentBias +
+    townBias -
     freshnessPenalty
   )
 }
@@ -1575,7 +1599,8 @@ function buildRewardPackage(
   const rewardBonus = definition.modifiers
     .filter((modifier) => modifier.effect === 'reward_bonus')
     .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
-  const scalar = clamp(rewardMultiplier + rewardBonus * 0.1, 0.6, 1.9)
+  const factionScalar = clamp(rewardMultiplier + rewardBonus * 0.1, 0.6, 1.9)
+  const scalar = applyRivalPressureToContractScalar(factionScalar, buildRivalPressure(state))
 
   return {
     funding: Math.max(0, Math.round(definition.baseRewards.funding * scalar)),
@@ -1668,7 +1693,8 @@ function buildOfferFromDefinition(
     },
     template,
     `contract-preview-${definition.id}`,
-    state.week
+    state.week,
+    state
   )
   const difficulty = Math.max(1, Math.round(computeRequiredScore(previewCase, state.config)))
   const riskLevel = deriveRiskLevel(difficulty, definition.modifiers)
@@ -2007,6 +2033,7 @@ export function refreshContractBoard(state: GameState): GameState {
       ...(typeof contracts.nextIntentCapturedWeek === 'number'
         ? { nextIntentCapturedWeek: contracts.nextIntentCapturedWeek }
         : {}),
+      ...(contracts.active ? { active: { ...contracts.active } } : {}),
     },
   }
 }
@@ -2135,7 +2162,7 @@ export function buildContractPreviewCase(
     return null
   }
 
-  return buildContractCaseSkeleton(offer, template, caseId, state.week)
+  return buildContractCaseSkeleton(offer, template, caseId, state.week, state)
 }
 
 function getAvailableTeamsForContract(state: GameState) {
@@ -2235,7 +2262,7 @@ export function launchContract(state: GameState, offerId: string, teamId: string
   const usedIds = new Set(Object.keys(state.cases))
   const rng = createSeededRng(launchSeed)
   const instantiated = instantiateFromTemplate(template, rng.next, usedIds, state.week)
-  const launchedCase = buildContractCaseSkeleton(offer, template, instantiated.id, state.week)
+  const launchedCase = buildContractCaseSkeleton(offer, template, instantiated.id, state.week, state)
   const nextState = appendOperationEventDrafts(
     {
       ...state,

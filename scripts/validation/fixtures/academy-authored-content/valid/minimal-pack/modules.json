@@ -1,0 +1,17 @@
+{
+  "kind": "module",
+  "records": [
+    {
+      "id": "module-intro",
+      "displayName": "Intro Module",
+      "prerequisites": [],
+      "courseRef": "course-foundations"
+    },
+    {
+      "id": "module-advanced",
+      "displayName": "Advanced Module",
+      "prerequisites": ["module-intro"],
+      "courseRef": "course-advanced"
+    }
+  ]
+}

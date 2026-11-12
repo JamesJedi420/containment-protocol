@@ -2,7 +2,10 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { AuthorityBargainingOutcome, AuthorityNegotiationRequest } from '../domain/authorityNegotiation'
-import { resolveAuthorityNegotiation } from '../domain/authorityNegotiation'
+import {
+  resolveAuthorityNegotiation,
+  resolvePersistedAuthorityNegotiation,
+} from '../domain/authorityNegotiation'
 import type { AuthorityGraph, AuthorityGraphEdge, AuthorityGraphNode } from '../domain/authorityGraph'
 import {
   authorityGraphTokensContainFranchiseReferences,
@@ -1028,5 +1031,92 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
 
     expect(result.outcome).toBe('partial_cooperation')
     expect(result.contradicted).toBe(false)
+  })
+})
+
+describe('persisted authority negotiation seam (SPE-2721)', () => {
+  const request = negotiation({
+    actorNodeId: 'directorate',
+    counterpartyNodeId: 'regional-office',
+    channel: 'permission',
+    stance: 'cooperate',
+    offerStrength: 55,
+  })
+
+  const authorityGraphState = {
+    graph: {
+      nodes: [
+        node({
+          id: 'agency-core',
+          nodeType: 'agency',
+          label: 'Containment Directorate',
+          aliases: [
+            {
+              aliasId: 'directorate',
+              label: 'Directorate',
+              confidence: 'verified',
+            },
+          ],
+        }),
+        node({
+          id: 'regional-office',
+          nodeType: 'public_office',
+          label: 'Regional Office',
+        }),
+      ],
+      edges: [
+        edge({
+          id: 'permission-dependency',
+          kind: 'dependency',
+          fromNodeId: 'agency-core',
+          toNodeId: 'regional-office',
+          strength: 70,
+          pressureChannels: ['permission'],
+        }),
+      ],
+    },
+    mutationHistory: [],
+  }
+
+  it('consumes the sanitized persisted graph and resolves aliases', () => {
+    const result = resolvePersistedAuthorityNegotiation({ authorityGraphState }, request)
+
+    expect(result.outcome).toBe('partial_cooperation')
+    expect(result.baselineConsequences).toEqual([
+      expect.objectContaining({
+        channel: 'permission',
+        reasonCode: 'dependency_permission',
+        edgeIds: ['permission-dependency'],
+      }),
+    ])
+  })
+
+  it('preserves the empty fallback for missing, legacy, and malformed graph state', () => {
+    const expected = resolveAuthorityNegotiation({ nodes: [], edges: [] }, request)
+
+    expect(resolvePersistedAuthorityNegotiation({}, request)).toEqual(expected)
+    expect(
+      resolvePersistedAuthorityNegotiation(
+        { authorityGraphState: { graph: 'legacy-malformed' } },
+        request
+      )
+    ).toEqual(expected)
+  })
+
+  it('replays deterministically without mutating persisted state or consequence order', () => {
+    const input = structuredClone(authorityGraphState)
+    const before = structuredClone(input)
+
+    const first = resolvePersistedAuthorityNegotiation({ authorityGraphState: input }, request)
+    const second = resolvePersistedAuthorityNegotiation(
+      { authorityGraphState: structuredClone(input) },
+      request
+    )
+
+    expect(first).toEqual(second)
+    expect(first.effectiveConsequences.map((consequence) => consequence.reasonCode)).toEqual([
+      'negotiation_partial_cooperation_boost',
+    ])
+    expect(input).toEqual(before)
   })
 })

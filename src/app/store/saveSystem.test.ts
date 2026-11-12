@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import {
+  advanceContainmentRequirementWindow,
+  attemptContainmentRequirementFulfillment,
+  containmentRequirementRegistryKey,
+  evaluateRequirementAgainstCampaignWeek,
+  openContainmentRequirementWindow,
+} from '../../domain/containmentRequirementFulfillment'
 import { enqueueRuntimeEvent, listQueuedRuntimeEvents } from '../../domain/eventQueue'
 import { consumeOneShotContent, setPersistentFlag } from '../../domain/flagSystem'
 import {
@@ -14,6 +21,7 @@ import {
   GAME_SAVE_KIND,
   GAME_SAVE_VERSION,
   createGameSavePayload,
+  hydrateGameSavePayload,
   loadGameSave,
   serializeGameSave,
 } from './saveSystem'
@@ -24,6 +32,97 @@ import {
 } from '../../features/operations/frontDeskTriggers'
 
 describe('saveSystem', () => {
+  it('round-trips two distinct subject requirements through canonical GameState save/load', () => {
+    const game = createStartingState()
+    game.week = 16
+    const window = { windowId: 'window:10-12', startWeek: 10, endWeek: 12 }
+    const info = {
+      requirementId: 'req:dossier', subjectRef: 'subject:alpha',
+      requirementClass: 'information_input' as const,
+      acceptableInputClasses: ['information' as const],
+      deficiencySeverity: 'major' as const,
+      deficiencyConsequenceRef: 'consequence:information-gap',
+      createsWork: false, allowsRecoveryAfterDeficiency: true,
+    }
+    const material = {
+      requirementId: 'req:coolant', subjectRef: 'subject:beta',
+      requirementClass: 'material_service' as const,
+      acceptableInputClasses: ['material' as const],
+      constraints: { quantityMin: 2, freshnessMaxAgeWeeks: 1 },
+      deficiencySeverity: 'critical' as const,
+      deficiencyConsequenceRef: 'consequence:thermal-risk',
+      createsWork: true, allowsRecoveryAfterDeficiency: false,
+    }
+    const infoOpened = openContainmentRequirementWindow({ definition: info, currentWindow: window })!
+    const infoMissed = evaluateRequirementAgainstCampaignWeek(infoOpened, 13)!
+    const infoNext = advanceContainmentRequirementWindow(infoMissed, {
+      windowId: 'window:13-15', startWeek: 13, endWeek: 15,
+    })!
+    const materialOpened = openContainmentRequirementWindow({ definition: material, currentWindow: window })!
+    const materialSatisfied = attemptContainmentRequirementFulfillment(materialOpened, {
+      fulfillmentRef: 'fulfill:coolant', inputClass: 'material',
+      inputRef: 'mat:coolant', campaignWeek: 11, quantity: 2, inputAgeWeeks: 1,
+    })!
+    expect(materialSatisfied.outcome).toBe('accepted')
+    const infoKey = containmentRequirementRegistryKey(info.subjectRef, info.requirementId)
+    const materialKey = containmentRequirementRegistryKey(material.subjectRef, material.requirementId)
+    game.containmentRequirementStates = {
+      [infoKey]: infoNext,
+      [materialKey]: materialSatisfied.state,
+    }
+    const hydrated = loadGameSave(serializeGameSave(game))
+    expect(hydrated.containmentRequirementStates?.[infoKey]).toEqual(infoNext)
+    expect(hydrated.containmentRequirementStates?.[infoKey].processedWindowIds).toEqual([
+      'window:10-12',
+    ])
+    expect(hydrated.containmentRequirementStates?.[materialKey].state).toBe('satisfied')
+    expect(hydrated.containmentRequirementStates?.[materialKey].lastFulfillmentInputRef)
+      .toBe('mat:coolant')
+    expect(Object.isFrozen(hydrated.containmentRequirementStates)).toBe(true)
+    expect(Object.isFrozen(hydrated.containmentRequirementStates?.[infoKey])).toBe(true)
+    expect(loadGameSave(serializeGameSave(hydrated)).containmentRequirementStates)
+      .toEqual(hydrated.containmentRequirementStates)
+  })
+
+  it('rejects forged or erased subject requirement history without borrowing fallback state', () => {
+    const game = createStartingState()
+    const definition = {
+      requirementId: 'req:dossier', subjectRef: 'subject:alpha',
+      requirementClass: 'information_input' as const,
+      acceptableInputClasses: ['information' as const],
+      deficiencySeverity: 'major' as const,
+      deficiencyConsequenceRef: 'consequence:information-gap',
+      createsWork: false,
+    }
+    const active = openContainmentRequirementWindow({
+      definition, currentWindow: { windowId: 'window:w1', startWeek: 10, endWeek: 12 },
+    })!
+    const key = containmentRequirementRegistryKey(definition.subjectRef, definition.requirementId)
+    game.containmentRequirementStates = { [key]: active }
+    const payload = JSON.parse(serializeGameSave(game))
+    expect(hydrateGameSavePayload(payload).containmentRequirementStates?.[key]).toBeDefined()
+
+    const forged = JSON.parse(JSON.stringify(payload))
+    forged.state.containmentRequirementStates = { 'forged:subject': active }
+    expect(() => hydrateGameSavePayload(forged)).toThrow(
+      'Invalid persisted containment requirement registry.'
+    )
+    const erased = JSON.parse(JSON.stringify(payload))
+    delete erased.state.containmentRequirementStates[key].processedWindowIds
+    expect(() => hydrateGameSavePayload(erased)).toThrow(
+      'Invalid persisted containment requirement registry.'
+    )
+    const malformed = JSON.parse(JSON.stringify(payload))
+    malformed.state.containmentRequirementStates = []
+    expect(() => hydrateGameSavePayload(malformed)).toThrow(
+      'Invalid persisted containment requirement registry.'
+    )
+
+    const legacy = createGameSavePayload(createStartingState())
+    expect(hydrateGameSavePayload(legacy, game).containmentRequirementStates)
+      .toBeUndefined()
+  })
+
   it('builds an explicit save payload without templates', () => {
     const game = createStartingState()
     game.week = 3
@@ -38,6 +137,56 @@ describe('saveSystem', () => {
     expect(payload.savedAt).toBeTypeOf('string')
     expect(new Date(payload.savedAt).toISOString()).toBe(payload.savedAt)
     expect(payload.state).not.toHaveProperty('templates')
+  })
+
+  it('rejects saves with missing, invalid, or future savedAt metadata', () => {
+    const fallback = createStartingState()
+    const basePayload = {
+      kind: GAME_SAVE_KIND,
+      version: GAME_SAVE_VERSION,
+      state: {
+        ...fallback,
+        week: 3,
+      },
+    }
+
+    expect(() => loadGameSave(JSON.stringify(basePayload))).toThrow(
+      'Save payload savedAt timestamp is missing or invalid.'
+    )
+    expect(() =>
+      loadGameSave(
+        JSON.stringify({
+          ...basePayload,
+          savedAt: 'not-a-date',
+        })
+      )
+    ).toThrow('Save payload savedAt timestamp is missing or invalid.')
+    expect(() =>
+      loadGameSave(
+        JSON.stringify({
+          ...basePayload,
+          savedAt: '2999-01-01T00:00:00.000Z',
+        })
+      )
+    ).toThrow('Save payload savedAt timestamp is from the future.')
+  })
+
+  it('accepts saves with valid savedAt metadata', () => {
+    const fallback = createStartingState()
+
+    const loaded = loadGameSave(
+      JSON.stringify({
+        kind: GAME_SAVE_KIND,
+        version: GAME_SAVE_VERSION,
+        savedAt: '2026-01-01T00:00:00.000Z',
+        state: {
+          ...fallback,
+          week: 4,
+        },
+      })
+    )
+
+    expect(loaded.week).toBe(4)
   })
 
   it('round-trips authored runtime state, inventory, and breadcrumbs through save serialization', () => {
@@ -191,7 +340,7 @@ describe('saveSystem', () => {
               },
             },
             progressClocks: {
-              'chain.partial': {
+              'incident.chain.partial': {
                 label: 'Partial Clock',
                 value: 9,
                 max: 4,
@@ -219,7 +368,7 @@ describe('saveSystem', () => {
     )
 
     expect(loaded.inventory.valid_salvage).toBe(4)
-    expect(loaded.inventory.broken_entry).toBe(0)
+    expect(loaded.inventory.broken_entry).toBeUndefined()
     expect(loaded.runtimeState).toMatchObject({
       globalFlags: {
         'faction.ashkeepers.hostile': true,
@@ -250,7 +399,7 @@ describe('saveSystem', () => {
         },
       },
       progressClocks: {
-        'chain.partial': {
+        'incident.chain.partial': {
           label: 'Partial Clock',
           value: 4,
           max: 4,

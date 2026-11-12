@@ -125,8 +125,8 @@ describe('role-specific loadouts', () => {
         ...(state.agents.a_mina.equipmentSlots ?? {}),
         utility1: 'signal_jammers',
       },
-      equipment: {
-        ...(state.agents.a_mina.equipment ?? {}),
+      equipmentEffectScales: {
+        ...(state.agents.a_mina.equipmentEffectScales ?? {}),
         signal_jammers: 1,
       },
       assignment: {

@@ -1,6 +1,8 @@
 // cspell:words cand greentape medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState, startingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
   advanceWeek,
   deriveWeeklyCivicConsequencePackets,
@@ -8,12 +10,14 @@ import {
 } from '../domain/sim/advanceWeek'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 import { createSeededRng } from '../domain/math'
 import { generateAmbientCases } from '../domain/caseGeneration'
+import { cancelCase } from '../domain/caseLifecycleWeeklyOrchestration'
 import {
   createCompactCivicAuthorityConsequencePacket,
   deriveCrossSiteAuthorityModifierForTargetSite,
@@ -21,6 +25,11 @@ import {
   resolveAuthoritySameSourceConflicts,
 } from '../domain/civicConsequenceNetwork'
 import { SIM_NOTES } from '../data/copy'
+import {
+  computeWeeklyOperatingCost,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+} from '../domain/funding'
 import type { Agent, DomainStats, OperationEvent, RuntimeQueuedEvent } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
@@ -122,18 +131,18 @@ it('keeps launched major incident teams locked while weeks remain', () => {
     assignedTeamIds: [],
   }
 
-  const launched = launchMajorIncident(
-    state,
-    'major-incident',
-    ['team-alpha', 'team-bravo', 'team-charlie']
-  )
+  const launched = launchMajorIncident(state, 'major-incident', [
+    'team-alpha',
+    'team-bravo',
+    'team-charlie',
+  ])
   const next = advanceWeek(launched)
 
   expect(next.cases['major-incident'].status).toBe('in_progress')
   expect(next.cases['major-incident'].weeksRemaining).toBeGreaterThan(0)
-  expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
-  expect(next.teams['team-bravo'].assignedCaseId).toBe('major-incident')
-  expect(next.teams['team-charlie'].assignedCaseId).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-alpha'])).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-bravo'])).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-charlie'])).toBe('major-incident')
 })
 
 function getPressureThresholdSpawnEvent(events: OperationEvent[]) {
@@ -226,7 +235,7 @@ function makeMissionResultState(outcome: 'success' | 'partial' | 'fail' | 'unres
   const gearedAgentId = assigned.teams['t_nightwatch'].agentIds[0]
   assigned.agents[gearedAgentId] = {
     ...assigned.agents[gearedAgentId]!,
-    equipment: {},
+    equipmentEffectScales: {},
     equipmentSlots: {
       secondary: 'ward_seals',
       utility1: 'warding_kits',
@@ -268,6 +277,73 @@ function makeMissionResultState(outcome: 'success' | 'partial' | 'fail' | 'unres
   }
 
   return assigned
+}
+
+function attachCaseScopedPrerequisiteWork(
+  state: ReturnType<typeof createStartingState>,
+  entries: readonly {
+    workOrderId: string
+    caseId: string
+    requiredWork: number
+    completedWork?: number
+  }[]
+) {
+  state.caseScopedPrerequisiteProcessingOrders = Object.fromEntries(
+    entries.map(({ workOrderId, caseId, requiredWork }) => [
+      workOrderId,
+      {
+        workOrderId,
+        caseId,
+        processingRecipeId: `recipe:${workOrderId}`,
+        inputMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+        outputMaterialId: 'warding_resin',
+        outputQuantity: 1,
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        requiredWork,
+        prerequisiteWorkOrderIds: [],
+      },
+    ])
+  )
+  state.caseScopedPrerequisiteProcessingReservations = Object.fromEntries(
+    entries.map(({ workOrderId, caseId }) => [
+      workOrderId,
+      {
+        workOrderId,
+        caseId,
+        inputMaterials: [{ materialId: 'medical_supplies', quantity: 1 }],
+      },
+    ])
+  )
+  state.departmentWorkshopWorkOrders = Object.fromEntries(
+    entries.map(({ workOrderId, caseId, requiredWork }) => [
+      workOrderId,
+      {
+        id: workOrderId,
+        caseId,
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        requiredWork,
+      },
+    ])
+  )
+  state.departmentWorkshopSnapshots = {
+    'department:records-analysis': {
+      departmentId: 'department:records-analysis',
+      slotCapacity: entries.length,
+      queued: [],
+      active: entries.map(({ workOrderId, completedWork = 0 }) => ({
+        workOrderId,
+        completedWork,
+      })),
+      paused: [],
+    },
+  }
+  state.inventory = {
+    ...state.inventory,
+    medical_supplies: 0,
+    warding_resin: 0,
+  }
 }
 
 function makeAggregateBattleIntegrationState() {
@@ -314,11 +390,17 @@ function makeAggregateBattleIntegrationState() {
   }
   state.teams['t_nightwatch'] = {
     ...state.teams['t_nightwatch'],
-    assignedCaseId: 'case-raid-battle',
+    status: {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-raid-battle',
+    },
   }
   state.teams['t_greentape'] = {
     ...state.teams['t_greentape'],
-    assignedCaseId: 'case-raid-battle',
+    status: {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-raid-battle',
+    },
   }
 
   for (const agentId of state.teams['t_nightwatch'].agentIds) {
@@ -394,11 +476,17 @@ function makeParallelObjectiveAggregateBattleState() {
   }
   state.teams['t_nightwatch'] = {
     ...state.teams['t_nightwatch'],
-    assignedCaseId: 'case-ritual-battle',
+    status: {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-ritual-battle',
+    },
   }
   state.teams['t_greentape'] = {
     ...state.teams['t_greentape'],
-    assignedCaseId: 'case-ritual-battle',
+    status: {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-ritual-battle',
+    },
   }
 
   for (const agentId of state.teams['t_nightwatch'].agentIds) {
@@ -613,9 +701,9 @@ describe('advanceWeek', () => {
         'spe-540-queued-weekly',
       ])
       expect(packetsA.every((packet) => packet.link.scope === 'two_site')).toBe(true)
-      expect(packetsA.every((packet) => packet.link.sourceSiteId !== packet.link.targetSiteId)).toBe(
-        true
-      )
+      expect(
+        packetsA.every((packet) => packet.link.sourceSiteId !== packet.link.targetSiteId)
+      ).toBe(true)
     })
 
     it('feeds derived weekly packets into the existing bounded world-activity path in the same week', () => {
@@ -825,7 +913,11 @@ describe('advanceWeek', () => {
       const singlePacket = [makePacket('pkt-flood-2', 'site-a', 'site-b', 0.8, 'flood-2')]
 
       const multiModifier = deriveCrossSiteAuthorityModifierForTargetSite(multiPackets, 'site-b', 1)
-      const singleModifier = deriveCrossSiteAuthorityModifierForTargetSite(singlePacket, 'site-b', 1)
+      const singleModifier = deriveCrossSiteAuthorityModifierForTargetSite(
+        singlePacket,
+        'site-b',
+        1
+      )
 
       // Multi-packet same-source produces the same outcome as the single strongest packet
       expect(multiModifier.totalDelta).toBe(singleModifier.totalDelta)
@@ -863,9 +955,7 @@ describe('advanceWeek', () => {
     })
 
     it('no citywide propagation: modifier is strictly bounded to two_site scope packets', () => {
-      const twoSitePackets = [
-        makePacket('pkt-bounded', 'site-a', 'site-b', 0.9, 'bounded-seed'),
-      ]
+      const twoSitePackets = [makePacket('pkt-bounded', 'site-a', 'site-b', 0.9, 'bounded-seed')]
       const modifier = deriveCrossSiteAuthorityModifierForTargetSite(twoSitePackets, 'site-b', 1)
 
       // totalDelta bounded to [-0.3, 0.3], weightModifier bounded to [0.75, 1.25]
@@ -934,7 +1024,10 @@ describe('advanceWeek', () => {
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
       // Simulate event consumption: clear the queued events
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
 
       const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
 
@@ -967,7 +1060,10 @@ describe('advanceWeek', () => {
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
       // Simulate event consumption
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
 
       const storedSources = week2State.civicAuthoritySources ?? []
       const storedIds = storedSources.map((s) => s.sourceId)
@@ -1079,7 +1175,10 @@ describe('advanceWeek', () => {
       })
 
       const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
-      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2State = {
+        ...week2Raw,
+        authorityQueuedEvents: [] as (typeof week1State)['authorityQueuedEvents'],
+      }
       const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
 
       // site-b targeted packet is present in the output (source persisted correctly)
@@ -1222,6 +1321,96 @@ describe('advanceWeek', () => {
     ).toBe(true)
   })
 
+  it('preserves one departure event only for scouted recruitable candidates that expire', () => {
+    const state = createStartingState()
+    state.week = 4
+    state.candidates = [
+      {
+        id: 'cand-scouted',
+        name: 'Known Recruit',
+        age: 27,
+        category: 'agent',
+        hireStatus: 'available',
+        revealLevel: 1,
+        expiryWeek: 4,
+        scoutReport: {
+          stage: 1,
+          projectedTier: 'B',
+          exactKnown: false,
+          confidence: 'low',
+        },
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+      {
+        id: 'cand-unscouted',
+        name: 'Unknown Recruit',
+        age: 28,
+        category: 'agent',
+        hireStatus: 'available',
+        revealLevel: 0,
+        expiryWeek: 4,
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+      {
+        id: 'cand-lost',
+        name: 'Lost Recruit',
+        age: 29,
+        category: 'agent',
+        hireStatus: 'expired',
+        funnelStage: 'lost',
+        revealLevel: 1,
+        expiryWeek: 4,
+        scoutReport: {
+          stage: 1,
+          projectedTier: 'B',
+          exactKnown: false,
+          confidence: 'low',
+        },
+        evaluation: { overallVisible: false, potentialVisible: false, rumorTags: [] },
+        agentData: { role: 'field', specialization: 'recon', traits: [] },
+      },
+    ]
+    state.recruitmentPool = [...state.candidates]
+
+    const next = advanceWeek(state)
+    const departureEvents = next.events.filter(
+      (event) => event.type === 'recruitment.candidate_departed'
+    )
+
+    expect(departureEvents).toEqual([
+      expect.objectContaining({
+        payload: {
+          week: 4,
+          candidateId: 'cand-scouted',
+          candidateName: 'Known Recruit',
+          reason: 'expired_from_consideration',
+        },
+      }),
+    ])
+    expect(
+      advanceWeek(next).events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toHaveLength(1)
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(next)), createStartingState())
+    expect(
+      hydrated.events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toEqual(departureEvents)
+  })
+
+  it('does not synthesize historical departure events while hydrating a legacy candidate pool', () => {
+    const state = createStartingState()
+    state.week = 5
+    state.candidates[0] = { ...state.candidates[0]!, expiryWeek: 1 }
+    state.recruitmentPool = [...state.candidates]
+    state.events = []
+
+    const hydrated = hydrateGame(JSON.parse(JSON.stringify(state)), createStartingState())
+
+    expect(hydrated.events).toEqual([])
+  })
+
   it('emits an aggregate agency containment update when progression values change', () => {
     const next = advanceWeek(createStartingState())
     const containmentEvent = next.events.find(
@@ -1267,8 +1456,10 @@ describe('advanceWeek', () => {
     }
 
     const next = advanceWeek(state)
+    const operatingCost = computeWeeklyOperatingCost(state, state.week)
 
-    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(false)
+    expect(operatingCost).toBeGreaterThan(0)
+    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(true)
   })
 
   it('emits post-week case snapshots and enriched team status', () => {
@@ -1404,7 +1595,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -1426,17 +1617,23 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: {
+        ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
     }
     state.teams['t_greentape'] = {
       ...state.teams['t_greentape'],
-      assignedCaseId: 'case-001',
+      status: {
+        ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
     }
 
     const next = advanceWeek(state)
 
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
-    expect(next.teams['t_greentape'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
     expect(next.teams['t_greentape'].status?.assignedCaseId ?? null).toBeNull()
   })
 
@@ -1541,7 +1738,9 @@ describe('advanceWeek', () => {
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
     expect(
       next.events
-        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .filter(
+          (event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated'
+        )
         .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
     ).toBe(true)
   })
@@ -1583,7 +1782,9 @@ describe('advanceWeek', () => {
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
     expect(
       next.events
-        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .filter(
+          (event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated'
+        )
         .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
     ).toBe(true)
   })
@@ -1759,7 +1960,6 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
       status: {
         ...(state.teams['t_nightwatch'].status ?? { state: 'ready', assignedCaseId: null }),
         assignedCaseId: 'case-001',
@@ -1769,7 +1969,7 @@ describe('advanceWeek', () => {
     const next = advanceWeek(state)
 
     expect(next.cases['case-001'].deadlineRemaining).toBe(2)
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
     expect(next.teams['t_nightwatch'].status?.assignedCaseId ?? null).toBeNull()
   })
 
@@ -1896,7 +2096,7 @@ describe('advanceWeek', () => {
           memberIds: ['leader-strong', 'leader-weak'],
           leaderId,
           tags: [],
-          assignedCaseId: 'case-001',
+          status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
         },
       }
       state.cases = {
@@ -2468,6 +2668,276 @@ describe('advanceWeek', () => {
     expect(missionResult?.penalties.fundingLoss).toBeGreaterThan(0)
   })
 
+  it('produces terminal proof only for the canonically failed case and replays after save/load once', () => {
+    const state = makeMissionResultState('fail')
+    state.cases['case-002'] = {
+      ...state.cases['case-002'],
+      status: 'open',
+      assignedTeamIds: [],
+      deadlineRemaining: 99,
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:failed-case', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:ordinary-case', caseId: 'case-002', requiredWork: 3 },
+    ])
+
+    const next = advanceWeek(state)
+
+    expect(next.reports[0].failedCases).toContain('case-001')
+    expect(next.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({
+      'work:failed-case': {
+        workOrderId: 'work:failed-case',
+        caseId: 'case-001',
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        terminalWeek: state.week,
+        reason: 'failed',
+      },
+    })
+    expect(next.inventory.medical_supplies).toBe(1)
+    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:failed-case']).toBeUndefined()
+    expect(next.caseScopedPrerequisiteProcessingReservations?.['work:ordinary-case']).toBeDefined()
+
+    const loaded = loadGameSave(serializeGameSave(next))
+    const replay = advanceWeek(loaded)
+
+    expect(replay.caseScopedPrerequisiteProcessingTerminalSignals).toEqual(
+      next.caseScopedPrerequisiteProcessingTerminalSignals
+    )
+    expect(replay.inventory.medical_supplies).toBe(1)
+    expect(replay.inventory.warding_resin).toBe(0)
+  })
+
+  it('lets same-week workshop completion win the explicit failure terminal race', () => {
+    const state = makeMissionResultState('fail')
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:completion-race', caseId: 'case-001', requiredWork: 1 },
+    ])
+
+    const next = advanceWeek(state)
+
+    expect(
+      next.caseScopedPrerequisiteProcessingTerminalSignals?.['work:completion-race']
+    ).toMatchObject({
+      reason: 'failed',
+      terminalWeek: state.week,
+    })
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:completion-race']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: state.week,
+    })
+    expect(next.inventory.warding_resin).toBe(1)
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:completion-race']
+    ).toBeUndefined()
+  })
+
+  it('releases an explicitly cancelled reservation only at the existing week-close seam', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+      'case-002': {
+        ...state.cases['case-002'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:explicit-cancellation', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:unaffected-sibling', caseId: 'case-002', requiredWork: 3 },
+    ])
+    state.departmentWorkshopSnapshots!['department:records-analysis'] = {
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [{ workOrderId: 'work:unaffected-sibling', completedWork: 0 }],
+      active: [{ workOrderId: 'work:explicit-cancellation', completedWork: 0 }],
+      paused: [],
+    }
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+
+    expect(state.inventory.medical_supplies).toBe(0)
+    expect(
+      state.caseScopedPrerequisiteProcessingReservations?.['work:explicit-cancellation']
+    ).toBeDefined()
+
+    const next = advanceWeek(state)
+
+    expect(next.inventory.medical_supplies).toBe(1)
+    expect(next.inventory.warding_resin).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:explicit-cancellation']
+    ).toBeUndefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:unaffected-sibling']
+    ).toBeDefined()
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [{ workOrderId: 'work:unaffected-sibling', completedWork: 0 }],
+      active: [],
+      paused: [],
+    })
+    expect(next.departmentWorkshopWorkOrders?.['work:explicit-cancellation']).toBeDefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingTerminalSignals?.['work:explicit-cancellation']
+    ).toMatchObject({
+      reason: 'cancelled',
+      terminalWeek: state.week,
+    })
+
+    const loaded = loadGameSave(serializeGameSave(next))
+    const replay = advanceWeek(loaded)
+    expect(replay.inventory.medical_supplies).toBe(1)
+    expect(replay.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 1,
+      queued: [],
+      active: [{ workOrderId: 'work:unaffected-sibling', completedWork: 1 }],
+      paused: [],
+    })
+  })
+
+  it('isolates invalid terminal proof while cleaning a valid sibling case', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+      'case-002': {
+        ...state.cases['case-002'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:valid-terminal', caseId: 'case-001', requiredWork: 3 },
+      { workOrderId: 'work:invalid-terminal', caseId: 'case-002', requiredWork: 3 },
+    ])
+    state.departmentWorkshopSnapshots!['department:records-analysis'] = {
+      departmentId: 'department:records-analysis',
+      slotCapacity: 2,
+      queued: [],
+      active: [{ workOrderId: 'work:valid-terminal', completedWork: 0 }],
+      paused: [{ workOrderId: 'work:invalid-terminal', completedWork: 1 }],
+    }
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = {
+      ...cancellation.signals,
+      'work:invalid-terminal': {
+        workOrderId: 'work:invalid-terminal',
+        caseId: 'case-001',
+        departmentId: 'department:records-analysis',
+        taskType: 'records_review',
+        terminalWeek: state.week,
+        reason: 'cancelled',
+      },
+    }
+
+    const next = advanceWeek(state)
+
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']).toEqual({
+      departmentId: 'department:records-analysis',
+      slotCapacity: 2,
+      queued: [],
+      active: [],
+      paused: [{ workOrderId: 'work:invalid-terminal', completedWork: 1 }],
+    })
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:valid-terminal']
+    ).toBeUndefined()
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:invalid-terminal']
+    ).toBeDefined()
+  })
+
+  it('cleans a save whose canonical terminal reservation was already released', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:prior-release', caseId: 'case-001', requiredWork: 3 },
+    ])
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+    state.caseScopedPrerequisiteProcessingReservations = {}
+
+    const loaded = loadGameSave(serializeGameSave(state))
+    const next = advanceWeek(loaded)
+
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(next.departmentWorkshopSnapshots?.['department:records-analysis']?.active).toEqual([])
+    expect(next.departmentWorkshopWorkOrders?.['work:prior-release']).toBeDefined()
+  })
+
+  it('lets same-week completion win an explicit cancellation race', () => {
+    const state = createStartingState()
+    state.cases = {
+      ...isolateResolvedCaseSet(state),
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 99,
+      },
+    }
+    attachCaseScopedPrerequisiteWork(state, [
+      { workOrderId: 'work:cancellation-race', caseId: 'case-001', requiredWork: 1 },
+    ])
+    const cancellation = cancelCase(state, 'case-001')
+    if (cancellation.state !== 'accepted') throw new Error('Expected accepted cancellation')
+    state.caseScopedPrerequisiteProcessingTerminalSignals = cancellation.signals
+
+    const next = advanceWeek(state)
+
+    expect(next.departmentWorkshopCompletionOutcomes?.['work:cancellation-race']).toMatchObject({
+      outcome: 'completed',
+      completedWeek: state.week,
+    })
+    expect(next.inventory.warding_resin).toBe(1)
+    expect(next.inventory.medical_supplies).toBe(0)
+    expect(
+      next.caseScopedPrerequisiteProcessingReservations?.['work:cancellation-race']
+    ).toBeUndefined()
+  })
+
+  it.each(['success', 'partial', 'unresolved'] as const)(
+    'does not infer prerequisite terminal proof from a %s case outcome or resulting state',
+    (outcome) => {
+      const state = makeMissionResultState(outcome)
+      attachCaseScopedPrerequisiteWork(state, [
+        { workOrderId: `work:${outcome}`, caseId: 'case-001', requiredWork: 3 },
+      ])
+
+      const next = advanceWeek(state)
+
+      expect(next.caseScopedPrerequisiteProcessingTerminalSignals).toEqual({})
+    }
+  )
+
   it('writes a mission result snapshot for unresolved escalations', () => {
     const next = advanceWeek(makeMissionResultState('unresolved'))
     const missionResult = next.reports[0].caseSnapshots?.['case-001']?.missionResult
@@ -2564,12 +3034,8 @@ describe('advanceWeek', () => {
     expect(aggregateBattle?.parallelObjective?.objectiveId).toBe(
       'case-ritual-battle-ritual-stabilization'
     )
-    expect(['success', 'partial', 'fail']).toContain(
-      aggregateBattle?.parallelObjective?.outcome
-    )
-    expect(battleEvent?.payload.parallelObjectiveId).toBe(
-      'case-ritual-battle-ritual-stabilization'
-    )
+    expect(['success', 'partial', 'fail']).toContain(aggregateBattle?.parallelObjective?.outcome)
+    expect(battleEvent?.payload.parallelObjectiveId).toBe('case-ritual-battle-ritual-stabilization')
     expect(battleEvent?.payload.parallelObjectiveOutcome).toBe(
       aggregateBattle?.parallelObjective?.outcome
     )
@@ -2624,8 +3090,20 @@ describe('advanceWeek', () => {
       preferredTags: [],
       raid: { minTeams: 2, maxTeams: 2 },
     }
-    base.teams['t_nightwatch'] = { ...base.teams['t_nightwatch'], assignedCaseId: raidCaseId }
-    base.teams['team-x'] = { ...base.teams['team-x'], assignedCaseId: raidCaseId }
+    base.teams['t_nightwatch'] = {
+      ...base.teams['t_nightwatch'],
+      status: {
+        ...(base.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: raidCaseId,
+      },
+    }
+    base.teams['team-x'] = {
+      ...base.teams['team-x'],
+      status: {
+        ...(base.teams['team-x'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: raidCaseId,
+      },
+    }
 
     const nextA = advanceWeek(structuredClone(base))
     const nextB = advanceWeek(structuredClone(base))
@@ -2633,8 +3111,8 @@ describe('advanceWeek', () => {
     // Deterministic across runs
     expect(nextA.cases[raidCaseId]).toEqual(nextB.cases[raidCaseId])
     expect(nextA.reports[0].resolvedCases).toEqual(['raid-test'])
-    expect(nextA.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
-    expect(nextA.teams['team-x'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(nextA.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(nextA.teams['team-x'])).toBeNull()
     expect(nextA.agents['a_ava'].assignment?.state).toBe('idle')
     expect(nextA.agents['agent-x'].assignment?.state).toBe('idle')
     expect(
@@ -2666,7 +3144,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -2753,9 +3231,24 @@ describe('advanceWeek', () => {
     const rewardBreakdown = next.reports[0].caseSnapshots?.['case-001']?.rewardBreakdown
 
     expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
-    expect(next.funding).toBe(
-      state.funding + state.config.fundingBasePerWeek + (rewardBreakdown?.fundingDelta ?? 0)
+    const operatingCost = computeWeeklyOperatingCost(state, state.week)
+    const closeoutPayoutDelta = (next.agency?.fundingState?.fundingHistory ?? [])
+      .filter(
+        (entry) =>
+          entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON ||
+          entry.reason === POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON
+      )
+      .reduce((sum, entry) => sum + entry.delta, 0)
+
+    const baseFunding = Math.max(
+      0,
+      state.funding +
+        state.config.fundingBasePerWeek +
+        (rewardBreakdown?.fundingDelta ?? 0) -
+        operatingCost
     )
+
+    expect(next.funding).toBe(baseFunding + closeoutPayoutDelta)
     expect(next.containmentRating).toBe(0)
   })
 
@@ -2774,7 +3267,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -2851,7 +3344,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -2872,8 +3365,7 @@ describe('advanceWeek', () => {
     expect(
       next.reports[0].notes.some(
         (note) =>
-          note.type === 'faction.unlock_available' &&
-          note.metadata?.factionId === 'black_budget'
+          note.type === 'faction.unlock_available' && note.metadata?.factionId === 'black_budget'
       )
     ).toBe(true)
   })
@@ -2915,7 +3407,7 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -2931,7 +3423,7 @@ describe('advanceWeek', () => {
       name: 'Empty',
       agentIds: [],
       tags: [],
-      assignedCaseId: undefined,
+      status: { state: 'ready' as const, assignedCaseId: null },
     }
 
     const next = advanceWeek(state)
@@ -2961,34 +3453,39 @@ describe('advanceWeek', () => {
     expect(next.gameOverReason).toBe('All active operations concluded. Directorate stands down.')
   })
 
-// SPE-1071 slice 1: campaign-calendar date stamping on weekly reports.
-it('stamps WeeklyReport.date with the source week and progresses monotonically across advanceWeek calls', () => {
-  let state = createStartingState()
-  const stampedDates: Array<{ absoluteWeek: number; year: number; weekOfYear: number; season: string }> = []
+  // SPE-1071 slice 1: campaign-calendar date stamping on weekly reports.
+  it('stamps WeeklyReport.date with the source week and progresses monotonically across advanceWeek calls', () => {
+    let state = createStartingState()
+    const stampedDates: Array<{
+      absoluteWeek: number
+      year: number
+      weekOfYear: number
+      season: string
+    }> = []
 
-  for (let i = 0; i < 4; i++) {
-    const sourceWeek = state.week
-    const reportsBefore = state.reports.length
-    state = advanceWeek(state)
-    if (state.reports.length === reportsBefore) {
-      // No new report appended this tick (e.g., game-over short-circuit); skip.
-      continue
+    for (let i = 0; i < 4; i++) {
+      const sourceWeek = state.week
+      const reportsBefore = state.reports.length
+      state = advanceWeek(state)
+      if (state.reports.length === reportsBefore) {
+        // No new report appended this tick (e.g., game-over short-circuit); skip.
+        continue
+      }
+      const latestReport = state.reports[state.reports.length - 1]
+      expect(latestReport.date).toBeDefined()
+      // The report covers the source week (state.week BEFORE this tick).
+      expect(latestReport.week).toBe(sourceWeek)
+      expect(latestReport.date!.absoluteWeek).toBe(sourceWeek)
+      expect(latestReport.date!.absoluteWeek).toBe(latestReport.week)
+      stampedDates.push(latestReport.date!)
     }
-    const latestReport = state.reports[state.reports.length - 1]
-    expect(latestReport.date).toBeDefined()
-    // The report covers the source week (state.week BEFORE this tick).
-    expect(latestReport.week).toBe(sourceWeek)
-    expect(latestReport.date!.absoluteWeek).toBe(sourceWeek)
-    expect(latestReport.date!.absoluteWeek).toBe(latestReport.week)
-    stampedDates.push(latestReport.date!)
-  }
 
-  // At least two stamped reports needed to verify monotonicity.
-  expect(stampedDates.length).toBeGreaterThanOrEqual(2)
-  for (let i = 1; i < stampedDates.length; i++) {
-    expect(stampedDates[i].absoluteWeek).toBeGreaterThan(stampedDates[i - 1].absoluteWeek)
-  }
-})
+    // At least two stamped reports needed to verify monotonicity.
+    expect(stampedDates.length).toBeGreaterThanOrEqual(2)
+    for (let i = 1; i < stampedDates.length; i++) {
+      expect(stampedDates[i].absoluteWeek).toBeGreaterThan(stampedDates[i - 1].absoluteWeek)
+    }
+  })
 
   it('ends the game when active cases exceed maxActiveCases', () => {
     const state = createStartingState()
@@ -3079,7 +3576,7 @@ it('stamps WeeklyReport.date with the source week and progresses monotonically a
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: { state: 'deployed' as const, assignedCaseId: 'case-001' },
     }
 
     const next = advanceWeek(state)
@@ -3172,10 +3669,6 @@ it('stamps WeeklyReport.date with the source week and progresses monotonically a
 
   it('preserves immutability when advancing with fatigue-heavy operations', () => {
     const state = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
-    state.teams['t_nightwatch'] = {
-      ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       assignedTeamIds: ['t_nightwatch'],

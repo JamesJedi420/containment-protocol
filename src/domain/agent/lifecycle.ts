@@ -457,6 +457,30 @@ function buildProjectedHistoryEntryFromEvent(event: OperationEvent): AgentHistor
         'progression.xp_gained',
         `${event.payload.reason}: +${event.payload.xpAmount} XP`
       )
+    case 'staff.coping.applied':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'staff.coping.applied',
+        `Coping policy applied (${event.payload.policy}).`
+      )
+    case 'staff.coping.misconduct':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'staff.coping.misconduct',
+        `Coping misconduct recorded (${event.payload.policy}).`
+      )
+    case 'staff.side_work.resolved':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'staff.side_work.resolved',
+        `Side work (${event.payload.optionId}) resolved (${event.payload.outcome}).`
+      )
+    case 'agent.killed':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'agent.killed',
+        `Killed in action during ${event.payload.caseTitle}.`
+      )
     default:
       return null
   }

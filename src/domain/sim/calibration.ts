@@ -84,6 +84,22 @@ export const RECOVERY_CALIBRATION = {
   exposureResidueMedicalClearThreshold: 2,
 } as const
 
+/** SPE-1309 slice 7: bounded vitals/scoring side-effects from cognitive hazard simulation triggers. */
+export const COGNITIVE_HAZARD_CALIBRATION = {
+  dutyDegradedTeamPenaltyMultiplier: 0.92,
+  knowledgeDegradedTeamPenaltyMultiplier: 0.95,
+  stressDeltaByReviewBand: {
+    stable: 0,
+    elevated: 6,
+    critical: 12,
+  },
+  moraleDeltaByReviewBand: {
+    stable: 0,
+    elevated: 0,
+    critical: -4,
+  },
+} as const
+
 export const RESPONDER_ENERGY_CALIBRATION = {
   defaultReserve: 100,
   reserveBands: {
@@ -180,6 +196,45 @@ export const FUNDING_CALIBRATION = {
     recentPenaltyWindow: 6,
     recentPenaltyCountThreshold: 4,
     maxPressure: 4,
+  },
+  /** SPE-28 / SPE-2319: weeks from order placement until backlog inventory is granted on week-close. */
+  procurementDelayedFulfillmentWeeks: 1,
+  /** SPE-28: deterministic payroll + facility upkeep charged once per closed week in advanceWeek. */
+  weeklyOperatingCost: {
+    payrollPerAgent: 4,
+    payrollPerSupportRole: 2,
+    facilityUpkeepBase: 8,
+    upkeepSpikeEveryWeeks: 4,
+    upkeepSpikeAmount: 12,
+  },
+  /** SPE-2320: inventory carrying cost charged once per closed week in advanceWeek. */
+  weeklyInventoryHoldingCost: {
+    /** Stock at or below this level incurs no carrying fee (baseline working inventory). */
+    billableStockThreshold: 50,
+    costPerStockUnit: 1,
+  },
+  /** SPE-2321: read-time vendor shortage on one canonical roster listing (no week-close cash). */
+  procurementShortagePressure: {
+    listingId: 'material:medical_supplies',
+    /** Agency stock above this level signals vendor rationing on the target listing. */
+    stockThreshold: 60,
+    budgetPressureThreshold: 2,
+    /** Subtracted from derived bundle availability when shortage signals are active. */
+    availabilityPenaltyBundles: 12,
+    minBundles: 0,
+  },
+  /** SPE-2322: read-time office-mediated diversion on one canonical roster listing. */
+  procurementCorruptionRouting: {
+    listingId: 'material:electronic_parts',
+    /** Subtracted from derived bundle availability when compromised-authority diversion is active. */
+    availabilityPenaltyBundles: 12,
+    minBundles: 0,
+  },
+  /** SPE-2323: callable obligation substitutes cash on one canonical roster listing. */
+  procurementCallableObligation: {
+    listingId: 'material:occult_reagents',
+    factionId: 'institutions',
+    favorId: 'institutions-lab-access-boon',
   },
 } as const
 

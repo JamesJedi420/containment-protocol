@@ -1,10 +1,12 @@
 import { createStartingState } from '../../data/startingState'
 import type { GameState } from '../../domain/models'
+import { assertMissionEscalationCompatibility } from './missionEscalationCompatibility'
 import {
   RUN_EXPORT_KIND,
   hydrateGame,
   parseRunExport,
   stripGameTemplates,
+  validateImportTimestampMetadata,
   type PersistedGame,
 } from './runTransfer'
 
@@ -40,8 +42,12 @@ export function serializeGameSave(game: GameState) {
   return JSON.stringify(createGameSavePayload(game), null, 2)
 }
 
-export function hydrateGameSavePayload(payload: unknown, fallback = createStartingState()): GameState {
+export function hydrateGameSavePayload(
+  payload: unknown,
+  fallback = createStartingState()
+): GameState {
   if (isRecord(payload) && payload.kind === RUN_EXPORT_KIND && 'game' in payload) {
+    assertMissionEscalationCompatibility(payload.game)
     return hydrateGame(payload.game, fallback)
   }
 
@@ -53,6 +59,9 @@ export function hydrateGameSavePayload(payload: unknown, fallback = createStarti
     throw new Error('Save payload version is not supported by this build.')
   }
 
+  validateImportTimestampMetadata(payload.savedAt, 'savedAt', 'Save payload')
+
+  assertMissionEscalationCompatibility(payload.state)
   return hydrateGame(payload.state, fallback)
 }
 

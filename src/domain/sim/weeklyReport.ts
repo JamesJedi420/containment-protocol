@@ -7,15 +7,16 @@ import type {
   MissionRewardBreakdown,
   PerformanceMetricSummary,
   WeeklyReport,
-  WeeklyReportCaseSnapshot,
 } from '../models'
 import {
   buildDeterministicReportNotesFromEventDrafts,
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
+import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { ensureNormalizedGameState } from '../teamSimulation'
 import { buildReportTeamStatus } from './reportTeamStatus'
 import { calcWeekScore } from './scoring'
+import { buildReportCaseSnapshots } from './reportCaseSnapshot'
 
 interface WeeklyReportBuildInput {
   sourceState: GameState
@@ -140,49 +141,6 @@ function getAverageRosterFatigue(agents: GameState['agents']) {
   }
 
   return Math.round(values.reduce((sum, agent) => sum + agent.fatigue, 0) / values.length)
-}
-
-function buildReportCaseSnapshot(
-  currentCase: GameState['cases'][string],
-  performanceSummary?: PerformanceMetricSummary,
-  rewardBreakdown?: MissionRewardBreakdown,
-  missionResult?: MissionResult
-): WeeklyReportCaseSnapshot {
-  return {
-    caseId: currentCase.id,
-    title: currentCase.title,
-    kind: currentCase.kind,
-    mode: currentCase.mode,
-    status: currentCase.status,
-    stage: currentCase.stage,
-    deadlineRemaining: currentCase.deadlineRemaining,
-    durationWeeks: currentCase.durationWeeks,
-    weeksRemaining: currentCase.weeksRemaining,
-    assignedTeamIds: [...currentCase.assignedTeamIds],
-    ...(performanceSummary ? { performanceSummary } : {}),
-    ...(rewardBreakdown ? { rewardBreakdown } : {}),
-    ...(missionResult ? { missionResult } : {}),
-  }
-}
-
-function buildReportCaseSnapshots(
-  cases: GameState['cases'],
-  performanceByCaseId: Partial<Record<string, PerformanceMetricSummary>> = {},
-  rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>> = {},
-  missionResultByCaseId: Partial<Record<string, MissionResult>> = {}
-) {
-  return Object.fromEntries(
-    Object.values(cases).map((currentCase) => [
-      currentCase.id,
-      buildReportCaseSnapshot(
-        currentCase,
-        performanceByCaseId[currentCase.id] ??
-          missionResultByCaseId[currentCase.id]?.performanceSummary,
-        rewardByCaseId[currentCase.id] ?? missionResultByCaseId[currentCase.id]?.rewards,
-        missionResultByCaseId[currentCase.id]
-      ),
-    ])
-  )
 }
 
 function assertExclusiveCaseBuckets(
@@ -332,6 +290,7 @@ export function buildWeeklyReport({
 }: WeeklyReportBuildInput): BuiltWeeklyReport {
   const report: WeeklyReport = {
     week: sourceState.week,
+    date: getCampaignDate(sourceState.week, resolveCalendarConfig(sourceState.config)),
     rngStateBefore: sourceState.rngState,
     rngStateAfter: nextState.rngState,
     newCases: [...spawnedCaseIds],
@@ -351,6 +310,7 @@ export function buildWeeklyReport({
     }),
     caseSnapshots: buildReportCaseSnapshots(
       nextState.cases,
+      sourceState.knowledge,
       performanceByCaseId,
       rewardByCaseId,
       missionResultByCaseId

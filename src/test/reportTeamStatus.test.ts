@@ -15,7 +15,7 @@ function makeInProgressCase(overrides: Partial<CaseInstance> = {}): CaseInstance
     title: 'Expedition',
     description: '',
     mode: 'probability',
-    kind: 'investigation',
+    kind: 'case',
     status: 'in_progress',
     difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
     weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
@@ -46,11 +46,16 @@ describe('reportTeamStatus (SPE-99)', () => {
     }
     const sourceTeam: Team = {
       ...shell.teams.t_nightwatch,
-      assignedCaseId: 'case_exp',
+      status: {
+        ...(shell.teams.t_nightwatch.status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case_exp',
+      },
     }
     const releasedTeam: Team = {
       ...shell.teams.t_nightwatch,
-      assignedCaseId: undefined,
+      status: shell.teams.t_nightwatch.status
+        ? { ...shell.teams.t_nightwatch.status, assignedCaseId: null }
+        : { state: 'ready', assignedCaseId: null },
     }
 
     const entry = buildReportTeamStatusEntry(

@@ -14,15 +14,18 @@ import type {
   StatKey,
   WeeklyDirectiveId,
 } from '../models'
+import type { EquipmentGradeId, EquipmentGradeVisibility } from '../equipmentGrade'
+import type { EquipmentGradeFabricationExplanationCode } from '../equipmentGradeFabrication'
+import type { EquipmentAutoScrapReasonCode } from '../equipmentAutoScrapReasonCodes'
+import type {
+  ContainmentClassId,
+  ContainmentCompensatingControlId,
+} from '../containmentClassInspection'
+import type { ContainmentBarrierZoneId } from '../containmentBarrierIntegrity'
+import type { IntegrityLaborStationId } from '../equipmentStationMutation'
 
 export type OperationEventSourceSystem =
-  | 'assignment'
-  | 'incident'
-  | 'intel'
-  | 'agent'
-  | 'production'
-  | 'faction'
-  | 'system'
+  'assignment' | 'incident' | 'intel' | 'agent' | 'production' | 'faction' | 'system'
 
 export type CaseEscalationTrigger = 'deadline' | 'failure'
 export type CaseSpawnTrigger =
@@ -33,11 +36,10 @@ export type CaseSpawnTrigger =
   | 'faction_offer'
   | 'faction_pressure'
   | 'pressure_threshold'
+  | 'workshop_unsafe'
 
 export type MarketTransactionListingResourceClass =
-  | 'supplier_attention_slot'
-  | 'reagent_stock'
-  | 'licensed_handling_capacity'
+  'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
 
 /** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
 export interface MarketTransactionListingResourceStatus {
@@ -318,6 +320,13 @@ export interface OperationEventPayloadMap {
     week: number
     count: number
   }
+  'recruitment.candidate_departed': {
+    week: number
+    candidateId: Id
+    candidateName: string
+    reason: 'expired_from_consideration' | 'unknown_departure'
+    destination?: string
+  }
   'system.recruitment_generated': {
     week: number
     count: number
@@ -370,7 +379,7 @@ export interface OperationEventPayloadMap {
     confidence: Exclude<PotentialIntelConfidence, 'unknown'>
     previousProjectedTier?: ExactPotentialTier
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
-    confirmedTier?: ExactPotentialTier
+    confirmedTier: ExactPotentialTier
     revealLevel: number
     sourceFactionId?: string
     sourceFactionName?: string
@@ -387,6 +396,7 @@ export interface OperationEventPayloadMap {
     outputQuantity: number
     fundingCost: number
     inputMaterials: ProductionMaterialRequirement[]
+    outputGradeId?: EquipmentGradeId
   }
   'production.queue_started': {
     week: number
@@ -399,6 +409,233 @@ export interface OperationEventPayloadMap {
     etaWeeks: number
     fundingCost: number
     inputMaterials: ProductionMaterialRequirement[]
+    outputGradeId?: EquipmentGradeId
+    outputGradeVisibility?: EquipmentGradeVisibility
+    outputGradeExplanationCodes?: EquipmentGradeFabricationExplanationCode[]
+  }
+  'equipment.recovery_started': {
+    week: number
+    queueId: Id
+    itemId: string
+    itemName: string
+    pathId: 'component_reclamation' | 'ritual_disassembly'
+    sourceGradeId: EquipmentGradeId
+    sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
+    sourceCondition: 'operational' | 'damaged'
+    outputMaterials: ProductionMaterialRequirement[]
+    wasteQuantity: number
+    etaWeeks: number
+  }
+  'equipment.recovery_completed': {
+    week: number
+    queueId: Id
+    itemId: string
+    itemName: string
+    pathId: 'component_reclamation' | 'ritual_disassembly'
+    sourceGradeId: EquipmentGradeId
+    sourceFabricationQueueId?: Id
+    sourceEquipmentInstanceId?: Id
+    sourceEquipmentInstanceResourceId?: string
+    sourceEquipmentInstanceCapacity?: number
+    sourceEquipmentInstanceRemaining?: number
+    sourceCondition: 'operational' | 'damaged'
+    outputMaterials: ProductionMaterialRequirement[]
+    wasteQuantity: number
+  }
+  'equipment.auto_scrap_policy_changed': {
+    week: number
+    action: 'enabled' | 'disabled'
+    thresholdGradeId?: EquipmentGradeId
+    includedItemCount: number
+    includedQuantity: number
+    excludedItemCount: number
+    excludedQuantity: number
+  }
+  'equipment.auto_scrap_routed': {
+    week: number
+    thresholdGradeId: EquipmentGradeId
+    routedQueueIds: Id[]
+    routedQuantity: number
+    includedItemCount: number
+    excludedItemCount: number
+    excludedQuantity: number
+    exclusionReasonCounts: Array<{
+      reasonCode: EquipmentAutoScrapReasonCode
+      count: number
+    }>
+  }
+  'equipment.instance_materialized': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    locationState: 'stored' | 'equipped'
+    agentId?: Id
+    slot?: string
+    resourceId?: string
+    capacity?: number
+    remaining?: number
+    /** SPE-2846: all-or-none fabricated-lot snapshot when materializing from a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
+  }
+  'equipment.instance_destroyed': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    reason: 'manual_disposal' | 'mission_loss' | 'mission_injury'
+  }
+  'equipment.instance_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    condition: 'operational'
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    /** SPE-2848: all-or-none fabricated-lot snapshot when returning to a lot. */
+    fabricationQueueId?: Id
+    fabricationRecipeId?: string
+    fabricationGradeId?: EquipmentGradeId
+    fabricationCompletedWeek?: number
+  }
+  'equipment.instance_condition_repaired': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    previousCondition: 'damaged'
+    condition: 'operational'
+    reason: 'manual_condition_repair'
+    /** Absent for legacy unpaid repair events. */
+    repairCost?: number
+  }
+  'equipment.containment_class_deficiency_recorded': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    status: 'due' | 'overdue'
+    intervalWeeks: number
+    weeksSinceInspection: number
+    deficiencyKind: 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: ContainmentCompensatingControlId
+    inService: boolean
+    reason: 'inspection_cadence_deficiency'
+  }
+  'equipment.containment_class_inspected': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    status: 'due' | 'overdue'
+    previousLastInspectionWeek: number
+    lastInspectionWeek: number
+    intervalWeeks: number
+    weeksSinceInspection: number
+    deficiencyKind: 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: ContainmentCompensatingControlId
+    inService: boolean
+    reason: 'week_close_auto_advance' | 'mid_week_player_inspect'
+  }
+  'equipment.containment_class_stabilized': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    previousDeficiencyKind: 'hard_stop' | 'compensating_continue'
+    deficiencyKind: 'compensating_continue' | 'none'
+    compensatingControlId?: ContainmentCompensatingControlId
+    previousCycleCount: number
+    cycleCount: number
+    inService: boolean
+    reason: 'technician_stabilization'
+  }
+  'equipment.instance_station_mutated': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    stationId: IntegrityLaborStationId
+    previousCycleCount: number
+    cycleCount: number
+    condition: 'operational' | 'damaged'
+    deficiencyKind: 'none' | 'hard_stop' | 'compensating_continue'
+    compensatingControlId?: ContainmentCompensatingControlId
+    inService: boolean
+    reason: 'integrity_labor'
+  }
+  'equipment.containment_barrier_integrity_changed': {
+    week: number
+    instanceId: Id
+    definitionId: string
+    definitionName: string
+    classId: ContainmentClassId
+    zoneId: ContainmentBarrierZoneId
+    previousStatus: 'intact' | 'flow_restraint' | 'zone_breach'
+    status: 'flow_restraint' | 'zone_breach'
+    sourceDeficiencyKind: 'hard_stop' | 'compensating_continue'
+    reason: 'deficiency_coupling'
+  }
+  'equipment.combat_stim_activated': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    caseTitle: string
+    dosesBefore: number
+    dosesAfter: number
+    underlyingBand: 'depleted' | 'overdrawn'
+    effectiveBand: 'taxed' | 'depleted'
+  }
+  'equipment.combat_stim_overdrive_expired': {
+    week: number
+    activationId: Id
+    instanceId: Id
+    agentId: Id
+    agentName: string
+    caseId: Id
+    recoveryDebt: number
+  }
+  'equipment.combat_stim_disposed': {
+    week: number
+    instanceId: Id
+    definitionId: 'combat_stims'
+    definitionName: string
+    condition: 'operational' | 'damaged'
+    resourceId: 'combat_stim_dose'
+    capacity: 2
+    remaining: number
+    reason: 'manual_disposal' | 'mission_loss' | 'mission_injury'
+  }
+  'equipment.combat_stim_reaggregated': {
+    week: number
+    instanceId: Id
+    definitionId: 'combat_stims'
+    definitionName: string
+    condition: 'operational'
+    resourceId: 'combat_stim_dose'
+    capacity: 2
+    remaining: 2
+    reason: 'manual_untracking' | 'fabricated_lot_return'
+    fabricationQueueId?: Id
+    fabricationRecipeId?: Id
+    fabricationGradeId?: 'grade_1' | 'grade_2' | 'grade_3' | 'grade_4' | 'grade_5'
+    fabricationCompletedWeek?: number
   }
   'market.shifted': {
     week: number
@@ -411,7 +648,7 @@ export interface OperationEventPayloadMap {
     week: number
     marketWeek: number
     transactionId: string
-    action: 'buy' | 'sell'
+    action: 'buy' | 'sell' | 'favor_exchange' | 'callable_obligation' | 'order' | 'fulfill'
     listingId: string
     itemId: string
     itemName: string
@@ -421,13 +658,16 @@ export interface OperationEventPayloadMap {
     unitPrice: number
     totalPrice: number
     remainingAvailability: number
+    favorExchangeFactionId?: string
+    favorExchangeFavorId?: string
+    favorExchangeLabel?: string
+    callableObligationFactionId?: string
+    callableObligationFavorId?: string
+    callableObligationLabel?: string
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -442,10 +682,7 @@ export interface OperationEventPayloadMap {
     }
     allocations?: Array<{
       allocationId: string
-      resourceClass:
-        | 'supplier_attention_slot'
-        | 'reagent_stock'
-        | 'licensed_handling_capacity'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -500,8 +737,12 @@ export interface OperationEventPayloadMap {
     containmentRatingAfter: number
     /** Count of emergency waiver grants driving precedent pressure on this tick. */
     waiverPrecedentCount: number
-    /** Bounded multiplier applied to base fallout penalty bands (deterministic from precedent). */
+    /** Bounded multiplier from waiver precedent only (not standing). */
     precedentPenaltyMultiplier: number
+    /** Agency ranking score that produced {@link standingFalloutPenaltyScale}. */
+    rankingScore: number
+    /** Standing-shaped scale composed with precedent on penalty bands (SPE-2705). */
+    standingFalloutPenaltyScale: number
     institutionKey: string
   }
   'faction.standing_changed': {
@@ -714,6 +955,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'agent.hired': 'agent'
   'progression.xp_gained': 'agent'
   'system.recruitment_expired': 'system'
+  'recruitment.candidate_departed': 'system'
   'system.recruitment_generated': 'system'
   'system.party_cards_drawn': 'system'
   'recruitment.scouting_initiated': 'intel'
@@ -721,6 +963,23 @@ export interface OperationEventTypeToSourceSystemMap {
   'recruitment.intel_confirmed': 'intel'
   'production.queue_completed': 'production'
   'production.queue_started': 'production'
+  'equipment.recovery_started': 'production'
+  'equipment.recovery_completed': 'production'
+  'equipment.auto_scrap_policy_changed': 'production'
+  'equipment.auto_scrap_routed': 'production'
+  'equipment.instance_materialized': 'agent'
+  'equipment.instance_destroyed': 'agent'
+  'equipment.instance_reaggregated': 'agent'
+  'equipment.instance_condition_repaired': 'agent'
+  'equipment.containment_class_deficiency_recorded': 'agent'
+  'equipment.containment_class_inspected': 'agent'
+  'equipment.containment_class_stabilized': 'agent'
+  'equipment.instance_station_mutated': 'agent'
+  'equipment.containment_barrier_integrity_changed': 'agent'
+  'equipment.combat_stim_activated': 'agent'
+  'equipment.combat_stim_overdrive_expired': 'agent'
+  'equipment.combat_stim_disposed': 'agent'
+  'equipment.combat_stim_reaggregated': 'agent'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
@@ -772,6 +1031,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'agent.hired': 'agent',
   'progression.xp_gained': 'agent',
   'system.recruitment_expired': 'system',
+  'recruitment.candidate_departed': 'system',
   'system.recruitment_generated': 'system',
   'system.party_cards_drawn': 'system',
   'recruitment.scouting_initiated': 'intel',
@@ -779,6 +1039,23 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'recruitment.intel_confirmed': 'intel',
   'production.queue_completed': 'production',
   'production.queue_started': 'production',
+  'equipment.recovery_started': 'production',
+  'equipment.recovery_completed': 'production',
+  'equipment.auto_scrap_policy_changed': 'production',
+  'equipment.auto_scrap_routed': 'production',
+  'equipment.instance_materialized': 'agent',
+  'equipment.instance_destroyed': 'agent',
+  'equipment.instance_reaggregated': 'agent',
+  'equipment.instance_condition_repaired': 'agent',
+  'equipment.containment_class_deficiency_recorded': 'agent',
+  'equipment.containment_class_inspected': 'agent',
+  'equipment.containment_class_stabilized': 'agent',
+  'equipment.instance_station_mutated': 'agent',
+  'equipment.containment_barrier_integrity_changed': 'agent',
+  'equipment.combat_stim_activated': 'agent',
+  'equipment.combat_stim_overdrive_expired': 'agent',
+  'equipment.combat_stim_disposed': 'agent',
+  'equipment.combat_stim_reaggregated': 'agent',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',

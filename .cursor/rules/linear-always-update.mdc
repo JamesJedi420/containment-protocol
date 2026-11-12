@@ -1,31 +1,45 @@
 ---
-description: Mandatory Linear issue updates for every agent session and task type (implementation, harvest, PR, review).
+description: Mandatory Linear lifecycle and Cursor-authorized backlog-shape updates
 alwaysApply: true
 ---
 
 # Linear — mandatory (every session, every agent)
 
-**Non-negotiable.** Applies to local Cursor, Cloud Agents, background agents, and subagents — not only feature implementation.
+**Non-negotiable.** Applies to local Cursor, Cloud Agents, background agents, and subagents.
 
-Linear is the **system of record** for issue state, scope, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates.
+Linear is the **system of record** for issue scope, lifecycle state, and closure. GitHub PR linkbacks **do not** replace agent-owned Linear updates.
+
+Canonical Cursor backlog authority: **`docs/cursor-autonomous-authority.md`**.
+
+## Mutation classes
+
+See `docs/governance/authority-contract.v1.json` (`lifecycle-evidence` vs `backlog-shape`).
+
+- **Lifecycle/evidence** on an existing boundary (status, PR links, progress/closure, factual notes): update directly; no ChatGPT phases.
+- **Backlog-shape** (new issue/child/parent, relationship, reparenting, expanded durable Goal/Scope/Acceptance):
+  - **Cursor:** may approve and apply under autonomous-authority safeguards (inspect existing owners, prefer fold-in, bounded reviewable issues, one shared-system owner, record rationale in Linear). ChatGPT Phases 1–4 are **not** required.
+  - **ChatGPT:** still uses Phases 1–4 per ChatGPT Project / candidate-ledger workflow.
+
+Codex “owner” designations are preferences; Cursor may implement and close those issues.
 
 ## When to update
 
 | Phase | Linear action |
 | --- | --- |
-| **Task start** | Find or create the slice issue; set **In Progress** before substantive code or harvest closure. |
-| **During work** | Harvest triage: **`docs/harvest-candidate-triage-agent.md`**; owner comments with full mechanic + boundary + fold-in vs child reasoning (**`docs/harvest-fold-in-linear-comments.md`**, not one-liners); owner map QA **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session; comment on slice issue when scope or blockers change materially. |
-| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
-| **PR merged** | Set slice issue **Done**; parent **Done** only if full parent scope shipped, else return parent to **Backlog**. |
-| **After merge** | Short comment on the slice issue: PR URL + what shipped. |
+| **Task start** | Set the owning slice **In Progress** when substantive work begins. Create or claim a bounded owner when durable scope has none (Cursor; safeguards apply). |
+| **Unowned read-only analysis** | May stay read-only until durable scope is confirmed; then create/fold Linear ownership rather than leaving orphan obligations. |
+| **During owned work** | Progress/blocker comments; keep acceptance truthful. |
+| **Slice ready** | Commit, push, open PR (`implementation-lite.mdc`). |
+| **PR opened** | Link slice issue; comment PR URL. |
+| **Babysit → merge** | Independent review + CI; merge; `checkout main` && pull. |
+| **PR merged** | Slice **Done** when full boundary shipped; parent truthful status unless full parent complete; merge comment with PR URL + validation. |
 
 ## Do not skip because
 
-- The PR has a GitHub linkback bot comment
-- The task was "docs only," "harvest only," or "review only"
-- Linear MCP failed once (report the exact comments/issues to post; retry when possible)
-- A prior agent already commented (add closure for **this** session's work)
+- GitHub has a linkback bot comment
+- Work was docs-only or tooling-only
+- Linear MCP failed once — retry or leave a precise handoff (`docs/cloud-agent-linear-handoff.md`) **only** after an approved implementation merge when that trigger applies
 
-## Authoritative detail
+## Authorized docs-only merges with Linear unavailable
 
-Full lifecycle, harvest batches, and documentation hygiene: **`AGENTS.md`** (repo root) and **`docs/agent-session-handoff.md`**.
+When an **authorized documentation-only** merge has legitimate, existing-boundary factual Linear traceability still unposted, record **pending / unverified** in the normal docs-work closeout. Include the exact existing Linear issue target, merged PR and actual validation evidence, intended non-scope-expanding comment or independently authorized status action, whether posting was attempted, and the next actor's authorized verification/posting step. That actor must recheck current issue state and evidence and avoid duplicate comments before applying any update. A pending note is **not** a Linear post, permission to create scope, or proof of successful synchronization. Do not create a second outbox, issue, relationship, or approval process; the cloud-agent handoff stays implementation-only. Unowned read-only analysis may remain no-write.

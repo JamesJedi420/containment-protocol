@@ -7,6 +7,10 @@ import {
   applyWeeklyInfiltrationCoverPostureToCase,
   INFILTRATION_AUTHORITY_SCRUTINY_TAGS,
 } from './infiltrationCover'
+import {
+  applyInfiltrationEncounterCoverStanceToProbeDeltas,
+  readInfiltrationEncounterCoverStanceForTick,
+} from './infiltrationEncounterCoverStanceTick'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
 
@@ -318,15 +322,14 @@ export function resolveInfiltrationThresholdEvents(
 }
 
 /**
- * Applies one infiltration action to probe/awareness tracks and returns threshold events.
+ * Applies explicit probe/awareness deltas and returns threshold events.
  */
-export function evaluateInfiltrationProbe(
+export function evaluateInfiltrationProbeWithDeltas(
   state: InfiltrationProbeState,
-  action: InfiltrationProbeAction
+  deltas: { probeProgress: number; awareness: number }
 ): InfiltrationProbeEvaluation {
-  const delta = ACTION_DELTAS[action]
-  const probeProgress = roundBand(clamp(state.probeProgress + delta.probeProgress, 0, 1))
-  const awareness = roundBand(clamp(state.awareness + delta.awareness, 0, 1))
+  const probeProgress = roundBand(clamp(state.probeProgress + deltas.probeProgress, 0, 1))
+  const awareness = roundBand(clamp(state.awareness + deltas.awareness, 0, 1))
   const stage = resolveInfiltrationStageAfterAwareness(state.stage, state.awareness, awareness)
   const nextState: InfiltrationProbeState = { probeProgress, awareness, stage }
 
@@ -334,6 +337,16 @@ export function evaluateInfiltrationProbe(
     nextState,
     events: resolveInfiltrationThresholdEvents(state, nextState),
   }
+}
+
+/**
+ * Applies one infiltration action to probe/awareness tracks and returns threshold events.
+ */
+export function evaluateInfiltrationProbe(
+  state: InfiltrationProbeState,
+  action: InfiltrationProbeAction
+): InfiltrationProbeEvaluation {
+  return evaluateInfiltrationProbeWithDeltas(state, ACTION_DELTAS[action])
 }
 
 export function mergeInfiltrationProbeStateIntoCase(
@@ -365,14 +378,23 @@ export function mergeInfiltrationProbeStateIntoCase(
 /** Applies a single probe action and merges track state onto the case. */
 export function applyInfiltrationProbeActionToCase(
   caseData: CaseInstance,
-  action: InfiltrationProbeAction
+  action: InfiltrationProbeAction,
+  options?: { applyEncounterCoverStanceTick?: boolean }
 ): WeeklyInfiltrationProbeResult {
   if (!isInfiltrationProbeEligible(caseData)) {
     return { case: caseData, events: [], changed: false }
   }
 
   const current = readInfiltrationProbeState(caseData)
-  const evaluation = evaluateInfiltrationProbe(current, action)
+  const stance = options?.applyEncounterCoverStanceTick
+    ? readInfiltrationEncounterCoverStanceForTick(caseData)
+    : 'maintain'
+  const deltas = applyInfiltrationEncounterCoverStanceToProbeDeltas(
+    action,
+    ACTION_DELTAS[action],
+    stance
+  )
+  const evaluation = evaluateInfiltrationProbeWithDeltas(current, deltas)
   const merged = mergeInfiltrationProbeStateIntoCase(caseData, evaluation.nextState)
   const changed =
     merged.infiltrationProbeProgress !== caseData.infiltrationProbeProgress ||
@@ -406,7 +428,9 @@ export function applyWeeklyInfiltrationProbeTick(
     action ??
     caseData.infiltrationWeeklyProbeActionOverride ??
     resolveWeeklyInfiltrationProbeAction(caseData)
-  const probeResult = applyInfiltrationProbeActionToCase(caseData, resolvedAction)
+  const probeResult = applyInfiltrationProbeActionToCase(caseData, resolvedAction, {
+    applyEncounterCoverStanceTick: true,
+  })
   const coverResult = applyWeeklyInfiltrationCoverPostureToCase(probeResult.case)
 
   const events = [...probeResult.events, ...coverResult.events]

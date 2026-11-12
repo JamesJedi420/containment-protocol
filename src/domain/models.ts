@@ -1,8 +1,81 @@
+import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
+import type { CustomDifficultyOverrides, DifficultyProfileId } from './difficultyProfileResolver'
+import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
+import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
+import type { SharedUniverseCanonReleaseBinding } from './sharedUniverseCanonReleaseBinding'
+import type { ContainmentRequirementRegistry } from './containmentRequirementFulfillment'
+import type { MaintenanceConversionLedger } from './facilityMaintenanceConversion'
+import type { StaffTimeLedger } from './staffTimeAllocation'
+import type { FacilityMaintenanceState } from './facilityMaintenanceWeekClose'
+import type { FacilityMaintenanceRecoveryResources } from './facilityMaintenanceRecovery'
+import type {
+  RivalExpeditionClueRegistry,
+  RivalExpeditionProgressRegistry,
+} from './rivalExpeditionProgress'
+import type { HistoricalRouteReplayRegistry } from './historicalRouteReplay'
+import type { HistoricalRouteReplayActivationCandidateList } from './historicalRouteReplayActivation'
+import type {
+  HistoricalRouteMemoryGraph,
+  HistoricalRouteMemoryGraphRegistry,
+} from './historicalRouteMemory'
+import type {
+  DepartmentWorkshopCompletionOutcomeRegistry,
+  DepartmentWorkshopSnapshotRegistry,
+  DepartmentWorkshopWorkOrderRegistry,
+} from './departmentWorkshopQueue'
+import type { DepartmentWorkshopUnsafeSecondaryIncidentRegistry } from './departmentWorkshopUnsafeIncident'
+import type {
+  CaseScopedPrerequisiteProcessingOrderRegistry,
+  CaseScopedPrerequisiteProcessingReservationRegistry,
+  CaseScopedPrerequisiteProcessingTerminalSignalRegistry,
+  CaseScopedWorkshopFinalizationHandoff,
+  CaseScopedWorkshopFinalizationRequest,
+} from './prerequisiteProcessingOrders'
+import type { EquipmentGradeId, EquipmentGradeVisibility } from './equipmentGrade'
+import type { EquipmentGradeFabricationExplanationCode } from './equipmentGradeFabrication'
+import type {
+  EquipmentGradeRecoveryExplanationCode,
+  EquipmentRecoveryCondition,
+  EquipmentRecoveryPathId,
+} from './equipmentGradeRecovery'
+import type { EquipmentAutoScrapPolicy } from './equipmentAutoScrap'
+import type { EquipmentInstanceRegistry } from './equipmentInstance'
+import type { ContainmentBarrierIntegrityRegistry } from './containmentBarrierIntegrity'
+import type { FacilityStockpile } from './facilityStockpile'
+import type { DepartmentLocalStaging } from './departmentLocalStaging'
+import type { SpecialistOperatorSlot } from './specialistLaborRegistry'
+import type { FacilityLayoutSnapshot } from './facilityLayoutStrategy'
+import type { FacilityStockPlacement } from './facilityStockAccess'
+import type { FacilityStockCondition } from './facilityStockSpoilage'
+import type { FacilityEmergencyCaches } from './facilityEmergencyCache'
+import type { FacilityStockOverflow } from './facilityStockOverflow'
+import type { FacilityStockPreparedness } from './facilityStockPreparedness'
+import type { FacilityProtectionGoods } from './facilityProtectionGoods'
+import type { FacilityRestrictedObjectRelease } from './facilityRestrictedObjectRelease'
+import type { FacilityRestrictedAssetCheckouts } from './restrictedAssetFieldCheckout'
+import type { FacilityOutboundScreenHolds } from './containmentZoneOutboundScreening'
+import type { FacilitySecureContainedSubjectTransfers } from './secureContainedSubjectTransfer'
+import type { FacilityAuthorizedContainedSubjectExcursions } from './authorizedContainedSubjectExcursion'
+import type { FacilityBreachOriginRecoveries } from './breachOriginRecovery'
+import type { FacilityProtectedRemoteWorkCells } from './protectedRemoteWorkCell'
+import type { FacilitySecuredNodes } from './facilitySecuredNodes'
+import type { FacilityStockQuarantine } from './facilityStockQuarantine'
+import type { FacilityHaulingLabor } from './facilityHaulingLabor'
+import type { FacilityWarehouseLots } from './facilityWarehouseLots'
+import type { FacilityTypedOverflowLoss } from './facilityTypedOverflowLoss'
+import type { FacilityInventoryMismatch } from './facilityInventoryMismatch'
+import type { FacilityStorageCapacity } from './facilityStorageCapacity'
+import type { VolatileActionHoldRecords } from './volatileActionHoldRecords'
+
 // --- Legacy enums/types for stabilityLayer compat ---
 export type DeploymentHardBlockerCode =
   | 'missing-coverage'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'site-clearance-required'
+  | 'dual-loyalty-restricted'
+  | 'protected-status-restricted'
+  | 'revocation-restricted'
   | 'team-state-incompatible'
   | 'training-blocked'
   | 'recovery-required'
@@ -19,11 +92,7 @@ export type DeploymentSoftRiskCode =
   | 'intel-uncertainty'
 
 export type DeploymentReadinessCategory =
-  | 'mission_ready'
-  | 'conditional'
-  | 'hard_blocked'
-  | 'temporarily_blocked'
-  | 'recovery_required'
+  'mission_ready' | 'conditional' | 'hard_blocked' | 'temporarily_blocked' | 'recovery_required'
 
 export type MissionCategory =
   | 'containment_breach'
@@ -39,6 +108,11 @@ export type MissionRoutingBlockerCode =
   | 'training-blocked'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'authority-mission-access-restricted'
+  | 'site-clearance-required'
+  | 'dual-loyalty-restricted'
+  | 'protected-status-restricted'
+  | 'revocation-restricted'
   | 'fatigue-over-threshold'
   | 'team-state-incompatible'
   | 'recovery-required'
@@ -111,12 +185,7 @@ export interface MissionRoutingState {
 }
 
 export type MissionIntakeSource =
-  | 'scripted'
-  | 'escalation'
-  | 'pressure'
-  | 'faction'
-  | 'contract'
-  | 'tutorial'
+  'scripted' | 'escalation' | 'pressure' | 'faction' | 'contract' | 'tutorial'
 
 export interface TeamDeploymentReadinessState {
   teamId: string
@@ -220,13 +289,17 @@ export interface IncidentToCampaignPacket {
 
 // Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass)
 export interface LegitimacyState {
+  /** Institutional authorization posture. Existing values remain stable for persisted campaigns. */
   sanctionLevel: 'sanctioned' | 'covert' | 'tolerated' | 'unsanctioned'
+  /** Operational exposure posture, distinct from institutional authorization (SPE-2719). */
+  operationalCoverLevel?: 'open' | 'deniable' | 'compromised'
   accessReason?: string
   falloutRisk?: 'none' | 'risk' | 'costly'
 }
 
 // src/domain/models.ts
 import type { OperationEvent } from './events/types'
+import type { HubState } from './hub/hubState'
 import type { PartyCardState } from './partyCards/models'
 import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
 import type {
@@ -243,6 +316,85 @@ import type {
 } from './agent/models'
 import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
+import type { InformationIntakeReportRecord } from './informationIntakeReport'
+import type { ExtranormalEventRecord } from './extranormalEventRegistry'
+import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
+import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
+import type { NamingHazardDescriptorRecord } from './namingHazardDescriptorRegistry'
+import type { RecurrentCatastropheRecord } from './recurrentCatastropheAmeliorationRegistry'
+import type { PostIncidentReviewRecord } from './postIncidentReviewRegistry'
+import type { PostIncidentReviewRecommendationActionRecord } from './postIncidentReviewRecommendationActionRegistry'
+import type { PostIncidentReviewRecommendationRecord } from './postIncidentReviewRecommendationRegistry'
+import type { RuleDocumentComplianceRecord } from './ruleDocumentComplianceContainmentRegistry'
+import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
+import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
+import type { PublicDisclosurePostureChoicesMap } from './publicDisclosurePostureChoice'
+import type {
+  TruthLayerRecord,
+  TruthLayerWeeklyProjectionSnapshot,
+} from './truthLayerRecordRegistry'
+import type {
+  CoverStoryRecord,
+  CoverStoryWeeklyProjectionSnapshot,
+} from './coverStoryLifecycleRegistry'
+import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
+import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
+import type { AffiliationPersonStatusRecord } from './affiliationPersonStatusRecords'
+import type { AffiliationFileWorkQueueActionRecord } from './affiliationFileWorkQueueActionRecords'
+import type { AffiliationFileWorkQueueEvidenceResolutionRecord } from './affiliationFileWorkQueueEvidenceResolutionRecords'
+import type { AffiliationFileWorkQueueRepairActionRecord } from './affiliationFileWorkQueueRepairActionRecords'
+import type { AffiliationFileWorkQueueReleaseActionRecord } from './affiliationFileWorkQueueReleaseActionRecords'
+import type { AffiliationFileWorkQueueReleaseOutcomeRecord } from './affiliationFileWorkQueueReleaseOutcomeRecords'
+import type { AffiliationFileWorkQueueReleaseFulfillmentRecord } from './affiliationFileWorkQueueReleaseFulfillmentRecords'
+import type { AffiliationFileWorkQueueReleasePackageRecord } from './affiliationFileWorkQueueReleasePackageRecords'
+import type { AffiliationFileWorkQueueFileReleaseDeliveryRecord } from './affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import type { AffiliationFileWorkQueueNonMissionEnforcementRecord } from './affiliationFileWorkQueueNonMissionEnforcementRecords'
+import type { AffiliationFileWorkQueueEvidenceRepairWorkflow } from './affiliationFileWorkQueueEvidenceRepairWorkflows'
+import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
+import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
+import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
+import type { ModifiableDataPackRecord } from './modifiableDataPackValidation'
+import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
+import type {
+  CoerciveProtocolRecord,
+  CoerciveProtocolWeeklyProjectionSnapshot,
+} from './coerciveContainedPersonProtocolRegistry'
+import type { CustodyStatusRecord } from './containedPersonCustodyStatusRegistry'
+import type { MedicationRegimenRecord } from './containedPersonMedicationRegimenRegistry'
+import type { FactionEthicsMatrixRecord } from './factionEthicsMatrixRegistry'
+import type { MoralLegalAccountabilityMatrixRecord } from './moralLegalAccountabilityMatrixRegistry'
+import type { WelfareDebtAccountingRecord } from './welfareDebtAccountingRegistry'
+import type { ContainedPersonIntegratedHealthBundle } from './containedPersonIntegratedHealthBundleRegistry'
+import type { SurveillanceInterventionTuningRecord } from './surveillanceCapacityInterventionTuningRegistry'
+import type { PsychologicalResilienceRecord } from './psychologicalResilienceRegistry'
+import type { CognitiveHazardExposureRecord } from './cognitiveHazardEngine'
+import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
+import type {
+  Spe947ContentArtifactRecordsMap,
+  Spe947ContentOwnerRecordsMap,
+  Spe947CounterMemeticPlanRecordsMap,
+  Spe947FootageExposureBindingRecordsMap,
+  Spe947OperationRecordsMap,
+  Spe947PlatformRecordsMap,
+  Spe947PostCaseMediaCaseRecordsMap,
+  Spe947TakedownResistanceBindingRecordsMap,
+  Spe947VisualTriggerHazardBindingRecordsMap,
+} from './spe947EvaluatorPersistence'
+import type {
+  Spe947MediaEconomyContinuityBindingRecordsMap,
+  Spe947MediaEconomyWeightRecordsMap,
+} from './spe947MediaEconomyContinuity'
+import type { Spe947MediaEconomyCommercializationActorRecordsMap } from './spe947MediaEconomySimulator'
+import type { Spe956PropagationGraphRecordsMap } from './spe956PropagationGraphPersistence'
+import type { AuthorityGraphState } from './authorityGraphPersistence'
+import type {
+  Spe956AsyncDiscussionSurfaceRecordsMap,
+  Spe956CollectiveMemoryChannelRecordsMap,
+  Spe956CommunityAdvisoryBodyRecordsMap,
+  Spe956HotlineChannelRecordsMap,
+  Spe956SurvivorInformalRegistryRecordsMap,
+} from './spe956ParticipatoryChannelPersistence'
+import type { Spe956IncidentBaselineRecordsMap } from './spe956IncidentBaselinePersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -392,8 +544,10 @@ export type StatBlock = Record<StatKey, number> & Record<string, number>
 export type WeightBlock = Record<StatKey, number> & Record<string, number>
 export const BASE_STAT_MAX = 100
 
-export type CaseMode = 'threshold' | 'probability' | 'deterministic' | 'standard'
-export type CaseKind = 'case' | 'raid' | 'standard' | 'anomaly'
+export const CASE_MODES = ['threshold', 'probability', 'deterministic', 'standard'] as const
+export type CaseMode = (typeof CASE_MODES)[number]
+export const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const
+export type CaseKind = (typeof CASE_KINDS)[number]
 export type CaseStatus = 'open' | 'in_progress' | 'resolved'
 
 export type AgentAssignmentStateKind = 'idle' | 'assigned' | 'recovery' | 'training'
@@ -649,7 +803,7 @@ export interface TeamSynergyProfile {
 export interface TeamStatus {
   /** Current FSM state for the squad. */
   state: TeamState
-  /** Canonical assignment pointer mirrored to the legacy team field. */
+  /** Canonical assignment pointer for the team's active case. */
   assignedCaseId?: Id | null
 }
 
@@ -659,7 +813,7 @@ export interface TeamPowerInventoryEntry {
   equippedCount: number
   activeContextCount: number
   stockOnHand: number
-  totalQuality: number
+  totalEffectScale: number
   tags: string[]
 }
 
@@ -732,6 +886,31 @@ export interface MissionRewardFactionStanding {
   overlapTags: string[]
 }
 
+export type AgencyStandingDangerBand = 'routine' | 'elevated' | 'high' | 'extreme'
+
+export interface AgencyStandingFactor {
+  id: 'danger' | 'outcome' | 'duration' | 'repeat'
+  label: string
+  multiplier: number
+  detail: string
+}
+
+export interface AgencyStandingAward {
+  points: number
+  rawPoints: number
+  basePoints: number
+  dangerScore: number
+  dangerBand: AgencyStandingDangerBand
+  dangerMultiplier: number
+  outcomeMultiplier: number
+  durationMultiplier: number
+  repeatMultiplier: number
+  priorSimilarCompletions: number
+  repeatKey: string
+  factors: readonly AgencyStandingFactor[]
+  summary: string
+}
+
 export interface MissionRewardBreakdown {
   outcome: MissionResolutionKind
   caseType: string
@@ -749,6 +928,8 @@ export interface MissionRewardBreakdown {
   containmentDelta: number
   strategicValueDelta: number
   reputationDelta: number
+  /** Present on newly resolved operations; optional for legacy persisted reports. */
+  agencyStanding?: AgencyStandingAward
   inventoryRewards: readonly MissionRewardInventoryGrant[]
   factionStanding: readonly MissionRewardFactionStanding[]
   label: string
@@ -796,6 +977,7 @@ export interface MissionSpawnedConsequence {
     | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
+    | 'workshop_unsafe'
   detail: string
 }
 
@@ -907,10 +1089,7 @@ export interface FieldBaseStagingPacket {
 
 /** SPE-99: deployed recovery-mode taxonomy derived from fieldBase staging quality. */
 export type ExpeditionRecoveryMode =
-  | 'unsafe_pause'
-  | 'ordinary_rest'
-  | 'active_recovery'
-  | 'sanctuary_recovery'
+  'unsafe_pause' | 'ordinary_rest' | 'active_recovery' | 'sanctuary_recovery'
 
 export const EXPEDITION_RECOVERY_MODES: readonly ExpeditionRecoveryMode[] = [
   'unsafe_pause',
@@ -921,8 +1100,7 @@ export const EXPEDITION_RECOVERY_MODES: readonly ExpeditionRecoveryMode[] = [
 
 export function isExpeditionRecoveryMode(value: unknown): value is ExpeditionRecoveryMode {
   return (
-    typeof value === 'string' &&
-    (EXPEDITION_RECOVERY_MODES as readonly string[]).includes(value)
+    typeof value === 'string' && (EXPEDITION_RECOVERY_MODES as readonly string[]).includes(value)
   )
 }
 
@@ -971,11 +1149,7 @@ export type ContractNextIntent =
   | 'answer-emergency'
 
 export type ContractDebriefChangedEntityKind =
-  | 'staff'
-  | 'subject'
-  | 'route'
-  | 'evidence'
-  | 'faction'
+  'staff' | 'subject' | 'route' | 'evidence' | 'faction'
 
 export interface ContractDebriefChangedEntity {
   kind: ContractDebriefChangedEntityKind
@@ -1038,6 +1212,7 @@ export interface ActiveContractRuntime {
 }
 
 export interface ContractSystemState {
+  debriefRecords?: ContractDebriefRecord[]
   generatedWeek: number
   offers: ContractOffer[]
   history: Record<string, ContractHistoryRecord>
@@ -1146,9 +1321,6 @@ export interface Team {
    */
   agentIds: Id[]
 
-  /** Legacy compatibility alias mirrored from `status.assignedCaseId`. */
-  assignedCaseId?: Id
-
   /** Optional equipment tags (e.g., "van", "lab-kit"). */
   tags: string[]
   category?: TeamCategory | string
@@ -1175,13 +1347,19 @@ export interface InstructorData {
   assignedAgentId?: string
 }
 
-export type StaffData = (RecruitmentStaffData & { role?: 'staff' }) | InstructorData
+export type StaffData =
+  (RecruitmentStaffData & { role?: 'staff'; operationalPostId?: string }) | InstructorData
 
 export type FieldTechData = SpecialistCandidateData
 
 export type AnalystData = SpecialistCandidateData
 
 export type Candidate = RecruitmentCandidate
+
+export interface PartialResolutionRule {
+  /** Mission-specific stage increase after partial resolution; omission means zero. */
+  stageDelta?: number
+}
 
 export interface SpawnRule {
   /** Legacy escalation type discriminator used by older fixtures. */
@@ -1244,6 +1422,7 @@ export interface CaseTemplate {
   /** Soft preferences: additive bonuses for matching tools/skills. */
   preferredTags?: string[]
 
+  onPartial?: PartialResolutionRule
   onFail: SpawnRule
   onUnresolved: SpawnRule
 
@@ -1274,9 +1453,7 @@ export interface CaseTemplate {
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
 export type DeploymentCarryInCode =
-  | 'residue-therapy-foregone'
-  | 'well-rested-stable-energy'
-  | 'off-books-courier-lockout'
+  'residue-therapy-foregone' | 'well-rested-stable-energy' | 'off-books-courier-lockout'
 
 export interface AgentDeploymentCarryInStamp {
   readinessDelta: number
@@ -1298,6 +1475,28 @@ export interface CaseInstance {
   mode: CaseMode
   kind: CaseKind
   status: CaseStatus
+
+  /**
+   * SPE-2755: completed department-workshop work orders durably applied to
+   * this case. This is a receipt-consumer ledger only; it does not resolve or
+   * reprioritize the case.
+   */
+  departmentWorkshopCompletionWorkOrderIds?: Id[]
+  /**
+   * SPE-2765: authored final production recipe and the exact case-owned
+   * prerequisite workshop orders whose completion can unlock its handoff.
+   */
+  departmentWorkshopFinalizationRequest?: CaseScopedWorkshopFinalizationRequest
+  /**
+   * SPE-2765: durable readiness handoff only. Fabrication and case resolution
+   * remain explicit downstream owners.
+   */
+  departmentWorkshopFinalizationHandoff?: CaseScopedWorkshopFinalizationHandoff
+  /**
+   * SPE-2766: production queue entry id created when the durable handoff was
+   * consumed into global Fabrication. Presence blocks re-enqueue on replay.
+   */
+  departmentWorkshopFinalizationFabricationQueueId?: Id
 
   difficulty: StatBlock
   weights: WeightBlock
@@ -1340,6 +1539,12 @@ export interface CaseInstance {
   counterDetection?: boolean
   displacementTarget?: Id | null
   route?: string | null
+  /** SPE-2303: authored anti-scan compartment token for bypass alignment (mirrors `route`). */
+  compartment?: string | null
+  /** SPE-2284: known-but-unresolved hidden-state scouting nodes across weekly passes. */
+  hiddenStateScoutingReconCache?: import('./hiddenStateScoutingReconCache').HiddenStateScoutingReconCache
+  /** SPE-2285: false-entity / structural-illusion lifecycle overlay. */
+  hiddenStateIllusionState?: import('./hiddenStateIllusionLifecycle').HiddenStateIllusionState
   /** SPE-521 slice 1: covert objective progress while under cover (0–1). */
   infiltrationProbeProgress?: number
   /** SPE-521 slice 1: accumulated site awareness while infiltrating (0–1). */
@@ -1353,9 +1558,12 @@ export interface CaseInstance {
   infiltrationWeeklyProbeActionOverride?: import('./infiltrationProbe').InfiltrationProbeAction
   /** SPE-521 slice 3: cover identity profile copied from template at spawn. */
   infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
+  /** SPE-521 follow-up: player cover stance for next infiltration encounter prep. */
+  infiltrationEncounterCoverStance?: import('./infiltrationEncounterCoverStance').InfiltrationEncounterCoverStance
   /** SPE-2163 slice 2: stealth tradeoff row copied from template at spawn. */
   stealthLeaveBehindId?: string
 
+  onPartial?: PartialResolutionRule
   onFail: SpawnRule
   onUnresolved: SpawnRule
 
@@ -1382,6 +1590,17 @@ export interface CaseInstance {
   mapLayer?: import('./siteGeneration/mapMetadata').MapLayerResult
   /** Runtime weird-room state packets attached to this site. Populated by applySiteGenerationToCase. */
   weirdRoomPackets?: WeirdRoomPacket[]
+
+  /** SPE-1310 slice 2: anomaly case lifecycle stage (distinct from operational CaseStatus). */
+  lifecycleStage?: import('./caseLifecycleStateMachine').CaseLifecycleStage
+  /** SPE-1310 slice 5: operational containment policy tier (distinct from institutional disposition label). */
+  containmentPolicyTier?: import('./caseLifecycleStateMachine').ContainmentPolicyTier
+  /** SPE-1310 slice 6: institutional filing classification (distinct from stage and policy tier). */
+  lifecycleInstitutionalLabel?: import('./caseLifecycleStateMachine').CaseLifecycleInstitutionalLabel
+  /** SPE-1310 slice 5: next surveillance obligation due week while in presumed_neutralized. */
+  lifecycleSurveillanceDueWeek?: number
+  /** SPE-1310 slice 5: breach-readiness review due week while in presumed_neutralized. */
+  lifecycleBreachReadinessDueWeek?: number
 }
 
 export interface ResolutionOutcome {
@@ -1461,8 +1680,12 @@ export type ReportNoteType =
   | 'faction.standing_changed'
   | 'faction.unlock_available'
   | 'agency.containment_updated'
+  | 'agency.cross_jurisdiction_coordination'
+  | 'agency.hidden_cell_interference'
+  | 'agency.status_upkeep_display'
   | 'system.week_delta'
   | 'system.recruitment_expired'
+  | 'recruitment.candidate_departed'
   | 'system.recruitment_generated'
   | 'recruitment.scouting_initiated'
   | 'recruitment.scouting_refined'
@@ -1486,15 +1709,30 @@ export type ReportNoteType =
   | 'hub.opportunity'
   | 'hub.rumor'
   | 'system.equipment_recovered'
+  | 'information_intake.verification'
+  | 'information_intake.naming_hazard_cross_link'
+  | 'information_intake.extranormal_cross_link'
+  | 'information_intake.minor_anomaly_cross_link'
+  | 'information_intake.unexplained_location_cross_link'
+  | 'welfare_debt.accounting_cross_link'
+  | 'coercive_protocol.integrated_health_reconciliation'
+  | 'post_incident_review.follow_on'
+  | 'post_incident_review.closeout_reward_payout'
+  | 'public_disclosure.trust_outcome'
+  | 'public_disclosure.segment_trust_divergence'
+  | 'cognitive_hazard.simulation_trigger'
+  | 'contribution_release.publish_queue_execution'
+  | 'contribution_release.modifiable_data_pack_governance'
+  | 'contribution_release.modifiable_data_pack_publish_enqueue'
+  | 'visual_trigger_hazard.weekly_transition'
+  | 'spe947_evaluator.weekly_transition'
+  | 'spe956_participatory_channel.weekly_transition'
+  | 'entity_welfare_reclassification.weekly_transition'
+  | 'affiliation_person_status.weekly_progression'
+  | 'pattern_source_series.weekly_transition'
 
 export type ReportNoteMetadataValue =
-  | string
-  | number
-  | boolean
-  | null
-  | readonly string[]
-  | readonly number[]
-  | readonly boolean[]
+  string | number | boolean | null | readonly string[] | readonly number[] | readonly boolean[]
 
 export type ReportNoteMetadata = Record<string, ReportNoteMetadataValue>
 
@@ -1569,10 +1807,7 @@ export interface WeeklyReport {
 }
 
 export type WeeklyDirectiveId =
-  | 'intel-surge'
-  | 'recovery-rotation'
-  | 'procurement-push'
-  | 'lockdown-protocol'
+  'intel-surge' | 'recovery-rotation' | 'procurement-push' | 'lockdown-protocol'
 
 export interface WeeklyDirectiveHistoryEntry {
   week: number
@@ -1654,13 +1889,81 @@ export interface ProductionQueueEntry {
   durationWeeks: number
   remainingWeeks: number
   fundingCost: number
+  outputGradeId: EquipmentGradeId
+  outputGradeVisibility: EquipmentGradeVisibility
+  outputGradeExplanationCodes: EquipmentGradeFabricationExplanationCode[]
 }
+
+export interface FabricatedEquipmentLot {
+  queueId: Id
+  recipeId: string
+  itemId: string
+  quantity: number
+  gradeId: EquipmentGradeId
+  completedWeek: number
+  /**
+   * SPE-2846: units taken into exact ordinary-instance tracking from this lot.
+   * Immutable production `quantity` remains the SPE-2800 receipt size; outstanding
+   * remaining is quantity − recovery claims − trackedInstanceUnits.
+   */
+  trackedInstanceUnits?: number
+}
+
+export type FabricatedEquipmentLotRegistry = Record<Id, FabricatedEquipmentLot>
+
+export interface EquipmentDeconstructionQueueEntry {
+  id: Id
+  itemId: string
+  itemName: string
+  pathId: EquipmentRecoveryPathId
+  sourceGradeId: EquipmentGradeId
+  sourceGradeVisibility: EquipmentGradeVisibility
+  /** SPE-2800: immutable fabrication provenance for an explicitly selected batch unit. */
+  sourceFabricationQueueId?: Id
+  /** SPE-2830 / SPE-2841: immutable provenance for an explicitly selected equipment instance. */
+  sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
+  sourceCondition: EquipmentRecoveryCondition
+  outputMaterials: ProductionMaterialRequirement[]
+  wasteQuantity: number
+  startedWeek: number
+  durationWeeks: number
+  remainingWeeks: number
+  explanationCodes: EquipmentGradeRecoveryExplanationCode[]
+}
+
+export interface EquipmentRecoveryOutcome {
+  queueId: Id
+  itemId: string
+  pathId: EquipmentRecoveryPathId
+  sourceGradeId: EquipmentGradeId
+  /** SPE-2800: retained fabrication provenance; omitted for catalog-source recovery. */
+  sourceFabricationQueueId?: Id
+  /** SPE-2830 / SPE-2841: retained exact identity; ordinary recovery uses this field alone. */
+  sourceEquipmentInstanceId?: Id
+  /** Combat Stim recovery alone supplies the three resource snapshot fields below. */
+  sourceEquipmentInstanceResourceId?: string
+  sourceEquipmentInstanceCapacity?: number
+  sourceEquipmentInstanceRemaining?: number
+  sourceCondition: EquipmentRecoveryCondition
+  outputMaterials: ProductionMaterialRequirement[]
+  wasteQuantity: number
+  completedWeek: number
+}
+
+export type EquipmentRecoveryOutcomeRegistry = Record<Id, EquipmentRecoveryOutcome>
 
 export interface MarketState {
   week: number
   featuredRecipeId: string
   pressure: MarketPressure
   costMultiplier: number
+  /**
+   * Legacy import-only field — procurement listings are derived at read time and stripped on hydrate (SPE-448).
+   */
   listings?: unknown[]
   /**
    * Campaign week when licensed-handling doctrine was last acknowledged (SPE-874 permit freshness).
@@ -1708,12 +2011,7 @@ export interface OneShotEventState {
 }
 
 export type EncounterRuntimeStatus =
-  | 'available'
-  | 'active'
-  | 'resolved'
-  | 'locked'
-  | 'hidden'
-  | 'archived'
+  'available' | 'active' | 'resolved' | 'locked' | 'hidden' | 'archived'
 export type EncounterResolutionOutcome = 'success' | 'partial' | 'failed' | 'failure' | 'dismissed'
 
 export interface EncounterRuntimeState {
@@ -1758,6 +2056,7 @@ export interface RuntimeEventQueueState {
 }
 
 export type DeveloperLogEventType =
+  | 'tutorial.lifecycle'
   | 'flag.set'
   | 'flag.cleared'
   | 'one_shot.consumed'
@@ -1807,6 +2106,8 @@ export interface GameUiDebugState {
 }
 
 export interface RuntimeState {
+  /** SPE-2918: optional versioned tutorial progress; legacy saves stay unbound. */
+  tutorials?: import('./tutorialPersistence').TutorialRuntimeState
   player: PlayerProfileState
   globalFlags: Record<string, GameFlagValue>
   oneShotEvents: Record<string, OneShotEventState>
@@ -1819,7 +2120,8 @@ export interface RuntimeState {
 }
 
 export type FacilityCategory = string
-export type FacilityStatus = 'available' | 'active' | 'upgrading' | 'inactive' | 'locked'
+export type FacilityStatus =
+  'available' | 'constructing' | 'inspecting' | 'active' | 'upgrading' | 'inactive' | 'locked'
 
 export interface FacilityEffect {
   researchSlots?: number
@@ -1842,6 +2144,9 @@ export interface FacilityInstance {
   upgradeStartedWeek?: number
   upgradeCompleteWeek?: number
   pendingEffectDeltas?: FacilityEffect
+  lifecycleHistory?: import('./facilityLifecycle').FacilityLifecycleHistory
+  /** SPE-3381: phased decommissioning coordinator state (optional). */
+  decommissioning?: import('./facilityDecommissioning').FacilityDecommissioningState
 }
 
 export interface FacilityUpgradeMetadata {
@@ -1859,6 +2164,16 @@ export interface FacilityState {
   facilities: Record<string, FacilityInstance>
 }
 
+/**
+ * SPE-3388: one durable facility-supported capability unlock.
+ * Effective ready, degraded, and suspended use is derived and is not stored here.
+ */
+export interface FacilityCapabilityUnlock {
+  capabilityId: 'capability:alert_timing'
+  liability: 'dangerous_use'
+  acquiredWeek: number
+}
+
 export type FundingCategory =
   | 'weekly_income'
   | 'resolution_reward'
@@ -1866,6 +2181,8 @@ export type FundingCategory =
   | 'unresolved_penalty'
   | 'market_transaction'
   | 'facility_upgrade'
+  | 'operating_cost'
+  | 'inventory_holding_cost'
   | (string & {})
 
 export interface FundingHistoryRecord {
@@ -1884,6 +2201,10 @@ export interface ProcurementBacklogEntry {
   fulfilledWeek?: number
   cost: number
   blockedReason?: string
+  /** SPE-2319: market listing that originated a delayed supplier order (fulfillment lookup). */
+  listingId?: string
+  /** SPE-2319: supplier lead time in campaign weeks (defaults to calibration when omitted). */
+  delayWeeks?: number
 }
 
 export interface FundingState {
@@ -1905,12 +2226,7 @@ export interface FundingState {
 }
 
 export type ResearchUnlockCategory =
-  | 'intel_tool'
-  | 'facility'
-  | 'training'
-  | 'equipment'
-  | 'contract'
-  | (string & {})
+  'intel_tool' | 'facility' | 'training' | 'equipment' | 'contract' | (string & {})
 
 export interface ResearchUnlock {
   id: string
@@ -1920,12 +2236,7 @@ export interface ResearchUnlock {
 }
 
 export type ResearchProjectStatus =
-  | 'locked'
-  | 'available'
-  | 'queued'
-  | 'active'
-  | 'completed'
-  | 'blocked'
+  'locked' | 'available' | 'queued' | 'active' | 'completed' | 'blocked'
 
 export interface ResearchProject {
   projectId: string
@@ -1958,15 +2269,17 @@ export interface ResearchState {
   researchSpeedMultiplier: number
   researchDataPool: number
   researchMaterialsPool: number
+  /** SPE-2706: closed week of last applied hidden-cell research rollback (idempotency). */
+  lastHiddenCellRollbackWeek?: number
+  /** SPE-2706: project targeted by last applied research rollback. */
+  lastHiddenCellRollbackProjectId?: string
+  /** SPE-2706: progressTime weeks removed by last applied research rollback. */
+  lastHiddenCellRollbackAmount?: number
 }
 
 export type AgentAttritionStatus = 'active' | 'at_risk' | 'temporarily_unavailable' | 'lost'
 export type AgentAttritionCategory =
-  | 'injury_exit'
-  | 'burnout'
-  | 'temporary_leave'
-  | 'disciplinary'
-  | 'unknown'
+  'injury_exit' | 'burnout' | 'temporary_leave' | 'disciplinary' | 'unknown'
 
 export interface AgentAttritionState {
   attritionStatus: AgentAttritionStatus
@@ -2013,12 +2326,7 @@ export interface SupportStaffSummary {
 }
 
 export type MajorIncidentStrategy =
-  | 'aggressive'
-  | 'balanced'
-  | 'cautious'
-  | 'rapid_response'
-  | 'containment_first'
-  | 'risk_accepting'
+  'aggressive' | 'balanced' | 'cautious' | 'rapid_response' | 'containment_first' | 'risk_accepting'
 export type MajorIncidentProvisionType = string
 export type RecruitmentFunnelStage = import('./recruitment/types').RecruitmentFunnelStage
 export type CertificationState = import('./agent/models').CertificationState
@@ -2200,6 +2508,43 @@ export interface AgencyState {
    * Each damaged item or recovery job consumes 1 maintenance specialist per week.
    */
   maintenanceSpecialistsAvailable?: number
+  /**
+   * SPE-2710: closed week when hidden-cell infrastructure compromise last drained maintenance capacity.
+   * Paired with lastHiddenCellInfrastructureCompromiseAmount for per-week idempotency.
+   */
+  lastHiddenCellInfrastructureCompromiseWeek?: number
+  /** SPE-2710: specialists drained on lastHiddenCellInfrastructureCompromiseWeek. */
+  lastHiddenCellInfrastructureCompromiseAmount?: number
+  /**
+   * SPE-2714: cumulative abstract covert-cell growth level (0–20).
+   * Not a per-cell entity count — pressure intensity only.
+   */
+  hiddenCellCovertGrowthLevel?: number
+  /**
+   * SPE-2714: cumulative intelligence-driven detection-narrowing progress (0–100).
+   * Maps to vague/regional/sector/imminent bands; no location truth.
+   */
+  hiddenCellDetectionNarrowing?: number
+  /**
+   * SPE-2714: closed week when covert growth / detection narrowing last applied.
+   * Paired with lastHiddenCellCovertGrowthAmount / lastHiddenCellDetectionNarrowingAmount.
+   */
+  lastHiddenCellCovertGrowthWeek?: number
+  /** SPE-2714: growth points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellCovertGrowthAmount?: number
+  /** SPE-2714: narrowing points applied on lastHiddenCellCovertGrowthWeek. */
+  lastHiddenCellDetectionNarrowingAmount?: number
+  /**
+   * SPE-2718: closed week when status upkeep / public-display adequacy was last assessed.
+   * Captured from pre-operating-cost funding (advanceWeek clamps post-cost funding to ≥ 0).
+   */
+  lastStatusUpkeepWeek?: number
+  /** SPE-2718: adequacy band for lastStatusUpkeepWeek. */
+  lastStatusUpkeepBand?: 'maintained' | 'underfunded' | 'neutral'
+  /** SPE-2718: funding available before operating cost on lastStatusUpkeepWeek. */
+  lastStatusUpkeepFundingBefore?: number
+  /** SPE-2718: SPE-28 operating-cost amount assessed on lastStatusUpkeepWeek. */
+  lastStatusUpkeepOperatingCost?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**
@@ -2259,6 +2604,8 @@ export interface ExternalSupportAsset {
   tags: string[]
   /** Optional free-text reason for the last reliability change, for report surfacing. */
   lastDriftReason?: string
+  /** SPE-2722: campaign week of the last applied authority-backed faction consequence. */
+  lastAuthorityConsequenceWeek?: number
 }
 
 // ── SPE-109: District time-cadence encounter scheduling ──────────────────────
@@ -2425,9 +2772,43 @@ export interface CampaignLedgerState {
   moduleToggles: CampaignModuleToggle[]
   settingHistory: CampaignSettingHistoryEntry[]
   compatibility: CampaignLedgerCompatibilitySnapshot
+  /**
+   * SPE-3172: managerial persona (presentation only).
+   * Kept separate from CampaignOperationalProfile organization fields.
+   * Absent/malformed input hydrates to anonymous via `sanitizeCampaignCommandIdentity`.
+   * Always present after `sanitizeCampaignLedger` / `createSeedCampaignLedger`.
+   */
+  commandIdentity: CampaignCommandIdentityState
+  /**
+   * SPE-3044: selected difficulty profile binding.
+   * Absent on legacy saves → Cozy 1.0× via resolver (SPE-2898 stable baseline).
+   */
+  difficultyProfile?: {
+    profileId: DifficultyProfileId
+    profileVersion: string
+    custom?: CustomDifficultyOverrides | null
+  }
+  /**
+   * SPE-3397: selected scenario definition binding.
+   * Absent on legacy saves → no scenario initialization snapshot (callers bind explicitly).
+   * Bound definitionVersion must not silently follow a newer live preset (SPE-2898).
+   */
+  scenarioDefinition?: ScenarioDefinitionBinding
+  /**
+   * SPE-3293: shared-universe canon release binding.
+   * Absent/malformed → explicit legacy_unbound (never invents latest release).
+   */
+  sharedUniverseCanonRelease?: SharedUniverseCanonReleaseBinding
 }
 
 export interface GameState {
+  /**
+   * SPE-3459: optional isolated scenario run packet under SPE-77.
+   * Absent on ordinary campaigns. Never commits outcomes into campaign progression.
+   */
+  isolatedScenarioRun?: IsolatedScenarioRunState
+  /** SPE-3181: authoritative saved recurring containment requirements by subject + requirement. */
+  containmentRequirementStates?: ContainmentRequirementRegistry
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
   legitimacy?: LegitimacyState
   /**
@@ -2459,6 +2840,68 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /**
+   * SPE-2741: canonical offscreen rival-expedition packets keyed by embedded expedition id.
+   * Hydration and runtime normalization drop malformed siblings and preserve stable key order.
+   */
+  rivalExpeditionProgressPackets?: RivalExpeditionProgressRegistry
+  /**
+   * SPE-2741: canonical coarse rival-expedition clue signals keyed by deterministic clue id.
+   * Exact hidden progress counters and pressure inputs do not enter this collection.
+   */
+  rivalExpeditionClues?: RivalExpeditionClueRegistry
+  /**
+   * SPE-3017: canonical historical-route replay records keyed by embedded event id.
+   * Hydration validates frozen SPE-3009 route arrays fail-closed and never invents edges.
+   */
+  historicalRouteReplays?: HistoricalRouteReplayRegistry
+  /**
+   * SPE-3024 / SPE-3033: authored SPE-1605 calendar (`absolute_week`) and interaction
+   * start-condition candidates for historical-route replay activation. Legacy omit
+   * hydrates empty; malformed siblings drop independently.
+   */
+  historicalRouteReplayActivationCandidates?: HistoricalRouteReplayActivationCandidateList
+  /**
+   * SPE-3027: multi-site SPE-1392 historical-route memory graphs keyed by `siteId`.
+   * Fail-closed hydrate; legacy omit is `{}`. SPE-3024 calendar activation reads this registry.
+   */
+  historicalRouteMemoryGraphs?: HistoricalRouteMemoryGraphRegistry
+  /**
+   * SPE-3024 legacy single activation graph. Dual-read on hydrate only: folds into
+   * `historicalRouteMemoryGraphs` under `graph.siteId` when that site is absent.
+   * Canonical output omits this field after SPE-3027 normalize/hydrate.
+   */
+  historicalRouteMemoryGraph?: HistoricalRouteMemoryGraph
+  /**
+   * SPE-2747: canonical workshop work orders keyed by embedded work-order ID.
+   * Static SPE-2083 department definitions are never persisted in this map.
+   */
+  departmentWorkshopWorkOrders?: DepartmentWorkshopWorkOrderRegistry
+  /**
+   * SPE-2747: canonical per-department workshop snapshots keyed by department ID.
+   * Hydration drops malformed or cross-department duplicate siblings independently.
+   */
+  departmentWorkshopSnapshots?: DepartmentWorkshopSnapshotRegistry
+  /**
+   * SPE-1028 completion bridge: immutable receipt for each completed workshop
+   * order. This remains a no-modifier downstream outcome, not a case mutation.
+   */
+  departmentWorkshopCompletionOutcomes?: DepartmentWorkshopCompletionOutcomeRegistry
+  /**
+   * SPE-1028 unsafe secondary-incident consume markers keyed by work-order ID →
+   * spawned case ID. First write wins across week-close replay and save/load.
+   */
+  departmentWorkshopUnsafeSecondaryIncidents?: DepartmentWorkshopUnsafeSecondaryIncidentRegistry
+  /** SPE-2757: case-owned prerequisite-processing envelopes keyed by work-order ID. */
+  caseScopedPrerequisiteProcessingOrders?: CaseScopedPrerequisiteProcessingOrderRegistry
+  caseScopedPrerequisiteProcessingReservations?: CaseScopedPrerequisiteProcessingReservationRegistry
+  /** SPE-2761: durable explicit failed/cancelled proof keyed by prerequisite work-order ID. */
+  caseScopedPrerequisiteProcessingTerminalSignals?: CaseScopedPrerequisiteProcessingTerminalSignalRegistry
+  /**
+   * SPE-2720: persisted authority relationship graph plus bounded week-close mutation history.
+   * Optional for direct legacy states; hydration supplies a canonical empty foundation.
+   */
+  authorityGraphState?: AuthorityGraphState
   /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
   districtScheduleState?: DistrictScheduleState
   /** Agency-side external support assets with reliability/trust state (SPE-93). */
@@ -2466,11 +2909,220 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /**
+   * SPE-2887 / SPE-1027: named spare-part facility stockpile keyed by SPE-2861 SparePartId.
+   * Distinct from catalog `inventory`. Omit hydrates empty. Consume drops a key at 0.
+   */
+  facilityStockpile?: FacilityStockpile
+  /**
+   * SPE-2889 / SPE-1027: department-local input/output staging keyed by SPE-2083 department id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.
+   * Adjacent both axes feeds SPE-2775 week-close throughput (2 work units).
+   */
+  departmentLocalStaging?: DepartmentLocalStaging
+  /**
+   * SPE-3113 / SPE-3115 / SPE-3116 / SPE-1052: optional specialist operator slots
+   * for the SPE-3112 workshop week-close feed. Valid saved lists (including empty)
+   * replace the authored production fixture at the projector call. Omit /
+   * malformed hydrate absent so campaign `records_review` keeps the production
+   * fixture. Empty present list still stalls. SPE-3115 / SPE-3116 may materialize
+   * one `archive_analyst` slot from a mapped `investigator` or `analysis` staff
+   * when the field is still absent (agent-then-staff); they never write `[]` for
+   * “no match.” Not a new department-task pair.
+   */
+  specialistOperatorSlots?: readonly SpecialistOperatorSlot[]
+  /**
+   * SPE-2986 / SPE-1052: optional authored facility layout snapshot (archetype, zone
+   * adjacencies, morale/oversight/room space sets, containment mode). Not SPE-2889
+   * staging and not a CAD graph. Omit hydrates absent. SPE-3119 reads room count at week-close.
+   */
+  facilityLayoutSnapshot?: FacilityLayoutSnapshot
+  /** SPE-3119: canonical accrued expansion debt and closed-week replay guard. */
+  facilityMaintenanceState?: FacilityMaintenanceState
+  /** SPE-3292: successful per-staff weekly maintenance-conversion eligibility receipts. */
+  facilityMaintenanceConversionReceipts?: MaintenanceConversionLedger
+  /** SPE-3291: canonical staff-capacity commitments and retained displacement receipts. */
+  staffTimeAllocations?: StaffTimeLedger
+  /** SPE-3184: dedicated owner-supplied facility repair budget; no implicit conversion or refill. */
+  facilityMaintenanceRecoveryResources?: FacilityMaintenanceRecoveryResources
+  /**
+   * SPE-2890 / SPE-1027: access-controlled storage-class placement keyed by authored class id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty. Omit hydrates empty.
+   * Handle fail-closes uncleared staff or wrong-zone routing; success stamps the allowed zone.
+   */
+  facilityStockPlacement?: FacilityStockPlacement
+  /**
+   * SPE-2891 / SPE-1027: perishable stock condition keyed by authored spoilage stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty or placement. Omit hydrates empty.
+   * Incorrect storage stamps reagent `degraded` and neighbor `contaminated`.
+   */
+  facilityStockCondition?: FacilityStockCondition
+  /**
+   * SPE-2892 / SPE-1027: emergency caches keyed by authored cache id to a cache zone.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, or condition.
+   * Omit hydrates empty. Salt cache at the matching danger zone improves live-incident timing.
+   */
+  facilityEmergencyCaches?: FacilityEmergencyCaches
+  /**
+   * SPE-2895 / SPE-1027: authored overflow keyed by overflow node id to `overflowing`.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, or caches.
+   * Omit hydrates empty. Evidence-cage overflow resolves to a blocked access penalty.
+   */
+  facilityStockOverflow?: FacilityStockOverflow
+  /**
+   * SPE-2896 / SPE-1027: authored quantity/reserve/outflow preparedness snapshots by stock id.
+   * Sibling of `facilityStockpile`, not mixed into spare-part qty, placement, condition, caches,
+   * or overflow. Omit hydrates omitted; resolve derives prepared/stockout pressure read-only.
+   */
+  facilityStockPreparedness?: FacilityStockPreparedness
+  /**
+   * SPE-2897 / SPE-1027: authored counterfeit protection goods keyed by protection item id.
+   * Sibling of `facilityStockpile`, not mixed into stock qty or preparedness snapshots.
+   * Omit hydrates omitted; counterfeit filters resolve failed protection and false reassurance.
+   */
+  facilityProtectionGoods?: FacilityProtectionGoods
+  /**
+   * SPE-2911 / SPE-1027: authored restricted-object component-set custody/release.
+   * Sibling of `facilityStockpile` and `facilityProtectionGoods`, not mixed into stock qty,
+   * placement, condition, caches, overflow, preparedness, or protection goods.
+   * Omit hydrates omitted; `stored` does not authorize `testing`.
+   */
+  facilityRestrictedObjectRelease?: FacilityRestrictedObjectRelease
+  /**
+   * SPE-3188: temporary restricted-asset field checkout / verified-return transactions.
+   * Sibling of `facilityRestrictedObjectRelease`; does not duplicate inventory, location,
+   * or SPE-2911 custody/release mode ownership. Omit hydrates omitted.
+   */
+  facilityRestrictedAssetCheckouts?: FacilityRestrictedAssetCheckouts
+  /**
+   * SPE-3189: durable outbound screen hold / secondary-screen transactions.
+   * Sibling of zoning (SPE-292) and restricted-asset checkout (SPE-3188); does not
+   * mutate inventory, quarantine storage, or exposure-duty state. Omit hydrates omitted.
+   */
+  facilityOutboundScreenHolds?: FacilityOutboundScreenHolds
+  /**
+   * SPE-3439: durable same-site secure contained-subject transfer transactions.
+   * Coordination stages only; does not teleport subjects, invent custody/location
+   * truth, or duplicate SPE-3177 / SPE-3189 / SPE-2995 / SPE-1892 ownership.
+   * Omit hydrates omitted.
+   */
+  facilitySecureContainedSubjectTransfers?: FacilitySecureContainedSubjectTransfers
+  /**
+   * SPE-3500: durable authorized contained-subject excursion / verified-recontainment
+   * transactions. Coordination stages only; does not teleport subjects, invent
+   * custody/location truth, treat physical return as recontainment, manufacture escape,
+   * or duplicate SPE-3439 / SPE-3188 / SPE-3189 / SPE-2995 / SPE-1892 ownership.
+   * Omit hydrates omitted.
+   */
+  facilityAuthorizedContainedSubjectExcursions?: FacilityAuthorizedContainedSubjectExcursions
+  /**
+   * SPE-3735: durable breach-origin recovery / verified-recontainment handoff
+   * transactions for already-escaped subjects. Coordination stages only; does not
+   * invent capture, movement, custody, or incident engines. Capture success,
+   * arrival, and status patches alone never complete recovery. Omit hydrates omitted.
+   */
+  facilityBreachOriginRecoveries?: FacilityBreachOriginRecoveries
+  /**
+   * SPE-3501: durable protected remote-work cell interactions.
+   * Coordination stages only; does not invent teleoperation, a second procedure
+   * engine, subject registry, robot actor, or map/zone authority. Operator is not
+   * treated as present in the sealed target zone. Omit hydrates omitted.
+   */
+  facilityProtectedRemoteWorkCells?: FacilityProtectedRemoteWorkCells
+  /**
+   * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
+   * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and
+   * `facilityRestrictedObjectRelease`, not mixed into stock qty, placement,
+   * condition, caches, overflow, preparedness, protection goods, or restricted-object
+   * release. Omit hydrates omitted; stored content changes threat/theft/access bands.
+   */
+  facilitySecuredNodes?: FacilitySecuredNodes
+  /**
+   * SPE-2934 / SPE-1027: authored cursed-object quarantine isolation.
+   * Sibling of `facilityStockpile` and `facilityStockCondition`, not mixed into stock qty,
+   * placement, spoilage, overflow, or secured-node maps. Omit hydrates omitted; mixing
+   * quarantined with clean fail-closes.
+   */
+  facilityStockQuarantine?: FacilityStockQuarantine
+  /**
+   * SPE-2935 / SPE-1027: authored hauling labor keyed by haul cargo id.
+   * Sibling of `facilityStockpile` and `facilityStockQuarantine`, not mixed into stock qty,
+   * placement, caches, overflow, or quarantine isolation. Omit hydrates omitted; omit labor
+   * is a bottleneck, not an instant haul.
+   */
+  facilityHaulingLabor?: FacilityHaulingLabor
+  /**
+   * SPE-2979 / SPE-1027: authored warehouse lot identity keyed by warehouse stock id.
+   * Sibling of `facilityStockpile` and `facilityHaulingLabor`, not mixed into stock qty,
+   * hauling labor, placement, caches, overflow, or quarantine isolation. Omit hydrates
+   * omitted; omit lot is unknown identity, not a default lot and not derived from qty.
+   */
+  facilityWarehouseLots?: FacilityWarehouseLots
+  /**
+   * SPE-2980 / SPE-1027: authored typed overflow forced triage or real loss.
+   * Sibling of `facilityStockpile` and `facilityStockOverflow`, not mixed into stock qty,
+   * SPE-2895 access-blocked overflow, lots, hauling, or quarantine. Omit hydrates omitted;
+   * omit is `none`, not blocked, not triage, and not loss.
+   */
+  facilityTypedOverflowLoss?: FacilityTypedOverflowLoss
+  /**
+   * SPE-2981 / SPE-1027: authored misfile / inventory-mismatch beyond wrong-zone.
+   * Sibling of `facilityStockpile` and `facilityStockPlacement`, not mixed into stock qty,
+   * SPE-2890 wrong_zone / clearance, lots, typed overflow, hauling, or quarantine.
+   * Omit hydrates omitted; omit is `none`, not wrong_zone, not clearance_denied, and not
+   * a default mismatch.
+   */
+  facilityInventoryMismatch?: FacilityInventoryMismatch
+  /**
+   * SPE-2982 / SPE-1027: authored storage capacity qty-vs-capacity (capacity-as-warehouse).
+   * Sibling of `facilityStockpile` and `facilityStockOverflow`, not mixed into stock qty,
+   * SPE-2895 overflowing→blocked/clear, preparedness, lots, typed overflow, misfile,
+   * hauling, or quarantine. Omit hydrates omitted; omit is `unknown`, not blocked, not
+   * clear, and not a default capacity.
+   */
+  facilityStorageCapacity?: FacilityStorageCapacity
+  /**
+   * SPE-2902 / SPE-62: hold-aim / abort / delayed-emission ledgers keyed by encounter/procedure
+   * instance id. Append-only entries preserve mistaken records and later corrections.
+   * Omit hydrates omitted. Hydration drops malformed siblings independently.
+   */
+  volatileActionHoldRecords?: VolatileActionHoldRecords
+  /** SPE-2828: durable ordinary-equipment objects keyed by immutable instance ID. */
+  equipmentInstances?: EquipmentInstanceRegistry
+  /** SPE-3155: bounded defect-recall obligations keyed by campaign and instance identity. */
+  equipmentRecallRegistry?: import('./equipmentRecall').EquipmentRecallRegistry
+  /**
+   * SPE-877 / SPE-2868 barrier-integrity coupling: keyed SPE-1387 / SPE-471 membrane registry.
+   * `blast_door_membrane`, `pressure_seal_membrane`, and `interlock_membrane` are independent.
+   * Omit hydrates as intact. Legacy singular blast-door records hydrate into the keyed shape.
+   * Recorded zone_breach does not downgrade. Extra-class deficiency never writes blast_door_membrane.
+   */
+  containmentBarrierIntegrity?: ContainmentBarrierIntegrityRegistry
+  /**
+   * Canonical weekly maintenance backlog of damaged equipment item IDs.
+   * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.
+   */
+  damagedEquipmentQueue?: Id[]
   caseQueue?: CaseQueueState
   trainingQueue: TrainingQueueEntry[]
   productionQueue: ProductionQueueEntry[]
+  /** SPE-2750: canonical grade/provenance records for completed fabrication batches. */
+  fabricatedEquipmentLots?: FabricatedEquipmentLotRegistry
+  /** SPE-2748: snapshotted canonical-grade deconstruction jobs. */
+  equipmentDeconstructionQueue?: EquipmentDeconstructionQueueEntry[]
+  /** SPE-2748: immutable material-recovery receipts keyed by queue ID. */
+  equipmentRecoveryOutcomes?: EquipmentRecoveryOutcomeRegistry
+  /** SPE-2799: disabled-by-default canonical-grade Auto-Scrap policy. */
+  equipmentAutoScrapPolicy?: EquipmentAutoScrapPolicy
   market: MarketState
   globalPressure?: number
+  /**
+   * SPE-2707: closed week when hidden-cell panic amplification last applied to globalPressure.
+   * Paired with lastHiddenCellPanicAmplificationAmount for per-week idempotency.
+   */
+  lastHiddenCellPanicAmplificationWeek?: number
+  /** SPE-2707: ambient pressure points added on lastHiddenCellPanicAmplificationWeek. */
+  lastHiddenCellPanicAmplificationAmount?: number
   globalEscalationLevel?: number
   globalThreatDrift?: number
   globalTimePressure?: number
@@ -2478,6 +3130,11 @@ export interface GameState {
   runtimeState?: RuntimeState
   researchState?: ResearchState
   facilityState?: FacilityState
+  /**
+   * SPE-3388: durable unlock for `capability:alert_timing` and its `dangerous_use` liability.
+   * Omit means never unlocked. Support loss does not delete this record.
+   */
+  facilityCapabilityUnlock?: FacilityCapabilityUnlock
   missionRouting?: MissionRoutingState
   contracts?: ContractSystemState
   replacementPressureState?: ReplacementPressureState
@@ -2523,13 +3180,442 @@ export interface GameState {
   /** Canonical persistent knowledge-state map (keyed by entity/subject) */
   knowledge: KnowledgeStateMap
 
+  /**
+   * SPE-854 slice 2: persisted incoming incident intake reports (keyed by report id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  informationIntakeReports?: Record<string, InformationIntakeReportRecord>
+
+  /**
+   * SPE-2105 slice 2: persisted brief extranormal incident records (keyed by event id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  extranormalEventRecords?: Record<string, ExtranormalEventRecord>
+
+  /**
+   * SPE-2106 slice 2: persisted low-threat unexplained location records (keyed by location id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  unexplainedLocationRecords?: Record<string, UnexplainedLocationRecord>
+
+  /**
+   * SPE-2104 slice 2: persisted low-priority minor anomaly item records (keyed by item id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  minorAnomalyItemRecords?: Record<string, MinorAnomalyRecord>
+
+  /**
+   * SPE-2116 slice 2: persisted naming-hazard descriptor records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  namingHazardDescriptorRecords?: Record<string, NamingHazardDescriptorRecord>
+
+  /**
+   * SPE-2117 slice 2: persisted recurrent catastrophe amelioration records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  recurrentCatastropheRecords?: Record<string, RecurrentCatastropheRecord>
+
+  /**
+   * SPE-868 slice 2: persisted post-incident review records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  postIncidentReviewRecords?: Record<string, PostIncidentReviewRecord>
+
+  /**
+   * SPE-868 slice 14: persisted follow-on recommendation-stub records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  postIncidentReviewRecommendationRecords?: Record<string, PostIncidentReviewRecommendationRecord>
+
+  /**
+   * SPE-868 slice 17: persisted follow-on recommendation action-stub records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  postIncidentReviewRecommendationActionRecords?: Record<
+    string,
+    PostIncidentReviewRecommendationActionRecord
+  >
+
+  /**
+   * SPE-2123 slice 2: persisted rule-document compliance records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  ruleDocumentComplianceRecords?: Record<string, RuleDocumentComplianceRecord>
+
+  /**
+   * SPE-2108 slice 2: persisted self-censoring information records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  selfCensoringInformationRecords?: Record<string, SelfCensoringInformationRecord>
+
+  /**
+   * SPE-2109 slice 2: persisted public disclosure records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  publicDisclosureRecords?: Record<string, PublicDisclosureRecord>
+
+  /**
+   * SPE-861 slice 4: player disclosure posture choices keyed by disclosure record id.
+   * Hydration drops invalid record ids and unknown posture values.
+   */
+  publicDisclosurePostureChoices?: PublicDisclosurePostureChoicesMap
+
+  /**
+   * SPE-1343 slice 2: persisted truth-layer records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  truthLayerRecords?: Record<string, TruthLayerRecord>
+
+  /**
+   * SPE-1343 slice 3: persisted weekly myth-as-infrastructure ops projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in truth-layer records.
+   */
+  truthLayerWeeklyProjectionSnapshots?: Record<string, TruthLayerWeeklyProjectionSnapshot>
+
+  /**
+   * SPE-1347 slice 2: persisted cover-story records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  coverStoryRecords?: Record<string, CoverStoryRecord>
+
+  /**
+   * SPE-1347 slice 2: persisted weekly lifecycle projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in cover-story records.
+   */
+  coverStoryWeeklyProjectionSnapshots?: Record<string, CoverStoryWeeklyProjectionSnapshot>
+
+  /**
+   * SPE-2110 slice 2: persisted pattern source series records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  patternSourceSeriesRecords?: Record<string, PatternSourceSeriesRecord>
+
+  /**
+   * SPE-2483 slice 1: persisted publish-queue records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  publishQueueRecords?: Record<string, PublishQueueRecord>
+
+  /**
+   * SPE-2495 slice 1: persisted publish-queue execution receipts
+   * (keyed by `${recordId}@${executionWeek}`).
+   * Hydration drops invalid, duplicate, and orphaned entries without throwing.
+   */
+  publishQueueExecutionReceipts?: Record<string, PublishQueueExecutionReceipt>
+
+  /**
+   * SPE-2486 slice 1: persisted modifiable data-pack records (keyed by packId).
+   * Hydration re-validates via SPE-2479 and drops rejected or duplicate-id entries.
+   */
+  modifiableDataPackRecords?: Record<string, ModifiableDataPackRecord>
+
+  /**
+   * SPE-2122 slice 2: persisted mass anomalous population emergence records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  massAnomalousPopulationEmergenceRecords?: Record<string, PopulationEmergenceRecord>
+
+  /**
+   * SPE-2111 slice 2: persisted visual-trigger hazard records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  visualTriggerHazardRecords?: Record<string, VisualTriggerHazardRecord>
+
+  /**
+   * SPE-2576 slice 1: compact platform inputs for SPE-2568 reach and SPE-2569 operation evaluators.
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  spe947PlatformRecords?: Spe947PlatformRecordsMap
+
+  /**
+   * SPE-2576 slice 1: compact operation requests for SPE-2569 platform-operation degrade evaluator.
+   */
+  spe947OperationRecords?: Spe947OperationRecordsMap
+
+  /**
+   * SPE-2576 slice 1: footage/post artifacts for SPE-2571 exposure-traffic evaluator.
+   */
+  spe947ContentArtifacts?: Spe947ContentArtifactRecordsMap
+
+  /**
+   * SPE-2576 slice 1: counter-memetic plans for SPE-2570 uptake-gate evaluator.
+   */
+  spe947CounterMemeticPlans?: Spe947CounterMemeticPlanRecordsMap
+
+  /**
+   * SPE-2576 slice 1: content owners for SPE-2572 takedown-resistance evaluator.
+   */
+  spe947ContentOwners?: Spe947ContentOwnerRecordsMap
+
+  /**
+   * SPE-2576 slice 1: post-case media persistence inputs for SPE-2573 evaluator (keyed by case id).
+   */
+  spe947PostCaseMediaCases?: Spe947PostCaseMediaCaseRecordsMap
+
+  /**
+   * SPE-2576 slice 1: optional footage-exposure baseline bindings keyed by artifact id.
+   */
+  spe947FootageExposureBindings?: Spe947FootageExposureBindingRecordsMap
+
+  /**
+   * SPE-2576 slice 1: takedown-resistance threshold bindings keyed by owner id.
+   */
+  spe947TakedownResistanceBindings?: Spe947TakedownResistanceBindingRecordsMap
+
+  /**
+   * SPE-2602 slice 1: authored spe947* entity → visualTriggerHazardId bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe947VisualTriggerHazardBindings?: Spe947VisualTriggerHazardBindingRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 media-economy continuity weights (keyed by weight id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyWeights?: Spe947MediaEconomyWeightRecordsMap
+
+  /**
+   * SPE-2610 slice 1: authored SPE-2609 case → economy-weight continuity bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyContinuityBindings?: Spe947MediaEconomyContinuityBindingRecordsMap
+
+  /**
+   * SPE-2616 slice 1: authored commercialization actors for SPE-2611–2615 media-economy paths (keyed by actor id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe947MediaEconomyCommercializationActors?: Spe947MediaEconomyCommercializationActorRecordsMap
+
+  /**
+   * SPE-2616 slice 1: last week the SPE-2615 media-economy week-close tick ran; idempotency marker.
+   */
+  spe947MediaEconomyLastWeeklyTickWeek?: number
+
+  /**
+   * SPE-2621 slice 2: authored SPE-956 propagation graphs (keyed by graph id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe956PropagationGraphRecords?: Spe956PropagationGraphRecordsMap
+
+  /**
+   * SPE-2632 slice 1: authored SPE-956 survivor informal registry channels (keyed by registry id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956SurvivorInformalRegistryRecords?: Spe956SurvivorInformalRegistryRecordsMap
+
+  /**
+   * SPE-2633 slice 2: authored SPE-956 collective memory channels (keyed by channel id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956CollectiveMemoryChannelRecords?: Spe956CollectiveMemoryChannelRecordsMap
+
+  /**
+   * SPE-2634 slice 3: authored SPE-956 hotline channels (keyed by channel id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956HotlineChannelRecords?: Spe956HotlineChannelRecordsMap
+
+  /**
+   * SPE-2635 slice 4: authored SPE-956 async discussion surfaces (keyed by surface id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956AsyncDiscussionSurfaceRecords?: Spe956AsyncDiscussionSurfaceRecordsMap
+
+  /**
+   * SPE-2636 slice 5: authored SPE-956 community advisory bodies (keyed by body id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Round-trip only.
+   */
+  spe956CommunityAdvisoryBodyRecords?: Spe956CommunityAdvisoryBodyRecordsMap
+
+  /**
+   * SPE-2644: authored SPE-956 incident-lane baselines (keyed by incident id).
+   * Optional advisory/hotline/async/survivor/memory lanes per incident.
+   * Hydration drops invalid, mismatched-key, and empty-lane entries without throwing.
+   */
+  spe956IncidentBaselineRecords?: Spe956IncidentBaselineRecordsMap
+
+  /**
+   * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationPersonStatusRecords?: Record<string, AffiliationPersonStatusRecord>
+
+  /**
+   * SPE-2529 slice 1: persisted file work queue operator action acknowledgements.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueActionRecords?: Record<string, AffiliationFileWorkQueueActionRecord>
+
+  /**
+   * SPE-1046 file work queue evidence resolution: persisted missing-review workflow records.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueEvidenceResolutionRecords?: Record<
+    string,
+    AffiliationFileWorkQueueEvidenceResolutionRecord
+  >
+
+  /**
+   * SPE-2535 slice 1: persisted file work queue repair-action acknowledgements.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueRepairActionRecords?: Record<
+    string,
+    AffiliationFileWorkQueueRepairActionRecord
+  >
+
+  /**
+   * SPE-1046 file work queue release actions: persisted file-release workflow acknowledgements.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueReleaseActionRecords?: Record<
+    string,
+    AffiliationFileWorkQueueReleaseActionRecord
+  >
+
+  /**
+   * SPE-1046 file work queue release outcomes: persisted file-release workflow outcome receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueReleaseOutcomeRecords?: Record<
+    string,
+    AffiliationFileWorkQueueReleaseOutcomeRecord
+  >
+
+  /**
+   * SPE-1046 file work queue release fulfillment: persisted file-release fulfillment receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueReleaseFulfillmentRecords?: Record<
+    string,
+    AffiliationFileWorkQueueReleaseFulfillmentRecord
+  >
+
+  /**
+   * SPE-1046 file work queue release package handoff: persisted safe handoff package receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueReleasePackageRecords?: Record<
+    string,
+    AffiliationFileWorkQueueReleasePackageRecord
+  >
+
+  /**
+   * SPE-1046 file work queue file-release delivery: persisted metadata-only delivery receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueFileReleaseDeliveryRecords?: Record<
+    string,
+    AffiliationFileWorkQueueFileReleaseDeliveryRecord
+  >
+
+  /**
+   * SPE-1046 non-mission file-access enforcement follow-on: persisted non-mission enforcement receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueNonMissionEnforcementRecords?: Record<
+    string,
+    AffiliationFileWorkQueueNonMissionEnforcementRecord
+  >
+
+  /**
+   * SPE-2541 file work queue welfare evidence repair: persisted repair workflow candidates (read-only guidance).
+   * Keyed by workflow id; hydration drops invalid, duplicate-key, or mismatched (entryId, evidenceType) entries without throwing.
+   */
+  affiliationFileWorkQueueEvidenceRepairWorkflows?: Record<
+    string,
+    AffiliationFileWorkQueueEvidenceRepairWorkflow
+  >
+
+  /**
+   * SPE-2114 slice 2: persisted entity welfare reclassification records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  entityWelfareReclassificationRecords?: Record<string, EntityWelfareReclassificationRecord>
+
+  /**
+   * SPE-2115 slice 2: persisted contained-person therapeutic care schedule records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  containedPersonTherapeuticCareRecords?: Record<string, TherapeuticCareScheduleRecord>
+
+  /**
+   * SPE-1886 slice 1: persisted contained-person medication regimen records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  containedPersonMedicationRegimenRecords?: Record<string, MedicationRegimenRecord>
+
+  /**
+   * SPE-1892 slice 1: persisted contained-person custody status records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  containedPersonCustodyStatusRecords?: Record<string, CustodyStatusRecord>
+
+  /**
+   * SPE-1882 slice 2: persisted coercive contained-person protocol records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  coerciveContainedPersonProtocolRecords?: Record<string, CoerciveProtocolRecord>
+
+  /**
+   * SPE-1882 slice 5: persisted weekly tradeoff/risk-review projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in protocol records.
+   */
+  coerciveContainedPersonProtocolWeeklyProjectionSnapshots?: Record<
+    string,
+    CoerciveProtocolWeeklyProjectionSnapshot
+  >
+
+  /**
+   * SPE-1888 slice 1: persisted welfare-debt accounting records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  welfareDebtAccountingRecords?: Record<string, WelfareDebtAccountingRecord>
+
+  /**
+   * SPE-1047 slice 2: persisted faction ethics matrix records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  factionEthicsRecords?: Record<string, FactionEthicsMatrixRecord>
+
+  /**
+   * SPE-1131 slice 2: persisted moral-legal accountability matrix records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  accountabilityMatrixRecords?: Record<string, MoralLegalAccountabilityMatrixRecord>
+
+  /**
+   * SPE-1889 slice 5: persisted contained-person integrated health bundles (keyed by subject ref).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  containedPersonIntegratedHealthBundles?: Record<string, ContainedPersonIntegratedHealthBundle>
+
+  /**
+   * SPE-848 slice 2: persisted surveillance intervention tuning records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  surveillanceInterventionTuningRecords?: Record<string, SurveillanceInterventionTuningRecord>
+
+  /**
+   * SPE-1615 slice 2: persisted psychological resilience records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  psychologicalResilienceRecords?: Record<string, PsychologicalResilienceRecord>
+
+  /**
+   * SPE-1309 slice 2: persisted cognitive hazard exposure records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  cognitiveHazardExposureRecords?: Record<string, CognitiveHazardExposureRecord>
+
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState
 
   // Added for sim/advanceWeek compatibility
   factions?: Record<string, FactionRuntimeState>
-  hubState?: unknown
-  prevHubState?: unknown
+  hubState?: HubState
+  prevHubState?: HubState
   /** Squad configuration data (SPE-1304). All optional; missing = no config persisted. */
   squadMetadata?: Record<string, SquadMetadata>
   squadKitTemplates?: Record<string, SquadKitTemplate>
@@ -2548,18 +3634,11 @@ export interface GameState {
 
 /** The named stages a subject passes through in a custody pipeline. */
 export type CustodyStageKind =
-  | 'intake'
-  | 'holding'
-  | 'transfer_en_route'
-  | 'handoff'
-  | 'delivered'
-  | 'released_hostile'
+  'intake' | 'holding' | 'transfer_en_route' | 'handoff' | 'delivered' | 'released_hostile'
 
 /** Custody-specific distortion tags attached to a single stage record. */
 export type CustodyDistortionContext =
-  | 'custody_record_scrubbed'
-  | 'forged_transfer_credentials'
-  | 'vanished_file'
+  'custody_record_scrubbed' | 'forged_transfer_credentials' | 'vanished_file'
 
 /** One stage in the chain, with which institution owns it and any record-tampering context. */
 export interface CustodyStageRecord {
@@ -2608,9 +3687,7 @@ export interface CustodyChain {
 
 /** The type of corruption evidence surfaced by an investigation. */
 export type CustodyDiscoveryEventType =
-  | 'missing_record'
-  | 'marker_revealed'
-  | 'compromised_actor_identified'
+  'missing_record' | 'marker_revealed' | 'compromised_actor_identified'
 
 /** A single discovery produced by resolveCorruptionDiscovery(). */
 export interface CustodyDiscoveryEvent {

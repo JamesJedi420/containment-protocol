@@ -1,8 +1,21 @@
-# Role-Specific Gear Loadouts Audit (Documentation-Only Support)
+# Role-Specific Gear Loadouts Audit
 
-> Scope: design support note for a bounded role-specific gear loadout system in Containment Protocol.
->
-> Constraints honored: no runtime logic edits, no test edits, no symbol renames, docs-only output.
+> Scope: architecture and implementation guidance for the bounded role-specific gear loadout system in Containment Protocol.
+
+## Runtime semantic boundary (SPE-2797 / SPE-2798)
+
+Equipment currently exposes four distinct concepts that must not be conflated:
+
+- **Legacy numeric effect scaling** — `EquipmentDefinition.legacyEffectScale` is a positive-integer multiplier retained from the shipped equipment system. It scales base stat modifiers, contextual modifiers, enchantments, and set bonuses; values at or above the existing threshold also participate in the level prerequisite gate. `loadoutEffectScale` is the sum across equipped items, and market pricing retains the same scale × 4 term. These names describe existing behavior only and are not an equipment grade, tier, or rarity.
+- **Rarity** — `EquipmentRarity` remains the independently authored `basic | uncommon | rare | epic | legendary` classification. There is no conversion contract between rarity and legacy effect scaling; equal effect scales may have different rarities.
+- **Condition / integrity** — damage, recovery, durability, or physical-condition state is a separate concern. It does not alter or reinterpret `legacyEffectScale` in this contract.
+- **Canonical equipment grade** — the independent Grade I–V contract is owned by `src/domain/equipmentGrade.ts`. SPE-2751 authors a validated `gradeProfile` on every supported equipment definition and adapts it to graded/ungraded truth plus visibility-safe projection. Grade remains definition-owned rather than saved and never consumes or changes `legacyEffectScale`. Later recovery and Auto-Scrap surfaces render the hidden-safe projection through `src/features/equipment/equipmentView.ts`; deployable-readiness loadouts still do not treat grade as rarity, tier, or effect scale.
+
+Agent save data stores catalog-derived snapshots under `equipmentEffectScales`. Hydration accepts the former `equipment` map only as a one-way legacy-save migration, emits the renamed field on new exports, and does not expose a runtime compatibility alias. Slot IDs remain the canonical source used to resolve current catalog effects.
+
+Deployable-readiness `gearTier` continues to describe `EquipmentRarity`; it is not canonical grade.
+See `architecture/equipment-grade-contract.md` for the registry, validation, projection, and
+coexistence contract.
 
 ## 1) Loadout categories
 
@@ -61,6 +74,8 @@ Define deterministic rule layers:
 - Slot compatibility must match exactly.
 - Prerequisites satisfied (academy tier, unlock flag, certification).
 - Mutually exclusive tags cannot coexist in same loadout.
+- Wearable occupancy (SPE-3394): when definitions declare `wearableOccupancy`, the projected loadout must not place two items whose occupied-layer sets and covered-region sets both intersect. Covered regions consume SPE-120 IDs (`src/domain/bodyRegion.ts`). Definitions without occupancy keep legacy behavior. Typed reasons are returned on `LoadoutAssignmentValidationResult.wearableConflicts`.
+- Personnel PPE replacement demand (SPE-3441): authored role PPE requirements (fixture: medic armor → `hazmat_suit`) derive unmet demand from missing/unserviceable/wrong/incapable assignment plus stock. Authorized fulfillment revalidates via `validateAgentLoadoutAssignment` (including SPE-3394) and mutates only through `equipAgentItem` / `equipStoredEquipmentInstance`. Surface: Equipment loadout panel (`ppeDemands` + Authorize replacement). No auto-procurement, no parallel readiness formula, no standalone PPE screen.
 
 ### B. Soft preferences (should guide, not block)
 

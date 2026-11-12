@@ -23,7 +23,7 @@ function makeMixedEraProfile(): CampaignEraProfileInput {
     enabledPowerFamilies: ['alchemy', 'folk_rite', 'miracle'],
     suppressedPowerFamilies: ['arcane'],
     moneyModel: 'mercantile_credit',
-    prevalentMonsterFamilies: ['frontier_predator', 'occult_revenant'],
+    prevalentThreatFamilies: ['frontier_predator', 'occult_revenant'],
     settlementStyleHints: ['cathedral_city', 'colonial_outpost', 'fortified_market_town'],
     suppressedInteractionSurfaces: ['wizard_colleges', 'bardic_spellcasting'],
   }
@@ -49,7 +49,7 @@ describe('campaignEraProfiles', () => {
       enabledPowerFamilies: ['alchemy', 'folk_rite', 'miracle'],
       suppressedPowerFamilies: ['arcane'],
       moneyModel: 'mercantile_credit',
-      prevalentMonsterFamilies: ['frontier_predator', 'occult_revenant'],
+      prevalentThreatFamilies: ['frontier_predator', 'occult_revenant'],
       settlementStyleHints: ['cathedral_city', 'colonial_outpost', 'fortified_market_town'],
       suppressedInteractionSurfaces: ['bardic_spellcasting', 'wizard_colleges'],
     })
@@ -72,6 +72,7 @@ describe('campaignEraProfiles', () => {
       suppressed: ['arcane'],
     })
     expect(overlay.moneyModel).toBe('mercantile_credit')
+    expect(overlay.threatPressureFamilies).toEqual(['frontier_predator', 'occult_revenant'])
     expect(overlay.settlementStyleHints).toEqual([
       'cathedral_city',
       'colonial_outpost',
@@ -100,7 +101,7 @@ describe('campaignEraProfiles', () => {
       availableEquipmentCategories: ['plate_armor', 'ritual_implements'],
       enabledPowerFamilies: ['miracle', 'folk_rite'],
       moneyModel: 'coinage',
-      prevalentMonsterFamilies: ['undead', 'goblinoid'],
+      prevalentThreatFamilies: ['undead', 'goblinoid'],
       settlementStyleHints: ['fortified_market_town', 'cathedral_city'],
     })
     const overlay = deriveCampaignEraOverlay(singleEraPacket)
@@ -110,6 +111,7 @@ describe('campaignEraProfiles', () => {
     expect(overlay.suppressedInteractionSurfaces).toEqual([])
     expect(overlay.roleAccess.suppressed).toEqual([])
     expect(overlay.powerAvailability.suppressed).toEqual([])
+    expect(overlay.threatPressureFamilies).toEqual(['goblinoid', 'undead'])
   })
 
   it('remains deterministic for identical mixed-era profile input', () => {

@@ -193,7 +193,7 @@ export interface GearItemExplanation {
   itemId: string
   name: string
   slot: string
-  quality: number
+  legacyEffectScale: number
   contextActive: boolean
   baseModifierTotal: number
   contextModifierTotal: number
@@ -206,7 +206,7 @@ export interface GearImpactExplanation {
   teamIds: string[]
   equippedItemCount: number
   activeContextItemCount: number
-  loadoutQuality: number
+  loadoutEffectScale: number
   reserveSupportBonus: number
   reserveReasons: string[]
   items: GearItemExplanation[]
@@ -219,7 +219,7 @@ export interface PowerLayerInventoryExplanation {
   equippedCount: number
   activeContextCount: number
   stockOnHand: number
-  totalQuality: number
+  totalEffectScale: number
   tags: string[]
   detail: string
 }
@@ -697,7 +697,7 @@ function buildGearItemExplanation(item: EquipmentItem): GearItemExplanation {
     itemId: item.id,
     name: item.name,
     slot: EQUIPMENT_SLOT_LABELS[item.slot],
-    quality: item.quality,
+    legacyEffectScale: item.legacyEffectScale,
     contextActive: item.contextActive,
     baseModifierTotal: Number(baseModifierTotal.toFixed(2)),
     contextModifierTotal: Number(contextModifierTotal.toFixed(2)),
@@ -726,7 +726,7 @@ export function explainGearImpact(
     teamIds: selection.teamIds,
     equippedItemCount: equipmentSummary.loadout.equippedItemCount,
     activeContextItemCount: equipmentSummary.loadout.activeContextItemCount,
-    loadoutQuality: equipmentSummary.loadout.loadoutQuality,
+    loadoutEffectScale: equipmentSummary.loadout.loadoutEffectScale,
     reserveSupportBonus: Number(equipmentSummary.reserveSupportBonus.toFixed(2)),
     reserveReasons: [...equipmentSummary.reserveReasons],
     items: selection.profile.equipmentSummary.equippedItems.map(buildGearItemExplanation),

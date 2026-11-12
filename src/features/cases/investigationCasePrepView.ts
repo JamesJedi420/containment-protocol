@@ -2,11 +2,18 @@ import { readPersistentFlag } from '../../domain/flagSystem'
 import { listInvestigationCustodyLossMarkers } from '../../domain/investigationCustodyLoss'
 import {
   buildInvestigationAskedFlagId,
+  canAskInvestigationQuestionOnCase as canAskInvestigationQuestionOnCaseDomain,
   listInvestigationQuestionSet,
   readInvestigationBudget,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
+import {
+  buildInvestigationNamingHazardDescriptorViews,
+  type InvestigationNamingHazardDescriptorView,
+} from '../../domain/investigationNamingHazardSubstitution'
 import type { CaseInstance, GameState } from '../../domain/models'
+
+export type { InvestigationNamingHazardDescriptorView }
 
 export interface InvestigationBudgetView {
   readonly granted: number
@@ -44,6 +51,7 @@ export interface InvestigationCasePrepView {
   readonly forensic: InvestigationDomainPrepView
   readonly tactical: InvestigationDomainPrepView
   readonly custodyMarkers: readonly InvestigationCustodyMarkerView[]
+  readonly namingHazardDescriptors: readonly InvestigationNamingHazardDescriptorView[]
 }
 
 export function canShowInvestigationCasePrepOnCase(caseData: CaseInstance) {
@@ -58,13 +66,12 @@ export function hasInvestigationForensicStrain(investigation: InvestigationCaseP
 
   const forensic = investigation.forensic.budget
   return (
-    investigation.custodyMarkers.length > 0 ||
-    (forensic.granted > 0 && forensic.remaining === 0)
+    investigation.custodyMarkers.length > 0 || (forensic.granted > 0 && forensic.remaining === 0)
   )
 }
 
 export function canAskInvestigationQuestionOnCase(caseData: CaseInstance | undefined) {
-  return caseData !== undefined && canShowInvestigationCasePrepOnCase(caseData)
+  return canAskInvestigationQuestionOnCaseDomain(caseData)
 }
 
 function buildDomainPrepView(
@@ -74,7 +81,9 @@ function buildDomainPrepView(
 ): InvestigationDomainPrepView {
   const budget = readInvestigationBudget(game, caseId, domain)
   const questions = listInvestigationQuestionSet(domain).map((question) => {
-    const asked = Boolean(readPersistentFlag(game, buildInvestigationAskedFlagId(caseId, question.id)))
+    const asked = Boolean(
+      readPersistentFlag(game, buildInvestigationAskedFlagId(caseId, question.id))
+    )
 
     return {
       id: question.id,
@@ -124,6 +133,7 @@ export function buildInvestigationCasePrepView(
       forensic: EMPTY_DOMAIN_VIEW,
       tactical: { ...EMPTY_DOMAIN_VIEW, domain: 'tactical', domainLabel: 'Tactical read' },
       custodyMarkers: [],
+      namingHazardDescriptors: [],
     }
   }
 
@@ -139,5 +149,6 @@ export function buildInvestigationCasePrepView(
     forensic: buildDomainPrepView(game, caseId, 'forensic'),
     tactical: buildDomainPrepView(game, caseId, 'tactical'),
     custodyMarkers,
+    namingHazardDescriptors: buildInvestigationNamingHazardDescriptorViews(game, caseData),
   }
 }

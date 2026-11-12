@@ -9,7 +9,7 @@ import type { CaseInstance } from '../domain/models'
 import { resolveWeakestLinkMission } from '../domain/weakestLinkResolution'
 import { explainWeakestLinkResolution } from '../domain/visibility'
 
-const PERFECT_TEAM_PARAMS = {
+const PERFECT_TEAM_PARAMS: Parameters<typeof resolveWeakestLinkMission>[0] = {
   missionId: 'm-instability',
   week: 2,
   baseScore: 100,
@@ -20,8 +20,8 @@ const PERFECT_TEAM_PARAMS = {
     teamId: 't1',
     readinessCategory: 'mission_ready' as const,
     readinessScore: 100,
-    hardBlockers: [] as string[],
-    softRisks: [] as string[],
+    hardBlockers: [],
+    softRisks: [],
     coverageCompleteness: { required: ['containment'], covered: ['containment'], missing: [] },
     cohesionBand: 'strong' as const,
     minimumMemberReadiness: 100,
@@ -37,7 +37,7 @@ const PERFECT_TEAM_PARAMS = {
     coordinationScore: 100,
     trustScore: 100,
     fatiguePenalty: 0,
-    cohesionFlags: [] as string[],
+    cohesionFlags: [],
   },
   loadoutSummaries: [
     {
@@ -48,12 +48,12 @@ const PERFECT_TEAM_PARAMS = {
       incompatibleItemCount: 0,
       emptySlotCount: 0,
       readiness: 'ready' as const,
-      issues: [] as string[],
+      issues: [],
     },
   ],
-  trainingLocks: [] as string[],
+  trainingLocks: [],
   fatigueSignals: [10, 12, 14],
-  missingRoles: [] as string[],
+  missingRoles: [],
 }
 
 describe('SPE-17 execution instability overlay', () => {

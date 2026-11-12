@@ -83,16 +83,10 @@ export function buildInfiltrationProbePlanFromAuthored(
   const actionWhenProbeProgressBelow = normalizeProgressRules(authored.actionWhenProbeProgressBelow)
   const cleanupWhenAwarenessAtLeast = normalizeProgressThreshold(authored.cleanupWhenAwarenessAtLeast)
 
-  const plan: InfiltrationProbePlan = {}
-
-  if (defaultAction !== undefined) {
-    plan.defaultAction = defaultAction
-  }
-  if (actionWhenProbeProgressBelow !== undefined) {
-    plan.actionWhenProbeProgressBelow = actionWhenProbeProgressBelow
-  }
-  if (cleanupWhenAwarenessAtLeast !== undefined) {
-    plan.cleanupWhenAwarenessAtLeast = cleanupWhenAwarenessAtLeast
+  const plan: InfiltrationProbePlan = {
+    ...(defaultAction !== undefined ? { defaultAction } : {}),
+    ...(actionWhenProbeProgressBelow !== undefined ? { actionWhenProbeProgressBelow } : {}),
+    ...(cleanupWhenAwarenessAtLeast !== undefined ? { cleanupWhenAwarenessAtLeast } : {}),
   }
 
   return Object.keys(plan).length > 0 ? plan : undefined

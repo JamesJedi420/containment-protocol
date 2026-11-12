@@ -1,0 +1,626 @@
+{
+  "schemaVersion": 1,
+  "owner": "SPE-3352",
+  "subjectRevision": "63188aec19eba68c56b125da078908d92c100dc4",
+  "assessments": [
+    {
+      "id": "ac-01",
+      "result": "pass",
+      "rationale": "Existing named campaign fixtures and stable assertions execute on the subject revision; fixtures remain bounded and reuse existing systems.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-02",
+      "result": "warning",
+      "rationale": "Controlled comparisons retain full saved-state repeat equality. This is bounded same-input reproducibility, not completed cross-domain stochastic identity adoption.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-03",
+      "result": "pass",
+      "rationale": "Current default-campaign browser fixtures cover fresh entry, two weekly advances and report reload, with causal later mission choices and repeated full saved outcomes in the intervention comparison.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-04",
+      "result": "pass",
+      "rationale": "Current full suite exercises the existing calibrated partial/high-pressure fixture and ordinary-range imported support/maintenance consequences. The browser maintenance queue progresses after reload; no terminal defeat or complete recovery claim is added.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-05",
+      "result": "pass",
+      "rationale": "The existing pressure fixture consumes SPE-2251 helpers rather than rebuilding its harness; its integration tests remain in the current full execution.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-06",
+      "result": "warning",
+      "rationale": "All eight owner dimensions are explicitly sourced and currently corroborated where executable coverage exists. Three narrow owner boundaries pass, four have partial-evidence warnings and telemetry remains unavailable; complete owner applicability is not claimed.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-07",
+      "result": "pass",
+      "rationale": "All 28 acceptance/owner criteria and selected repository validators receive explicit statuses and rationale at one pinned subject. No unavailable or advisory result is silently treated as pass.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-08",
+      "result": "warning",
+      "rationale": "The previous Agency route failure has verified repair owner SPE-3283 and merged repair #4894; this current full run passes all tests. The separate historical App.test.tsx navigation failure retains unverified repair ownership and is not silently reassigned or rewritten. No current required validator failure needs a new remediation owner.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-09",
+      "result": "pass",
+      "rationale": "All twelve comparison-path measurements satisfy existing 512 KiB final compact GameState and 256 KiB net-growth budgets; each comparison has a 240-second per-attempt limit. These are fixture bounds, not peak-memory or player-latency targets.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-10",
+      "result": "warning",
+      "rationale": "No accepted exception is asserted. Advisory formatting and incomplete owner/information applicability remain explicit; no historical failure or unchanged dependency advisory is waived.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-11",
+      "result": "pass",
+      "rationale": "The inspected fixtures and reporter remain CP-core ongoing-lifecycle evidence without Academy-only or terminal-success assumptions.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "ac-12",
+      "result": "pass",
+      "rationale": "Existing reporter/validator contracts pass at the subject. Publication separately checks manifest consistency and deterministic JSON/Markdown; a valid report is not release readiness.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-intervention",
+      "result": "pass",
+      "rationale": "Same initial state and production rules, varying only the Archive assignment, produces causal stage/follow-up and later team-requirement differences. Both alternatives repeat.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-incidents",
+      "result": "pass",
+      "rationale": "Three naturally generated same-title outbreaks retain distinct identities, canonical planner selection and constrained response options across navigation/reload. This representative coexistence check does not assert all collision policies or successful three-team launch in a two-team campaign.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-information",
+      "result": "unavailable",
+      "rationale": "Available-dossier reading preserves state and converges, but witness/reporting changes and distinctions among world truth, assessment, public belief and knowledge remain unverified.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-delayed",
+      "result": "pass",
+      "rationale": "The intervention/inaction comparison verifies a later operational difference through existing mission escalation/follow-up owners over two weeks; maintenance also retains its delayed queue across reload.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-quiet",
+      "result": "pass",
+      "rationale": "A supported authored two-week interval produces no new case outcome/follow-up while recruitment and market refresh continue. Hiring is a normal UI decision and persists. The pending case countdown remains active, so indefinite quietness is not claimed.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-divergence",
+      "result": "pass",
+      "rationale": "A consequential mission assignment produces the expected divergence; reading reference intel produces legitimate convergence; quiet-period hiring produces an enduring roster difference. No forced dramatic divergence is required.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "comparison-continuity",
+      "result": "warning",
+      "rationale": "Identical path inputs reproduce complete saved outputs in the new comparisons. Within-run history/report/agent and selected outcome reload assertions pass, but complete history/information/event identity across every campaign fixture is not established.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "full-build",
+      "result": "pass",
+      "rationale": "Literal npm run build (TypeScript plus Vite) passed at the clean pinned subject. Required bundle validation is recorded separately; existing chunk-size warning is retained.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        }
+      ]
+    },
+    {
+      "id": "owner-persistence",
+      "result": "warning",
+      "rationale": "The merged retrospective hydration boundary is ancestral and current run-transfer, mission-result hydration and event-migration tests pass. This is bounded sanitization evidence, not a complete current save-version/migration release contract; SPE-3403 remains a separate unresolved compatibility-policy owner.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-accessibility",
+      "result": "warning",
+      "rationale": "Current automated keyboard, landmark, status-region and store tests provide bounded accessibility/explainability evidence. Actual screen-reader speech and the broader audit are not established. Linear currently says Done while its latest closeout says partial delivery; this evidence report does not resolve that lifecycle discrepancy or reopen the owner.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-ux",
+      "result": "warning",
+      "rationale": "Current connected Playwright campaign evidence covers functional browser playability, observable outcomes and reload/replay. The owner records Playwright-only acceptance methodology; absence of human testers alone is not a milestone blocker. Automated checks do not establish human comprehension or the full UX-profile/finding/retest contract.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-telemetry",
+      "result": "unavailable",
+      "rationale": "All current owner comments were retrieved; they do not supply a completed release-applicable telemetry assessment. Existing developer-log snapshots are not proof of the reusable telemetry, operational metrics and audience-separation acceptance. No subsystem absence or runtime failure is inferred from Backlog status.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-replay",
+      "result": "warning",
+      "rationale": "Current scoped identity and legacy-cutover tests verify same-identity samples, unrelated-domain isolation and bounded grandfathering/post-cutover behavior. This does not establish adoption by every authoritative consumer or complete selector-version/save-resume release applicability. Backlog status does not erase the implemented kernel.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-continuity",
+      "result": "pass",
+      "rationale": "The completed explicit authored-path validator boundary has current executable coverage for path facts, projection, authored-node adapters, missing prerequisites, player-awareness leaks, corrected claims and optional runtime/stability hooks. Passing this owner-evidence row does not prove automatic content-wide linting or that every gameplay branch supplies authored assumptions.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-calibration",
+      "result": "pass",
+      "rationale": "The completed narrow calibration milestone remains represented by the current four-week MVP infiltration fixture. Its test checks live awareness/escalation bands and the cleanup action. This is not a whole-game balance judgment, frozen historical constants or human enjoyment evidence.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    },
+    {
+      "id": "owner-simulation",
+      "result": "pass",
+      "rationale": "The completed bounded six-scenario validation harness passes current scenario registration, repeated run/suite equality, pressure attribution, baseline/nontrivial-duration and neglect-heavy outcome checks. This is scenario-specific simulation evidence, not universal emergent-story coverage.",
+      "evidence": [
+        {
+          "source": "repo:planning/release-evidence/63188aec/execution-index.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current clean pinned execution and owner applicability; original historical checks remain explicitly historical."
+        },
+        {
+          "source": "repo:planning/release-evidence/63188aec/browser-observations.json",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Current actual browser outcomes, retry counts and state-growth measurements."
+        },
+        {
+          "source": "repo:planning/release-evidence/cb37c23a/owner-assessment.md",
+          "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+          "scope": "Document available at this subject, explicitly describing historical cb37c23a checks. Current full execution and refreshed Linear applicability are recorded separately in this snapshot."
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "revision": "63188aec19eba68c56b125da078908d92c100dc4",
+    "source": "repo:planning/release-evidence/63188aec/requirements-execution.json",
+    "report": {
+      "policyOwner": "SPE-3348",
+      "files": [
+        "docs/cp-core-release-evidence.md",
+        "e2e/intervention-comparison.spec.ts",
+        "e2e/quiet-period.spec.ts",
+        "e2e/support/campaignBudget.ts",
+        "package-lock.json",
+        "package.json",
+        "planning/release-evidence/438c8df7/browser-observations.json",
+        "planning/release-evidence/438c8df7/execution-index.json",
+        "planning/release-evidence/438c8df7/requirements-execution.json",
+        "planning/release-evidence/b121d4f2/browser-observations.json",
+        "planning/release-evidence/b121d4f2/execution-index.json",
+        "planning/release-evidence/b121d4f2/requirements-execution.json",
+        "planning/release-evidence/cb37c23a/owner-assessment.md",
+        "planning/spe-3283-agency-route-readiness-slice.md",
+        "planning/spe-3352-concurrent-incidents-slice.md",
+        "planning/spe-3352-current-campaign-evidence-slice.md",
+        "planning/spe-3352-fixture-budgets-slice.md",
+        "planning/spe-3352-information-access-slice.md",
+        "planning/spe-3352-integrated-evidence-slice.md",
+        "planning/spe-3352-intervention-comparison-slice.md",
+        "planning/spe-3352-owner-evidence-slice.md",
+        "planning/spe-3352-owner-evidence.cb37c23a.v1.json",
+        "planning/spe-3352-quiet-period-slice.md",
+        "planning/spe-3352-release-evidence.438c8df7.v1.json",
+        "planning/spe-3352-release-evidence.b121d4f2.v1.json",
+        "planning/spe-3737-dependency-upgrades-slice.md",
+        "SCHEMA_REGISTRY.md",
+        "src/app/App.systemBoundary.route.test.tsx",
+        "src/app/store/missionResultHydration.test.ts",
+        "src/app/store/runTransfer.ts",
+        "src/components/TrendSummaryPanel.tsx",
+        "src/features/cases/CaseDetailPage.test.tsx",
+        "src/features/cases/CaseDetailPage.tsx",
+        "src/features/report/reportTrendView.ts",
+        "src/features/report/TrendSummaryPanel.test.tsx"
+      ],
+      "activeClasses": ["application", "docs", "e2e", "planning", "shared-config"],
+      "requiredIds": ["backlog-handoff", "lint", "playwright-e2e", "unit-tests", "vite-build"],
+      "advisoryIds": ["format-check", "typecheck"],
+      "skippedExceptionIds": [],
+      "results": [
+        {
+          "id": "backlog-handoff",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:verify:backlog-handoff"
+        },
+        {
+          "id": "format-check",
+          "status": "failed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:format:check exit 1",
+          "exitCode": 1
+        },
+        {
+          "id": "lint",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:lint"
+        },
+        {
+          "id": "playwright-e2e",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "report-unavailable",
+          "detail": "npm:test:e2e:ci"
+        },
+        {
+          "id": "typecheck",
+          "status": "passed",
+          "enforcement": "advisory",
+          "whenUnavailable": "report-unavailable",
+          "detail": "command:node scripts/typecheck-advisory.mjs"
+        },
+        {
+          "id": "unit-tests",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:test:run:ci"
+        },
+        {
+          "id": "vite-build",
+          "status": "passed",
+          "enforcement": "required",
+          "whenUnavailable": "fail",
+          "detail": "npm:build:bundle"
+        }
+      ],
+      "missingRequired": [],
+      "ok": true,
+      "advisoryFailures": ["format-check"]
+    }
+  }
+}

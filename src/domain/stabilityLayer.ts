@@ -1,11 +1,11 @@
-import { FRONT_DESK_SCENE_TRIGGERS } from '../features/operations/frontDeskTriggers'
-import { getFrontDeskBriefingView } from '../features/operations/frontDeskView'
+import { FRONT_DESK_SCENE_TRIGGERS } from './frontDeskTriggers'
+import { getFrontDeskAuthoredState } from './frontDeskAuthored'
 import {
   buildBreachFollowUpChoices,
   buildHostileFactionResponseChoices,
   buildSpecialRecruitOpportunityChoices,
   buildWeeklyReportTutorialChoices,
-} from '../features/operations/frontDeskChoices'
+} from './frontDeskChoices'
 import {
   EQUIPMENT_SLOT_KINDS,
   getAgentLoadoutConflicts,
@@ -20,6 +20,7 @@ import { getTrainingProgram } from '../data/training'
 import { getCertificationDefinitions } from './sim/training-compat'
 import { buildTeamCompositionState } from './teamComposition'
 import { buildTeamDeploymentReadinessState } from './deploymentReadiness'
+import { getTeamAssignedCaseId } from './teamSimulation'
 import { normalizeMissionRoutingState, routeMission, triageMission } from './missionIntakeRouting'
 import { getCandidateFunnelStage, normalizeCandidateHireStatus } from './recruitment'
 import { assessResearchRequirements } from './research'
@@ -43,6 +44,7 @@ export type StabilityIssueCategory =
   | 'team-composition'
   | 'mission-routing'
   | 'deployment-readiness'
+  | 'branch-continuity'
 
 export type StabilityIssueSeverity = 'warning' | 'error'
 
@@ -223,7 +225,7 @@ function buildKnownAuthoredTargetCatalog(state: GameState) {
     .map((choice) => normalizeString(choice.nextTargetId))
     .filter((targetId) => targetId.length > 0)
 
-  const frontDeskView = getFrontDeskBriefingView(state)
+  const frontDeskView = getFrontDeskAuthoredState(state)
   const activeNoticeIds = frontDeskView.notices.map((notice) => notice.id)
   const activeChoiceTargetIds = frontDeskView.notices.flatMap((notice) =>
     (notice.choices ?? []).map((choice) => normalizeString(choice.nextTargetId)).filter((targetId) => targetId.length > 0)
@@ -255,7 +257,7 @@ export function hasSafeFrontDeskFallback(state: GameState) {
   const { frontDeskView } = buildKnownAuthoredTargetCatalog(state)
   const reasons: string[] = []
 
-  if (normalizeString(frontDeskView.directorMessage).length === 0) {
+  if (normalizeString(frontDeskView.directorRouteId).length === 0) {
     reasons.push('missing-director-message')
   }
 
@@ -271,6 +273,32 @@ export function hasSafeFrontDeskFallback(state: GameState) {
     safe: reasons.length === 0,
     reasons,
     directorMessageRouteId: frontDeskView.debug.directorMessageRouteId,
+  }
+}
+
+export function appendStabilityIssues(
+  report: StabilityReport,
+  additionalIssues: StabilityIssue[]
+): StabilityReport {
+  if (additionalIssues.length === 0) {
+    return report
+  }
+
+  const issues = [...report.issues, ...additionalIssues]
+  const errorCount = issues.filter((issue) => issue.severity === 'error').length
+  const warningCount = issues.length - errorCount
+  const categories = toStableUnique(issues.map((issue) => issue.category)) as StabilityIssueCategory[]
+
+  return {
+    issues,
+    summary: {
+      issueCount: issues.length,
+      errorCount,
+      warningCount,
+      softlockRisk: errorCount > 0,
+      categories,
+    },
+    recoveryActions: report.recoveryActions,
   }
 }
 
@@ -1267,9 +1295,10 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
       recoveryIds.add('review-frontdesk-fallback-routing')
     }
 
+    const teamAssignedCaseId = getTeamAssignedCaseId(team)
     if (
-      (team.status?.state === 'recovering' && (team.status?.assignedCaseId ?? team.assignedCaseId)) ||
-      (team.status?.state === 'ready' && (team.status?.assignedCaseId ?? team.assignedCaseId) && recomputedReadiness.hardBlockers.includes('capacity-locked'))
+      (team.status?.state === 'recovering' && teamAssignedCaseId) ||
+      (team.status?.state === 'ready' && teamAssignedCaseId && recomputedReadiness.hardBlockers.includes('capacity-locked'))
     ) {
       pushIssue(issues, {
         id: `deployment.impossible-team-status.${team.id}`,
@@ -1567,9 +1596,14 @@ export function pruneInvalidRuntimeQueueEvents(state: GameState): RuntimeQueuePr
 }
 
 export function normalizeInvalidProgressClocks(state: GameState): ProgressClockNormalizationResult {
-  const runtime = readGameStateManager(state)
+  // Read unsanitized clocks so malformed ids (for example `clock-invalid`) are still repairable.
+  const rawClocks = state.runtimeState?.progressClocks
+  const nextProgressClocks: RuntimeState['progressClocks'] = {
+    ...(rawClocks && typeof rawClocks === 'object' && !Array.isArray(rawClocks)
+      ? { ...rawClocks }
+      : readGameStateManager(state).progressClocks),
+  }
   const normalizedClockIds: string[] = []
-  const nextProgressClocks: RuntimeState['progressClocks'] = { ...runtime.progressClocks }
 
   for (const [clockId, clock] of Object.entries(nextProgressClocks)) {
     const max = Number.isFinite(clock.max) ? Math.max(1, Math.trunc(clock.max)) : 1

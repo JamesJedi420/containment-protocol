@@ -1,6 +1,11 @@
 // SPE-110: Construction progress and interference state — bounded domain helper.
 // Reads CaseInstance site-generation outputs and progressClock state to expose compact
 // construction modifiers consumed by readiness, battle, and the weekly simulation tick.
+import {
+  BODY_TRANSFER_CARGO_ID,
+  HANDLERS_AVAILABLE_LABOR,
+  parseFacilityHaulingLabor,
+} from './facilityHaulingLabor'
 import { advanceDefinedProgressClock, doesProgressClockMeetThreshold, readProgressClock } from './progressClocks'
 import type { GameState, CaseInstance } from './models'
 
@@ -40,6 +45,17 @@ export function isCaseUnderConstruction(currentCase: CaseInstance): boolean {
 export function evaluateConstructionLogisticsBonus(state: GameState): number {
   const totalStock = Object.values(state.inventory).reduce((sum, qty) => sum + qty, 0)
   return totalStock >= 3 ? 1 : 0
+}
+
+/**
+ * Deterministic hauling-node bonus: +1 when authoritative facility hauling labor
+ * is stamped for the authored body-transfer cargo with handlers available.
+ * Read-only — does not mutate or consume `facilityHaulingLabor`.
+ */
+export function evaluateConstructionHaulingBonus(state: GameState): number {
+  const labor = parseFacilityHaulingLabor(state.facilityHaulingLabor)
+  if (!labor) return 0
+  return labor[BODY_TRANSFER_CARGO_ID] === HANDLERS_AVAILABLE_LABOR ? 1 : 0
 }
 
 /**

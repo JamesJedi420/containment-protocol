@@ -1,3 +1,14 @@
+import type {
+  MissionTriageDeferralCompareTone,
+  MissionTriageDeferralCompareColumn,
+  MissionTriageDeferralCompareView,
+} from '../shared/caseListSignalTypes'
+export type {
+  MissionTriageDeferralCompareTone,
+  MissionTriageDeferralCompareColumn,
+  MissionTriageDeferralCompareCarryoverLink,
+  MissionTriageDeferralCompareView,
+} from '../shared/caseListSignalTypes'
 import { AWARENESS_COMPLICATION_THRESHOLD } from '../../domain/infiltrationProbe'
 import {
   hasHighMissionEscalationRisk,
@@ -37,27 +48,6 @@ import {
   type StealthLeaveBehindSelectionView,
 } from './stealthLeaveBehindSelectionView'
 
-export type MissionTriageDeferralCompareTone = 'low' | 'medium' | 'high'
-
-export interface MissionTriageDeferralCompareColumn {
-  readonly id: 'covertPrepCost' | 'deferralRisk' | 'escalationCarryover'
-  readonly label: string
-  readonly value: string
-  readonly detail?: string
-  readonly tone: MissionTriageDeferralCompareTone
-}
-
-export interface MissionTriageDeferralCompareCarryoverLink {
-  readonly label: string
-  readonly detail: string
-}
-
-export interface MissionTriageDeferralCompareView {
-  readonly visible: boolean
-  readonly columns: readonly MissionTriageDeferralCompareColumn[]
-  readonly carryoverLink?: MissionTriageDeferralCompareCarryoverLink
-}
-
 interface DeferralComparePrepContext {
   readonly infiltration: InfiltrationCasePrepView | null
   readonly leaveBehind: StealthLeaveBehindSelectionView
@@ -81,7 +71,9 @@ function buildDeferralComparePrepContext(
   }
 }
 
-function resolveCovertPrepCostTone(context: DeferralComparePrepContext): MissionTriageDeferralCompareTone {
+function resolveCovertPrepCostTone(
+  context: DeferralComparePrepContext
+): MissionTriageDeferralCompareTone {
   const { infiltration, leaveBehind, investigation } = context
 
   if (infiltration?.visible) {
@@ -162,15 +154,14 @@ function buildDeferralRiskColumn(
     id: 'deferralRisk',
     label: MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS.deferralRisk,
     value: formatMissionTriageDeferralRiskValue(tone, escalationRisk),
-    detail: formatMissionTriageDeferralRiskDetail(
-      caseData.deadlineRemaining,
-      caseData.stage
-    ),
+    detail: formatMissionTriageDeferralRiskDetail(caseData.deadlineRemaining, caseData.stage),
     tone,
   }
 }
 
-function buildEscalationCarryoverColumn(caseData: CaseInstance): MissionTriageDeferralCompareColumn {
+function buildEscalationCarryoverColumn(
+  caseData: CaseInstance
+): MissionTriageDeferralCompareColumn {
   const highEscalation = hasHighMissionEscalationRisk(caseData)
   const criticalStage = caseData.stage >= 4
   const raidPressure = caseData.kind === 'raid'
@@ -211,9 +202,7 @@ function shouldShowDeferralCompare(
 }
 
 function shouldShowCarryoverLink(caseData: CaseInstance, triage: MissionTriageResult) {
-  return (
-    hasHighMissionEscalationRisk(caseData) || triage.reasonCodes.includes('escalation-high')
-  )
+  return hasHighMissionEscalationRisk(caseData) || triage.reasonCodes.includes('escalation-high')
 }
 
 export interface BuildMissionTriageDeferralCompareViewOptions {

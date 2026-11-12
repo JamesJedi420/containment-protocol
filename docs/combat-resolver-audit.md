@@ -8,6 +8,29 @@
 
 Action order in volatile encounters is **state-driven**, not a fixed initiative list. Priority inputs include readiness, posture, exposure, injury, tool condition, aim commitment, precision depletion, and (where authored) **bounded side-phase** handling. Prefer explicit tradeoffs: **rapid nearest-valid** targeting versus slower, controlled shots that reduce collateral or self-risk.
 
+### Implemented sequencing contract
+
+`src/domain/volatileActionPriority.ts` owns the pure SPE-54 calculation. A caller supplies one complete action-window snapshot; the resolver returns an eligible actor order plus the signed contribution and player-readable label for every factor. The snapshot/result is recomputable evidence, not persisted initiative state.
+
+The calibration starts eligible actions at 55 and keeps the supported state space within 3–97:
+
+| Factor         | Signed priority contribution                                                  |
+| -------------- | ----------------------------------------------------------------------------- |
+| Readiness      | steady +8; strained +2; critical -8; unavailable blocks the action            |
+| Posture        | braced +6; mobile +3; guarded 0; compromised -8                               |
+| Exposure       | concealed +4; covered +2; exposed -4; pinned -8                               |
+| Injury         | none 0; minor -4; moderate -10                                                |
+| Tool state     | operational +4; no tool required 0; damaged -6; unavailable blocks the action |
+| Precision      | 0–19 -6; 20–39 -3; 40–59 0; 60–79 +3; 80–100 +6                               |
+| Aim commitment | none 0; tracking +3; committed +6                                             |
+| Targeting mode | rapid nearest-valid +8; explicit designation -6                               |
+
+State score compares first. Equal scores use optional authored fallback order, then code-unit actor ID; caller array order and host locale never decide a tie. `recalculateVolatileActionPriority` always evaluates the replacement snapshot from scratch and reports changed factors plus score/rank movement.
+
+`per_actor` produces one global order. `side_phase` produces one non-empty block per eligible side, preserving computed actor order inside the block. Side precedence may be explicitly declared by the scene/deck controller; otherwise the highest-priority current actor on each side establishes block order. These are sequencing groups only, not the SPE-62 operational phase pipeline.
+
+`resolveHiddenCombat` accepts this snapshot optionally and returns the priority result without feeding it into power/difficulty outcome math or applying/persisting it. That provides the first volatile-context consumer while leaving action choice and encounter execution to SPE-2847 and confrontation outcomes to SPE-73.
+
 ## 1) Resolver categories
 
 ### A. Pure evaluation resolver
@@ -47,10 +70,10 @@ Use a compact input object with explicit values and optional condition-driven mo
 ### Conditional modifiers (optional)
 
 - `modifiers?: Array<{
-  id: string
-  when?: ScreenRouteCondition
-  powerDelta?: number
-  difficultyDelta?: number
+id: string
+when?: ScreenRouteCondition
+powerDelta?: number
+difficultyDelta?: number
 }>`
 
 Notes:
@@ -189,12 +212,30 @@ The aggregate-battle resolver currently applies ingress and anchor logic with ex
 
 Volatile actions resolve through a **compact ordered phase pipeline** that is the **common timing spine** across encounter types, procedures, and tactical substates. **Variants are declared** (per operation type, encounter family, or procedure taxonomy) instead of scattering one-off exception code paths.
 
+SPE-2900 slice 1 owns `volatile_action_v1` in `src/domain/volatileActionPhasePipeline.ts`: frozen phase ids `posture_commit` → `environmental_read` → `clash_window` → `effect_emission` → `cleanup`, one inspectable `after_posture_commit` reaction-window record, and explicit `stakes: 'none'` skip of clash + emission.
+
+SPE-2901 extends that spine: one **explicit** interrupt at `after_posture_commit` may rewrite later-phase statuses to `prepended`, `truncated`, or `redirected`. `posture_commit` stays `ran`. Frozen phase ids stay the same length and order. No-stakes `skipped` on clash + emission still wins over interrupt rewrite. Omit / `{ kind: 'none' }` keeps the SPE-2900 default.
+
+SPE-2902 extends that spine: one **explicit** hold-aim / abort-with-reason / delayed-emission record keyed to the encounter/procedure instance. Remaining later `'ran'` clash/emission statuses may become `held`, `aborted`, or `delayed`. No-stakes `skipped` and SPE-2901 interrupt rewrite still win. Optional `GameState.volatileActionHoldRecords` hydrates fail-closed and appends corrections instead of silent overwrite.
+
+SPE-2912 extends that spine: declared variants are `volatile_action_v1` and `volatile_action_procedure_v1`. Both reuse the same frozen five phase ids. Pipeline input requires an explicit `mode: 'task' | 'test' | 'advanced_action'`. Mode does not change SPE-54 scores. Unknown variant or mode fails closed.
+
+SPE-2915 extends that spine: one **explicit** authored impending-hazard declaration at `posture_commit` plus a consequence-reduction ladder that walks existing later phases only (`expose` @ `environmental_read`, `mitigate` @ `clash_window`, `apply` @ `effect_emission`). Hazard is never inferred from SPE-54 scores, array order, variant, or mode. Omit / `{ kind: 'none' }` keeps the SPE-2912 default. No-stakes does not enter volatile hazard resolution. Ladder step status uses already-resolved phase statuses; interrupt/hold do not revive skipped clash/emission.
+
+SPE-2916 extends that spine: pipeline output always includes an inspectable `explanation` derived from already-resolved phase statuses, no-stakes bypass, interrupt, hold, hazard declaration, and consequence-reduction steps. Reason codes are stable strings; callers do not infer skip/interrupt/hold/hazard from SPE-54 scores.
+
+SPE-2930 extends that spine: one **explicit** authored `wiring` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present' }`) consumes existing readiness, action-budget, spatial, and condition records as inspectable phase constraints. Wiring is never inferred from SPE-54 scores, array order, variant, or mode. No-stakes skip, interrupt rewrite, and hold still win over wiring. Explanation stays always emitted and adds stable wiring reason codes.
+
+SPE-2931 extends that spine: one **explicit** authored `iteration` snapshot (`omit` / `{ kind: 'none' }` vs `{ kind: 'present', authority: 'authored_procedure', procedureId }`) walks **one extra slice pass** on the same frozen five ids. Iteration is never inferred from variant, mode, SPE-54 scores, or array order. Inspectable `phases` stay length 5. No-stakes skip, interrupt rewrite, hold, and wiring still win; iteration does not revive skipped clash/emission. Explanation stays always emitted and adds stable iteration reason codes. Remaining bullets in this section stay parent SPE-62 — especially unified outcome bands / single-roll math; this does not close the SPE-62 umbrella.
+
+SPE-2217 adds the field action economy registry in `src/domain/fieldActionEconomyRegistry.ts`. This is a pure authored registry, not a volatile-action pipeline extension: it defines CP-neutral `primary` / `movement` / `maneuver` categories, the default direct-intervention / reposition / control-maneuver records, one primary-to-movement substitute conversion, and an impaired-mobility reduced-capacity record where movement is unavailable and max total slots are 2. Registry validation rejects unknown categories, same-category or surplus-generating conversions, unconstrained reduced-capacity records, duplicate ids, and tabletop/source-literal action tokens in player-facing fields. Invalid conversion and reduced-capacity records project fail-closed (`legal: false` or zero availability) rather than falling back to unrestricted action availability. No `GameState` field, hydrate path, event schema, week-close hook, UI surface, per-actor turn runner, SPE-40 mission budget behavior, or `resolveVolatileActionPhasePipeline` wiring is implied by this registry slice.
+
 ### Pipeline requirements
 
-- **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase *kinds* include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
+- **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase _kinds_ include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
 - **Interruption and reaction windows** — deterministic hooks where opposing readiness, tools, clocks, or external events may prepend, truncate, or redirect later phases.
 - **Held, aborted, or delayed actions** — hold-aim, abort-with-reason, and delayed-emission effects must remain keyed to the same encounter/procedure instance for save/load and replay.
-- **Multi-stage procedures** — long rituals or engineering tasks iterate **phase slices** on the shared spine rather than spawning unrelated parallel timers.
+- **Multi-stage procedures** — SPE-2931: long rituals or engineering tasks iterate **one extra phase-slice pass** on the shared frozen five ids rather than spawning unrelated parallel timers. `volatile_action_procedure_v1` remains a tag; iteration is authored.
 - **Unified cross-domain grammar** — task/test and advanced-action modes share outcome bands and effect maps where possible; differences are **variant declarations**, not duplicate resolver cores.
 - **Single-roll success plus effect** — when used, one evaluation selects outcome band **and** structured follow-on deltas so inspectors see a single causal chain.
 

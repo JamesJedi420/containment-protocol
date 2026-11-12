@@ -299,7 +299,7 @@ describe('scoring helpers', () => {
         utility: 'signal_jammers',
         utility2: 'emf_sensors',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     })
     const caseInstance = {
       ...state.cases['case-001'],
@@ -389,7 +389,7 @@ describe('scoring helpers', () => {
       tags: ['tech', 'analyst', 'scholar'],
       relationships: { 'agent-invest-layer': 2 },
       equipmentSlots: {},
-      equipment: {},
+      equipmentEffectScales: {},
     })
     const equippedTech = {
       ...baseTech,
@@ -397,7 +397,7 @@ describe('scoring helpers', () => {
         utility1: 'signal_jammers',
         utility2: 'emf_sensors',
       },
-      equipment: {},
+      equipmentEffectScales: {},
     }
     const investigator = makeRoleWeightedAgent('investigator', {
       id: 'agent-invest-layer',

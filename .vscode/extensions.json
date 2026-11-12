@@ -4,6 +4,12 @@
     "esbenp.prettier-vscode",
     "bradlc.vscode-tailwindcss",
     "vitest.explorer",
-    "ms-vscode.vscode-typescript-next"
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode-remote.remote-containers",
+    "eamodio.gitlens",
+    "GitHub.copilot",
+    "GitHub.copilot-chat",
+    "GitLab.gitlab-workflow",
+    "EditorConfig.EditorConfig"
   ]
 }

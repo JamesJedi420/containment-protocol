@@ -1,13 +1,16 @@
 import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router'
+import { mountApplication } from './app/applicationRoot'
 import App from './app/App'
+import { AppRouter } from './app/AppRouter'
+import { initializeErrorTracking } from './app/errorTracking'
 import './index.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
+mountApplication(
+  document.getElementById('root')!,
   <React.StrictMode>
-    <BrowserRouter>
+    <AppRouter>
       <App />
-    </BrowserRouter>
-  </React.StrictMode>
+    </AppRouter>
+  </React.StrictMode>,
+  initializeErrorTracking()
 )

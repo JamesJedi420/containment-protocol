@@ -15,7 +15,11 @@
  */
 
 import { clamp } from './math'
-import type { AgentFatigueChannels, AgentOverdriveState } from './agent/models'
+import type {
+  AgentFatigueChannels,
+  AgentOverdriveSource,
+  AgentOverdriveState,
+} from './agent/models'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -200,12 +204,9 @@ export function deriveFatigueChannelPenalties(
   const { physicalExhaustion: pe, mentalExhaustion: me, combatStress: cs } = channels
 
   return {
-    readinessPenalty:
-      pe >= PHYSICAL_READINESS_THRESHOLD ? Math.floor(pe * 0.4) : 0,
-    concentrationPenalty:
-      me >= MENTAL_CONCENTRATION_THRESHOLD ? Math.floor(me * 0.3) : 0,
-    combatPenalty:
-      cs >= COMBAT_STRESS_PENALTY_THRESHOLD ? Math.floor(cs * 0.35) : 0,
+    readinessPenalty: pe >= PHYSICAL_READINESS_THRESHOLD ? Math.floor(pe * 0.4) : 0,
+    concentrationPenalty: me >= MENTAL_CONCENTRATION_THRESHOLD ? Math.floor(me * 0.3) : 0,
+    combatPenalty: cs >= COMBAT_STRESS_PENALTY_THRESHOLD ? Math.floor(cs * 0.35) : 0,
   }
 }
 
@@ -237,7 +238,10 @@ export function canActivateAgentOverdrive(overdrive: AgentOverdriveState): boole
 }
 
 /** Activate bounded overdrive state with fixed duration and deterministic debt aftermath. */
-export function activateAgentOverdrive(overdrive: AgentOverdriveState): AgentOverdriveState {
+export function activateAgentOverdrive(
+  overdrive: AgentOverdriveState,
+  source?: AgentOverdriveSource
+): AgentOverdriveState {
   if (!canActivateAgentOverdrive(overdrive)) {
     return overdrive
   }
@@ -246,6 +250,7 @@ export function activateAgentOverdrive(overdrive: AgentOverdriveState): AgentOve
     active: true,
     remainingPhases: OVERDRIVE_DURATION_PHASES,
     recoveryDebt: OVERDRIVE_RECOVERY_DEBT_DURATION,
+    ...(source ? { source: { ...source } } : {}),
   }
 }
 
@@ -272,17 +277,24 @@ export function applyOverdriveRecoveryDebtTick(input: {
     return { channels, overdrive }
   }
 
+  const recoveryDebt = Math.max(0, overdrive.recoveryDebt - 1)
+  const overdriveWithoutSource: AgentOverdriveState = {
+    active: overdrive.active,
+    remainingPhases: overdrive.remainingPhases,
+    recoveryDebt,
+  }
   return {
     channels: {
       ...channels,
-      physicalExhaustion: clamp(channels.physicalExhaustion + OVERDRIVE_DEBT_PHYSICAL_DELTA, 0, 100),
+      physicalExhaustion: clamp(
+        channels.physicalExhaustion + OVERDRIVE_DEBT_PHYSICAL_DELTA,
+        0,
+        100
+      ),
       mentalExhaustion: clamp(channels.mentalExhaustion + OVERDRIVE_DEBT_MENTAL_DELTA, 0, 100),
       combatStress: clamp(channels.combatStress + OVERDRIVE_DEBT_COMBAT_STRESS_DELTA, 0, 100),
     },
-    overdrive: {
-      ...overdrive,
-      recoveryDebt: Math.max(0, overdrive.recoveryDebt - 1),
-    },
+    overdrive: recoveryDebt <= 0 ? overdriveWithoutSource : { ...overdrive, recoveryDebt },
   }
 }
 

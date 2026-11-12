@@ -1,0 +1,99 @@
+{
+  "policyOwner": "SPE-3348",
+  "files": [
+    "docs/cp-core-release-evidence.md",
+    "e2e/intervention-comparison.spec.ts",
+    "e2e/quiet-period.spec.ts",
+    "e2e/support/campaignBudget.ts",
+    "package-lock.json",
+    "package.json",
+    "planning/release-evidence/438c8df7/browser-observations.json",
+    "planning/release-evidence/438c8df7/execution-index.json",
+    "planning/release-evidence/438c8df7/requirements-execution.json",
+    "planning/release-evidence/b121d4f2/browser-observations.json",
+    "planning/release-evidence/b121d4f2/execution-index.json",
+    "planning/release-evidence/b121d4f2/requirements-execution.json",
+    "planning/release-evidence/cb37c23a/owner-assessment.md",
+    "planning/spe-3283-agency-route-readiness-slice.md",
+    "planning/spe-3352-concurrent-incidents-slice.md",
+    "planning/spe-3352-current-campaign-evidence-slice.md",
+    "planning/spe-3352-fixture-budgets-slice.md",
+    "planning/spe-3352-information-access-slice.md",
+    "planning/spe-3352-integrated-evidence-slice.md",
+    "planning/spe-3352-intervention-comparison-slice.md",
+    "planning/spe-3352-owner-evidence-slice.md",
+    "planning/spe-3352-owner-evidence.cb37c23a.v1.json",
+    "planning/spe-3352-quiet-period-slice.md",
+    "planning/spe-3352-release-evidence.438c8df7.v1.json",
+    "planning/spe-3352-release-evidence.b121d4f2.v1.json",
+    "planning/spe-3737-dependency-upgrades-slice.md",
+    "SCHEMA_REGISTRY.md",
+    "src/app/App.systemBoundary.route.test.tsx",
+    "src/app/store/missionResultHydration.test.ts",
+    "src/app/store/runTransfer.ts",
+    "src/components/TrendSummaryPanel.tsx",
+    "src/features/cases/CaseDetailPage.test.tsx",
+    "src/features/cases/CaseDetailPage.tsx",
+    "src/features/report/reportTrendView.ts",
+    "src/features/report/TrendSummaryPanel.test.tsx"
+  ],
+  "activeClasses": ["application", "docs", "e2e", "planning", "shared-config"],
+  "requiredIds": ["backlog-handoff", "lint", "playwright-e2e", "unit-tests", "vite-build"],
+  "advisoryIds": ["format-check", "typecheck"],
+  "skippedExceptionIds": [],
+  "results": [
+    {
+      "id": "backlog-handoff",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:verify:backlog-handoff"
+    },
+    {
+      "id": "format-check",
+      "status": "failed",
+      "enforcement": "advisory",
+      "whenUnavailable": "report-unavailable",
+      "detail": "npm:format:check exit 1",
+      "exitCode": 1
+    },
+    {
+      "id": "lint",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:lint"
+    },
+    {
+      "id": "playwright-e2e",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "report-unavailable",
+      "detail": "npm:test:e2e:ci"
+    },
+    {
+      "id": "typecheck",
+      "status": "passed",
+      "enforcement": "advisory",
+      "whenUnavailable": "report-unavailable",
+      "detail": "command:node scripts/typecheck-advisory.mjs"
+    },
+    {
+      "id": "unit-tests",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:test:run:ci"
+    },
+    {
+      "id": "vite-build",
+      "status": "passed",
+      "enforcement": "required",
+      "whenUnavailable": "fail",
+      "detail": "npm:build:bundle"
+    }
+  ],
+  "missingRequired": [],
+  "ok": true,
+  "advisoryFailures": ["format-check"]
+}

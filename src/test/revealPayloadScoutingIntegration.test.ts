@@ -3,10 +3,13 @@ import {
   buildSubjectTruthFromScouting,
   concealmentLayersFromRating,
   detectionScanTierOrder,
+  resolveScoutingWithCaseHiddenState,
   resolveScoutingWithRevealPayload,
   scoutingOutcomeToDetectionScan,
 } from '../domain/revealPayloadScoutingIntegration'
+import type { CaseInstance } from '../domain/models'
 import { resolveScouting } from '../domain/scoutingResolution'
+import { createStarterCase } from '../domain/templates/startingCases'
 
 const SUBJECT = {
   exactIdentity: 'entity:chapel-wraith',
@@ -122,6 +125,43 @@ describe('revealPayloadScoutingIntegration (SPE-781 slice 2)', () => {
     } else {
       expect(detectionScanTierOrder(integrated.detectionScan)).toEqual(['presence'])
     }
+  })
+
+  it('anchors false-position scouting scans to decoy locus without changing scouting outcome', () => {
+    const caseData: CaseInstance = {
+      ...createStarterCase({ id: 'case-scout-displaced', templateId: 'combat_vampire_nest' }),
+      mode: 'threshold',
+      hiddenState: 'displaced',
+      displacementTarget: 'annex-b',
+      detectionConfidence: 0.55,
+      counterDetection: false,
+      tags: ['concealment'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+      infiltrationCoverProfile: undefined,
+      infiltrationProbePlan: undefined,
+      weights: { combat: 0, investigation: 0, utility: 0, social: 0 },
+      difficulty: { combat: 0, investigation: 0, utility: 0, social: 0 },
+    }
+
+    const input = {
+      teamCapability: 3,
+      anomalyConcealment: 0,
+      teamTags: ['recon-specialist'],
+      gearTags: ['thermal-vision'],
+      subject: SUBJECT,
+      caseData,
+    }
+
+    const legacy = resolveScouting(input)
+    const integrated = resolveScoutingWithCaseHiddenState(input)
+
+    expect(integrated.outcome).toBe(legacy.outcome)
+    expect(integrated.revealed).toBe(legacy.revealed)
+    expect(
+      integrated.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+    ).toContain('decoy locus annex-b')
   })
 
   it('blocks exact identity on identity-probe scouting when two concealment layers remain after one peel', () => {

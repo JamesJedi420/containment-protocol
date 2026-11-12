@@ -254,6 +254,12 @@ export function createInitialFactionState(): NonNullable<GameState['factions']> 
       },
     }),
     institutions: createFactionRuntimeState('institutions', {
+      availableFavors: [
+        {
+          id: 'institutions-lab-access-boon',
+          label: 'Research lab access boon',
+        },
+      ],
       contacts: [
         createContact({
           id: 'institutions-halden',
@@ -324,6 +330,13 @@ export function createInitialFactionState(): NonNullable<GameState['factions']> 
       hiddenModifierCount: 1,
     }),
     corporate_supply: createFactionRuntimeState('corporate_supply', {
+      reputation: 12,
+      availableFavors: [
+        {
+          id: 'corporate-supply-salvage-credit',
+          label: 'Salvage reclamation credit',
+        },
+      ],
       contacts: [
         createContact({
           id: 'corporate-supply-vale',

@@ -34,7 +34,7 @@ export function AgentEntityPanel({
   const potentialAriaLabel = getPotentialAriaLabel(materialized.progression)
 
   return (
-    <div className="space-y-4" role="main" aria-label="Agent detail panel">
+    <section className="space-y-4" aria-label="Agent detail panel">
       <article className="panel space-y-4" aria-labelledby="agent-header">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-3">
@@ -58,7 +58,9 @@ export function AgentEntityPanel({
                   : 'No codename on file'}
               </p>
               {materialized.identity.roleIdentity ? (
-                <p className="text-sm opacity-60">Role identity {materialized.identity.roleIdentity}</p>
+                <p className="text-sm opacity-60">
+                  Role identity {materialized.identity.roleIdentity}
+                </p>
               ) : null}
               {materialized.identity.background ? (
                 <p className="max-w-3xl text-sm opacity-60">{materialized.identity.background}</p>
@@ -479,8 +481,8 @@ export function AgentEntityPanel({
                     value={String(materialized.equipmentSummary.activeContextSlots)}
                   />
                   <SnapshotMetric
-                    label="Loadout quality"
-                    value={String(materialized.equipmentSummary.loadoutQuality)}
+                    label="Loadout effect scale"
+                    value={String(materialized.equipmentSummary.loadoutEffectScale)}
                   />
                 </div>
               </div>
@@ -510,7 +512,7 @@ export function AgentEntityPanel({
                           {item.statusLabel}
                         </StatusPill>
                         <StatusPill tone={item.empty ? 'neutral' : 'warning'}>
-                          {item.qualityLabel}
+                          {item.effectScaleLabel}
                         </StatusPill>
                       </div>
                     </div>
@@ -624,7 +626,7 @@ export function AgentEntityPanel({
           </div>
         </article>
       </div>
-    </div>
+    </section>
   )
 }
 

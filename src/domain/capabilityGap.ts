@@ -54,7 +54,7 @@ function computeCourierNetworkCurrent(
   const front = game.agency?.courierShellFront
   const notes: CapabilityGapComponentNote[] = []
 
-  let tier = cal.informalNetworkBaseScore
+  let tier: number = cal.informalNetworkBaseScore
   let tierLabel = 'informal_base'
 
   if (front?.type === 'courierShell') {

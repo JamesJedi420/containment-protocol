@@ -58,6 +58,23 @@ Validate that save/load preserves canonical simulation state and authored runtim
   - inventory quantities are retained and non-negative
   - market listing behavior remains coherent with current market week
 
+## Named Facility Stockpile
+
+- Use a run or fixture with `facilityStockpile: { blast_door_hinge_seal: 2 }`.
+- Save and reload before repair.
+- Verify:
+  - the named stockpile still has `blast_door_hinge_seal: 2`
+  - catalog `inventory` did not gain or lose `ward_seals` or other generic items
+  - malformed, zero, negative, fractional, unknown, or omitted stockpile entries hydrate empty or
+    drop without blocking the rest of the save
+- Repair one stored damaged `blast_door` identity with the suitable `blast_door_hinge_seal` part.
+- Save and reload after repair.
+- Verify:
+  - the repaired identity remains `operational`
+  - `facilityStockpile.blast_door_hinge_seal` is now `1`
+  - reloading the same payload does not debit the named stock a second time
+  - missing or zero named stock fail-closes repair with no condition flip and no repair event
+
 ## Agency + Mirrors
 
 - Alter agency progression via gameplay (containment/funding/reputation effects).

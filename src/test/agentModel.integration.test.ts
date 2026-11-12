@@ -51,7 +51,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.traits).toEqual([])
     expect(agent.abilities).toEqual([])
@@ -88,6 +88,20 @@ describe('core agent model integration', () => {
     expect(agent.assignment).toEqual({ state: 'idle' })
     expect(agent.assignmentStatus).toEqual({ state: 'idle', teamId: null, caseId: null })
     expect(agent.operationalRole).toBe('investigation')
+  })
+
+  it('drops persisted equipment effect scales that are not positive integers', () => {
+    const game = createStartingState()
+    game.agents.a_mina.equipmentEffectScales = {
+      signal_jammers: 2,
+      medkits: 0,
+      ward_seals: -1,
+      combat_stims: 0.5,
+    }
+
+    const normalized = normalizeGameState(game)
+
+    expect(normalized.agents.a_mina.equipmentEffectScales).toEqual({ signal_jammers: 2 })
   })
 
   it('hydrates sparse imported agents without changing the persistence contract', () => {
@@ -130,7 +144,7 @@ describe('core agent model integration', () => {
       growthStats: {},
       skillTree: { skillPoints: 0, trainedRelationships: {} },
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.assignment).toEqual({ state: 'idle' })
@@ -168,11 +182,30 @@ describe('core agent model integration', () => {
           relationshipDelta: 0.25,
           trainedRelationshipDelta: 2,
         },
+        {
+          id: 'training-legacy-2',
+          trainingId: 'coordination-drill',
+          trainingName: 'Coordination Drill',
+          scope: 'team',
+          agentId: 'a_ava',
+          agentName: 'Ava Brooks',
+          teamId: 't_nightwatch',
+          teamName: 'Night Watch',
+          drillGroupId: 'group-1',
+          memberIds: ['a_ava', 'a_rook'],
+          targetStat: 'utility',
+          statDelta: 1,
+          startedWeek: 2,
+          durationWeeks: 2,
+          remainingWeeks: 0,
+          fundingCost: 15,
+          fatigueDelta: 6,
+        },
       ],
     })
 
     expect(hydrated.academyTier).toBe(3)
-    expect(hydrated.trainingQueue).toHaveLength(1)
+    expect(hydrated.trainingQueue).toHaveLength(2)
     expect(hydrated.trainingQueue[0]).toMatchObject({
       scope: 'team',
       teamId: 't_nightwatch',
@@ -252,7 +285,7 @@ describe('core agent model integration', () => {
       band: 'steady',
       deploymentEligible: true,
     })
-    expect(agent.equipment).toEqual({})
+    expect(agent.equipmentEffectScales).toEqual({})
     expect(agent.equipmentSlots).toEqual({})
     expect(agent.abilities).toEqual([])
     expect(agent.history?.timeline).toEqual([
@@ -347,7 +380,7 @@ describe('core agent model integration', () => {
     assigned.funding = 200
     assigned.agents[gearedAgentId] = {
       ...assigned.agents[gearedAgentId],
-      equipment: {},
+      equipmentEffectScales: {},
       equipmentSlots: {
         secondary: 'ward_seals',
         utility1: 'warding_kits',
@@ -510,8 +543,7 @@ describe('core agent model integration', () => {
     state.clearanceLevel = 1
     state.funding = 100
     state.recruitmentPool = []
-    team.status!.assignedCaseId = null
-    team.assignedCaseId = 'case-001'
+    team.agentIds = [...team.memberIds!, 'a_missing']
 
     expect(hasGameStateMirrorParity(state)).toBe(false)
 
@@ -522,7 +554,6 @@ describe('core agent model integration', () => {
     expect(normalized.clearanceLevel).toBe(1)
     expect(normalized.funding).toBe(100)
     expect(normalized.recruitmentPool).toEqual([candidate])
-    expect(normalized.teams.t_nightwatch.status!.assignedCaseId).toBe(null)
-    expect(normalized.teams.t_nightwatch.assignedCaseId).toBeUndefined()
+    expect(normalized.teams.t_nightwatch.agentIds).toEqual(normalized.teams.t_nightwatch.memberIds)
   })
 })

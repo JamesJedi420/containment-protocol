@@ -86,31 +86,29 @@ describe('teamSimulation', () => {
     })
   })
 
-  it('keeps canonical status mirrored with legacy assignment fields', () => {
+  it('stores assignment on team status after assignTeam sync', () => {
     const state = syncTeamSimulationState(
       assignTeam(createStartingState(), 'case-001', 't_nightwatch')
     )
     const team = state.teams['t_nightwatch']
 
     expect(getTeamAssignedCaseId(team)).toBe('case-001')
-    expect(team.assignedCaseId).toBe('case-001')
     expect(team.status?.assignedCaseId).toBe('case-001')
     expect(team.status?.state).toMatch(/deployed|resolving/)
   })
 
-  it('prefers canonical status assignment over legacy alias when both are present', () => {
+  it('reads assignment from team status only', () => {
     const state = createStartingState()
-    const conflictingTeam = {
+    const teamWithStatus = {
       ...state.teams['t_nightwatch'],
       status: {
         ...state.teams['t_nightwatch'].status,
         state: state.teams['t_nightwatch'].status?.state ?? 'ready',
         assignedCaseId: 'case-001',
       },
-      assignedCaseId: 'case-003',
     }
 
-    expect(getTeamAssignedCaseId(conflictingTeam)).toBe('case-001')
+    expect(getTeamAssignedCaseId(teamWithStatus)).toBe('case-001')
   })
 
   it('builds a squad composition profile with readiness and chemistry outputs', () => {

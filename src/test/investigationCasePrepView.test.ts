@@ -4,9 +4,11 @@ import { applyStealthLeaveBehindInvestigationCustodyLoss } from '../domain/inves
 import {
   applySuccessfulInvestigation,
   askInvestigationQuestion,
+  canAskInvestigationQuestionOnCase as canAskInvestigationQuestionOnCaseDomain,
   grantInvestigationQuestionBudget,
 } from '../domain/investigationEconomy'
 import { createStarterCase } from '../domain/templates/startingCases'
+import { CANAL_BRIDGE_NAMING_HAZARD_FIXTURE } from '../domain/namingHazardDescriptorRegistry'
 import {
   buildInvestigationCasePrepView,
   canAskInvestigationQuestionOnCase,
@@ -33,7 +35,10 @@ describe('investigationCasePrepView', () => {
     expect(canShowInvestigationCasePrepOnCase({ ...inProgress, status: 'open' })).toBe(false)
     expect(canShowInvestigationCasePrepOnCase({ ...inProgress, status: 'resolved' })).toBe(false)
 
-    const hidden = buildInvestigationCasePrepView({ ...inProgress, status: 'open' }, createStartingState())
+    const hidden = buildInvestigationCasePrepView(
+      { ...inProgress, status: 'open' },
+      createStartingState()
+    )
     expect(hidden.visible).toBe(false)
   })
 
@@ -42,6 +47,16 @@ describe('investigationCasePrepView', () => {
     expect(canAskInvestigationQuestionOnCase(inProgress)).toBe(true)
     expect(canAskInvestigationQuestionOnCase(undefined)).toBe(false)
     expect(canAskInvestigationQuestionOnCase({ ...inProgress, status: 'resolved' })).toBe(false)
+    for (const caseData of [
+      undefined,
+      inProgress,
+      { ...inProgress, status: 'open' as const },
+      { ...inProgress, status: 'resolved' as const },
+    ]) {
+      expect(canAskInvestigationQuestionOnCaseDomain(caseData)).toBe(
+        canAskInvestigationQuestionOnCase(caseData)
+      )
+    }
   })
 
   it('shows forensic and tactical budgets after investigation grant', () => {
@@ -116,5 +131,24 @@ describe('investigationCasePrepView', () => {
     expect(view.custodyMarkers[0]?.ref).toBe('custody:chain-seal')
     expect(view.forensic.budget.custodyLossBurden).toBe(2)
     expect(view.forensic.budget.remaining).toBe(1)
+  })
+
+  it('surfaces safe naming-hazard descriptor labels for linked intake topics', () => {
+    const game = createStartingState()
+    game.cases['case-investigation-prep'] = {
+      ...createInProgressCase(),
+      tags: ['topic:canal-bridge-incident'],
+    }
+    game.namingHazardDescriptorRecords = {
+      [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+    }
+
+    const view = buildInvestigationCasePrepView(game.cases['case-investigation-prep']!, game)
+
+    expect(view.namingHazardDescriptors).toHaveLength(1)
+    expect(view.namingHazardDescriptors[0]?.safeLabel).toBe('East canal approach lane')
+    expect(view.namingHazardDescriptors[0]?.safeLabel).not.toBe(
+      CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.label
+    )
   })
 })

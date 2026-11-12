@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { caseTemplateMap } from '../data/caseTemplates'
 import { CASE_LORE_STUBS } from '../data/copy'
 import { createStartingState } from '../data/startingState'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 import {
   assertKnownAuthoredAbilities,
   getAuthoredAbilityValidationIssues,
@@ -342,11 +343,14 @@ describe('starter content contracts', () => {
     const stateA = createStartingState()
     const stateB = createStartingState()
 
-    stateA.teams['t_nightwatch'].assignedCaseId = 'case-001'
+    stateA.teams['t_nightwatch'].status = {
+      ...(stateA.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-001',
+    }
     stateA.cases['case-001'].assignedTeamIds.push('t_nightwatch')
     stateA.cases['case-001'].onFail.spawnTemplateIds!.push('combat_vampire_nest')
 
-    expect(stateB.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(stateB.teams['t_nightwatch'])).toBeNull()
     expect(stateB.cases['case-001'].assignedTeamIds).toEqual([])
     expect(stateB.cases['case-001'].onFail.spawnTemplateIds ?? []).toEqual([
       'followup_missing_persons',

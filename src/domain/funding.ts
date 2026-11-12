@@ -1,14 +1,67 @@
 // Funding, Procurement, & Budget Pressure System Logic
 // Deterministic, explicit, and testable
 
+import {
+  inventoryItemLabels,
+  productionCatalog,
+  productionMaterialCatalog,
+} from '../data/production'
+import { getEquipmentCatalogEntries } from './equipment'
 import type {
+  CourierShellFrontState,
   GameState,
   FundingState,
   FundingCategory,
   FundingHistoryRecord,
+  LegitimacyState,
   ProcurementBacklogEntry,
+  SupportStaffSummary,
 } from './models'
 import { FUNDING_CALIBRATION } from './sim/calibration'
+import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
+
+const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
+const FUNDING_HISTORY_DELTA_LIMIT = 1_000_000
+const FUNDING_HISTORY_REASON_MAX_LENGTH = 80
+const FUNDING_HISTORY_SOURCE_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_REQUEST_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_BLOCKED_REASON_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_LISTING_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_COST_LIMIT = 1_000_000
+const PROCUREMENT_BACKLOG_QUANTITY_LIMIT = 999
+const PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT = 52
+
+let knownProcurementItemIdsCache: Set<string> | undefined
+let knownProcurementListingItemIdsCache: Map<string, string> | undefined
+
+export function getKnownProcurementItemIds(): Set<string> {
+  if (!knownProcurementItemIdsCache) {
+    knownProcurementItemIdsCache = new Set([
+      ...Object.keys(inventoryItemLabels),
+      ...productionMaterialCatalog.map((material) => material.materialId),
+      ...productionCatalog.map((recipe) => recipe.outputItemId),
+      ...getEquipmentCatalogEntries().map((definition) => definition.id),
+    ])
+  }
+
+  return knownProcurementItemIdsCache
+}
+
+function getKnownProcurementListingItemIds(): Map<string, string> {
+  if (!knownProcurementListingItemIdsCache) {
+    knownProcurementListingItemIdsCache = new Map([
+      ...productionCatalog.map((recipe) => [recipe.recipeId, recipe.outputItemId] as const),
+      ...productionMaterialCatalog.map(
+        (material) => [`material:${material.materialId}`, material.materialId] as const
+      ),
+      ...getEquipmentCatalogEntries().map(
+        (definition) => [`gear:${definition.id}`, definition.id] as const
+      ),
+    ])
+  }
+
+  return knownProcurementListingItemIdsCache
+}
 
 type FundingConfig = Pick<
   GameState['config'],
@@ -35,7 +88,8 @@ export interface FundingPressureAssessment {
 }
 
 function sanitizeInteger(value: number | undefined, fallback: number, min?: number) {
-  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
+  const finiteValue =
+    typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
 
   if (typeof min === 'number') {
     return Math.max(min, finiteValue)
@@ -50,12 +104,135 @@ function uniqueSorted(values: readonly string[]) {
   )
 }
 
+function clampCampaignWeek(value: number | undefined, campaignWeek: number, fallback: number) {
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  return Math.min(cappedWeek, sanitizeInteger(value, fallback, 1))
+}
+
+const COURIER_SHELL_STATUSES = ['active', 'strained', 'collapsed'] as const
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * SPE-449–450: sanitize courier shell front snapshots (status, exposure, temporal weeks, collapse reason).
+ */
+export function sanitizeCourierShellFrontState(
+  value: unknown,
+  campaignWeek: number
+): CourierShellFrontState | undefined {
+  if (!isRecord(value) || value.type !== 'courierShell') {
+    return undefined
+  }
+
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const startedWeek = clampCampaignWeek(value.startedWeek as number | undefined, cappedWeek, 1)
+  const rawLastResolved =
+    typeof value.lastResolvedWeek === 'number' && Number.isFinite(value.lastResolvedWeek)
+      ? Math.trunc(value.lastResolvedWeek)
+      : undefined
+  const lastResolvedWeek =
+    typeof rawLastResolved === 'number'
+      ? Math.min(cappedWeek, Math.max(startedWeek, rawLastResolved))
+      : undefined
+
+  const status = COURIER_SHELL_STATUSES.includes(
+    value.status as (typeof COURIER_SHELL_STATUSES)[number]
+  )
+    ? (value.status as CourierShellFrontState['status'])
+    : 'active'
+
+  const exposureBand: CourierShellFrontState['exposureBand'] =
+    status === 'active' ? 'low' : 'elevated'
+
+  const startupCostPaid = sanitizeInteger(value.startupCostPaid as number | undefined, 0, 0)
+  const lastNet =
+    typeof value.lastNet === 'number' && Number.isFinite(value.lastNet)
+      ? Math.trunc(value.lastNet)
+      : undefined
+
+  const collapseReason =
+    status === 'collapsed' && value.collapseReason === 'overstretched' ? 'overstretched' : undefined
+
+  return {
+    type: 'courierShell',
+    status,
+    startedWeek,
+    startupCostPaid,
+    exposureBand,
+    ...(typeof lastResolvedWeek === 'number' ? { lastResolvedWeek } : {}),
+    ...(typeof lastNet === 'number' ? { lastNet } : {}),
+    ...(collapseReason ? { collapseReason } : {}),
+  }
+}
+
+/** SPE-452: clamp maintenance specialist pool to a non-negative bounded weekly capacity. */
+export function sanitizeMaintenanceSpecialistsAvailable(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined
+  }
+
+  return Math.min(99, Math.max(0, Math.trunc(value)))
+}
+
+function sanitizeCourierShellBudgetPressureDebt(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined
+  }
+
+  const debt = Math.max(0, Math.trunc(value))
+  const cap = FUNDING_CALIBRATION.budgetPressure.maxPressure
+
+  return Math.min(cap, debt)
+}
+
+function isFundingHistorySourceIdValid(
+  reason: string,
+  sourceId: string | undefined,
+  procurementRequestIds: Set<string>
+) {
+  if (!sourceId) {
+    return !PROCUREMENT_SOURCE_REASONS.has(reason)
+  }
+
+  if (PROCUREMENT_SOURCE_REASONS.has(reason)) {
+    return procurementRequestIds.has(sourceId)
+  }
+
+  return sourceId.trim().length > 0
+}
+
+function sanitizeFundingHistoryReason(value: string) {
+  return value.trim().slice(0, FUNDING_HISTORY_REASON_MAX_LENGTH)
+}
+
+function sanitizeFundingHistorySourceId(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const sourceId = value.trim().slice(0, FUNDING_HISTORY_SOURCE_ID_MAX_LENGTH)
+  return sourceId.length > 0 ? sourceId : undefined
+}
+
+function sanitizeFundingHistoryDelta(value: number) {
+  return Math.max(
+    -FUNDING_HISTORY_DELTA_LIMIT,
+    Math.min(FUNDING_HISTORY_DELTA_LIMIT, Number(value.toFixed(2)))
+  )
+}
+
 function sanitizeFundingHistory(
-  value: FundingState['fundingHistory'] | undefined
+  value: FundingState['fundingHistory'] | undefined,
+  campaignWeek: number,
+  procurementRequestIds: Set<string>
 ): FundingState['fundingHistory'] {
   if (!Array.isArray(value)) {
     return []
   }
+
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
 
   return value
     .filter(
@@ -64,16 +241,26 @@ function sanitizeFundingHistory(
         Number.isFinite(entry.week) &&
         typeof entry.delta === 'number' &&
         Number.isFinite(entry.delta) &&
-        typeof entry.reason === 'string'
+        typeof entry.reason === 'string' &&
+        entry.reason.trim().length > 0
     )
-    .map((entry) => ({
-      week: sanitizeInteger(entry.week, 0, 0),
-      delta: Number(entry.delta.toFixed(2)),
-      reason: entry.reason,
-      ...(typeof entry.sourceId === 'string' && entry.sourceId.length > 0
-        ? { sourceId: entry.sourceId }
-        : {}),
-    }))
+    .map((entry) => {
+      const week = clampCampaignWeek(entry.week, cappedWeek, cappedWeek)
+      const reason = sanitizeFundingHistoryReason(entry.reason) as FundingCategory
+      const sourceId = sanitizeFundingHistorySourceId(entry.sourceId)
+
+      if (!isFundingHistorySourceIdValid(reason, sourceId, procurementRequestIds)) {
+        return null
+      }
+
+      return {
+        week,
+        delta: sanitizeFundingHistoryDelta(entry.delta),
+        reason,
+        ...(sourceId ? { sourceId } : {}),
+      }
+    })
+    .filter((entry): entry is FundingHistoryRecord => entry !== null)
     .sort((left, right) => {
       if (left.week !== right.week) {
         return left.week - right.week
@@ -91,22 +278,148 @@ function sanitizeFundingHistory(
 
       return left.delta - right.delta
     })
+    .filter((entry, index, entries) => {
+      // Each explicit purchase or repair is a distinct expense, even for the same source and week.
+      if (
+        (entry.reason === 'facility_maintenance_package' &&
+          entry.sourceId === 'facility-maintenance-package') ||
+        (entry.reason === 'equipment_repair' && entry.sourceId)
+      )
+        return true
+      const key = `${entry.week}:${entry.reason}:${entry.sourceId ?? ''}`
+      return (
+        entries.findIndex(
+          (candidate) => `${candidate.week}:${candidate.reason}:${candidate.sourceId ?? ''}` === key
+        ) === index
+      )
+    })
+}
+
+function sanitizeProcurementBacklogRequestId(value: string) {
+  return value.trim().slice(0, PROCUREMENT_BACKLOG_REQUEST_ID_MAX_LENGTH)
+}
+
+function sanitizeProcurementBacklogBlockedReason(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const blockedReason = value.trim().slice(0, PROCUREMENT_BACKLOG_BLOCKED_REASON_MAX_LENGTH)
+  return blockedReason.length > 0 ? blockedReason : undefined
+}
+
+function sanitizeProcurementBacklogListingId(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const listingId = value.trim().slice(0, PROCUREMENT_BACKLOG_LISTING_ID_MAX_LENGTH)
+  return listingId.length > 0 ? listingId : undefined
+}
+
+function sanitizeProcurementBacklogCost(value: number) {
+  return Math.max(0, Math.min(PROCUREMENT_BACKLOG_COST_LIMIT, Number(value.toFixed(2))))
+}
+
+function sanitizeProcurementBacklogEntry(
+  entry: ProcurementBacklogEntry,
+  campaignWeek: number,
+  knownItemIds: Set<string>,
+  knownListingItemIds: Map<string, string>
+): ProcurementBacklogEntry | null {
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const requestId = sanitizeProcurementBacklogRequestId(entry.requestId)
+  const itemId = entry.itemId.trim()
+  if (requestId.length === 0 || itemId.length === 0) {
+    return null
+  }
+
+  if (
+    typeof entry.quantity !== 'number' ||
+    !Number.isFinite(entry.quantity) ||
+    entry.quantity < 1
+  ) {
+    return null
+  }
+
+  const quantity = Math.min(
+    PROCUREMENT_BACKLOG_QUANTITY_LIMIT,
+    Math.max(1, Math.trunc(entry.quantity))
+  )
+
+  const requestedWeek = clampCampaignWeek(entry.requestedWeek, cappedWeek, 1)
+  let status = entry.status
+  const originalStatus = status
+  let fulfilledWeek =
+    typeof entry.fulfilledWeek === 'number' && Number.isFinite(entry.fulfilledWeek)
+      ? clampCampaignWeek(entry.fulfilledWeek, cappedWeek, requestedWeek)
+      : undefined
+  let blockedReason = sanitizeProcurementBacklogBlockedReason(entry.blockedReason)
+
+  const itemKnown = knownItemIds.has(itemId)
+
+  if (!itemKnown) {
+    status = 'cancelled'
+    fulfilledWeek = originalStatus === 'pending' ? requestedWeek : (fulfilledWeek ?? requestedWeek)
+    blockedReason = blockedReason ?? 'unknown_item'
+  }
+
+  const listingId = sanitizeProcurementBacklogListingId(entry.listingId)
+  const knownListingItemId = listingId ? knownListingItemIds.get(listingId) : undefined
+  const staleListing = Boolean(listingId && knownListingItemId !== itemId)
+
+  if (staleListing) {
+    if (status === 'pending') {
+      status = 'cancelled'
+      fulfilledWeek = requestedWeek
+    }
+    blockedReason = blockedReason ?? 'stale_listing'
+  }
+
+  if (status === 'pending') {
+    fulfilledWeek = undefined
+    blockedReason = undefined
+  } else {
+    if (fulfilledWeek === undefined || fulfilledWeek < requestedWeek) {
+      fulfilledWeek = requestedWeek
+    }
+  }
+
+  const delayWeeks =
+    typeof entry.delayWeeks === 'number' && Number.isFinite(entry.delayWeeks)
+      ? Math.min(PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT, Math.max(0, Math.trunc(entry.delayWeeks)))
+      : undefined
+
+  return {
+    requestId,
+    itemId,
+    quantity,
+    requestedWeek,
+    cost: sanitizeProcurementBacklogCost(entry.cost),
+    status,
+    ...(fulfilledWeek !== undefined ? { fulfilledWeek } : {}),
+    ...(blockedReason ? { blockedReason } : {}),
+    ...(listingId && !staleListing ? { listingId } : {}),
+    ...(delayWeeks !== undefined ? { delayWeeks } : {}),
+  }
 }
 
 function sanitizeProcurementBacklog(
-  value: FundingState['procurementBacklog'] | undefined
+  value: FundingState['procurementBacklog'] | undefined,
+  campaignWeek: number,
+  knownItemIds: Set<string>
 ): FundingState['procurementBacklog'] {
   if (!Array.isArray(value)) {
     return []
   }
 
-  return value
+  const sanitized = value
     .filter(
       (entry): entry is ProcurementBacklogEntry =>
         typeof entry?.requestId === 'string' &&
-        entry.requestId.length > 0 &&
+        entry.requestId.trim().length > 0 &&
         typeof entry.itemId === 'string' &&
-        entry.itemId.length > 0 &&
+        entry.itemId.trim().length > 0 &&
         typeof entry.quantity === 'number' &&
         Number.isFinite(entry.quantity) &&
         typeof entry.requestedWeek === 'number' &&
@@ -115,20 +428,15 @@ function sanitizeProcurementBacklog(
         Number.isFinite(entry.cost) &&
         (entry.status === 'pending' || entry.status === 'fulfilled' || entry.status === 'cancelled')
     )
-    .map((entry) => ({
-      requestId: entry.requestId,
-      itemId: entry.itemId,
-      quantity: sanitizeInteger(entry.quantity, 1, 0),
-      requestedWeek: sanitizeInteger(entry.requestedWeek, 0, 0),
-      cost: sanitizeInteger(entry.cost, 0),
-      status: entry.status,
-      ...(typeof entry.fulfilledWeek === 'number' && Number.isFinite(entry.fulfilledWeek)
-        ? { fulfilledWeek: sanitizeInteger(entry.fulfilledWeek, 0, 0) }
-        : {}),
-      ...(typeof entry.blockedReason === 'string' && entry.blockedReason.length > 0
-        ? { blockedReason: entry.blockedReason }
-        : {}),
-    }))
+    .map((entry) =>
+      sanitizeProcurementBacklogEntry(
+        entry,
+        campaignWeek,
+        knownItemIds,
+        getKnownProcurementListingItemIds()
+      )
+    )
+    .filter((entry): entry is ProcurementBacklogEntry => entry !== null)
     .sort((left, right) => {
       if (left.requestedWeek !== right.requestedWeek) {
         return left.requestedWeek - right.requestedWeek
@@ -136,6 +444,23 @@ function sanitizeProcurementBacklog(
 
       return left.requestId.localeCompare(right.requestId)
     })
+
+  /** SPE-458: duplicate request ids keep the earliest requestedWeek entry. */
+  const dedupedByRequestId = new Map<string, ProcurementBacklogEntry>()
+
+  for (const entry of sanitized) {
+    if (!dedupedByRequestId.has(entry.requestId)) {
+      dedupedByRequestId.set(entry.requestId, entry)
+    }
+  }
+
+  return [...dedupedByRequestId.values()].sort((left, right) => {
+    if (left.requestedWeek !== right.requestedWeek) {
+      return left.requestedWeek - right.requestedWeek
+    }
+
+    return left.requestId.localeCompare(right.requestId)
+  })
 }
 
 // --- Funding Logic ---
@@ -192,6 +517,195 @@ export function applyFundingExpense(
   }
 }
 
+/** SPE-28 / SPE-2718: stable sourceId for weekly payroll + facility operating-cost expenses. */
+export const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
+const WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID = 'weekly-inventory-holding-cost'
+
+function countSupportStaffHeadcount(supportStaff: SupportStaffSummary | undefined) {
+  if (!supportStaff) {
+    return 0
+  }
+
+  if (typeof supportStaff.total === 'number' && Number.isFinite(supportStaff.total)) {
+    return Math.max(0, Math.trunc(supportStaff.total))
+  }
+
+  return (
+    (supportStaff.admin ?? 0) +
+    (supportStaff.logistics ?? 0) +
+    (supportStaff.medical ?? 0) +
+    (supportStaff.intel ?? 0)
+  )
+}
+
+/** SPE-28: payroll + facility upkeep for the week being closed (deterministic, no simulator). */
+export function computeWeeklyOperatingCost(
+  game: Pick<GameState, 'agents' | 'supportStaff'>,
+  closedWeek: number
+): number {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  const cal = FUNDING_CALIBRATION.weeklyOperatingCost
+  const agentCount = Object.keys(game.agents).length
+  const payroll = agentCount * cal.payrollPerAgent
+  const staffOverhead = countSupportStaffHeadcount(game.supportStaff) * cal.payrollPerSupportRole
+  const upkeepSpike = week % cal.upkeepSpikeEveryWeeks === 0 ? cal.upkeepSpikeAmount : 0
+
+  return payroll + staffOverhead + cal.facilityUpkeepBase + upkeepSpike
+}
+
+export function hasWeeklyOperatingCostForWeek(
+  fundingState: FundingState | undefined,
+  closedWeek: number
+): boolean {
+  if (!fundingState) {
+    return false
+  }
+
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  return fundingState.fundingHistory.some(
+    (entry) =>
+      entry.week === week &&
+      entry.reason === 'operating_cost' &&
+      entry.sourceId === WEEKLY_OPERATING_COST_SOURCE_ID
+  )
+}
+
+export function applyWeeklyOperatingCostToFundingState(
+  state: FundingState,
+  game: Pick<GameState, 'agents' | 'supportStaff'>,
+  closedWeek: number
+): { state: FundingState; appliedAmount: number } {
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  if (hasWeeklyOperatingCostForWeek(state, week)) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const amount = computeWeeklyOperatingCost(game, week)
+  if (amount <= 0) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const withExpense = applyFundingExpense(
+    state,
+    amount,
+    'operating_cost',
+    week,
+    WEEKLY_OPERATING_COST_SOURCE_ID
+  )
+
+  return {
+    state: recomputeBudgetPressure(withExpense, week),
+    appliedAmount: amount,
+  }
+}
+
+export function sumInventoryStock(inventory: GameState['inventory'] | undefined): number {
+  if (!inventory) {
+    return 0
+  }
+
+  return Object.values(inventory).reduce(
+    (sum, quantity) =>
+      sum +
+      Math.max(
+        0,
+        Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)
+      ),
+    0
+  )
+}
+
+/** SPE-2321: mirrors assessProcurementShortagePressure in market.ts (avoid circular import). */
+function hasVendorShortagePressureSignals(
+  game: Pick<GameState, 'inventory'>,
+  fundingState: FundingState,
+  staleProcurementRequestIds: readonly string[]
+): boolean {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+
+  return (
+    sumInventoryStock(game.inventory) > cal.stockThreshold ||
+    fundingState.budgetPressure >= cal.budgetPressureThreshold ||
+    staleProcurementRequestIds.length > 0
+  )
+}
+
+function hasCallableObligationProcurementLeverageSignals(
+  game: Pick<GameState, 'factions'>
+): boolean {
+  const cal = FUNDING_CALIBRATION.procurementCallableObligation
+  const favors = game.factions?.[cal.factionId]?.availableFavors ?? []
+
+  return favors.some((favor) => favor.id === cal.favorId)
+}
+
+/** SPE-2320: stocked inventory carrying fee for the week being closed (deterministic, no simulator). */
+export function computeWeeklyInventoryHoldingCost(
+  game: Pick<GameState, 'inventory'>,
+  closedWeek: number
+): number {
+  void closedWeek
+  const cal = FUNDING_CALIBRATION.weeklyInventoryHoldingCost
+  const totalStock = sumInventoryStock(game.inventory)
+  const billableStock = Math.max(0, totalStock - cal.billableStockThreshold)
+
+  if (billableStock <= 0) {
+    return 0
+  }
+
+  return Math.max(0, billableStock * cal.costPerStockUnit)
+}
+
+export function hasWeeklyInventoryHoldingCostForWeek(
+  fundingState: FundingState | undefined,
+  closedWeek: number
+): boolean {
+  if (!fundingState) {
+    return false
+  }
+
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  return fundingState.fundingHistory.some(
+    (entry) =>
+      entry.week === week &&
+      entry.reason === 'inventory_holding_cost' &&
+      entry.sourceId === WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID
+  )
+}
+
+export function applyWeeklyInventoryHoldingCostToFundingState(
+  state: FundingState,
+  game: Pick<GameState, 'inventory'>,
+  closedWeek: number
+): { state: FundingState; appliedAmount: number } {
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  if (hasWeeklyInventoryHoldingCostForWeek(state, week)) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const amount = computeWeeklyInventoryHoldingCost(game, week)
+  if (amount <= 0) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const withExpense = applyFundingExpense(
+    state,
+    amount,
+    'inventory_holding_cost',
+    week,
+    WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID
+  )
+
+  return {
+    state: recomputeBudgetPressure(withExpense, week),
+    appliedAmount: amount,
+  }
+}
+
 // --- Procurement Logic ---
 
 export function placeProcurementOrder(
@@ -201,7 +715,13 @@ export function placeProcurementOrder(
   // Validate affordability at placement
   if (entry.cost > state.funding) throw new Error('Insufficient funds for procurement order')
   // Deduct cost at placement (policy: deterministic)
-  const updatedState = applyFundingExpense(state, entry.cost, 'market_transaction', entry.requestedWeek, entry.requestId)
+  const updatedState = applyFundingExpense(
+    state,
+    entry.cost,
+    'market_transaction',
+    entry.requestedWeek,
+    entry.requestId
+  )
   const backlogEntry: ProcurementBacklogEntry = {
     ...entry,
     status: 'pending',
@@ -264,6 +784,15 @@ export function cancelProcurementOrder(
   }
 }
 
+export const POST_INCIDENT_CLOSEOUT_REWARD_REASON = 'post_incident_closeout_reward'
+export const POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON =
+  'post_incident_closeout_training_credit'
+
+const BUDGET_PRESSURE_HISTORY_EXCLUDED_REASONS = new Set<string>([
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+])
+
 // --- Budget Pressure Logic ---
 
 export function recomputeBudgetPressure(state: FundingState, currentWeek?: number): FundingState {
@@ -289,22 +818,22 @@ export function recomputeBudgetPressure(state: FundingState, currentWeek?: numbe
   ) {
     pressure += 1
   }
+  const penaltyRelevantHistory = state.fundingHistory.filter(
+    (entry) => !BUDGET_PRESSURE_HISTORY_EXCLUDED_REASONS.has(entry.reason)
+  )
   if (
-    state.fundingHistory
+    penaltyRelevantHistory
       .slice(-FUNDING_CALIBRATION.budgetPressure.recentPenaltyWindow)
       .filter(
-        (h) =>
-          h.delta < 0 && (h.reason === 'failure_penalty' || h.reason === 'unresolved_penalty')
+        (h) => h.delta < 0 && (h.reason === 'failure_penalty' || h.reason === 'unresolved_penalty')
       ).length >= FUNDING_CALIBRATION.budgetPressure.recentPenaltyCountThreshold
   )
     pressure += 1
-  const shellDebt = Math.max(0, Math.trunc(state.courierShellBudgetPressureDebt ?? 0))
+  const shellDebt =
+    sanitizeCourierShellBudgetPressureDebt(state.courierShellBudgetPressureDebt) ?? 0
   return {
     ...state,
-    budgetPressure: Math.min(
-      FUNDING_CALIBRATION.budgetPressure.maxPressure,
-      pressure + shellDebt
-    ),
+    budgetPressure: Math.min(FUNDING_CALIBRATION.budgetPressure.maxPressure, pressure + shellDebt),
   }
 }
 
@@ -314,15 +843,28 @@ export function normalizeFundingState(
   existing?: FundingState,
   currentWeek?: number
 ): FundingState {
-  const baseline = existing ?? createInitialFundingState(
-    config.fundingBasePerWeek,
-    config.fundingPerResolution,
-    config.fundingPenaltyPerFail,
-    config.fundingPenaltyPerUnresolved,
-    funding
+  const campaignWeek =
+    typeof currentWeek === 'number' && Number.isFinite(currentWeek)
+      ? Math.max(1, Math.trunc(currentWeek))
+      : 1
+  const baseline =
+    existing ??
+    createInitialFundingState(
+      config.fundingBasePerWeek,
+      config.fundingPerResolution,
+      config.fundingPenaltyPerFail,
+      config.fundingPenaltyPerUnresolved,
+      funding
+    )
+  const knownItemIds = getKnownProcurementItemIds()
+  const procurementBacklog = sanitizeProcurementBacklog(
+    existing?.procurementBacklog,
+    campaignWeek,
+    knownItemIds
   )
+  const procurementRequestIds = new Set(procurementBacklog.map((entry) => entry.requestId))
 
-  return recomputeBudgetPressure(
+  const normalized = recomputeBudgetPressure(
     {
       ...baseline,
       funding,
@@ -346,12 +888,23 @@ export function normalizeFundingState(
         baseline.fundingPenaltyPerUnresolved,
         0
       ),
-      fundingHistory: sanitizeFundingHistory(existing?.fundingHistory),
-      procurementBacklog: sanitizeProcurementBacklog(existing?.procurementBacklog),
-      courierShellBudgetPressureDebt: existing?.courierShellBudgetPressureDebt,
+      fundingHistory: sanitizeFundingHistory(
+        existing?.fundingHistory,
+        campaignWeek,
+        procurementRequestIds
+      ),
+      procurementBacklog,
+      courierShellBudgetPressureDebt: sanitizeCourierShellBudgetPressureDebt(
+        existing?.courierShellBudgetPressureDebt
+      ),
     },
-    currentWeek
+    campaignWeek
   )
+
+  return {
+    ...normalized,
+    budgetPressure: Number.isFinite(normalized.budgetPressure) ? normalized.budgetPressure : 0,
+  }
 }
 
 export function getCanonicalFundingState(
@@ -371,7 +924,17 @@ export function getCanonicalFundingState(
 }
 
 export function assessFundingPressure(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week'>
+  game: Pick<
+    GameState,
+    | 'agency'
+    | 'config'
+    | 'funding'
+    | 'supportStaff'
+    | 'week'
+    | 'inventory'
+    | 'compromisedAuthority'
+    | 'factions'
+  >
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)
   const pendingProcurementRequestIds = fundingState.procurementBacklog
@@ -404,6 +967,36 @@ export function assessFundingPressure(
     (budgetPressure >= 2 ? 1 : 0) + (staleProcurementRequestIds.length > 0 ? 1 : 0)
   )
 
+  const recentOperatingCostEntry = [...fundingState.fundingHistory]
+    .filter(
+      (entry) =>
+        entry.reason === 'operating_cost' &&
+        entry.sourceId === WEEKLY_OPERATING_COST_SOURCE_ID &&
+        entry.delta < 0
+    )
+    .sort((left, right) => right.week - left.week)[0]
+  const recentOperatingDrain = recentOperatingCostEntry
+    ? Math.abs(recentOperatingCostEntry.delta)
+    : 0
+  const operatingCostSignalsProcurementTiming =
+    recentOperatingCostEntry !== undefined &&
+    game.week - recentOperatingCostEntry.week <= 1 &&
+    fundingState.funding < recentOperatingDrain + game.config.fundingBasePerWeek
+
+  const recentHoldingCostEntry = [...fundingState.fundingHistory]
+    .filter(
+      (entry) =>
+        entry.reason === 'inventory_holding_cost' &&
+        entry.sourceId === WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID &&
+        entry.delta < 0
+    )
+    .sort((left, right) => right.week - left.week)[0]
+  const recentHoldingDrain = recentHoldingCostEntry ? Math.abs(recentHoldingCostEntry.delta) : 0
+  const holdingCostSignalsProcurementTiming =
+    recentHoldingCostEntry !== undefined &&
+    game.week - recentHoldingCostEntry.week <= 1 &&
+    fundingState.funding < recentHoldingDrain + game.config.fundingBasePerWeek
+
   return {
     funding: fundingState.funding,
     budgetPressure,
@@ -426,6 +1019,17 @@ export function assessFundingPressure(
         ? `pending-procurement:${pendingProcurementRequestIds.length}`
         : '',
       staleProcurementRequestIds.length > 0 ? 'stale-procurement-backlog' : '',
+      operatingCostSignalsProcurementTiming ? 'weekly-operating-cost' : '',
+      holdingCostSignalsProcurementTiming ? 'weekly-inventory-holding-cost' : '',
+      hasVendorShortagePressureSignals(game, fundingState, staleProcurementRequestIds)
+        ? 'vendor-shortage-pressure'
+        : '',
+      hasCompromisedAuthorityProcurementDiversionSignals(game)
+        ? 'compromised-authority-procurement-diversion'
+        : '',
+      hasCallableObligationProcurementLeverageSignals(game)
+        ? 'callable-obligation-procurement-leverage'
+        : '',
     ]),
   }
 }
@@ -446,4 +1050,138 @@ export function getFundingHistory(state: FundingState) {
 
 export function getProcurementBacklog(state: FundingState) {
   return state.procurementBacklog
+}
+
+const LEGITIMACY_SANCTION_LEVELS = [
+  'sanctioned',
+  'covert',
+  'tolerated',
+  'unsanctioned',
+] as const satisfies readonly LegitimacyState['sanctionLevel'][]
+
+const LEGITIMACY_FALLOUT_RISKS = ['none', 'risk', 'costly'] as const satisfies readonly NonNullable<
+  LegitimacyState['falloutRisk']
+>[]
+
+const OPERATIONAL_COVER_LEVELS = [
+  'open',
+  'deniable',
+  'compromised',
+] as const satisfies readonly NonNullable<LegitimacyState['operationalCoverLevel']>[]
+
+const MAX_LEGITIMACY_ACCESS_REASON_LENGTH = 240
+const MAX_SUPPORT_STAFF_ROLE_COUNT = 99
+const MAX_SUPPORT_STAFF_PRESSURE = 100
+const MAX_EMERGENCY_WAIVER_PRECEDENT_COUNT = 50000
+
+function clampSupportStaffRoleCount(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.min(MAX_SUPPORT_STAFF_ROLE_COUNT, Math.max(0, Math.trunc(value)))
+}
+
+/**
+ * Hydration problem 470: bounded legitimacy/access enums and optional accessReason text.
+ */
+export function sanitizeLegitimacyState(raw: unknown): LegitimacyState | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const sanctionLevel = LEGITIMACY_SANCTION_LEVELS.includes(
+    raw.sanctionLevel as LegitimacyState['sanctionLevel']
+  )
+    ? (raw.sanctionLevel as LegitimacyState['sanctionLevel'])
+    : undefined
+
+  if (!sanctionLevel) {
+    return undefined
+  }
+
+  const falloutRisk = LEGITIMACY_FALLOUT_RISKS.includes(
+    raw.falloutRisk as NonNullable<LegitimacyState['falloutRisk']>
+  )
+    ? (raw.falloutRisk as LegitimacyState['falloutRisk'])
+    : undefined
+
+  const operationalCoverLevel = OPERATIONAL_COVER_LEVELS.includes(
+    raw.operationalCoverLevel as NonNullable<LegitimacyState['operationalCoverLevel']>
+  )
+    ? (raw.operationalCoverLevel as LegitimacyState['operationalCoverLevel'])
+    : undefined
+
+  const accessReason =
+    typeof raw.accessReason === 'string' && raw.accessReason.trim().length > 0
+      ? raw.accessReason.trim().slice(0, MAX_LEGITIMACY_ACCESS_REASON_LENGTH)
+      : undefined
+
+  return {
+    sanctionLevel,
+    ...(operationalCoverLevel ? { operationalCoverLevel } : {}),
+    ...(falloutRisk ? { falloutRisk } : {}),
+    ...(accessReason ? { accessReason } : {}),
+  }
+}
+
+/**
+ * Hydration problem 471: waiver grant week must match campaign week; precedent count is finite-capped.
+ */
+export function sanitizeEmergencyGrayMarketWaiverWeek(
+  raw: unknown,
+  campaignWeek: number
+): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return undefined
+  }
+
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const waiverWeek = Math.trunc(raw)
+
+  if (waiverWeek < 1 || waiverWeek > cappedWeek || waiverWeek !== cappedWeek) {
+    return undefined
+  }
+
+  return waiverWeek
+}
+
+export function sanitizeEmergencyGrayMarketWaiverPrecedentCount(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return 0
+  }
+
+  return Math.min(MAX_EMERGENCY_WAIVER_PRECEDENT_COUNT, Math.max(0, Math.trunc(raw)))
+}
+
+/**
+ * Hydration problem 477: role counts are bounded; total and pressure are validated or recomputed.
+ */
+export function sanitizeSupportStaffSummary(raw: unknown): SupportStaffSummary | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const admin = clampSupportStaffRoleCount(raw.admin)
+  const logistics = clampSupportStaffRoleCount(raw.logistics)
+  const medical = clampSupportStaffRoleCount(raw.medical)
+  const intel = clampSupportStaffRoleCount(raw.intel)
+  const roleTotal = admin + logistics + medical + intel
+
+  if (roleTotal === 0) {
+    return undefined
+  }
+
+  const persistedTotal =
+    typeof raw.total === 'number' && Number.isFinite(raw.total)
+      ? Math.max(0, Math.trunc(raw.total))
+      : undefined
+  const total = persistedTotal === roleTotal ? persistedTotal : roleTotal
+
+  const pressure =
+    typeof raw.pressure === 'number' && Number.isFinite(raw.pressure)
+      ? Math.min(MAX_SUPPORT_STAFF_PRESSURE, Math.max(0, Math.trunc(raw.pressure)))
+      : 0
+
+  return { admin, logistics, medical, intel, total, pressure }
 }

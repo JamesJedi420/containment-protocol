@@ -88,38 +88,28 @@ function slimTriggerCondition(
     return undefined
   }
 
-  const out: ConcealmentActivationTriggerCondition = {}
   const anyTag = copyNonEmptyStringList(when.anyTag)
-  if (anyTag !== undefined) {
-    out.anyTag = anyTag
-  }
-
   const allTags = copyNonEmptyStringList(when.allTags)
-  if (allTags !== undefined) {
-    out.allTags = allTags
-  }
-
-  if (typeof when.globalFlag === 'string') {
-    const flag = when.globalFlag.trim()
-    if (flag.length > 0) {
-      out.globalFlag = flag
-    }
-  }
-
-  if (
+  const globalFlag = typeof when.globalFlag === 'string' ? when.globalFlag.trim() : ''
+  const minHiddenModifierCount =
     typeof when.minHiddenModifierCount === 'number' &&
     Number.isFinite(when.minHiddenModifierCount) &&
     when.minHiddenModifierCount >= 0
-  ) {
-    out.minHiddenModifierCount = when.minHiddenModifierCount
-  }
-
-  if (
+      ? when.minHiddenModifierCount
+      : undefined
+  const minInvestigationWeight =
     typeof when.minInvestigationWeight === 'number' &&
     Number.isFinite(when.minInvestigationWeight) &&
     when.minInvestigationWeight >= 0
-  ) {
-    out.minInvestigationWeight = when.minInvestigationWeight
+      ? when.minInvestigationWeight
+      : undefined
+
+  const out: ConcealmentActivationTriggerCondition = {
+    ...(anyTag !== undefined ? { anyTag } : {}),
+    ...(allTags !== undefined ? { allTags } : {}),
+    ...(globalFlag.length > 0 ? { globalFlag } : {}),
+    ...(minHiddenModifierCount !== undefined ? { minHiddenModifierCount } : {}),
+    ...(minInvestigationWeight !== undefined ? { minInvestigationWeight } : {}),
   }
 
   return Object.keys(out).length > 0 ? out : undefined
@@ -138,16 +128,12 @@ function slimAuthoredTrigger(
   const detectionConfidence = normalizeDetectionConfidence(authored.detectionConfidence)
   const displacementTarget = normalizeDisplacementTarget(authored.displacementTarget)
 
-  const trigger: ConcealmentActivationTrigger = { id, mode }
-
-  if (when !== undefined) {
-    trigger.when = when
-  }
-  if (detectionConfidence !== undefined) {
-    trigger.detectionConfidence = detectionConfidence
-  }
-  if (displacementTarget !== undefined) {
-    trigger.displacementTarget = displacementTarget
+  const trigger: ConcealmentActivationTrigger = {
+    id,
+    mode,
+    ...(when !== undefined ? { when } : {}),
+    ...(detectionConfidence !== undefined ? { detectionConfidence } : {}),
+    ...(displacementTarget !== undefined ? { displacementTarget } : {}),
   }
 
   return trigger

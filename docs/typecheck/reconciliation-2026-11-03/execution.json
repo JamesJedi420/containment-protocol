@@ -1,0 +1,15 @@
+{
+  "startedAt": "2026-11-03T10:51:34.7734667Z",
+  "finishedAt": "2026-11-03T10:52:29.1084963Z",
+  "revision": "ad21424a4804e22a40a6bbef10454cdc84835016",
+  "exitCode": 2,
+  "command": "npm run build",
+  "diagnosticLines": 409,
+  "nodeVersion": "v22.23.4",
+  "log": "build.txt",
+  "normalizedLogSha256": "133c3b752ef61db0ab9c66451309dd46c2de9868dea8d4c9592b19b26f302d1e",
+  "runtimeChanges": "None; evidence refresh only.",
+  "compilerInputHash": "18b479eaaea027c56f66ff3a8445101b5a138257b0d7db346352194cf65da26c",
+  "reusedDependencies": true,
+  "freshNpmCi": false
+}

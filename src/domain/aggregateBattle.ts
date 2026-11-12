@@ -2232,7 +2232,7 @@ function applyHitRecords(
       continue
     }
 
-    let detail = `${target.label} absorbed ${aggregate.stepHits} step hit(s) and ${aggregate.specialHits} special hit(s).`
+    let detail: string
     if (target.specialDurability) {
       const appliedHits =
         aggregate.specialHits > 0 ? aggregate.specialHits : aggregate.stepHits > 0 ? 1 : 0

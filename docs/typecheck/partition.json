@@ -1,0 +1,2852 @@
+{
+  "schemaVersion": 1,
+  "baseline": "41873280/census.json",
+  "analysisRevision": "1108c4b969b0f118bf642c3cae32a7ab9a09b7c0",
+  "baselineSha256": "1ffa9c872f823bb50eb17870f1710c34a07743ece8e3583abfdb16e5de8f3289",
+  "groups": [
+    {
+      "id": "event-dispatcher",
+      "occurrences": [
+        435, 436, 437, 438, 439, 440, 441, 442, 443, 444, 445, 446, 447, 448, 449, 450, 451, 452,
+        453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470,
+        471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 482, 483, 484, 485, 486, 487, 488,
+        489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 499, 500, 501, 502
+      ],
+      "cause": "Generic createFactoryDraft does not retain the relation between the selected event type and its payload across switch returns and validation calls.",
+      "canonicalContract": "src/domain/events/eventBus.ts / OperationEventDraft; src/domain/events/types.ts / OperationEventPayloadMap; test-local createFactoryDraft",
+      "repairOwner": "SPE-3442",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared dispatcher fans out into 68 errors; no measured repair delta. Separate from other event factories and filtering helpers.",
+      "evidence": [
+        "src/test/events.producerValidation.test.ts:61",
+        "src/test/events.producerValidation.test.ts:63",
+        "src/test/events.producerValidation.test.ts:65",
+        "src/test/events.producerValidation.test.ts:67",
+        "src/test/events.producerValidation.test.ts:69",
+        "src/test/events.producerValidation.test.ts:71",
+        "src/test/events.producerValidation.test.ts:73",
+        "src/test/events.producerValidation.test.ts:75",
+        "src/test/events.producerValidation.test.ts:77",
+        "src/test/events.producerValidation.test.ts:79",
+        "src/test/events.producerValidation.test.ts:81",
+        "src/test/events.producerValidation.test.ts:83",
+        "src/test/events.producerValidation.test.ts:85",
+        "src/test/events.producerValidation.test.ts:87",
+        "src/test/events.producerValidation.test.ts:89",
+        "src/test/events.producerValidation.test.ts:91",
+        "src/test/events.producerValidation.test.ts:93",
+        "src/test/events.producerValidation.test.ts:95",
+        "src/test/events.producerValidation.test.ts:97",
+        "src/test/events.producerValidation.test.ts:99",
+        "src/test/events.producerValidation.test.ts:101",
+        "src/test/events.producerValidation.test.ts:103",
+        "src/test/events.producerValidation.test.ts:105",
+        "src/test/events.producerValidation.test.ts:107",
+        "src/test/events.producerValidation.test.ts:109",
+        "src/test/events.producerValidation.test.ts:143",
+        "src/test/events.producerValidation.test.ts:145",
+        "src/test/events.producerValidation.test.ts:155",
+        "src/test/events.producerValidation.test.ts:157",
+        "src/test/events.producerValidation.test.ts:159",
+        "src/test/events.producerValidation.test.ts:161",
+        "src/test/events.producerValidation.test.ts:163",
+        "src/test/events.producerValidation.test.ts:165",
+        "src/test/events.producerValidation.test.ts:167"
+      ]
+    },
+    {
+      "id": "scouting-readonly",
+      "occurrences": [
+        552, 553, 554, 555, 556, 557, 558, 559, 560, 561, 562, 563, 564, 565, 566, 567, 568, 569,
+        570, 571, 572, 573, 574, 575, 576, 577, 578, 579, 580, 581, 582, 583, 584, 585, 586, 587,
+        588, 589, 590, 591
+      ],
+      "cause": "Readonly scouting inputs meet mutable consumer array contracts. Preserve readonly inputs and reveal semantics.",
+      "canonicalContract": "src/domain/revealPayloadScoutingIntegration.ts / CaseScoutingRevealIntegrationInput",
+      "repairOwner": "SPE-3443",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/hiddenStateModality.test.ts:258",
+        "src/test/hiddenStateModality.test.ts:267",
+        "src/test/hiddenStateModality.test.ts:283",
+        "src/test/hiddenStateModality.test.ts:310",
+        "src/test/hiddenStateModality.test.ts:329",
+        "src/test/hiddenStateModality.test.ts:344",
+        "src/test/hiddenStateModality.test.ts:349",
+        "src/test/hiddenStateModality.test.ts:357",
+        "src/test/hiddenStateModality.test.ts:392",
+        "src/test/hiddenStateModality.test.ts:412",
+        "src/test/hiddenStateModality.test.ts:435",
+        "src/test/hiddenStateModality.test.ts:461",
+        "src/test/hiddenStateModality.test.ts:484",
+        "src/test/hiddenStateModality.test.ts:499",
+        "src/test/hiddenStateModality.test.ts:507",
+        "src/test/hiddenStateModality.test.ts:512",
+        "src/test/hiddenStateModality.test.ts:536",
+        "src/test/hiddenStateModality.test.ts:557",
+        "src/test/hiddenStateModality.test.ts:592",
+        "src/test/hiddenStateModality.test.ts:612",
+        "src/test/hiddenStateModality.test.ts:630",
+        "src/test/hiddenStateModality.test.ts:638",
+        "src/test/hiddenStateModality.test.ts:646",
+        "src/test/hiddenStateModality.test.ts:672",
+        "src/test/hiddenStateModality.test.ts:686",
+        "src/test/hiddenStateModality.test.ts:700",
+        "src/test/hiddenStateModality.test.ts:716",
+        "src/test/hiddenStateModality.test.ts:731",
+        "src/test/hiddenStateModality.test.ts:755",
+        "src/test/hiddenStateModality.test.ts:803",
+        "src/test/hiddenStateModality.test.ts:819",
+        "src/test/hiddenStateModality.test.ts:846",
+        "src/test/hiddenStateModality.test.ts:884",
+        "src/test/hiddenStateModality.test.ts:900",
+        "src/test/hiddenStateModality.test.ts:909",
+        "src/test/hiddenStateModality.test.ts:928",
+        "src/test/hiddenStateModality.test.ts:940",
+        "src/test/hiddenStateModality.test.ts:949",
+        "src/test/hiddenStateModality.test.ts:981",
+        "src/test/hiddenStateModality.test.ts:982"
+      ]
+    },
+    {
+      "id": "workshop-helper",
+      "occurrences": [
+        380, 381, 382, 383, 384, 385, 386, 387, 388, 389, 390, 391, 392, 393, 394, 395, 396, 397,
+        398, 399, 400, 401, 402, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378, 379, 517,
+        518, 519, 520, 521, 522, 523, 524, 525, 526, 527, 528, 358, 359, 360, 361, 362, 363, 364,
+        365, 530, 531, 532, 533, 534, 535
+      ],
+      "cause": "withoutMappedArchiveAnalystPersonnel constrains agent values with an index signature and loses the original GameState shape across consumers.",
+      "canonicalContract": "src/test/helpers/withoutMappedArchiveAnalystPersonnel.ts / withoutMappedArchiveAnalystPersonnel",
+      "repairOwner": "SPE-3444",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared helper constraint/inference fan-out; 61 observed occurrences includes 14 outside the original 47. Additional consumer scope requires reconciliation, not automatic expansion.",
+      "evidence": [
+        "src/test/departmentWorkshopPersistence.test.ts:439",
+        "src/test/departmentWorkshopPersistence.test.ts:448",
+        "src/test/departmentWorkshopPersistence.test.ts:449",
+        "src/test/departmentWorkshopPersistence.test.ts:496",
+        "src/test/departmentWorkshopPersistence.test.ts:499",
+        "src/test/departmentWorkshopPersistence.test.ts:524",
+        "src/test/departmentWorkshopPersistence.test.ts:538",
+        "src/test/departmentWorkshopPersistence.test.ts:554",
+        "src/test/departmentWorkshopPersistence.test.ts:555",
+        "src/test/departmentWorkshopPersistence.test.ts:557",
+        "src/test/departmentWorkshopPersistence.test.ts:561",
+        "src/test/departmentWorkshopPersistence.test.ts:563",
+        "src/test/departmentWorkshopPersistence.test.ts:604",
+        "src/test/departmentWorkshopPersistence.test.ts:705",
+        "src/test/departmentWorkshopPersistence.test.ts:792",
+        "src/test/departmentWorkshopPersistence.test.ts:793",
+        "src/test/departmentWorkshopPersistence.test.ts:816",
+        "src/test/departmentWorkshopPersistence.test.ts:1978",
+        "src/test/departmentWorkshopPersistence.test.ts:1981",
+        "src/test/departmentWorkshopPersistence.test.ts:2056",
+        "src/test/departmentWorkshopPersistence.test.ts:2059",
+        "src/test/departmentWorkshopPersistence.test.ts:2134",
+        "src/test/departmentWorkshopPersistence.test.ts:2137",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:99",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:100",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:101",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:102",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:103",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:109",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:117",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:119",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:142",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:165",
+        "src/test/departmentWorkshopLiveIntegrityQuality.integration.test.ts:166",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:199",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:200",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:201",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:202",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:203",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:204",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:205",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:206",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:207",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:208",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:209",
+        "src/test/facilityLayoutStagingProjection.contract.test.ts:210",
+        "src/test/departmentLocalStaging.contract.test.ts:174",
+        "src/test/departmentLocalStaging.contract.test.ts:175",
+        "src/test/departmentLocalStaging.contract.test.ts:177",
+        "src/test/departmentLocalStaging.contract.test.ts:179",
+        "src/test/departmentLocalStaging.contract.test.ts:180",
+        "src/test/departmentLocalStaging.contract.test.ts:181",
+        "src/test/departmentLocalStaging.contract.test.ts:224",
+        "src/test/departmentLocalStaging.contract.test.ts:225",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:239",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:240",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:263",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:286",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:291",
+        "src/test/facilitySectionStagingProjection.contract.test.ts:294"
+      ],
+      "ownerMapping": "Existing helper owner, with additional consumers: original 47 captured occurrences plus 14 in departmentLocalStaging and facilitySectionStaging. Reconcile consumer coverage before implementing; no scope mutation applied."
+    },
+    {
+      "id": "agency-protocols",
+      "occurrences": [225, 226, 227, 228, 229, 230, 231],
+      "cause": "Pick selects keys on optional GameState.agency instead of its non-null member; never-key and filter inference failures follow.",
+      "canonicalContract": "src/domain/protocols.ts / agency protocol selection",
+      "repairOwner": "SPE-3450",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Seven linked signature and downstream inference failures; repair delta unmeasured.",
+      "evidence": [
+        "src/domain/protocols.ts:213",
+        "src/domain/protocols.ts:234",
+        "src/domain/protocols.ts:250",
+        "src/domain/protocols.ts:251",
+        "src/domain/protocols.ts:253",
+        "src/domain/protocols.ts:254",
+        "src/domain/protocols.ts:259"
+      ]
+    },
+    {
+      "id": "volatile-exhaustiveness",
+      "occurrences": [266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277],
+      "cause": "Exhaustive branches read kind after the whole discriminated value has narrowed to never.",
+      "canonicalContract": "src/domain/volatileActionPhasePipeline.ts / exhaustive defaults",
+      "repairOwner": "SPE-3448",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/volatileActionPhasePipeline.ts:877",
+        "src/domain/volatileActionPhasePipeline.ts:897",
+        "src/domain/volatileActionPhasePipeline.ts:943",
+        "src/domain/volatileActionPhasePipeline.ts:971",
+        "src/domain/volatileActionPhasePipeline.ts:1028",
+        "src/domain/volatileActionPhasePipeline.ts:1045"
+      ]
+    },
+    {
+      "id": "affiliation-readonly",
+      "occurrences": [110, 111, 112, 113, 114, 115, 116, 117],
+      "cause": "Accumulator writes through readonly affiliation evidence fields.",
+      "canonicalContract": "src/domain/affiliationPersonStatusWeeklyProgression.ts / evidence accumulator",
+      "repairOwner": "SPE-3454",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/affiliationPersonStatusWeeklyProgression.ts:119"]
+    },
+    {
+      "id": "concealment-readonly",
+      "occurrences": [180, 181, 182, 183, 184, 185, 186, 187],
+      "cause": "Incremental trigger construction uses the readonly output type.",
+      "canonicalContract": "src/domain/hiddenStateActivationAuthoring.ts / trigger construction",
+      "repairOwner": "SPE-3455",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/hiddenStateActivationAuthoring.ts:94",
+        "src/domain/hiddenStateActivationAuthoring.ts:99",
+        "src/domain/hiddenStateActivationAuthoring.ts:105",
+        "src/domain/hiddenStateActivationAuthoring.ts:114",
+        "src/domain/hiddenStateActivationAuthoring.ts:122",
+        "src/domain/hiddenStateActivationAuthoring.ts:144",
+        "src/domain/hiddenStateActivationAuthoring.ts:147",
+        "src/domain/hiddenStateActivationAuthoring.ts:150"
+      ]
+    },
+    {
+      "id": "authority-enums",
+      "occurrences": [127, 128, 129, 130, 131],
+      "cause": "Unknown persisted enum inputs reach string-only Set membership checks. Preserve fail-closed validation.",
+      "canonicalContract": "src/domain/authorityGraphPersistence.ts / enum guards",
+      "repairOwner": "SPE-3456",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/authorityGraphPersistence.ts:188",
+        "src/domain/authorityGraphPersistence.ts:200",
+        "src/domain/authorityGraphPersistence.ts:236",
+        "src/domain/authorityGraphPersistence.ts:239",
+        "src/domain/authorityGraphPersistence.ts:240"
+      ]
+    },
+    {
+      "id": "team-members-optional",
+      "occurrences": [0],
+      "cause": "Optional Team.memberIds is passed to an array matcher without establishing presence.",
+      "canonicalContract": "src/domain/models.ts / Team.memberIds",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/services/divisionMetrics.test.ts:17"]
+    },
+    {
+      "id": "recovery-assignment-fixture",
+      "occurrences": [1],
+      "cause": "Recovery assignment fixture supplies caseId instead of the recovery variant required fields.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentAssignmentState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/services/divisionMetrics.test.ts:31"]
+    },
+    {
+      "id": "readiness-aliases",
+      "occurrences": [2, 4, 5],
+      "cause": "Division metrics and its fixture use availabilityState/readinessBand/deployable alongside canonical readiness names; decide whether legacy aliases are intended.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentReadinessProfile",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "One consumer contract disagreement spans production reads and a fixture; neither deleting aliases nor widening the canonical type is authorized.",
+      "evidence": [
+        "src/app/services/divisionMetrics.test.ts:37",
+        "src/app/services/divisionMetrics.ts:41",
+        "src/app/services/divisionMetrics.ts:46"
+      ]
+    },
+    {
+      "id": "training-queue-fixture",
+      "occurrences": [3],
+      "cause": "Training queue fixture omits required queue identity, scope, stat and other canonical fields.",
+      "canonicalContract": "src/domain/models.ts / TrainingQueueEntry",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/services/divisionMetrics.test.ts:61"]
+    },
+    {
+      "id": "candidate-fixtures",
+      "occurrences": [6, 8, 9, 289, 296, 297, 298, 299, 300],
+      "cause": "Agent candidate fixtures lack evaluation and agentData required by the category-discriminated Candidate union.",
+      "canonicalContract": "src/domain/recruitment/types.ts / Candidate",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/gameStore.test.ts:101",
+        "src/app/store/gameStore.test.ts:4252",
+        "src/app/store/gameStore.test.ts:4421",
+        "src/features/operations/AffiliationPersonStatusMirrorPage.test.tsx:605",
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts:151",
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts:217",
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts:228",
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts:282",
+        "src/test/affiliationFileWorkQueueRepairActionRecords.test.ts:294"
+      ]
+    },
+    {
+      "id": "permission-fixture",
+      "occurrences": [7],
+      "cause": "The fixture uses allowed, which is outside EntityWelfarePermissionSurface. Confirm intended permitted surface rather than widen the enum.",
+      "canonicalContract": "src/domain/entityWelfareStatusPermissions.ts / EntityWelfarePermissionSurface",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/gameStore.test.ts:3940"]
+    },
+    {
+      "id": "store-inspection-drafts",
+      "occurrences": [10],
+      "cause": "Draft array inferred from inspection draft rejects a distinct deficiency draft pushed later.",
+      "canonicalContract": "src/app/store/gameStore.ts / containment inspection drafts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/gameStore.ts:2252"]
+    },
+    {
+      "id": "runtime-reward-shape",
+      "occurrences": [11],
+      "cause": "Hydrated contract runtime rewards remain unknown/object-shaped while the test reads funding.",
+      "canonicalContract": "src/domain/models.ts / ActiveContractRuntime.rewards",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.test.ts:4739"]
+    },
+    {
+      "id": "hub-hydrated-shape",
+      "occurrences": [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 32, 33, 34],
+      "cause": "Persisted hubState/prevHubState do not expose typed factionPresence, opportunities, rumors or districtKey to consumers. Establish normalized return contract without weakening raw input validation.",
+      "canonicalContract": "src/app/store/runTransfer.ts / PersistedGame hubState and prevHubState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Repeated property failures share hydrated hub return shape, not 16 unrelated fixture repairs.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:6546",
+        "src/app/store/runTransfer.test.ts:6592",
+        "src/app/store/runTransfer.test.ts:6593",
+        "src/app/store/runTransfer.test.ts:6594",
+        "src/app/store/runTransfer.test.ts:6636",
+        "src/app/store/runTransfer.test.ts:6637",
+        "src/app/store/runTransfer.test.ts:6638",
+        "src/app/store/runTransfer.test.ts:6642",
+        "src/app/store/runTransfer.test.ts:6643",
+        "src/app/store/runTransfer.test.ts:6644",
+        "src/app/store/runTransfer.test.ts:6717",
+        "src/app/store/runTransfer.test.ts:6718",
+        "src/app/store/runTransfer.test.ts:6719",
+        "src/app/store/runTransfer.test.ts:10215",
+        "src/app/store/runTransfer.test.ts:10216",
+        "src/app/store/runTransfer.test.ts:10217"
+      ]
+    },
+    {
+      "id": "strategic-options-shape",
+      "occurrences": [25],
+      "cause": "Hydrated strategicOptions elements remain unknown at the intent access.",
+      "canonicalContract": "src/app/store/runTransfer.ts / serialized report strategicOptions",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.test.ts:6927"]
+    },
+    {
+      "id": "debug-log-optional",
+      "occurrences": [26, 27, 57, 58, 59, 60, 61, 62, 63, 539, 540, 541, 542, 544],
+      "cause": "Tests assert on optional runtime debug eventLog without a TypeScript-visible presence guard. Runtime expect assertions do not narrow the field.",
+      "canonicalContract": "src/domain/gameStateManager.ts / runtime UI debug normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared optional contract, repeated independent test access sites; no demonstrated relation to malformed-runtime fixture errors.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:7085",
+        "src/app/store/runTransfer.test.ts:7197",
+        "src/app/store/runTransfer.test.ts:15742",
+        "src/app/store/runTransfer.test.ts:16019",
+        "src/app/store/runTransfer.test.ts:16053",
+        "src/app/store/runTransfer.test.ts:16054",
+        "src/app/store/runTransfer.test.ts:16216",
+        "src/app/store/runTransfer.test.ts:16217",
+        "src/app/store/runTransfer.test.ts:16336",
+        "src/test/gameStateManager.test.ts:230",
+        "src/test/gameStateManager.test.ts:234",
+        "src/test/gameStateManager.test.ts:407",
+        "src/test/gameStateManager.test.ts:408",
+        "src/test/gameStateManager.test.ts:575"
+      ]
+    },
+    {
+      "id": "trait-invalid-input",
+      "occurrences": [28, 29],
+      "cause": "Hydration rejection fixtures intentionally supply invalid modifier keys through a valid Agent contract. Preserve invalid input and rejection assertions.",
+      "canonicalContract": "src/domain/agent/models.ts / trait modifiers; runTransfer hydration boundary",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:9077",
+        "src/app/store/runTransfer.test.ts:9085"
+      ]
+    },
+    {
+      "id": "normalized-agent-optionals",
+      "occurrences": [30, 31],
+      "cause": "Hydration test dereferences optional equipmentSlots and traits after assertions that do not narrow types.",
+      "canonicalContract": "src/domain/agent/models.ts / Agent optional fields",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:9103",
+        "src/app/store/runTransfer.test.ts:9104"
+      ]
+    },
+    {
+      "id": "hydrated-event-narrowing",
+      "occurrences": [35, 36, 37, 38],
+      "cause": "Event array payload is a union; tests access inputMaterials/teamIds without narrowing event.type.",
+      "canonicalContract": "src/domain/events/types.ts / OperationEvent",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Occurrence 36 implicit-any is downstream of 35 missing inputMaterials; 37-38 independently need event discrimination.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:10420",
+        "src/app/store/runTransfer.test.ts:10421",
+        "src/app/store/runTransfer.test.ts:11917",
+        "src/app/store/runTransfer.test.ts:11945"
+      ]
+    },
+    {
+      "id": "training-agent-id",
+      "occurrences": [39, 40],
+      "cause": "Nullable/undefined queue agentId used as agents index without a guard; two errors at one expression.",
+      "canonicalContract": "src/domain/models.ts / TrainingQueueEntry.agentId",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.test.ts:12847"]
+    },
+    {
+      "id": "hydration-invalid-fixtures",
+      "occurrences": [41, 46, 48, 49, 50, 51, 52, 53, 54, 55, 56],
+      "cause": "Raw hydration tests cast deliberately malformed and unknown-field persisted payloads directly to GameState; full-state and persisted-input contracts differ. Keep each invalid probe and normalization expectation.",
+      "canonicalContract": "src/app/store/runTransfer.ts / hydrateGame input and stripGameTemplates",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Repeated test input-boundary misuse; not evidence of a common production normalization failure. Review each payload independently.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:14091",
+        "src/app/store/runTransfer.test.ts:15013",
+        "src/app/store/runTransfer.test.ts:15231",
+        "src/app/store/runTransfer.test.ts:15247",
+        "src/app/store/runTransfer.test.ts:15274",
+        "src/app/store/runTransfer.test.ts:15327",
+        "src/app/store/runTransfer.test.ts:15362",
+        "src/app/store/runTransfer.test.ts:15384",
+        "src/app/store/runTransfer.test.ts:15419",
+        "src/app/store/runTransfer.test.ts:15498",
+        "src/app/store/runTransfer.test.ts:15530"
+      ]
+    },
+    {
+      "id": "case-status-fixtures",
+      "occurrences": [42, 43, 44, 45],
+      "cause": "makeHydrationCase overrides use active, outside CaseStatus. Determine intended active lifecycle stage.",
+      "canonicalContract": "src/domain/models.ts / CaseStatus",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.test.ts:14309",
+        "src/app/store/runTransfer.test.ts:14382",
+        "src/app/store/runTransfer.test.ts:14513",
+        "src/app/store/runTransfer.test.ts:14542"
+      ]
+    },
+    {
+      "id": "agency-funding-optional",
+      "occurrences": [47],
+      "cause": "Optional fundingState is accessed without a presence guard.",
+      "canonicalContract": "src/domain/models.ts / AgencyState.fundingState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.test.ts:15076"]
+    },
+    {
+      "id": "squad-imports",
+      "occurrences": [64, 65, 66],
+      "cause": "Models imports squad types locally but does not export them at the consumer import surface.",
+      "canonicalContract": "src/domain/squadKitAssignment.ts; src/domain/squadKitTemplate.ts; src/domain/squadMetadata.ts / direct type declarations",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:199",
+        "src/app/store/runTransfer.ts:200",
+        "src/app/store/runTransfer.ts:201"
+      ]
+    },
+    {
+      "id": "case-mode-hydration",
+      "occurrences": [67, 70],
+      "cause": "CASE_MODES includes anomaly while CaseMode excludes it; sanitizer return and list validation disagree with the canonical mode/kind distinction.",
+      "canonicalContract": "src/domain/models.ts / CaseMode",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "One CASE_MODES source mismatch fans out to its sanitizer return. Do not change save migration semantics solely to compile.",
+      "evidence": ["src/app/store/runTransfer.ts:473", "src/app/store/runTransfer.ts:2684"]
+    },
+    {
+      "id": "coordination-fallback",
+      "occurrences": [68, 69, 106],
+      "cause": "sanitizeCoordinationFriction parameter declares active/reason while implementation and caller use coordinationFrictionActive/Reason.",
+      "canonicalContract": "src/app/store/runTransfer.ts / sanitizeCoordinationFriction",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "One local fallback contract mismatch yields two reads and one call-site error; reconcile intended compatibility fields.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:2275",
+        "src/app/store/runTransfer.ts:2282",
+        "src/app/store/runTransfer.ts:10534"
+      ]
+    },
+    {
+      "id": "candidate-source-disposition",
+      "occurrences": [71, 73, 74],
+      "cause": "Shared candidate sanitizer object widens sourceDisposition to string before category-specific returns.",
+      "canonicalContract": "src/app/store/runTransfer.ts / shared candidate fields; src/domain/recruitment/types.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Three return diagnostics originate at shared sourceDisposition inference; other candidate sanitizer obligations remain independent.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:3299",
+        "src/app/store/runTransfer.ts:3395",
+        "src/app/store/runTransfer.ts:3431"
+      ]
+    },
+    {
+      "id": "passive-bonus-values",
+      "occurrences": [72, 76],
+      "cause": "sanitizePassiveBonuses returns unknown-valued entries to numeric staff bonus maps.",
+      "canonicalContract": "src/app/store/runTransfer.ts / sanitizePassiveBonuses",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared sanitizer affects staff candidate and staff returns; prove numeric filtering before retaining the numeric contract.",
+      "evidence": ["src/app/store/runTransfer.ts:3360", "src/app/store/runTransfer.ts:3718"]
+    },
+    {
+      "id": "equipment-effect-values",
+      "occurrences": [75],
+      "cause": "Filtering effect-scale entries by slotted item ID does not narrow unknown values to numbers.",
+      "canonicalContract": "src/app/store/runTransfer.ts / equipmentEffectScales",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:3530"]
+    },
+    {
+      "id": "agent-raw-casts",
+      "occurrences": [77, 78],
+      "cause": "Record guard proves object shape but not the Agent structure used in merge assertions.",
+      "canonicalContract": "src/app/store/runTransfer.ts / sanitizeAgents",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:3766", "src/app/store/runTransfer.ts:3767"]
+    },
+    {
+      "id": "team-raw-casts",
+      "occurrences": [79, 81, 82, 83],
+      "cause": "Raw reconciled records and Team are cast across incompatible structured/indexed contracts. Preserve legacy-field cleanup and normalization.",
+      "canonicalContract": "src/app/store/runTransfer.ts / team normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:3924",
+        "src/app/store/runTransfer.ts:3944",
+        "src/app/store/runTransfer.ts:3945",
+        "src/app/store/runTransfer.ts:3961"
+      ]
+    },
+    {
+      "id": "team-readiness-optional",
+      "occurrences": [80],
+      "cause": "Team normalization supplies undefined readiness to a required numeric input.",
+      "canonicalContract": "src/app/store/runTransfer.ts / resolve team status readiness",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:3943"]
+    },
+    {
+      "id": "reward-inventory-validation",
+      "occurrences": [84],
+      "cause": "isRecord filtering does not establish MissionRewardInventoryGrant fields.",
+      "canonicalContract": "src/app/store/runTransfer.ts / mission reward inventory sanitizer",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:4329"]
+    },
+    {
+      "id": "reward-standing-validation",
+      "occurrences": [85],
+      "cause": "isRecord filtering does not establish MissionRewardFactionStanding fields.",
+      "canonicalContract": "src/app/store/runTransfer.ts / mission reward faction sanitizer",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:4332"]
+    },
+    {
+      "id": "eligible-case-membership",
+      "occurrences": [86],
+      "cause": "Narrow eligible-status tuple includes method rejects broader CaseStatus input.",
+      "canonicalContract": "src/app/store/runTransfer.ts / CASE_QUEUE_ELIGIBLE_STATUSES",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:4999"]
+    },
+    {
+      "id": "grade-visibility-inference",
+      "occurrences": [87, 99],
+      "cause": "Grade snapshot visibility widens to string before production queue and event payload construction.",
+      "canonicalContract": "src/app/store/runTransfer.ts / grade snapshot sanitizer",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared visibility representation reaches two consumers; verify both producer paths before claiming a cascade delta.",
+      "evidence": ["src/app/store/runTransfer.ts:5640", "src/app/store/runTransfer.ts:8933"]
+    },
+    {
+      "id": "recovery-outcome-import",
+      "occurrences": [88, 89, 90, 91],
+      "cause": "EquipmentRecoveryOutcome type name is absent from scope; the callback then loses outputMaterials element/index context.",
+      "canonicalContract": "src/domain/models.ts / EquipmentRecoveryOutcome; src/app/store/runTransfer.ts / equipmentRecoveryReceiptMatchesQueue",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "88-89 are missing-type roots; 90-91 are likely downstream implicit-any diagnostics at outcome.outputMaterials.every. Confirm by isolated compile.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:6002",
+        "src/app/store/runTransfer.ts:6068",
+        "src/app/store/runTransfer.ts:6084"
+      ]
+    },
+    {
+      "id": "contract-unlock-shape",
+      "occurrences": [92, 138],
+      "cause": "Contract chain sanitizers copy arbitrary records into unlockConditions requiring a type discriminator.",
+      "canonicalContract": "src/domain/case/normalizeCase.ts / ContractChainDefinition; src/app/store/runTransfer.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Two independent sanitizer implementations share a contract; repairing one need not fix the other.",
+      "evidence": ["src/app/store/runTransfer.ts:6281", "src/domain/case/normalizeCase.ts:1271"]
+    },
+    {
+      "id": "contact-reward-shape",
+      "occurrences": [93],
+      "cause": "Contact rewards copied as arbitrary records omit required ContactReward.label.",
+      "canonicalContract": "src/app/store/runTransfer.ts / contact rewards normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:6596"]
+    },
+    {
+      "id": "faction-fallback-optional",
+      "occurrences": [94, 95],
+      "cause": "Optional faction fallback map is indexed without guarding the map itself.",
+      "canonicalContract": "src/app/store/runTransfer.ts / faction normalization fallback",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:6665", "src/app/store/runTransfer.ts:6673"]
+    },
+    {
+      "id": "contact-history-shape",
+      "occurrences": [96],
+      "cause": "Normalized interactionLog has optional id/label/week but canonical ContactEventRef requires eventId/type.",
+      "canonicalContract": "src/app/store/runTransfer.ts / faction history",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:6704"]
+    },
+    {
+      "id": "funding-raw-cast",
+      "occurrences": [97],
+      "cause": "Raw object record is asserted as FundingState without establishing its required fields.",
+      "canonicalContract": "src/app/store/runTransfer.ts / normalize agency funding input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:6860"]
+    },
+    {
+      "id": "recruitment-event-correlation",
+      "occurrences": [98],
+      "cause": "Grouped recruitment switch reconstructs a union eventType with one payload object, losing discriminated event correlation.",
+      "canonicalContract": "src/app/store/runTransfer.ts / recruitment event migration",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:8856"]
+    },
+    {
+      "id": "allocation-literal-inference",
+      "occurrences": [100],
+      "cause": "Sanitized allocation urgency/substitutionStatus remain string in market event construction.",
+      "canonicalContract": "src/app/store/runTransfer.ts / market allocation sanitizer",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:9389"]
+    },
+    {
+      "id": "fallout-literal-inference",
+      "occurrences": [101, 102, 103],
+      "cause": "Sanitized fallout outcome and risk values widen before typed event payload construction.",
+      "canonicalContract": "src/app/store/runTransfer.ts / fallout sanitizer",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/app/store/runTransfer.ts:9513",
+        "src/app/store/runTransfer.ts:9514",
+        "src/app/store/runTransfer.ts:9515"
+      ]
+    },
+    {
+      "id": "entity-id-sentinel",
+      "occurrences": [104, 105],
+      "cause": "Import callback returns null for rejected IDs, but two event sanitizers accept a callback returning undefined. Reconcile sentinel semantics.",
+      "canonicalContract": "src/app/store/runTransfer.ts / importEntityId; infiltration and concealment event sanitizers",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/app/store/runTransfer.ts:9867", "src/app/store/runTransfer.ts:9876"]
+    },
+    {
+      "id": "workflow-record-fixture",
+      "occurrences": [107],
+      "cause": "Workflow constructor already returns AffiliationFileWorkQueueEvidenceRepairWorkflow; fixture reads a nonexistent record wrapper.",
+      "canonicalContract": "src/domain/affiliationFileWorkQueueEvidenceRepairWorkflows.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/affiliationFileWorkQueueEvidenceRepairWorkflows.test.ts:360"]
+    },
+    {
+      "id": "candidate-potential-inference",
+      "occurrences": [108],
+      "cause": "Frozen repair candidate construction widens evaluation.potentialTier beyond CandidatePotentialTier.",
+      "canonicalContract": "src/domain/affiliationFileWorkQueueRepairActionRecords.ts / candidate construction",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/affiliationFileWorkQueueRepairActionRecords.ts:104"]
+    },
+    {
+      "id": "candidate-reveal-optional",
+      "occurrences": [109],
+      "cause": "Optional candidate.revealLevel is compared numerically without default or narrowing.",
+      "canonicalContract": "src/domain/recruitment/types.ts / CandidateBase.revealLevel",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/affiliationOnboardingReadiness.ts:271"]
+    },
+    {
+      "id": "clearance-unused-parameter",
+      "occurrences": [118],
+      "cause": "getValidationReasonCodes accepts surface but does not read it. Verify no permission validation was accidentally omitted before removing the parameter.",
+      "canonicalContract": "src/domain/affiliationSiteClearance.ts / getValidationReasonCodes",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/affiliationSiteClearance.ts:172"]
+    },
+    {
+      "id": "history-schema-version",
+      "occurrences": [119],
+      "cause": "Raw history entry schemaVersion remains unknown at migration input.",
+      "canonicalContract": "src/domain/agent/normalize.ts / history migration",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/agent/normalize.ts:1263"]
+    },
+    {
+      "id": "history-event-correlation",
+      "occurrences": [120, 121],
+      "cause": "Rebuilt migrated event overwrites discriminator and source with broad unions, losing OperationEvent correlation.",
+      "canonicalContract": "src/domain/agent/normalize.ts / normalized history event",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/agent/normalize.ts:1275", "src/domain/agent/normalize.ts:1277"]
+    },
+    {
+      "id": "ascendant-record-guard",
+      "occurrences": [122],
+      "cause": "Record validation is followed by a direct cast to required AscendantResidentProfileInput; validation proof is not represented in the type.",
+      "canonicalContract": "src/domain/ascendantResidentContainment.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/ascendantResidentContainment.ts:156"]
+    },
+    {
+      "id": "discussion-record-guards",
+      "occurrences": [123, 124, 125, 126],
+      "cause": "Discussion evaluator uses record checks then asserts full surface/session contracts, including casts merely to read id.",
+      "canonicalContract": "src/domain/asyncDiscussionSurface.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Local repeated record-to-structure assertions; independent from persisted-map test fixtures and other channel evaluators.",
+      "evidence": [
+        "src/domain/asyncDiscussionSurface.ts:307",
+        "src/domain/asyncDiscussionSurface.ts:313",
+        "src/domain/asyncDiscussionSurface.ts:317",
+        "src/domain/asyncDiscussionSurface.ts:318"
+      ]
+    },
+    {
+      "id": "branch-effective-choice",
+      "occurrences": [132, 319, 320, 321, 322],
+      "cause": "BranchCorrectedRecord lacks effectiveFromChoiceId used by activation logic and four fixtures. Determine canonical activation provenance before changing records.",
+      "canonicalContract": "src/domain/branchContinuity.ts / BranchCorrectedRecord",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "One missing field contract spans production activation and fixture construction. Not evidence that widening the type is the semantic answer.",
+      "evidence": [
+        "src/domain/branchContinuity.ts:285",
+        "src/test/branchContinuity.test.ts:40",
+        "src/test/branchContinuityAudit.test.ts:19",
+        "src/test/branchContinuityAuthoring.test.ts:23",
+        "src/test/branchContinuityHarvestReconciliation.test.ts:49"
+      ]
+    },
+    {
+      "id": "courier-literal-score",
+      "occurrences": [133, 134, 135],
+      "cause": "Local tier inherits literal 4 from calibration and rejects configured 42/32/12 values.",
+      "canonicalContract": "src/domain/capabilityGap.ts / computeCourierNetworkCurrent",
+      "repairOwner": "SPE-3449",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/capabilityGap.ts:63",
+        "src/domain/capabilityGap.ts:67",
+        "src/domain/capabilityGap.ts:71"
+      ]
+    },
+    {
+      "id": "spawn-template-optional",
+      "occurrences": [136],
+      "cause": "Optional spawnTemplateIds is filtered without narrowing.",
+      "canonicalContract": "src/domain/case/normalizeCase.ts / spawn rule",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/case/normalizeCase.ts:547"]
+    },
+    {
+      "id": "displaced-redundant-check",
+      "occurrences": [137],
+      "cause": "Nested hiddenState comparison repeats displaced exclusion already established by enclosing branch.",
+      "canonicalContract": "src/domain/case/normalizeCase.ts / hidden state route normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/case/normalizeCase.ts:641"]
+    },
+    {
+      "id": "contract-runtime-index",
+      "occurrences": [139],
+      "cause": "ActiveContractRuntime return is constrained by an unrelated unrestricted string index signature.",
+      "canonicalContract": "src/domain/case/normalizeCase.ts / active contract return",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/case/normalizeCase.ts:1299"]
+    },
+    {
+      "id": "route-array-closure",
+      "occurrences": [140, 141],
+      "cause": "Property array narrowing is lost inside opposite-array filter callbacks.",
+      "canonicalContract": "src/domain/closedFacilityPermeability.ts / asDesignedRouteIds and asFoundRouteIds",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/closedFacilityPermeability.ts:387",
+        "src/domain/closedFacilityPermeability.ts:390"
+      ]
+    },
+    {
+      "id": "coercive-literal-inference",
+      "occurrences": [142, 143, 144],
+      "cause": "Authorization source, force policy and refusal handling values reach record construction as string rather than their enum types.",
+      "canonicalContract": "src/domain/coerciveContainedPersonProtocolRegistry.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/coerciveContainedPersonProtocolRegistry.ts:1777",
+        "src/domain/coerciveContainedPersonProtocolRegistry.ts:1778",
+        "src/domain/coerciveContainedPersonProtocolRegistry.ts:1780"
+      ]
+    },
+    {
+      "id": "staff-exclusion-subset",
+      "occurrences": [145],
+      "cause": "Set.has checks a subset but does not narrow the broader check-code union to cross-system tension flags.",
+      "canonicalContract": "src/domain/coerciveProtocolIntegratedHealthCrossReconciliation.ts / mapStaffExclusionIssueToCrossSystemTensionFlag",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/coerciveProtocolIntegratedHealthCrossReconciliation.ts:382"]
+    },
+    {
+      "id": "cognitive-vitals-fallback",
+      "occurrences": [146, 147],
+      "cause": "Fallback vitals object omits statusFlags, so inferred fallback union does not expose that property.",
+      "canonicalContract": "src/domain/cognitiveHazardSimulationTriggerVitals.ts / baseVitals",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/cognitiveHazardSimulationTriggerVitals.ts:200",
+        "src/domain/cognitiveHazardSimulationTriggerVitals.ts:203"
+      ]
+    },
+    {
+      "id": "cognitive-vitals-empty-flags",
+      "occurrences": [148],
+      "cause": "Effect removal assigns undefined to required AgentVitals.statusFlags. Decide whether absence or an empty list is canonical.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentVitals",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/cognitiveHazardSimulationTriggerVitals.ts:211"]
+    },
+    {
+      "id": "cognitive-unused-record",
+      "occurrences": [149],
+      "cause": "applyMemoryBandEffectFlags accepts record but derives flags only from targetBand; verify intended dependence.",
+      "canonicalContract": "src/domain/cognitiveHazardWeeklyOrchestration.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/cognitiveHazardWeeklyOrchestration.ts:91"]
+    },
+    {
+      "id": "memory-record-guards",
+      "occurrences": [150, 151, 152, 153],
+      "cause": "Memory evaluator casts record-checked channel/signal to required contracts without typed structural proof.",
+      "canonicalContract": "src/domain/collectiveMemoryStabilization.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/collectiveMemoryStabilization.ts:319",
+        "src/domain/collectiveMemoryStabilization.ts:325",
+        "src/domain/collectiveMemoryStabilization.ts:329",
+        "src/domain/collectiveMemoryStabilization.ts:330"
+      ]
+    },
+    {
+      "id": "advisory-record-guards",
+      "occurrences": [154, 155, 156, 157],
+      "cause": "Advisory evaluator casts record-checked body/signal to required contracts without typed structural proof.",
+      "canonicalContract": "src/domain/communityAdvisoryDecisionInfluence.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/communityAdvisoryDecisionInfluence.ts:377",
+        "src/domain/communityAdvisoryDecisionInfluence.ts:383",
+        "src/domain/communityAdvisoryDecisionInfluence.ts:387",
+        "src/domain/communityAdvisoryDecisionInfluence.ts:388"
+      ]
+    },
+    {
+      "id": "modality-import",
+      "occurrences": [158],
+      "cause": "HiddenStateModalityKind is referenced without a declaration/import in preview notes.",
+      "canonicalContract": "src/domain/concealmentPrepActivationPreviewNotes.ts / tellModalityForKind",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/concealmentPrepActivationPreviewNotes.ts:39"]
+    },
+    {
+      "id": "care-risk-narrowing",
+      "occurrences": [159],
+      "cause": "humaneCareRiskScore remains unknown-like in validated bundle construction instead of number/null.",
+      "canonicalContract": "src/domain/containedPersonIntegratedHealthBundleRegistry.ts / bundle parser",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/containedPersonIntegratedHealthBundleRegistry.ts:814"]
+    },
+    {
+      "id": "barrier-deficiency-guard",
+      "occurrences": [160],
+      "cause": "sourceDeficiencyKind remains unknown when producing a typed barrier integrity result.",
+      "canonicalContract": "src/domain/containmentBarrierIntegrity.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/containmentBarrierIntegrity.ts:184"]
+    },
+    {
+      "id": "cover-story-unreachable-check",
+      "occurrences": [161],
+      "cause": "Collapsed/repairing branch asks whether current phase is stressed; history vs current-state semantics must be reconciled.",
+      "canonicalContract": "src/domain/coverStoryLifecycleRegistry.ts / validation",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/coverStoryLifecycleRegistry.ts:875"]
+    },
+    {
+      "id": "degraded-care-record-guard",
+      "occurrences": [162],
+      "cause": "Record validation followed by direct DegradedCareRiskInput assertion lacks typed proof of required fields.",
+      "canonicalContract": "src/domain/degradedCareFacilityRisk.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/degradedCareFacilityRisk.ts:136"]
+    },
+    {
+      "id": "department-capability-callback",
+      "occurrences": [163],
+      "cause": "Nested matchedCapabilities callback has no contextual element type after dynamic array validation.",
+      "canonicalContract": "src/domain/departmentCoordination.ts / supporting department validation",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/departmentCoordination.ts:235"]
+    },
+    {
+      "id": "workshop-entry-tuple",
+      "occurrences": [164],
+      "cause": "Appending an unannotated [departmentId,snapshot] array widens sort keys to string or snapshot.",
+      "canonicalContract": "src/domain/departmentWorkshopActivation.ts / snapshot entries",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/departmentWorkshopActivation.ts:280"]
+    },
+    {
+      "id": "workshop-unused-item",
+      "occurrences": [165],
+      "cause": "Duplicate work-order filter uses index but not its item parameter.",
+      "canonicalContract": "src/domain/departmentWorkshopQueue.ts / duplicateWorkOrderIds",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/departmentWorkshopQueue.ts:2333"]
+    },
+    {
+      "id": "facility-unit-state",
+      "occurrences": [166],
+      "cause": "Validated unit.state is still typed as string at stacked unit construction.",
+      "canonicalContract": "src/domain/duplicateFacilityStacking.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/duplicateFacilityStacking.ts:208"]
+    },
+    {
+      "id": "residue-record-cast",
+      "occurrences": [167],
+      "cause": "Frozen record fast path asserts FacilityCoreResidue rather than exposing validated structure.",
+      "canonicalContract": "src/domain/facilityCoreResidue.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/facilityCoreResidue.ts:198"]
+    },
+    {
+      "id": "layout-array-closure",
+      "occurrences": [168, 169],
+      "cause": "input.zones/routeKinds narrowing is not retained inside filter callbacks.",
+      "canonicalContract": "src/domain/facilityLayoutStrategy.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/facilityLayoutStrategy.ts:461",
+        "src/domain/facilityLayoutStrategy.ts:465"
+      ]
+    },
+    {
+      "id": "lockdown-posture-closure",
+      "occurrences": [170, 171],
+      "cause": "Validated input.posture remains unknown at callback calls to posture resolvers.",
+      "canonicalContract": "src/domain/facilityZoningLockdown.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/facilityZoningLockdown.ts:417",
+        "src/domain/facilityZoningLockdown.ts:422"
+      ]
+    },
+    {
+      "id": "zone-record-cast",
+      "occurrences": [172],
+      "cause": "Validated record is asserted to EffectiveZoneState without structural type proof.",
+      "canonicalContract": "src/domain/facilityZoningLockdown.ts / effective zone parser",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/facilityZoningLockdown.ts:514"]
+    },
+    {
+      "id": "operating-cost-agent-fixture",
+      "occurrences": [173, 174, 175, 176],
+      "cause": "Count-only agent fixture uses Record<string,object> while cost APIs require canonical agents. Preserve cost assertions; do not weaken Agent.",
+      "canonicalContract": "src/domain/funding.test.ts / computeWeeklyOperatingCost inputs",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/funding.test.ts:59",
+        "src/domain/funding.test.ts:62",
+        "src/domain/funding.test.ts:66",
+        "src/domain/funding.test.ts:71"
+      ]
+    },
+    {
+      "id": "scene-week-optional",
+      "occurrences": [177, 178],
+      "cause": "Scene visit sorting subtracts optional week fields. Choose canonical normalized default before ordering.",
+      "canonicalContract": "src/domain/gameStateManager.ts / scene visit normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/gameStateManager.ts:332"]
+    },
+    {
+      "id": "location-week-optional",
+      "occurrences": [179],
+      "cause": "Optional currentLocation.updatedWeek is passed to a required numeric default-location argument.",
+      "canonicalContract": "src/domain/gameStateManager.ts / current location normalization",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/gameStateManager.ts:1083"]
+    },
+    {
+      "id": "scouting-layer-accumulator",
+      "occurrences": [188],
+      "cause": "Mutable layerGroups array rejects readonly scoutingLayers.",
+      "canonicalContract": "src/domain/hiddenStateModality.ts / concealment layer merge",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Related readonly vocabulary to scouting-readonly, but a distinct production accumulator; no evidence the test-input fix clears this.",
+      "evidence": ["src/domain/hiddenStateModality.ts:421"]
+    },
+    {
+      "id": "disguise-call-signature",
+      "occurrences": [189],
+      "cause": "Recon cache calls a multi-argument disguise validator with one bundled object. Reconcile intended signature and supplied context.",
+      "canonicalContract": "src/domain/hiddenStateScoutingReconCache.ts / evaluateBehaviorWeightedDisguiseValidation",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/hiddenStateScoutingReconCache.ts:133"]
+    },
+    {
+      "id": "hotline-record-guards",
+      "occurrences": [190, 191, 192, 193],
+      "cause": "Hotline evaluator directly asserts record-checked channel/call structures.",
+      "canonicalContract": "src/domain/hotlineChannel.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/hotlineChannel.ts:288",
+        "src/domain/hotlineChannel.ts:294",
+        "src/domain/hotlineChannel.ts:298",
+        "src/domain/hotlineChannel.ts:299"
+      ]
+    },
+    {
+      "id": "cover-readonly-builder",
+      "occurrences": [194, 195, 196],
+      "cause": "Cover authoring mutates optional fields through readonly output type.",
+      "canonicalContract": "src/domain/infiltrationCoverAuthoring.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/infiltrationCoverAuthoring.ts:80",
+        "src/domain/infiltrationCoverAuthoring.ts:83",
+        "src/domain/infiltrationCoverAuthoring.ts:86"
+      ]
+    },
+    {
+      "id": "probe-readonly-builder",
+      "occurrences": [197, 198, 199],
+      "cause": "Probe authoring mutates plan through readonly output type.",
+      "canonicalContract": "src/domain/infiltrationProbeAuthoring.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/infiltrationProbeAuthoring.ts:89",
+        "src/domain/infiltrationProbeAuthoring.ts:92",
+        "src/domain/infiltrationProbeAuthoring.ts:95"
+      ]
+    },
+    {
+      "id": "safe-label-contract",
+      "occurrences": [200, 607],
+      "cause": "Intake cross-link producer and test read label, but SafeLabelProjection exposes safeLabel. Preserve the existing safe-label projection and hidden-information policy.",
+      "canonicalContract": "src/domain/namingHazardDescriptorRegistry.ts / SafeLabelProjection",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Two consumers disagree with the same existing safeLabel contract; neither requires widening the projection type.",
+      "evidence": [
+        "src/domain/informationIntakeNamingHazardCrossLinkSurfacing.ts:29",
+        "src/test/informationIntakeNamingHazardCrossLinkSurfacing.test.ts:36"
+      ]
+    },
+    {
+      "id": "corroboration-unused-context",
+      "occurrences": [201, 202],
+      "cause": "Two text builders accept linkingCases but do not read it; verify whether existing linkedCaseIds/outcomeCases supply intended behavior.",
+      "canonicalContract": "src/domain/informationIntakeWeeklyCorroboration.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/informationIntakeWeeklyCorroboration.ts:172",
+        "src/domain/informationIntakeWeeklyCorroboration.ts:200"
+      ]
+    },
+    {
+      "id": "knowledge-confirmation-inference",
+      "occurrences": [203],
+      "cause": "Sanitized confirmationState widens to string at KnowledgeState construction.",
+      "canonicalContract": "src/domain/knowledge/sanitize.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/knowledge/sanitize.ts:187"]
+    },
+    {
+      "id": "market-order-semantics",
+      "occurrences": [204],
+      "cause": "Transaction action union includes order/fulfill but quantity aggregation switch handles neither. Decide whether/how those actions affect totals.",
+      "canonicalContract": "src/domain/market.ts / getListingTransactionTotalsForWeek",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/market.ts:790"]
+    },
+    {
+      "id": "minor-anomaly-unused-policy",
+      "occurrences": [205],
+      "cause": "Projection helper accepts policy but does not read it; confirm redaction behavior before removing parameter.",
+      "canonicalContract": "src/domain/minorAnomalyItemRegistry.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/minorAnomalyItemRegistry.ts:233"]
+    },
+    {
+      "id": "routing-duplicate-fields",
+      "occurrences": [206, 207],
+      "cause": "Mission record literal writes lastCandidateTeamIds/lastRejectedTeamIds twice; earlier rejected IDs and later rejected records differ. Resolve authoritative representation.",
+      "canonicalContract": "src/domain/missionIntakeRouting.ts / routing record construction",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/missionIntakeRouting.ts:1331",
+        "src/domain/missionIntakeRouting.ts:1332"
+      ]
+    },
+    {
+      "id": "rejected-team-predicate",
+      "occurrences": [208, 209],
+      "cause": "Filter predicate claims MissionRejectedTeamRecord with broad string reasonCode, not assignable to the mapped narrower blocker-code shape; null remains in output.",
+      "canonicalContract": "src/domain/missionIntakeRouting.ts / sanitize rejected teams",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "209 invalid predicate explains 208 return-array incompatibility; confirm via isolated compile.",
+      "evidence": [
+        "src/domain/missionIntakeRouting.ts:1688",
+        "src/domain/missionIntakeRouting.ts:1701"
+      ]
+    },
+    {
+      "id": "routing-readonly-reasons",
+      "occurrences": [210],
+      "cause": "Recomputed readonly priorityReasonCodes flows into mutable MissionRoutingRecord.",
+      "canonicalContract": "src/domain/missionIntakeRouting.ts / routing hydration",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/missionIntakeRouting.ts:1896"]
+    },
+    {
+      "id": "publish-pack-reason-contract",
+      "occurrences": [211],
+      "cause": "Pack integration merges arbitrary pack reason strings into PublishAutomationReasonCode decision. Determine which pack reasons are valid publish decisions.",
+      "canonicalContract": "src/domain/modifiableDataPackPublishIntegration.ts / reasonCodes",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/modifiableDataPackPublishIntegration.ts:207"]
+    },
+    {
+      "id": "social-visibility-import",
+      "occurrences": [212],
+      "cause": "SocialMapFactVisibility import does not exist; exported visibility contract uses a different name. Verify intended alias.",
+      "canonicalContract": "src/domain/simulationMapInterface.ts / SocialFactVisibility",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/operationalCertainty.ts:2"]
+    },
+    {
+      "id": "funding-import-cascade",
+      "occurrences": [213, 214],
+      "cause": "FundingState is locally imported but not exported by funding.ts; consumer import loses fundingHistory element typing.",
+      "canonicalContract": "src/domain/models.ts / FundingState; src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts / import",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "213 missing export is root; 214 callback implicit-any likely downstream. No measured repair delta.",
+      "evidence": [
+        "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts:14",
+        "src/domain/postIncidentReviewCloseoutRewardBranchPayout.ts:95"
+      ]
+    },
+    {
+      "id": "review-timings-readonly",
+      "occurrences": [215, 216, 217, 218, 219],
+      "cause": "Indexed timing accumulator is typed as readonly output; compiler reports each possible key.",
+      "canonicalContract": "src/domain/postIncidentReviewRegistry.ts / timings",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/postIncidentReviewRegistry.ts:639"]
+    },
+    {
+      "id": "prerequisite-recipe-closure",
+      "occurrences": [220],
+      "cause": "Validated finalRecipe remains unknown inside nested dependency traversal.",
+      "canonicalContract": "src/domain/prerequisiteProcessing.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/prerequisiteProcessing.ts:350"]
+    },
+    {
+      "id": "prerequisite-cases-closure",
+      "occurrences": [221],
+      "cause": "source.cases narrowing is lost inside writeCase closure before spread.",
+      "canonicalContract": "src/domain/prerequisiteProcessingOrders.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/prerequisiteProcessingOrders.ts:569"]
+    },
+    {
+      "id": "pressure-agency-fallback",
+      "occurrences": [222],
+      "cause": "Empty-object fallback is passed where full AgencyState or undefined is required. Decide absent-agency behavior.",
+      "canonicalContract": "src/domain/pressure.ts / response grid",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/pressure.ts:160"]
+    },
+    {
+      "id": "pressure-threshold-optional",
+      "occurrences": [223],
+      "cause": "Derived majorIncidentThreshold may be undefined while response grid requires number.",
+      "canonicalContract": "src/domain/pressure.ts / response grid",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/pressure.ts:210"]
+    },
+    {
+      "id": "waiver-legitimacy-optional",
+      "occurrences": [224],
+      "cause": "Spreading optional legitimacy can omit required sanctionLevel when applying falloutRisk.",
+      "canonicalContract": "src/domain/procurementEmergency.ts / emergency waiver",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/procurementEmergency.ts:98"]
+    },
+    {
+      "id": "institutional-flags-index",
+      "occurrences": [232],
+      "cause": "Specific InstitutionalChannelFlags interface is passed to unrestricted Record<string,boolean|undefined> helper.",
+      "canonicalContract": "src/domain/publicSignalCoverage.ts / countTrueFlags",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/publicSignalCoverage.ts:233"]
+    },
+    {
+      "id": "publish-reason-filter",
+      "occurrences": [233],
+      "cause": "Combined nonempty/predicate filter retains string[] rather than narrowing to PublishAutomationReasonCode.",
+      "canonicalContract": "src/domain/publishAutomationCreditingHooks.ts / reason code parser",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/publishAutomationCreditingHooks.ts:826"]
+    },
+    {
+      "id": "publish-note-optionals",
+      "occurrences": [234, 235, 236],
+      "cause": "Optional receipt skip/channel fields are inserted into metadata that disallows undefined.",
+      "canonicalContract": "src/domain/publishQueueWeeklyReportNotes.ts / ReportNote metadata",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/publishQueueWeeklyReportNotes.ts:49",
+        "src/domain/publishQueueWeeklyReportNotes.ts:50",
+        "src/domain/publishQueueWeeklyReportNotes.ts:51"
+      ]
+    },
+    {
+      "id": "authority-json-tuples",
+      "occurrences": [237],
+      "cause": "Imported JSON string arrays are asserted as fixed StepRow tuples without shape proof.",
+      "canonicalContract": "src/domain/regionalCrossRegisterEventAuthority.ts / StepRow",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/regionalCrossRegisterEventAuthority.ts:82"]
+    },
+    {
+      "id": "probe-report-payload",
+      "occurrences": [238, 239, 240, 241, 242],
+      "cause": "Report note consumer reads probe/cover/leave-behind fields absent from the selected event payload contract. Reconcile producer/schema/consumer ownership.",
+      "canonicalContract": "src/domain/reportNotes.ts / infiltration event notes",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/reportNotes.ts:462",
+        "src/domain/reportNotes.ts:463",
+        "src/domain/reportNotes.ts:464",
+        "src/domain/reportNotes.ts:465",
+        "src/domain/reportNotes.ts:466"
+      ]
+    },
+    {
+      "id": "weekly-resolution-shadow",
+      "occurrences": [243, 244],
+      "cause": "advanceWeek local WeeklyCaseResolutionStrategy omits terminalDisposition returned by canonical resolution and read downstream.",
+      "canonicalContract": "src/domain/caseResolutionOrchestration.ts / WeeklyCaseResolutionStrategy; src/domain/sim/advanceWeek.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "One shadow contract yields construction and destructuring errors. Reuse canonical semantics; no runtime repair authorized.",
+      "evidence": ["src/domain/sim/advanceWeek.ts:2025", "src/domain/sim/advanceWeek.ts:2717"]
+    },
+    {
+      "id": "prerequisite-result-shape",
+      "occurrences": [245, 246, 247, 408, 409],
+      "cause": "Prerequisite successor result exposes optional inventory and unknown workshop maps to GameState assignment and test projection.",
+      "canonicalContract": "src/domain/prerequisiteProcessingOrders.ts / successor activation result",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "408 unknown map causes 409 implicit-any; production assignments and test consume same result contract. Confirm canonical output shape before typing it.",
+      "evidence": [
+        "src/domain/sim/advanceWeek.ts:5283",
+        "src/domain/sim/advanceWeek.ts:5286",
+        "src/domain/sim/advanceWeek.ts:5287",
+        "src/test/dependentPrerequisiteActivation.test.ts:97"
+      ]
+    },
+    {
+      "id": "equipment-instance-import",
+      "occurrences": [248],
+      "cause": "EquipmentInstance type is referenced without declaration/import.",
+      "canonicalContract": "src/domain/sim/equipment.ts / transferredInstance",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/sim/equipment.ts:467"]
+    },
+    {
+      "id": "weekly-integrity-state",
+      "occurrences": [249, 250, 251, 252],
+      "cause": "Append/clear helpers use weeklyReportIntegrityIssues absent from GameState; establish persistence and canonical state ownership.",
+      "canonicalContract": "src/domain/sim/weeklyReportInvariants.ts; src/domain/models.ts / GameState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/sim/weeklyReportInvariants.ts:33",
+        "src/domain/sim/weeklyReportInvariants.ts:37",
+        "src/domain/sim/weeklyReportInvariants.ts:42",
+        "src/domain/sim/weeklyReportInvariants.ts:46"
+      ]
+    },
+    {
+      "id": "evaluator-incentives-readonly",
+      "occurrences": [253, 254, 255, 256],
+      "cause": "Indexed incentives accumulator uses readonly output fields.",
+      "canonicalContract": "src/domain/spe947EvaluatorPersistence.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/spe947EvaluatorPersistence.ts:242"]
+    },
+    {
+      "id": "horizon-readonly",
+      "occurrences": [257, 258, 259],
+      "cause": "Horizon-band accumulator uses readonly output fields.",
+      "canonicalContract": "src/domain/surveillanceCapacityInterventionTuningRegistry.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/surveillanceCapacityInterventionTuningRegistry.ts:592"]
+    },
+    {
+      "id": "survivor-record-guards",
+      "occurrences": [260, 261, 262, 263],
+      "cause": "Survivor evaluator asserts full registry/signal after record-only guards.",
+      "canonicalContract": "src/domain/survivorInformalRegistry.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/domain/survivorInformalRegistry.ts:309",
+        "src/domain/survivorInformalRegistry.ts:315",
+        "src/domain/survivorInformalRegistry.ts:319",
+        "src/domain/survivorInformalRegistry.ts:320"
+      ]
+    },
+    {
+      "id": "town-tags-readonly",
+      "occurrences": [264],
+      "cause": "Tag merge helper accepts mutable arrays while context pressureTags is readonly.",
+      "canonicalContract": "src/domain/townContractGeneration.ts / mergeUniquePreserveOrder",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/townContractGeneration.ts:179"]
+    },
+    {
+      "id": "routing-blocker-label",
+      "occurrences": [265],
+      "cause": "Exhaustive blocker label map lacks authority-mission-access-restricted.",
+      "canonicalContract": "src/domain/visibility.ts / ROUTING_BLOCKER_LABELS",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/domain/visibility.ts:82"]
+    },
+    {
+      "id": "role-query-options",
+      "occurrences": [278, 279],
+      "cause": "getByRole options do not accept exact; preserve intended accessible-name matching through supported API.",
+      "canonicalContract": "src/features/cases/CasesPage.test.tsx / role queries",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/features/cases/CasesPage.test.tsx:478",
+        "src/features/cases/CasesPage.test.tsx:491"
+      ]
+    },
+    {
+      "id": "equipment-instance-id-optional",
+      "occurrences": [280, 281, 282],
+      "cause": "Optional materialization instanceId is used as registry index without narrowing.",
+      "canonicalContract": "src/features/equipment/EquipmentPage.test.tsx",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/features/equipment/EquipmentPage.test.tsx:395",
+        "src/features/equipment/EquipmentPage.test.tsx:425",
+        "src/features/equipment/EquipmentPage.test.tsx:1050"
+      ]
+    },
+    {
+      "id": "attestation-literal-plural",
+      "occurrences": [283],
+      "cause": "Constant TTL is literal 2, so comparison to 1 is unreachable at compile time.",
+      "canonicalContract": "src/features/market/MarketPage.tsx / attestation label",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/features/market/MarketPage.tsx:199"]
+    },
+    {
+      "id": "market-order-blocked-reason",
+      "occurrences": [284, 285, 286, 287, 288],
+      "cause": "Page and projection consume orderBlockedReason absent from MarketListingView. Determine whether order denial should have a distinct projection field.",
+      "canonicalContract": "src/features/market/marketView.ts / MarketListingView",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Shared projection contract causes five reads; separate semantic obligation from transaction aggregation.",
+      "evidence": [
+        "src/features/market/MarketPage.tsx:526",
+        "src/features/market/MarketPage.tsx:529",
+        "src/features/market/marketView.ts:647"
+      ]
+    },
+    {
+      "id": "report-category-exhaustiveness",
+      "occurrences": [290],
+      "cause": "Test category map no longer covers all ReportNoteType variants.",
+      "canonicalContract": "src/features/report/reportNoteView.test.ts / ReportNoteType mapping",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/features/report/reportNoteView.test.ts:73"]
+    },
+    {
+      "id": "extranormal-fixtures",
+      "occurrences": [291, 330, 331],
+      "cause": "ExtranormalEventRecord fixtures omit occurrence window, domain tags, geometry and population selectors.",
+      "canonicalContract": "src/domain/extranormalEventRegistry.ts / ExtranormalEventRecord",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/advanceWeek.caseLifecycle.integration.test.ts:119",
+        "src/test/caseLifecycleWeeklyOrchestration.test.ts:370",
+        "src/test/caseLifecycleWeeklyOrchestration.test.ts:397"
+      ]
+    },
+    {
+      "id": "therapeutic-readonly-fixture",
+      "occurrences": [292],
+      "cause": "Test mutates readonly missedSessionStreak on returned record.",
+      "canonicalContract": "src/test/advanceWeek.containedPersonTherapeuticCare.integration.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/advanceWeek.containedPersonTherapeuticCare.integration.test.ts:68"]
+    },
+    {
+      "id": "legacy-team-fixtures",
+      "occurrences": [
+        293, 326, 357, 418, 545, 627, 628, 629, 630, 631, 632, 633, 634, 635, 636, 637, 638, 639,
+        640, 674, 676, 678
+      ],
+      "cause": "Fixtures write top-level assignedCaseId on Team instead of canonical status.assignedCaseId; preserve each intended deployment lifecycle.",
+      "canonicalContract": "src/domain/models.ts / Team; team status lifecycle",
+      "repairOwner": "SPE-3446",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Repeated legacy fixture shape across suites; no production schema widening. Any test behavior not representable by canonical status is a semantic stop.",
+      "evidence": [
+        "src/test/advanceWeek.fieldBaseResolutionWire.test.ts:88",
+        "src/test/campaignToIncidentHook.integration.test.ts:9",
+        "src/test/crossScaleContracts.test.ts:13",
+        "src/test/deployment.readiness.timeCost.test.ts:107",
+        "src/test/globalStateMetrics.test.ts:104",
+        "src/test/sim.advanceWeek.test.ts:1585",
+        "src/test/sim.advanceWeek.test.ts:1946",
+        "src/test/sim.advanceWeek.test.ts:2083",
+        "src/test/sim.advanceWeek.test.ts:3133",
+        "src/test/sim.advanceWeek.test.ts:3256",
+        "src/test/sim.advanceWeek.test.ts:3333",
+        "src/test/sim.advanceWeek.test.ts:3397",
+        "src/test/sim.advanceWeek.test.ts:3413",
+        "src/test/sim.advanceWeek.test.ts:3561",
+        "src/test/sim.advanceWeek.test.ts:3656",
+        "src/test/sim.fatiguePipeline.test.ts:16",
+        "src/test/sim.investigationEconomy.integration.test.ts:76",
+        "src/test/sim.pipeline.invariants.test.ts:258",
+        "src/test/sim.relationshipEvolution.test.ts:69",
+        "src/test/teamStateMachine.test.ts:81",
+        "src/test/weeklyMvpLoopProof.calibration.test.ts:27",
+        "src/test/weeklyMvpLoopProof.slice2.integration.test.ts:79"
+      ]
+    },
+    {
+      "id": "review-event-map-correlation",
+      "occurrences": [294, 295],
+      "cause": "Filtering then mapping event type/source/payload reconstructs independent unions rather than correlated incident-review drafts.",
+      "canonicalContract": "src/test/advanceWeek.postIncidentReview.integration.test.ts / event mapping",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/advanceWeek.postIncidentReview.integration.test.ts:309",
+        "src/test/advanceWeek.postIncidentReview.integration.test.ts:896"
+      ]
+    },
+    {
+      "id": "campaign-ledger-optional",
+      "occurrences": [301, 302],
+      "cause": "Spreading optional campaignLedger/profile into required ledger both dereferences and constructs potentially missing fields.",
+      "canonicalContract": "src/domain/models.ts / campaignLedger",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agencyEstablishmentProjection.test.ts:30",
+        "src/test/agencyEstablishmentProjection.test.ts:33"
+      ]
+    },
+    {
+      "id": "agency-fixture-optional",
+      "occurrences": [303, 304],
+      "cause": "Fixture spreads and dereferences optional agency while constructing a full AgencyState.",
+      "canonicalContract": "src/domain/models.ts / AgencyState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/agencyStanding.test.ts:134", "src/test/agencyStanding.test.ts:137"]
+    },
+    {
+      "id": "history-betrayal-invalid",
+      "occurrences": [305, 306, 307],
+      "cause": "Negative reconciliation fixtures supply invalid consequence and string numeric values through valid event payload types.",
+      "canonicalContract": "src/test/agentHistory.betrayed.reconciliation.test.ts / raw event input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agentHistory.betrayed.reconciliation.test.ts:38",
+        "src/test/agentHistory.betrayed.reconciliation.test.ts:135",
+        "src/test/agentHistory.betrayed.reconciliation.test.ts:136"
+      ]
+    },
+    {
+      "id": "history-instructor-invalid",
+      "occurrences": [308, 309],
+      "cause": "Negative reconciliation fixtures supply invalid stat/string bonus through valid event payload types.",
+      "canonicalContract": "src/test/agentHistory.instructorAssignment.reconciliation.test.ts / raw event input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agentHistory.instructorAssignment.reconciliation.test.ts:38",
+        "src/test/agentHistory.instructorAssignment.reconciliation.test.ts:90"
+      ]
+    },
+    {
+      "id": "history-promotion-invalid",
+      "occurrences": [310, 311],
+      "cause": "Promotion reconciliation tests use padded role and omit required newRole to test normalization; invalid input is typed as valid event.",
+      "canonicalContract": "src/test/agentHistory.promoted.reconciliation.test.ts / raw event input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agentHistory.promoted.reconciliation.test.ts:34",
+        "src/test/agentHistory.promoted.reconciliation.test.ts:82"
+      ]
+    },
+    {
+      "id": "history-relationship-invalid",
+      "occurrences": [312, 313],
+      "cause": "Relationship reconciliation fixtures use string numeric fields and malformed event payload through canonical event types.",
+      "canonicalContract": "src/test/agentHistory.relationshipChanged.reconciliation.test.ts / raw event input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agentHistory.relationshipChanged.reconciliation.test.ts:133",
+        "src/test/agentHistory.relationshipChanged.reconciliation.test.ts:189"
+      ]
+    },
+    {
+      "id": "history-training-invalid",
+      "occurrences": [314, 315, 316],
+      "cause": "Training reconciliation tests supply string numeric event payloads through valid event contracts.",
+      "canonicalContract": "src/test/agentHistory.training.reconciliation.test.ts / raw event input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/agentHistory.training.reconciliation.test.ts:183",
+        "src/test/agentHistory.training.reconciliation.test.ts:184",
+        "src/test/agentHistory.training.reconciliation.test.ts:199"
+      ]
+    },
+    {
+      "id": "market-access-fixture",
+      "occurrences": [317, 318],
+      "cause": "Unchanged-state assertion reads market.access absent from MarketState; establish intended access state owner.",
+      "canonicalContract": "src/domain/models.ts / MarketState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/authorityGraphPersistence.test.ts:225"]
+    },
+    {
+      "id": "branch-vitals-fixtures",
+      "occurrences": [323, 324, 325],
+      "cause": "Spreading optional vitals produces partial numeric fields when constructing required AgentVitals.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentVitals",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/branchContinuityProjection.test.ts:126",
+        "src/test/branchContinuityProjection.test.ts:144",
+        "src/test/branchContinuityProjection.test.ts:163"
+      ]
+    },
+    {
+      "id": "funding-test-raw-cast",
+      "occurrences": [327],
+      "cause": "Funding-state test helper returns Record<string,unknown> and is asserted as FundingState.",
+      "canonicalContract": "src/test/capabilityGap.test.ts / funding fixture",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/capabilityGap.test.ts:105"]
+    },
+    {
+      "id": "case-stat-fixtures",
+      "occurrences": [328, 329],
+      "cause": "Case fixture uses empty difficulty/weight blocks instead of complete StatKey maps.",
+      "canonicalContract": "src/domain/models.ts / StatBlock and WeightBlock",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/caseLifecycleWeeklyOrchestration.test.ts:37",
+        "src/test/caseLifecycleWeeklyOrchestration.test.ts:38"
+      ]
+    },
+    {
+      "id": "stim-assignment-fixtures",
+      "occurrences": [332, 333, 335],
+      "cause": "Assigned AgentAssignmentState fixtures omit required teamId.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentAssignmentState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/combatStim.contract.test.ts:725",
+        "src/test/combatStim.contract.test.ts:994",
+        "src/test/combatStim.contract.test.ts:1448"
+      ]
+    },
+    {
+      "id": "stim-recovery-fixtures",
+      "occurrences": [334, 336, 337],
+      "cause": "Recovery-claim fixtures omit required EquipmentDeconstructionQueueEntry fields.",
+      "canonicalContract": "src/domain/models.ts / EquipmentDeconstructionQueueEntry",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/combatStim.contract.test.ts:1083",
+        "src/test/combatStim.contract.test.ts:1516",
+        "src/test/combatStim.contract.test.ts:1795"
+      ]
+    },
+    {
+      "id": "containment-event-filters",
+      "occurrences": [338, 339, 340, 341, 342, 343, 344, 346, 347, 348, 349, 350, 351, 352],
+      "cause": "Test event helpers restrict every payload to optional instanceId and erase concrete type; real event union includes other payloads.",
+      "canonicalContract": "src/test/containmentClassWeekClose.contract.test.ts / draftsForInstance and inspectEventsFor",
+      "repairOwner": "SPE-3447",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "339/341/343 missing type are downstream of helper return erasure; other occurrences are rejected helper inputs. Keep separate from malformed-state obligation.",
+      "evidence": [
+        "src/test/containmentClassWeekClose.contract.test.ts:128",
+        "src/test/containmentClassWeekClose.contract.test.ts:129",
+        "src/test/containmentClassWeekClose.contract.test.ts:185",
+        "src/test/containmentClassWeekClose.contract.test.ts:186",
+        "src/test/containmentClassWeekClose.contract.test.ts:247",
+        "src/test/containmentClassWeekClose.contract.test.ts:248",
+        "src/test/containmentClassWeekClose.contract.test.ts:263",
+        "src/test/containmentClassWeekClose.contract.test.ts:284",
+        "src/test/containmentClassWeekClose.contract.test.ts:334",
+        "src/test/containmentClassWeekClose.contract.test.ts:352",
+        "src/test/containmentClassWeekClose.contract.test.ts:429",
+        "src/test/containmentClassWeekClose.contract.test.ts:565",
+        "src/test/containmentClassWeekClose.contract.test.ts:696",
+        "src/test/containmentClassWeekClose.contract.test.ts:698"
+      ]
+    },
+    {
+      "id": "containment-invalid-fixture",
+      "occurrences": [345],
+      "cause": "Malformed containment-integrity state is intentionally invalid but passed through valid GameState contract.",
+      "canonicalContract": "src/test/containmentClassWeekClose.contract.test.ts / malformedState",
+      "repairOwner": "SPE-3447",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/containmentClassWeekClose.contract.test.ts:283"]
+    },
+    {
+      "id": "disposition-invalid-fixtures",
+      "occurrences": [353, 354, 355],
+      "cause": "Negative validation tests delete required rationaleCodes from statically valid records.",
+      "canonicalContract": "src/test/containmentDispositionRegistry.test.ts / invalid input construction",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/containmentDispositionRegistry.test.ts:323",
+        "src/test/containmentDispositionRegistry.test.ts:336",
+        "src/test/containmentDispositionRegistry.test.ts:337"
+      ]
+    },
+    {
+      "id": "credibility-fixture",
+      "occurrences": [356],
+      "cause": "Fixture confuses plausibility value plausible with CredibilityBand vocabulary. Confirm intended evidence credibility.",
+      "canonicalContract": "src/test/coverStoryContradictionAccumulation.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/coverStoryContradictionAccumulation.test.ts:104"]
+    },
+    {
+      "id": "workshop-maps-optional",
+      "occurrences": [366, 367, 404, 410, 411, 412, 413, 414, 415, 416],
+      "cause": "Tests index optional GameState workshop maps and prerequisite orders without typed presence guards.",
+      "canonicalContract": "src/domain/models.ts / optional workshop and prerequisite maps",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent access sites under common optional-state contract; not proven downstream of helper or activation-result failures.",
+      "evidence": [
+        "src/test/departmentWorkshopActivation.test.ts:329",
+        "src/test/departmentWorkshopActivation.test.ts:332",
+        "src/test/departmentWorkshopRouting.test.ts:317",
+        "src/test/dependentPrerequisiteActivation.test.ts:138",
+        "src/test/dependentPrerequisiteActivation.test.ts:152",
+        "src/test/dependentPrerequisiteActivation.test.ts:166",
+        "src/test/dependentPrerequisiteActivation.test.ts:180",
+        "src/test/dependentPrerequisiteActivation.test.ts:199",
+        "src/test/dependentPrerequisiteActivation.test.ts:206",
+        "src/test/dependentPrerequisiteActivation.test.ts:213"
+      ]
+    },
+    {
+      "id": "workshop-source-fixtures",
+      "occurrences": [403, 405, 406],
+      "cause": "Fixture sourceFor/emptyWorkshopState helpers expose unknown week/maps and are spread into GameState or indexed.",
+      "canonicalContract": "src/test/departmentWorkshopRouting.test.ts; src/test/departmentWorkshopWrites.test.ts / source helpers",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Related helper type erasure with separate local constructors; not the personnel-remapping helper owned by SPE-3444.",
+      "evidence": [
+        "src/test/departmentWorkshopRouting.test.ts:309",
+        "src/test/departmentWorkshopWrites.test.ts:196",
+        "src/test/departmentWorkshopWrites.test.ts:214"
+      ]
+    },
+    {
+      "id": "workshop-outcome-fixtures",
+      "occurrences": [407, 417],
+      "cause": "Completion outcome fixtures omit required quality and safety fields.",
+      "canonicalContract": "src/domain/departmentWorkshopQueue.ts / DepartmentWorkshopCompletionOutcome",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/dependentPrerequisiteActivation.test.ts:67",
+        "src/test/dependentPrerequisiteActivation.test.ts:322"
+      ]
+    },
+    {
+      "id": "scouting-result-fixture",
+      "occurrences": [419],
+      "cause": "Scouting reveal result fixture omits required value and explanation.",
+      "canonicalContract": "src/domain/revealPayloadScoutingIntegration.ts / HiddenStateScoutingRevealIntegrationResult",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/detectionScanReportNotes.test.ts:321"]
+    },
+    {
+      "id": "downtime-vitals-fixtures",
+      "occurrences": [420, 421, 422, 423, 424, 425],
+      "cause": "Status-flag-only or optional-spread vitals fixtures omit required numeric AgentVitals fields.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentVitals",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/downtimeCarryIn.test.ts:30",
+        "src/test/downtimeCarryIn.test.ts:106",
+        "src/test/downtimeCarryIn.test.ts:155",
+        "src/test/downtimeCarryIn.test.ts:181",
+        "src/test/downtimeCarryIn.test.ts:213",
+        "src/test/downtimeCarryIn.test.ts:241"
+      ]
+    },
+    {
+      "id": "persisted-game-replay-fixture",
+      "occurrences": [426, 427],
+      "cause": "Equipment replay passes PersistedGame without templates into GameState-only simulation.",
+      "canonicalContract": "src/app/store/runTransfer.ts / PersistedGame; equipment deconstruction replay",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/equipmentGradeRecovery.contract.test.ts:1269",
+        "src/test/equipmentGradeRecovery.contract.test.ts:1295"
+      ]
+    },
+    {
+      "id": "recovery-result-narrowing",
+      "occurrences": [428],
+      "cause": "Test reads participation before narrowing recovery resolution available discriminator.",
+      "canonicalContract": "src/test/equipmentInstance.contract.test.ts / EquipmentGradeRecoveryResolution",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/equipmentInstance.contract.test.ts:436"]
+    },
+    {
+      "id": "equipment-slot-invalid-fixture",
+      "occurrences": [429],
+      "cause": "Negative slot test passes weapon outside EquipmentSlotKind to typed API. Preserve invalid-slot rejection coverage.",
+      "canonicalContract": "src/test/equipmentInstance.contract.test.ts / slot input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/equipmentInstance.contract.test.ts:2028"]
+    },
+    {
+      "id": "equipment-debug-probe",
+      "occurrences": [430],
+      "cause": "Test asserts typed EquipmentInstance as unrestricted record to probe removed debug key.",
+      "canonicalContract": "src/test/equipmentInstance.contract.test.ts / sanitized output probe",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/equipmentInstance.contract.test.ts:2291"]
+    },
+    {
+      "id": "event-bus-narrowing",
+      "occurrences": [431, 432, 433],
+      "cause": "Expect equality assertions on event type do not narrow payload unions before field access.",
+      "canonicalContract": "src/test/eventBus.test.ts / OperationEvent",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/eventBus.test.ts:26",
+        "src/test/eventBus.test.ts:48",
+        "src/test/eventBus.test.ts:73"
+      ]
+    },
+    {
+      "id": "event-fixture-override",
+      "occurrences": [434],
+      "cause": "createMinimalOperationEvent deliberately omits payload from overrides, but caller supplies payload there.",
+      "canonicalContract": "src/test/fixtures/minimalOperationEventPayloads.ts / createMinimalOperationEvent",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent API usage obligation from generic factory correlation; decide whether payload overrides should be supported or passed by a different helper.",
+      "evidence": ["src/test/eventFeedView.exhaustiveness.test.ts:46"]
+    },
+    {
+      "id": "readiness-fixture-inference",
+      "occurrences": [503, 504, 505, 506, 507, 508, 509],
+      "cause": "PERFECT_TEAM_PARAMS widens hardBlockers to string[]; all weakest-link calls inherit incompatible TeamDeploymentReadinessState.",
+      "canonicalContract": "src/test/executionInstability.test.ts / PERFECT_TEAM_PARAMS",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Shared fixture fans out into seven failures; not evidence of a simulation defect.",
+      "evidence": [
+        "src/test/executionInstability.test.ts:79",
+        "src/test/executionInstability.test.ts:100",
+        "src/test/executionInstability.test.ts:131",
+        "src/test/executionInstability.test.ts:155",
+        "src/test/executionInstability.test.ts:175",
+        "src/test/executionInstability.test.ts:194",
+        "src/test/executionInstability.test.ts:208"
+      ]
+    },
+    {
+      "id": "case-kind-fixtures",
+      "occurrences": [510, 511, 512, 513, 514, 622],
+      "cause": "Fixtures use investigation as case kind, outside canonical kind vocabulary. Determine intended case kind without adding a new mode.",
+      "canonicalContract": "src/domain/models.ts / CaseInstance.kind",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/expeditionRecoveryNode.test.ts:34",
+        "src/test/expeditionRecoveryNode.test.ts:75",
+        "src/test/expeditionRecoveryNode.test.ts:103",
+        "src/test/expeditionRecoveryNode.test.ts:174",
+        "src/test/expeditionRecoveryNode.test.ts:221",
+        "src/test/reportTeamStatus.test.ts:18"
+      ]
+    },
+    {
+      "id": "weekly-report-fixtures",
+      "occurrences": [515, 516, 614, 615],
+      "cause": "Partial report fixtures omit canonical RNG and lifecycle report fields.",
+      "canonicalContract": "src/domain/models.ts / WeeklyReport",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/externalSupport.test.ts:236",
+        "src/test/externalSupport.test.ts:245",
+        "src/test/operationalCover.test.ts:67",
+        "src/test/operationalCover.test.ts:71"
+      ]
+    },
+    {
+      "id": "maintenance-readonly-test",
+      "occurrences": [529],
+      "cause": "Isolation test mutates readonly maintenanceHours to probe aliasing; preserve no-shared-mutation proof using a sound test boundary.",
+      "canonicalContract": "src/test/facilityMaintenanceRecoveryApplication.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/facilityMaintenanceRecoveryApplication.test.ts:153"]
+    },
+    {
+      "id": "stock-condition-fixture-inference",
+      "occurrences": [536],
+      "cause": "Fallback stock condition fixture infers string values instead of canonical condition literals.",
+      "canonicalContract": "src/test/facilityStockSpoilage.contract.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/facilityStockSpoilage.contract.test.ts:197"]
+    },
+    {
+      "id": "assignment-result-narrowing",
+      "occurrences": [537],
+      "cause": "Assignment state assertion does not narrow union before caseId access.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentAssignmentState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/fieldBaseStaging.test.ts:174"]
+    },
+    {
+      "id": "minimal-event-correlation",
+      "occurrences": [538],
+      "cause": "Generic event factory asserts a reconstructed type/source/payload combination as OperationEvent<TType>; relation is not retained.",
+      "canonicalContract": "src/test/fixtures/minimalOperationEventPayloads.ts / createMinimalOperationEvent",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent generic factory from SPE-3442 dispatcher; no measured cross-helper cascade.",
+      "evidence": ["src/test/fixtures/minimalOperationEventPayloads.ts:714"]
+    },
+    {
+      "id": "malformed-runtime-fixture",
+      "occurrences": [543],
+      "cause": "Negative runtime normalization fixture is directly asserted as valid RuntimeState.",
+      "canonicalContract": "src/test/gameStateManager.test.ts / malformedRuntime",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/gameStateManager.test.ts:462"]
+    },
+    {
+      "id": "global-flags-optional",
+      "occurrences": [546, 677],
+      "cause": "Test helper writes and test reads optional globalFlags without typed presence guard.",
+      "canonicalContract": "src/domain/models.ts / GameState.globalFlags",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/helpers/weeklyMvpLoopProof.ts:80",
+        "src/test/weeklyMvpLoopProof.integration.test.ts:38"
+      ]
+    },
+    {
+      "id": "report-summary-optional",
+      "occurrences": [547, 548],
+      "cause": "Hidden-cell test dereferences optional report summary after producing a report view.",
+      "canonicalContract": "src/features/report/reportView.ts / report summary",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/hiddenCellStrategicInterference.test.ts:285",
+        "src/test/hiddenCellStrategicInterference.test.ts:286"
+      ]
+    },
+    {
+      "id": "panic-context-fixture",
+      "occurrences": [549],
+      "cause": "Fixture supplies globalPressure to a narrow context Pick that accepts only last-amplification evidence.",
+      "canonicalContract": "src/test/hiddenCellStrategicInterference.test.ts / report-note input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/hiddenCellStrategicInterference.test.ts:628"]
+    },
+    {
+      "id": "illusion-readonly-fixtures",
+      "occurrences": [550, 551],
+      "cause": "Illusion scouting fixtures pass readonly teamTags into CaseScoutingRevealIntegrationInput mutable arrays.",
+      "canonicalContract": "src/domain/revealPayloadScoutingIntegration.ts / CaseScoutingRevealIntegrationInput",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Related contract to SPE-3443; two consumers outside that approved test boundary. Reconcile extension before repair; no owner expansion applied.",
+      "evidence": [
+        "src/test/hiddenStateIllusionLifecycle.test.ts:155",
+        "src/test/hiddenStateIllusionLifecycle.test.ts:177"
+      ]
+    },
+    {
+      "id": "historical-helper-constraint",
+      "occurrences": [592, 593, 594, 595, 596, 597, 598, 599, 600, 601],
+      "cause": "Historical route omission helpers require Record<string,unknown>, which canonical GameState does not implement.",
+      "canonicalContract": "src/test/historicalRouteReplayActivation.contract.test.ts; src/test/historicalRouteReplayWeekClose.contract.test.ts; src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts",
+      "repairOwner": "SPE-3453",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/historicalRouteReplayActivation.contract.test.ts:299",
+        "src/test/historicalRouteReplayActivation.contract.test.ts:300",
+        "src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts:220",
+        "src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts:221",
+        "src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts:236",
+        "src/test/historicalRouteReplayTerminalResolveWeekClose.contract.test.ts:237",
+        "src/test/historicalRouteReplayWeekClose.contract.test.ts:173",
+        "src/test/historicalRouteReplayWeekClose.contract.test.ts:174",
+        "src/test/historicalRouteReplayWeekClose.contract.test.ts:189",
+        "src/test/historicalRouteReplayWeekClose.contract.test.ts:190"
+      ]
+    },
+    {
+      "id": "cover-agent-role-fixture",
+      "occurrences": [602],
+      "cause": "Fixture role liaison is outside AgentRole; establish intended canonical role rather than expand role taxonomy.",
+      "canonicalContract": "src/domain/agent/models.ts / AgentRole",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/infiltrationCover.test.ts:158"]
+    },
+    {
+      "id": "directive-fixture",
+      "occurrences": [603],
+      "cause": "WeeklyDirectiveState fixture uses obsolete week/directives fields.",
+      "canonicalContract": "src/domain/models.ts / WeeklyDirectiveState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/infiltrationEncounterStateCover.test.ts:42"]
+    },
+    {
+      "id": "probe-rule-invalid-fixture",
+      "occurrences": [604],
+      "cause": "Malformed nested rule is asserted as whole AuthoredInfiltrationProbePlan, incompatible with progress-action rule element.",
+      "canonicalContract": "src/test/infiltrationProbeAuthoring.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/infiltrationProbeAuthoring.test.ts:36"]
+    },
+    {
+      "id": "visible-hidden-state-fixture",
+      "occurrences": [605],
+      "cause": "Infiltration test supplies visible outside hidden/displaced/revealed state vocabulary. Confirm intended inactive case.",
+      "canonicalContract": "src/test/infiltrationStageMission.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/infiltrationStageMission.test.ts:68"]
+    },
+    {
+      "id": "disguise-result-fixtures",
+      "occurrences": [606, 673],
+      "cause": "Disguise behavior-validation fixtures omit required detectionScan.",
+      "canonicalContract": "src/domain/revealPayloadDisguiseIntegration.ts / DisguiseRevealBehaviorValidationResult",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/infiltrationStageMission.test.ts:101",
+        "src/test/stealthLeaveBehindMission.test.ts:129"
+      ]
+    },
+    {
+      "id": "candidate-triage-fixture",
+      "occurrences": [608],
+      "cause": "Cleared candidate helper asserts a partial object missing age/category/expiry and canonical candidate fields.",
+      "canonicalContract": "src/test/mission.intake.triage.routing.test.ts / makeClearedCandidate",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/mission.intake.triage.routing.test.ts:26"]
+    },
+    {
+      "id": "intake-confidence-fixture",
+      "occurrences": [609],
+      "cause": "CreateInformationIntakeReportInput does not accept confidenceScore; reconcile canonical confidence authoring path.",
+      "canonicalContract": "src/test/missionIntakeInformationRouting.integration.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/missionIntakeInformationRouting.integration.test.ts:118"]
+    },
+    {
+      "id": "routing-state-fixture",
+      "occurrences": [610],
+      "cause": "Hydration fixture uses pending_triage outside MissionRoutingStateKind.",
+      "canonicalContract": "src/domain/missionIntakeRouting.ts / MissionRoutingStateKind",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/missionIntakeRouting.hydration.test.ts:43"]
+    },
+    {
+      "id": "report-note-fixture",
+      "occurrences": [611],
+      "cause": "Test constructs ReportNote with obsolete week/content fields rather than its canonical contract.",
+      "canonicalContract": "src/domain/models.ts / ReportNote",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/missionTriageCloseoutRewardPayoutSignalView.test.ts:129"]
+    },
+    {
+      "id": "probe-plan-fixture",
+      "occurrences": [612, 613],
+      "cause": "Triage UI fixtures use plannedAction and cover fields on InfiltrationProbePlan, which owns different authoring fields.",
+      "canonicalContract": "src/test/missionTriageLayoutView.test.ts / InfiltrationProbePlan",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/missionTriageLayoutView.test.ts:162",
+        "src/test/missionTriageLayoutView.test.ts:250"
+      ]
+    },
+    {
+      "id": "workshop-readonly-test",
+      "occurrences": [616],
+      "cause": "Test mutates readonly snapshot.active while setting up a resolved scenario.",
+      "canonicalContract": "src/test/operationalExplanation.integration.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/operationalExplanation.integration.test.ts:208"]
+    },
+    {
+      "id": "case-mode-fixture",
+      "occurrences": [617],
+      "cause": "Report snapshot fixture uses containment outside CaseMode.",
+      "canonicalContract": "src/domain/models.ts / CaseMode",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/operationsRouteDrillDown.test.ts:40"]
+    },
+    {
+      "id": "pattern-blurb-import",
+      "occurrences": [618],
+      "cause": "PatternSourceBlurbStub missing from test scope.",
+      "canonicalContract": "src/domain/patternSourceSeriesRegistry.ts / PatternSourceBlurbStub",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/patternSourceSeriesRegistry.test.ts:141"]
+    },
+    {
+      "id": "processing-status-inference",
+      "occurrences": [619],
+      "cause": "Fixture processingHistory widens to string[] instead of ProcessingStatus[].",
+      "canonicalContract": "src/test/patternSourceSeriesWeeklyIntake.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/patternSourceSeriesWeeklyIntake.test.ts:112"]
+    },
+    {
+      "id": "legitimacy-fixture-inference",
+      "occurrences": [620, 621],
+      "cause": "Repeated-waiver fixture widens sanctionLevel/falloutRisk string literals.",
+      "canonicalContract": "src/test/procurementEmergency.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/procurementEmergency.test.ts:574",
+        "src/test/procurementEmergency.test.ts:576"
+      ]
+    },
+    {
+      "id": "rival-helper-constraint",
+      "occurrences": [623, 624],
+      "cause": "withoutRivalState requires an index signature GameState does not have.",
+      "canonicalContract": "src/test/rivalExpeditionWeekClose.test.ts / withoutRivalState",
+      "repairOwner": "SPE-3453",
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/rivalExpeditionWeekClose.test.ts:461"]
+    },
+    {
+      "id": "scout-confidence-fixture",
+      "occurrences": [625, 626],
+      "cause": "Scout report fixture uses tentative outside confidence vocabulary.",
+      "canonicalContract": "src/domain/recruitment/types.ts / CandidateScoutReport",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/sim.advanceWeek.test.ts:1329", "src/test/sim.advanceWeek.test.ts:1358"]
+    },
+    {
+      "id": "site-state-inference",
+      "occurrences": [641],
+      "cause": "Local game variable inferred with required cases.noisy rejects general GameState returned by exploration action.",
+      "canonicalContract": "src/test/siteOperationalExploration.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/siteOperationalExploration.test.ts:143"]
+    },
+    {
+      "id": "evaluator-map-optionals",
+      "occurrences": [642, 643, 644, 645, 646, 647],
+      "cause": "Missing-map negative tests pass GameState optional evaluator registries into resolvers requiring present map fields. Preserve missing-map behavior.",
+      "canonicalContract": "src/domain/spe947EvaluatorPersistence.ts / resolver input Picks",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe947EvaluatorPersistence.test.ts:294",
+        "src/test/spe947EvaluatorPersistence.test.ts:300",
+        "src/test/spe947EvaluatorPersistence.test.ts:308",
+        "src/test/spe947EvaluatorPersistence.test.ts:313",
+        "src/test/spe947EvaluatorPersistence.test.ts:318",
+        "src/test/spe947EvaluatorPersistence.test.ts:323"
+      ]
+    },
+    {
+      "id": "survivor-persistence-fixtures",
+      "occurrences": [648, 649, 650],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956SurvivorInformalRegistryRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956SurvivorInformalRegistryRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:132",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:144",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:154"
+      ]
+    },
+    {
+      "id": "memory-persistence-fixtures",
+      "occurrences": [651, 652, 653],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956CollectiveMemoryChannelRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956CollectiveMemoryChannelRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:323",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:335",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:345"
+      ]
+    },
+    {
+      "id": "hotline-persistence-fixtures",
+      "occurrences": [654, 655, 656],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956HotlineChannelRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956HotlineChannelRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:541",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:551",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:560"
+      ]
+    },
+    {
+      "id": "discussion-persistence-fixtures",
+      "occurrences": [657, 658, 659],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956AsyncDiscussionSurfaceRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956AsyncDiscussionSurfaceRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:777",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:789",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:799"
+      ]
+    },
+    {
+      "id": "advisory-persistence-fixtures",
+      "occurrences": [660, 661, 662],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956CommunityAdvisoryBodyRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956CommunityAdvisoryBodyRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:1065",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:1077",
+        "src/test/spe956ParticipatoryChannelPersistence.test.ts:1087"
+      ]
+    },
+    {
+      "id": "propagation-persistence-fixtures",
+      "occurrences": [664, 665, 666],
+      "cause": "Prototype/unsafe-key fixtures use Record<string,unknown> where Spe956PropagationGraphRecordsMap requires validated record values. Preserve prototype rejection and unsafe-key tests.",
+      "canonicalContract": "Spe956PropagationGraphRecordsMap / persistence resolver test input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": [
+        "src/test/spe956PropagationGraphPersistence.test.ts:100",
+        "src/test/spe956PropagationGraphPersistence.test.ts:111",
+        "src/test/spe956PropagationGraphPersistence.test.ts:125"
+      ]
+    },
+    {
+      "id": "hotline-policy-fixture",
+      "occurrences": [663],
+      "cause": "Weekly advancement accepts a weak delta/elapsed-fields shape; an otherwise valid hotline channel without any of those optional keys has no overlapping properties. Preserve the unchanged-channel behavior.",
+      "canonicalContract": "src/test/spe956ParticipatoryChannelWeeklyOrchestration.test.ts / advanceSpe956ParticipatoryChannelForWeek",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/spe956ParticipatoryChannelWeeklyOrchestration.test.ts:56"]
+    },
+    {
+      "id": "propagation-map-import",
+      "occurrences": [667],
+      "cause": "Spe956PropagationGraphRecordsMap is referenced without import/declaration.",
+      "canonicalContract": "src/domain/spe956PropagationGraphPersistence.ts / Spe956PropagationGraphRecordsMap",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/spe956PropagationGraphWeeklyOrchestration.test.ts:149"]
+    },
+    {
+      "id": "specialist-agent-fixtures",
+      "occurrences": [668, 669, 670, 671],
+      "cause": "Two role-map fixtures construct partial agents (id/name/role only) despite canonical Agent requiring baseStats/tags/relationships/fatigue/status.",
+      "canonicalContract": "src/domain/agent/models.ts / Agent",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Two local constructors; each has element satisfies failure and resulting registry mismatch. No shared helper repair assumed.",
+      "evidence": [
+        "src/test/specialistLaborAgentRoleMap.contract.test.ts:75",
+        "src/test/specialistLaborAgentRoleMap.contract.test.ts:82",
+        "src/test/specialistLaborStaffRoleMap.contract.test.ts:98",
+        "src/test/specialistLaborStaffRoleMap.contract.test.ts:105"
+      ]
+    },
+    {
+      "id": "stability-readonly-fixture",
+      "occurrences": [672],
+      "cause": "Fixture freezes recoveryActions to readonly tuple while StabilityIssue requires mutable array.",
+      "canonicalContract": "src/test/stabilityLayer.test.ts / StabilityIssue",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/stabilityLayer.test.ts:601"]
+    },
+    {
+      "id": "blame-actor-fixture",
+      "occurrences": [675],
+      "cause": "Fixture uses staff:lead in an actor-kind vocabulary of system/protocol/clinician/governance/site_lead.",
+      "canonicalContract": "src/test/treatmentFailureBlameRouting.test.ts",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "semantic-review",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/treatmentFailureBlameRouting.test.ts:770"]
+    },
+    {
+      "id": "knowledge-null-fixture",
+      "occurrences": [679],
+      "cause": "Fixture supplies null where knowledge note contract permits string or undefined.",
+      "canonicalContract": "src/test/weeklyReport.test.ts / knowledge input",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/weeklyReport.test.ts:111"]
+    },
+    {
+      "id": "knowledge-tier-inference",
+      "occurrences": [680],
+      "cause": "Knowledge map fixture widens tier/subject fields to string instead of canonical KnowledgeState literals.",
+      "canonicalContract": "src/domain/knowledge.ts / KnowledgeState",
+      "repairOwner": null,
+      "reconciliationOwner": "SPE-3376",
+      "disposition": "repair-candidate",
+      "cascadeAssessment": "Independent local obligation; no cross-cluster elimination demonstrated.",
+      "evidence": ["src/test/weeklyReport.test.ts:234"]
+    }
+  ],
+  "programWorkstream": "Shared-system Tooling / Developer Experience",
+  "affectedWorkstream": "CP-core; no Academy-specific diagnostic observed",
+  "occurrenceReference": "Zero-based index into the hash-bound baseline diagnostics array; preserves repeated identities and locations.",
+  "cascadePolicy": "Static evidence only. No repair experiment was performed; no diagnostic is declared resolved transitively.",
+  "ownerPolicy": "repairOwner is an existing bounded issue, not coding authorization. null means no bounded repair owner was verified; canonicalContract is the code authority and SPE-3376 retains reconciliation evidence. Historical semantic owners stay closed."
+}

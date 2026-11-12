@@ -2,6 +2,47 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { ResolutionOutcome } from '../domain/models'
 import { applyMissionResolutionAgentMutations } from '../domain/sim/missionResolutionAgents'
+import {
+  EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID,
+  FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+  PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID,
+} from '../domain/departmentWorkshopIntegrityQualityMapping'
+import {
+  getEquipmentInstance,
+  instantiateEquipmentInstance,
+  relocateEquipmentInstance,
+  takeEquippedInstancesLostOnMissionResolution,
+} from '../domain/equipmentInstance'
+import type { GameState } from '../domain/models'
+
+function plantEquippedInstance(
+  state: GameState,
+  instanceId: string,
+  location: { state: 'equipped'; agentId: string; slot: 'utility1' | 'utility2' }
+): GameState {
+  const instance = state.equipmentInstances?.[instanceId]
+  const agent = state.agents[location.agentId]
+  if (!instance || !agent) {
+    throw new Error(`cannot plant ${instanceId} on ${location.agentId}`)
+  }
+  return {
+    ...state,
+    equipmentInstances: {
+      ...(state.equipmentInstances ?? {}),
+      [instanceId]: { ...instance, location },
+    },
+    agents: {
+      ...state.agents,
+      [location.agentId]: {
+        ...agent,
+        equipmentSlots: {
+          ...agent.equipmentSlots,
+          [location.slot]: instance.definitionId,
+        },
+      },
+    },
+  }
+}
 
 function makeOutcome(overrides: Partial<ResolutionOutcome> = {}): ResolutionOutcome {
   return {
@@ -231,6 +272,47 @@ describe('applyMissionResolutionAgentMutations', () => {
     expect(highResult.missionInjuries.length).toBeLessThanOrEqual(lowResult.missionInjuries.length)
   })
 
+  it('preserves Combat Stim overdrive through casualty resolution for canonical week-close expiry', () => {
+    const state = createStartingState()
+    const team = state.teams.t_nightwatch
+    const subjectId = team.agentIds[0]
+    const subject = {
+      ...state.agents[subjectId]!,
+      fatigue: 50,
+      status: 'active' as const,
+      overdrive: {
+        active: true,
+        remainingPhases: 1,
+        recoveryDebt: 2,
+        source: {
+          kind: 'combat_stim' as const,
+          activationId: 'combat-stim-equipment-instance-1-1-dose-1',
+          equipmentInstanceId: 'equipment-instance-1-1',
+          caseId: 'case-001',
+        },
+      },
+    }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, [subject.id]: subject },
+      assignedAgents: [subject],
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: state.week,
+      rng: () => 0.9,
+    })
+
+    expect(result.nextAgents[subjectId]?.overdrive).toMatchObject({
+      active: true,
+      source: { kind: 'combat_stim', equipmentInstanceId: 'equipment-instance-1-1' },
+    })
+  })
+
   it('transit vulnerability can trigger return-route ambush injury outside main fail roll', () => {
     const state = createStartingState()
     const team = state.teams['t_nightwatch']
@@ -363,5 +445,729 @@ describe('applyMissionResolutionAgentMutations', () => {
     const next = result.nextAgents[subject.id]
     // Base minor injury morale loss is 8; transit penalty adds 6 => total 14.
     expect(next?.vitals?.morale).toBe(76)
+  })
+
+  it('destroys equipped ordinary instance-backed slots on fatality without inventory credit', () => {
+    const state = createStartingState()
+    // Hunter (a_ava) cannot take signal/intel kit; use field/tactical ordinary identities.
+    state.inventory.tactical_radio = 1
+    state.inventory.trauma_kit = 1
+    state.inventory.signal_jammers = 2
+    const first = instantiateEquipmentInstance(state, 'tactical_radio')
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'trauma_kit')
+    if (!second.ok) throw new Error(second.code)
+    const sibling = instantiateEquipmentInstance(second.state, 'signal_jammers')
+    if (!sibling.ok) throw new Error(sibling.code)
+    const stored = instantiateEquipmentInstance(sibling.state, 'signal_jammers')
+    if (!stored.ok) throw new Error(stored.code)
+    const equippedFirst = relocateEquipmentInstance(stored.state, first.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_ava',
+      slot: 'utility1',
+    })
+    if (!equippedFirst.ok) throw new Error(equippedFirst.code)
+    const equippedSecond = relocateEquipmentInstance(
+      equippedFirst.state,
+      second.instance.instanceId,
+      { state: 'equipped', agentId: 'a_ava', slot: 'utility2' }
+    )
+    if (!equippedSecond.ok) throw new Error(equippedSecond.code)
+    const equippedSibling = relocateEquipmentInstance(
+      equippedSecond.state,
+      sibling.instance.instanceId,
+      { state: 'equipped', agentId: 'a_casey', slot: 'utility1' }
+    )
+    if (!equippedSibling.ok) throw new Error(equippedSibling.code)
+    equippedSibling.state.agents.a_ava = {
+      ...equippedSibling.state.agents.a_ava,
+      equipmentSlots: {
+        ...equippedSibling.state.agents.a_ava.equipmentSlots,
+        primary: 'silver_rounds',
+      },
+    }
+
+    const prepared = equippedSibling.state
+    const team = prepared.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...prepared.agents[agentId]!,
+      fatigue: 95,
+      status: 'active' as const,
+    }))
+    const inventoryBefore = { ...prepared.inventory }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...prepared.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...prepared.cases['case-001'],
+        kind: 'raid',
+        stage: 5,
+        assignedTeamIds: ['t_nightwatch'],
+        raid: { minTeams: 2, maxTeams: 2 },
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -40 }),
+      week: prepared.week,
+      rng: () => 0,
+      equipmentInstances: prepared.equipmentInstances,
+    })
+
+    expect(result.nextAgents.a_ava.status).toBe('dead')
+    expect(result.nextEquipmentInstances).not.toHaveProperty(first.instance.instanceId)
+    expect(result.nextEquipmentInstances).not.toHaveProperty(second.instance.instanceId)
+    expect(result.nextEquipmentInstances).toHaveProperty(sibling.instance.instanceId)
+    expect(result.nextEquipmentInstances).toHaveProperty(stored.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility2).toBeUndefined()
+    expect(result.nextAgents.a_ava.equipmentSlots?.primary).toBe('silver_rounds')
+    expect(result.nextAgents.a_casey.equipmentSlots?.utility1).toBe('signal_jammers')
+    expect(result.nextEquipmentInstances?.[stored.instance.instanceId]?.location).toEqual({
+      state: 'stored',
+    })
+    expect(
+      getEquipmentInstance(
+        { equipmentInstances: result.nextEquipmentInstances },
+        sibling.instance.instanceId
+      )?.location
+    ).toMatchObject({ state: 'equipped', agentId: 'a_casey', slot: 'utility1' })
+    expect(prepared.inventory).toEqual(inventoryBefore)
+
+    const destroyed = result.eventDrafts.filter(
+      (draft) => draft.type === 'equipment.instance_destroyed'
+    )
+    expect(destroyed.map((draft) => draft.payload.instanceId)).toEqual([
+      first.instance.instanceId,
+      second.instance.instanceId,
+    ])
+    expect(destroyed.every((draft) => draft.payload.reason === 'mission_loss')).toBe(true)
+    expect(
+      result.eventDrafts.some(
+        (draft) =>
+          (draft.type === 'equipment.instance_destroyed' ||
+            draft.type === 'equipment.combat_stim_disposed') &&
+          draft.payload.reason === 'mission_injury'
+      )
+    ).toBe(false)
+    expect(result.eventDrafts.some((draft) => draft.type === 'agent.killed')).toBe(true)
+  })
+
+  it('disposes equipped Combat Stim identities on fatality without inventory credit', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+    const stim = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!stim.ok) throw new Error(stim.code)
+    const stockBefore = stim.state.inventory.combat_stims
+    const team = stim.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...stim.state.agents[agentId]!,
+      fatigue: 95,
+      status: 'active' as const,
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...stim.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...stim.state.cases['case-001'],
+        kind: 'raid',
+        stage: 5,
+        assignedTeamIds: ['t_nightwatch'],
+        raid: { minTeams: 2, maxTeams: 2 },
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -40 }),
+      week: stim.state.week,
+      rng: () => 0,
+      equipmentInstances: stim.state.equipmentInstances,
+    })
+
+    expect(result.nextAgents.a_ava.status).toBe('dead')
+    expect(result.nextEquipmentInstances).not.toHaveProperty(stim.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(stim.state.inventory.combat_stims).toBe(stockBefore)
+    const disposed = result.eventDrafts.filter(
+      (draft) => draft.type === 'equipment.combat_stim_disposed'
+    )
+    expect(disposed).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: stim.instance.instanceId,
+          remaining: 2,
+          reason: 'mission_loss',
+        }),
+      }),
+    ])
+    expect(
+      result.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.combat_stim_disposed' &&
+          draft.payload.reason === 'mission_injury'
+      )
+    ).toBe(false)
+  })
+
+  it('destroys equipped ordinary instance-backed slots on injury without inventory credit', () => {
+    const state = createStartingState()
+    state.inventory.tactical_radio = 1
+    state.inventory.trauma_kit = 1
+    state.inventory.signal_jammers = 2
+    const first = instantiateEquipmentInstance(state, 'tactical_radio')
+    if (!first.ok) throw new Error(first.code)
+    const second = instantiateEquipmentInstance(first.state, 'trauma_kit')
+    if (!second.ok) throw new Error(second.code)
+    const sibling = instantiateEquipmentInstance(second.state, 'signal_jammers')
+    if (!sibling.ok) throw new Error(sibling.code)
+    const stored = instantiateEquipmentInstance(sibling.state, 'signal_jammers')
+    if (!stored.ok) throw new Error(stored.code)
+    const equippedFirst = relocateEquipmentInstance(stored.state, first.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_ava',
+      slot: 'utility1',
+    })
+    if (!equippedFirst.ok) throw new Error(equippedFirst.code)
+    const equippedSecond = relocateEquipmentInstance(
+      equippedFirst.state,
+      second.instance.instanceId,
+      { state: 'equipped', agentId: 'a_ava', slot: 'utility2' }
+    )
+    if (!equippedSecond.ok) throw new Error(equippedSecond.code)
+    const equippedSibling = relocateEquipmentInstance(
+      equippedSecond.state,
+      sibling.instance.instanceId,
+      { state: 'equipped', agentId: 'a_casey', slot: 'utility1' }
+    )
+    if (!equippedSibling.ok) throw new Error(equippedSibling.code)
+    equippedSibling.state.agents.a_ava = {
+      ...equippedSibling.state.agents.a_ava,
+      equipmentSlots: {
+        ...equippedSibling.state.agents.a_ava.equipmentSlots,
+        primary: 'silver_rounds',
+      },
+    }
+
+    const prepared = equippedSibling.state
+    const team = prepared.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...prepared.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : prepared.agents[agentId]!.fatigue,
+      status: 'active' as const,
+    }))
+    const inventoryBefore = { ...prepared.inventory }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...prepared.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...prepared.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: prepared.week,
+      rng: () => 0,
+      equipmentInstances: prepared.equipmentInstances,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextAgents.a_ava.status).toBe('injured')
+    expect(result.nextAgents.a_ava.status).not.toBe('dead')
+    expect(result.nextEquipmentInstances).not.toHaveProperty(first.instance.instanceId)
+    expect(result.nextEquipmentInstances).not.toHaveProperty(second.instance.instanceId)
+    expect(result.nextEquipmentInstances).toHaveProperty(sibling.instance.instanceId)
+    expect(result.nextEquipmentInstances).toHaveProperty(stored.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility2).toBeUndefined()
+    expect(result.nextAgents.a_ava.equipmentSlots?.primary).toBe('silver_rounds')
+    expect(result.nextAgents.a_casey.equipmentSlots?.utility1).toBe('signal_jammers')
+    expect(result.nextEquipmentInstances?.[stored.instance.instanceId]?.location).toEqual({
+      state: 'stored',
+    })
+    expect(
+      getEquipmentInstance(
+        { equipmentInstances: result.nextEquipmentInstances },
+        sibling.instance.instanceId
+      )?.location
+    ).toMatchObject({ state: 'equipped', agentId: 'a_casey', slot: 'utility1' })
+    expect(prepared.inventory).toEqual(inventoryBefore)
+
+    const destroyed = result.eventDrafts.filter(
+      (draft) => draft.type === 'equipment.instance_destroyed'
+    )
+    expect(destroyed.map((draft) => draft.payload.instanceId)).toEqual([
+      first.instance.instanceId,
+      second.instance.instanceId,
+    ])
+    expect(destroyed.every((draft) => draft.payload.reason === 'mission_injury')).toBe(true)
+    expect(
+      result.eventDrafts.some(
+        (draft) =>
+          (draft.type === 'equipment.instance_destroyed' ||
+            draft.type === 'equipment.combat_stim_disposed') &&
+          draft.payload.reason === 'mission_loss'
+      )
+    ).toBe(false)
+    expect(result.eventDrafts.some((draft) => draft.type === 'agent.injured')).toBe(true)
+  })
+
+  it('disposes equipped Combat Stim identities on injury without inventory credit', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 2
+    const stim = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!stim.ok) throw new Error(stim.code)
+    const stockBefore = stim.state.inventory.combat_stims
+    const team = stim.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...stim.state.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : stim.state.agents[agentId]!.fatigue,
+      status: 'active' as const,
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...stim.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...stim.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: stim.state.week,
+      rng: () => 0,
+      equipmentInstances: stim.state.equipmentInstances,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextAgents.a_ava.status).toBe('injured')
+    expect(result.nextEquipmentInstances).not.toHaveProperty(stim.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBeUndefined()
+    expect(stim.state.inventory.combat_stims).toBe(stockBefore)
+    const disposed = result.eventDrafts.filter(
+      (draft) => draft.type === 'equipment.combat_stim_disposed'
+    )
+    expect(disposed).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          instanceId: stim.instance.instanceId,
+          remaining: 2,
+          reason: 'mission_injury',
+        }),
+      }),
+    ])
+    expect(
+      result.eventDrafts.some(
+        (draft) =>
+          (draft.type === 'equipment.instance_destroyed' ||
+            draft.type === 'equipment.combat_stim_disposed') &&
+          draft.payload.reason === 'mission_loss'
+      )
+    ).toBe(false)
+  })
+
+  it('leaves recovery-claimed equipped identities on an injured carrier', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+    const created = instantiateEquipmentInstance(state, 'trauma_kit', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const team = created.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...created.state.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : created.state.agents[agentId]!.fatigue,
+      status: 'active' as const,
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...created.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...created.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: created.state.week,
+      rng: () => 0,
+      equipmentInstances: created.state.equipmentInstances,
+      equipmentDeconstructionQueue: [
+        { sourceEquipmentInstanceId: created.instance.instanceId },
+      ] as typeof created.state.equipmentDeconstructionQueue,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextEquipmentInstances).toHaveProperty(created.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBe('trauma_kit')
+    expect(
+      result.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.instance_destroyed' ||
+          draft.type === 'equipment.combat_stim_disposed'
+      )
+    ).toBe(false)
+  })
+
+  it('retains equipped Combat Stim with live overdrive provenance on injury', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    const stim = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!stim.ok) throw new Error(stim.code)
+    const stockBefore = stim.state.inventory.combat_stims
+    const team = stim.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...stim.state.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : stim.state.agents[agentId]!.fatigue,
+      status: 'active' as const,
+      ...(agentId === 'a_ava'
+        ? {
+            overdrive: {
+              active: true,
+              remainingPhases: 1,
+              recoveryDebt: 2,
+              source: {
+                kind: 'combat_stim' as const,
+                activationId: `${stim.instance.instanceId}-dose-1`,
+                equipmentInstanceId: stim.instance.instanceId,
+                caseId: 'case-001',
+              },
+            },
+          }
+        : {}),
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...stim.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...stim.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: stim.state.week,
+      rng: () => 0,
+      equipmentInstances: stim.state.equipmentInstances,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextAgents.a_ava.status).toBe('injured')
+    expect(result.nextEquipmentInstances).toHaveProperty(stim.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBe('combat_stims')
+    expect(result.nextAgents.a_ava.overdrive).toMatchObject({
+      active: true,
+      source: { kind: 'combat_stim', equipmentInstanceId: stim.instance.instanceId },
+    })
+    expect(stim.state.inventory.combat_stims).toBe(stockBefore)
+    expect(
+      result.eventDrafts.some((draft) => draft.type === 'equipment.combat_stim_disposed')
+    ).toBe(false)
+  })
+
+  it('retains equipped Combat Stim with recovery-debt provenance on injury', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    const stim = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!stim.ok) throw new Error(stim.code)
+    const team = stim.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...stim.state.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : stim.state.agents[agentId]!.fatigue,
+      status: 'active' as const,
+      ...(agentId === 'a_ava'
+        ? {
+            overdrive: {
+              active: false,
+              remainingPhases: 0,
+              recoveryDebt: 1,
+              source: {
+                kind: 'combat_stim' as const,
+                activationId: `${stim.instance.instanceId}-dose-1`,
+                equipmentInstanceId: stim.instance.instanceId,
+                caseId: 'case-001',
+              },
+            },
+          }
+        : {}),
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...stim.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...stim.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: stim.state.week,
+      rng: () => 0,
+      equipmentInstances: stim.state.equipmentInstances,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextEquipmentInstances).toHaveProperty(stim.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBe('combat_stims')
+    expect(result.nextAgents.a_ava.overdrive).toMatchObject({
+      recoveryDebt: 1,
+      source: { kind: 'combat_stim', equipmentInstanceId: stim.instance.instanceId },
+    })
+    expect(
+      result.eventDrafts.some((draft) => draft.type === 'equipment.combat_stim_disposed')
+    ).toBe(false)
+  })
+
+  it('retains noncanonical equipped Combat Stim payloads on injury without a dispose event', () => {
+    const state = createStartingState()
+    state.inventory.combat_stims = 1
+    const stim = instantiateEquipmentInstance(state, 'combat_stims', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!stim.ok) throw new Error(stim.code)
+    const noncanonicalInstances = {
+      ...stim.state.equipmentInstances,
+      [stim.instance.instanceId]: {
+        ...stim.instance,
+        payload: {
+          ...stim.instance.payload,
+          extra: true,
+        } as typeof stim.instance.payload,
+      },
+    }
+    const team = stim.state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...stim.state.agents[agentId]!,
+      fatigue: agentId === 'a_ava' ? 90 : stim.state.agents[agentId]!.fatigue,
+      status: 'active' as const,
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...stim.state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...stim.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: stim.state.week,
+      rng: () => 0,
+      equipmentInstances: noncanonicalInstances,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionFatalities).toEqual([])
+    expect(result.nextEquipmentInstances).toHaveProperty(stim.instance.instanceId)
+    expect(result.nextAgents.a_ava.equipmentSlots?.utility1).toBe('combat_stims')
+    expect(
+      result.eventDrafts.some((draft) => draft.type === 'equipment.combat_stim_disposed')
+    ).toBe(false)
+  })
+
+  it('leaves recovery-claimed equipped identities on a dead carrier', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+    const created = instantiateEquipmentInstance(state, 'trauma_kit', {
+      location: { state: 'equipped', agentId: 'a_ava', slot: 'utility1' },
+    })
+    if (!created.ok) throw new Error(created.code)
+    const taken = takeEquippedInstancesLostOnMissionResolution(
+      created.state.agents,
+      created.state.equipmentInstances,
+      {
+        equipmentDeconstructionQueue: [
+          { sourceEquipmentInstanceId: created.instance.instanceId },
+        ] as typeof created.state.equipmentDeconstructionQueue,
+      },
+      ['a_ava']
+    )
+    expect(taken.lost).toEqual([])
+    expect(taken.equipmentInstances).toHaveProperty(created.instance.instanceId)
+    expect(taken.agents.a_ava.equipmentSlots?.utility1).toBe('trauma_kit')
+  })
+
+  it('skips authored workshop identities on mission-casualty take without dropping sequential copies', () => {
+    // Hunter (a_ava) and medic (a_casey) cannot take ward_seals.
+    const state = createStartingState()
+    state.inventory.ward_seals = 1
+    const sequential = instantiateEquipmentInstance(state, 'ward_seals')
+    if (!sequential.ok) throw new Error(sequential.code)
+    const blast = plantEquippedInstance(
+      sequential.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    const seal = plantEquippedInstance(blast, EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_kellan',
+      slot: 'utility1',
+    })
+    const lock = plantEquippedInstance(seal, PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID, {
+      state: 'equipped',
+      agentId: 'a_kellan',
+      slot: 'utility2',
+    })
+    const ordinary = relocateEquipmentInstance(lock, sequential.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility2',
+    })
+    if (!ordinary.ok) throw new Error(ordinary.code)
+
+    const taken = takeEquippedInstancesLostOnMissionResolution(
+      ordinary.state.agents,
+      ordinary.state.equipmentInstances,
+      ordinary.state,
+      ['a_mina', 'a_kellan']
+    )
+    expect(taken.lost.map((instance) => instance.instanceId)).toEqual([
+      sequential.instance.instanceId,
+    ])
+    expect(taken.equipmentInstances).toHaveProperty(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+    expect(taken.equipmentInstances).toHaveProperty(EMERGENCY_RESPONSE_PRESSURE_SEAL_INSTANCE_ID)
+    expect(taken.equipmentInstances).toHaveProperty(PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID)
+    expect(taken.equipmentInstances).not.toHaveProperty(sequential.instance.instanceId)
+    expect(taken.agents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(taken.agents.a_mina.equipmentSlots?.utility2).toBeUndefined()
+    expect(taken.agents.a_kellan.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(taken.agents.a_kellan.equipmentSlots?.utility2).toBe('ward_seals')
+    expect(taken.equipmentInstances[FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID]?.location).toEqual({
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility1',
+    })
+    expect(taken.equipmentInstances[PROCUREMENT_LOGISTICS_INTERLOCK_INSTANCE_ID]?.location).toEqual(
+      { state: 'equipped', agentId: 'a_kellan', slot: 'utility2' }
+    )
+  })
+
+  it('keeps an equipped authored workshop identity through mission fatality and injury', () => {
+    const state = createStartingState()
+    state.inventory.trauma_kit = 1
+    const created = instantiateEquipmentInstance(state, 'trauma_kit')
+    if (!created.ok) throw new Error(created.code)
+    // Hunter (a_ava) and medic (a_casey) cannot take ward_seals; Mina is on Night Watch.
+    const workshop = plantEquippedInstance(
+      created.state,
+      FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID,
+      { state: 'equipped', agentId: 'a_mina', slot: 'utility1' }
+    )
+    const kit = relocateEquipmentInstance(workshop, created.instance.instanceId, {
+      state: 'equipped',
+      agentId: 'a_mina',
+      slot: 'utility2',
+    })
+    if (!kit.ok) throw new Error(kit.code)
+
+    const fatalAgents = Object.values(kit.state.agents).map((agent) =>
+      kit.state.teams['t_nightwatch'].agentIds.includes(agent.id)
+        ? { ...agent, fatigue: 95, status: 'active' as const }
+        : agent
+    )
+    const fatal = applyMissionResolutionAgentMutations({
+      agents: Object.fromEntries(fatalAgents.map((agent) => [agent.id, agent])),
+      assignedAgents: fatalAgents.filter((agent) =>
+        kit.state.teams['t_nightwatch'].agentIds.includes(agent.id)
+      ),
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...kit.state.cases['case-001'],
+        kind: 'raid',
+        stage: 5,
+        assignedTeamIds: ['t_nightwatch'],
+        raid: { minTeams: 2, maxTeams: 2 },
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -40 }),
+      week: kit.state.week,
+      rng: () => 0,
+      equipmentInstances: kit.state.equipmentInstances,
+    })
+    expect(fatal.nextAgents.a_mina.status).toBe('dead')
+    expect(fatal.nextEquipmentInstances).toHaveProperty(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+    expect(fatal.nextEquipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(fatal.nextAgents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(fatal.nextAgents.a_mina.equipmentSlots?.utility2).toBeUndefined()
+    expect(
+      fatal.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.instance_destroyed' &&
+          draft.payload.instanceId === FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+      )
+    ).toBe(false)
+
+    const injuredAgents = Object.values(kit.state.agents).map((agent) =>
+      kit.state.teams['t_nightwatch'].agentIds.includes(agent.id)
+        ? { ...agent, fatigue: 90, status: 'active' as const }
+        : agent
+    )
+    const injured = applyMissionResolutionAgentMutations({
+      agents: Object.fromEntries(injuredAgents.map((agent) => [agent.id, agent])),
+      assignedAgents: injuredAgents.filter((agent) =>
+        kit.state.teams['t_nightwatch'].agentIds.includes(agent.id)
+      ),
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...kit.state.cases['case-001'],
+        stage: 3,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: kit.state.week,
+      rng: () => 0,
+      equipmentInstances: kit.state.equipmentInstances,
+    })
+    expect(injured.nextAgents.a_mina.status).toBe('injured')
+    expect(injured.nextEquipmentInstances).toHaveProperty(FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID)
+    expect(injured.nextEquipmentInstances).not.toHaveProperty(created.instance.instanceId)
+    expect(injured.nextAgents.a_mina.equipmentSlots?.utility1).toBe('ward_seals')
+    expect(
+      injured.eventDrafts.some(
+        (draft) =>
+          draft.type === 'equipment.instance_destroyed' &&
+          draft.payload.instanceId === FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID
+      )
+    ).toBe(false)
   })
 })

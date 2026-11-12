@@ -14,11 +14,23 @@ import {
   recordAgentXpGain,
   setAgentAssignment,
 } from '../agent/lifecycle'
+import { instanceHasActiveOverdriveProvenance } from '../combatStim'
+import { getEquipmentDefinition } from '../equipment'
+import {
+  COMBAT_STIM_CAPACITY,
+  COMBAT_STIM_DEFINITION_ID,
+  COMBAT_STIM_RESOURCE_ID,
+  isCanonicalCombatStimPayload,
+  takeEquippedInstancesLostOnMissionResolution,
+  type EquipmentInstance,
+} from '../equipmentInstance'
 import {
   createAgentInjuredDraft,
   createAgentKilledDraft,
   createAgentPromotedDraft,
   createAgentRelationshipChangedDraft,
+  createCombatStimDisposedDraft,
+  createEquipmentInstanceDestroyedDraft,
   createProgressionXpGainedDraft,
   type AnyOperationEventDraft,
 } from '../events'
@@ -48,7 +60,10 @@ import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
 import { appendExposureResidueToFlags } from './recoveryImpairments'
 import { applyBetrayalConsequences } from './betrayal'
-import { createDefaultAgentProgression, createSimulationAgentVitalsBaseline } from '../agentDefaults'
+import {
+  createDefaultAgentProgression,
+  createSimulationAgentVitalsBaseline,
+} from '../agentDefaults'
 import { evaluateMissionAgentFailureRisk } from './injuryForecast'
 
 const XP_GAIN_SUCCESS = 150
@@ -83,10 +98,14 @@ interface ApplyMissionResolutionAgentMutationsInput {
   outcome: ResolutionOutcome
   week: number
   rng: () => number
+  equipmentInstances?: GameState['equipmentInstances']
+  equipmentDeconstructionQueue?: GameState['equipmentDeconstructionQueue']
+  equipmentRecoveryOutcomes?: GameState['equipmentRecoveryOutcomes']
 }
 
 interface ApplyMissionResolutionAgentMutationsOutput {
   nextAgents: GameState['agents']
+  nextEquipmentInstances: GameState['equipmentInstances']
   missionInjuries: MissionInjuryRecord[]
   missionFatalities: MissionFatalityRecord[]
   eventDrafts: AnyOperationEventDraft[]
@@ -142,6 +161,51 @@ function buildFatalityHistoryEntry(week: number, currentCase: CaseInstance): Age
     eventType: 'simulation.weekly_tick',
     note: `Killed during ${currentCase.title}.`,
   }
+}
+
+function shouldRetainEquippedCombatStimOnMissionInjury(
+  agents: GameState['agents'],
+  instance: EquipmentInstance
+) {
+  if (instance.definitionId !== COMBAT_STIM_DEFINITION_ID) return false
+  if (!isCanonicalCombatStimPayload(instance.payload)) return true
+  return instanceHasActiveOverdriveProvenance({ agents }, instance.instanceId)
+}
+
+function pushMissionInstanceLossDrafts(
+  eventDrafts: AnyOperationEventDraft[],
+  week: number,
+  instance: EquipmentInstance,
+  reason: 'mission_loss' | 'mission_injury'
+) {
+  const definition = getEquipmentDefinition(instance.definitionId)
+  if (instance.definitionId === COMBAT_STIM_DEFINITION_ID) {
+    if (!isCanonicalCombatStimPayload(instance.payload)) return
+    eventDrafts.push(
+      createCombatStimDisposedDraft({
+        week,
+        instanceId: instance.instanceId,
+        definitionId: 'combat_stims',
+        definitionName: definition?.name ?? 'Combat Stims',
+        condition: instance.condition,
+        resourceId: COMBAT_STIM_RESOURCE_ID,
+        capacity: COMBAT_STIM_CAPACITY,
+        remaining: instance.payload.remaining,
+        reason,
+      })
+    )
+    return
+  }
+  eventDrafts.push(
+    createEquipmentInstanceDestroyedDraft({
+      week,
+      instanceId: instance.instanceId,
+      definitionId: instance.definitionId,
+      definitionName: definition?.name ?? instance.definitionId,
+      condition: instance.condition,
+      reason,
+    })
+  )
 }
 
 function getRelationshipDelta(result: ResolutionOutcome['result']) {
@@ -265,8 +329,7 @@ function aggregateAssignedPerformanceSummary(outcome: ResolutionOutcome) {
       ),
       containmentActionsCompleted: Number(
         (
-          summary.containmentActionsCompleted +
-          (performance.containmentActionsCompleted ?? 0)
+          summary.containmentActionsCompleted + (performance.containmentActionsCompleted ?? 0)
         ).toFixed(2)
       ),
     }),
@@ -475,7 +538,8 @@ function rollMissionCasualty(input: {
   overdrive: NonNullable<GameState['agents'][string]>['overdrive']
   transitAmbushTriggered: boolean
 } {
-  const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } = input
+  const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } =
+    input
   let overdrive = agent.overdrive ?? createDefaultOverdriveState()
   const channels = agent.fatigueChannels ?? createDefaultFatigueChannels()
   const transitVulnerable = isTransitAmbushVulnerable({
@@ -483,13 +547,15 @@ function rollMissionCasualty(input: {
     isSoloTransit: assignedAgents.length === 1,
     onRoutineReturnPath: outcome.result === 'fail',
   })
+  const expireResolvedOverdrive = () =>
+    overdrive.source?.kind === 'combat_stim' ? overdrive : expireAgentOverdrive(overdrive)
 
   const maybeTransitAmbush = () => {
     if (transitVulnerable && rng() <= TRANSIT_AMBUSH_TRIGGER_CHANCE) {
       return {
         injurySeverity: 'minor' as const,
         fatal: false,
-        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
         transitAmbushTriggered: true,
       }
     }
@@ -497,7 +563,7 @@ function rollMissionCasualty(input: {
     return {
       injurySeverity: null,
       fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
@@ -526,18 +592,16 @@ function rollMissionCasualty(input: {
   }
 
   const injuryChance =
-    riskProfile.injuryChanceOnFailure *
-    (overdrive.active ? OVERDRIVE_INJURY_CHANCE_MULTIPLIER : 1)
+    riskProfile.injuryChanceOnFailure * (overdrive.active ? OVERDRIVE_INJURY_CHANCE_MULTIPLIER : 1)
   const deathChance =
-    riskProfile.deathChanceOnFailure *
-    (overdrive.active ? OVERDRIVE_FATALITY_CHANCE_MULTIPLIER : 1)
+    riskProfile.deathChanceOnFailure * (overdrive.active ? OVERDRIVE_FATALITY_CHANCE_MULTIPLIER : 1)
 
   if (agent.fatigue >= GUARANTEED_INJURY_FATIGUE) {
     if (deathChance > 0 && rng() <= deathChance) {
       return {
         injurySeverity: null,
         fatal: true,
-        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
         transitAmbushTriggered: false,
       }
     }
@@ -545,14 +609,18 @@ function rollMissionCasualty(input: {
     return {
       injurySeverity: 'moderate',
       fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
 
   const combatStressBypassesGate = combatStress >= COMBAT_STRESS_INJURY_THRESHOLD
 
-  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0 && !combatStressBypassesGate) {
+  if (
+    agent.fatigue < INJURY_RISK_FATIGUE_MIN &&
+    riskProfile.injuryChanceOnFailure <= 0 &&
+    !combatStressBypassesGate
+  ) {
     return maybeTransitAmbush()
   }
 
@@ -560,14 +628,11 @@ function rollMissionCasualty(input: {
     return maybeTransitAmbush()
   }
 
-  if (
-    deathChance > 0 &&
-    rng() <= deathChance / Math.max(injuryChance, 0.001)
-  ) {
+  if (deathChance > 0 && rng() <= deathChance / Math.max(injuryChance, 0.001)) {
     return {
       injurySeverity: null,
       fatal: true,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
       transitAmbushTriggered: false,
     }
   }
@@ -588,7 +653,7 @@ function rollMissionCasualty(input: {
   return {
     injurySeverity: forceModerate ? 'moderate' : 'minor',
     fatal: false,
-    overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    overdrive: overdrive.active ? expireResolvedOverdrive() : overdrive,
     transitAmbushTriggered: false,
   }
 }
@@ -601,12 +666,16 @@ export function applyMissionResolutionAgentMutations({
   outcome,
   week,
   rng,
+  equipmentInstances,
+  equipmentDeconstructionQueue,
+  equipmentRecoveryOutcomes,
 }: ApplyMissionResolutionAgentMutationsInput): ApplyMissionResolutionAgentMutationsOutput {
   const eventDrafts: AnyOperationEventDraft[] = []
   const missionInjuries: MissionInjuryRecord[] = []
   const missionFatalities: MissionFatalityRecord[] = []
   let fundingDelta = 0
   let nextAgents = { ...agents }
+  let nextEquipmentInstances = { ...(equipmentInstances ?? {}) }
   const performanceByAgentId = new Map(
     (outcome.agentPerformance ?? []).map((performance) => [performance.agentId, performance])
   )
@@ -676,12 +745,12 @@ export function applyMissionResolutionAgentMutations({
     const nextAssignment = casualty.fatal
       ? ({ state: 'idle' } as const)
       : injurySeverity
-      ? {
-          state: 'recovery' as const,
-          teamId: agent.assignment?.teamId,
-          startedWeek: week,
-        }
-      : ({ state: 'idle' } as const)
+        ? {
+            state: 'recovery' as const,
+            teamId: agent.assignment?.teamId,
+            startedWeek: week,
+          }
+        : ({ state: 'idle' } as const)
     const nextVitals = casualty.fatal
       ? {
           ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
@@ -691,24 +760,24 @@ export function applyMissionResolutionAgentMutations({
           statusFlags: ['fatality'],
         }
       : injurySeverity
-      ? {
-          ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
-          health: clamp(
-            (agent.vitals?.health ?? 100) - (injurySeverity === 'moderate' ? 25 : 10),
-            0,
-            100
-          ),
-          morale: clamp(
+        ? {
+            ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
+            health: clamp(
+              (agent.vitals?.health ?? 100) - (injurySeverity === 'moderate' ? 25 : 10),
+              0,
+              100
+            ),
+            morale: clamp(
               (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
-              (injurySeverity === 'moderate' ? 18 : 8) -
-              (casualty.transitAmbushTriggered ? TRANSIT_AMBUSH_MORALE_PENALTY : 0),
-            0,
-            100
-          ),
-          wounds: injurySeverity === 'moderate' ? 25 : 10,
-          statusFlags: withInjuryFlags(agent.vitals?.statusFlags, injurySeverity),
-        }
-      : agent.vitals
+                (injurySeverity === 'moderate' ? 18 : 8) -
+                (casualty.transitAmbushTriggered ? TRANSIT_AMBUSH_MORALE_PENALTY : 0),
+              0,
+              100
+            ),
+            wounds: injurySeverity === 'moderate' ? 25 : 10,
+            statusFlags: withInjuryFlags(agent.vitals?.statusFlags, injurySeverity),
+          }
+        : agent.vitals
 
     const resolvedAgent = appendAgentHistoryEntries(
       setAgentAssignment(
@@ -846,6 +915,25 @@ export function applyMissionResolutionAgentMutations({
       )
     }
 
+    if (injurySeverity && !casualty.fatal) {
+      const agentsForTake = { ...nextAgents, [agent.id]: nextAgent }
+      const lostEquipped = takeEquippedInstancesLostOnMissionResolution(
+        agentsForTake,
+        nextEquipmentInstances,
+        { equipmentDeconstructionQueue, equipmentRecoveryOutcomes },
+        [agent.id],
+        {
+          skipInstance: (instance) =>
+            shouldRetainEquippedCombatStimOnMissionInjury(agentsForTake, instance),
+        }
+      )
+      nextAgent = lostEquipped.agents[agent.id] ?? nextAgent
+      nextEquipmentInstances = lostEquipped.equipmentInstances
+      for (const instance of lostEquipped.lost) {
+        pushMissionInstanceLossDrafts(eventDrafts, week, instance, 'mission_injury')
+      }
+    }
+
     if (casualty.fatal) {
       eventDrafts.push(
         createAgentKilledDraft({
@@ -856,6 +944,17 @@ export function applyMissionResolutionAgentMutations({
           caseTitle: effectiveCase.title,
         })
       )
+      const lostEquipped = takeEquippedInstancesLostOnMissionResolution(
+        { ...nextAgents, [agent.id]: nextAgent },
+        nextEquipmentInstances,
+        { equipmentDeconstructionQueue, equipmentRecoveryOutcomes },
+        [agent.id]
+      )
+      nextAgent = lostEquipped.agents[agent.id] ?? nextAgent
+      nextEquipmentInstances = lostEquipped.equipmentInstances
+      for (const instance of lostEquipped.lost) {
+        pushMissionInstanceLossDrafts(eventDrafts, week, instance, 'mission_loss')
+      }
     }
 
     if (
@@ -982,6 +1081,7 @@ export function applyMissionResolutionAgentMutations({
 
   return {
     nextAgents,
+    nextEquipmentInstances,
     missionInjuries,
     missionFatalities,
     eventDrafts,

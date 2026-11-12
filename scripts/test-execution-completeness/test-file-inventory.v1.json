@@ -104,6 +104,7 @@
     "src/features/agency/facilityMaintenanceView.test.ts",
     "src/features/agency/facilityRegisterView.test.ts",
     "src/features/agency/operationalStaffingView.test.tsx",
+    "src/features/agency/protectedRemoteWorkGameplayView.test.ts",
     "src/features/agencyEstablishment/AgencyEstablishmentPanel.test.tsx",
     "src/features/agents/AgentDetailPage.test.tsx",
     "src/features/agents/AgentTabsContainer.test.tsx",

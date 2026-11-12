@@ -821,6 +821,43 @@ export function projectExplainableProtectedRemoteWork(
   })
 }
 
+/**
+ * Internal validation telemetry snapshot (SPE-1119 audience separation).
+ * Not a player-facing knowledge surface — use `projectExplainableProtectedRemoteWork`
+ * for ordinary facility/action UI.
+ */
+export type ProtectedRemoteWorkInternalTelemetry = Readonly<{
+  audience: 'internal_validation'
+  workId: ProtectedRemoteWorkId
+  stage: ProtectedRemoteWorkStage
+  appliedOperationKeyCount: number
+  procedureEffectsOccurred: boolean
+  exposureCleared: boolean
+  procedureExecutionKey?: string
+  pendingCorrectiveAction?: string
+  reasonCodes: readonly ProtectedRemoteWorkReasonCode[]
+}>
+
+export function projectProtectedRemoteWorkInternalTelemetry(
+  work: ProtectedRemoteWorkRecord
+): ProtectedRemoteWorkInternalTelemetry {
+  return Object.freeze({
+    audience: 'internal_validation',
+    workId: work.workId,
+    stage: work.stage,
+    appliedOperationKeyCount: work.appliedOperationKeys.length,
+    procedureEffectsOccurred: work.procedureEffectsOccurred,
+    exposureCleared: work.exposureCleared,
+    reasonCodes: work.reasonCodes,
+    ...(work.procedureExecutionKey !== undefined
+      ? { procedureExecutionKey: work.procedureExecutionKey }
+      : {}),
+    ...(work.pendingCorrectiveAction !== undefined
+      ? { pendingCorrectiveAction: work.pendingCorrectiveAction }
+      : {}),
+  })
+}
+
 export function isProtectedRemoteWorkActive(stage: ProtectedRemoteWorkStage): boolean {
   return ACTIVE_STAGES.has(stage)
 }

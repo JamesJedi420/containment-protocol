@@ -7,6 +7,8 @@ import { FacilityRegisterPanel } from './FacilityRegisterPanel'
 import { projectFacilityRegisterView } from './facilityRegisterView'
 import { BreachOriginRecoveryPanel } from './BreachOriginRecoveryPanel'
 import { projectBreachOriginRecoveryGameplayView } from './breachOriginRecoveryGameplayView'
+import { ProtectedRemoteWorkPanel } from './ProtectedRemoteWorkPanel'
+import { projectProtectedRemoteWorkGameplayView } from './protectedRemoteWorkGameplayView'
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 import { OperationalStaffingPanel } from './OperationalStaffingPanel'
 import { projectOperationalStaffingView } from './operationalStaffingView'
@@ -19,11 +21,13 @@ export default function AgencyPage() {
     purchaseFacilityMaintenancePackage,
     convertFacilityMaintenanceResources,
     applyBreachOriginRecoveryStep,
+    applyProtectedRemoteWorkStep,
   } = useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const staffing = projectOperationalStaffingView(game)
   const facilityRegister = projectFacilityRegisterView(game)
   const breachOriginRecovery = projectBreachOriginRecoveryGameplayView(game)
+  const protectedRemoteWork = projectProtectedRemoteWorkGameplayView(game)
   const overview = buildAgencyOverview(game)
   const { summary } = overview
 
@@ -88,6 +92,12 @@ export default function AgencyPage() {
         game={game}
         view={breachOriginRecovery}
         applyStep={applyBreachOriginRecoveryStep}
+      />
+
+      <ProtectedRemoteWorkPanel
+        game={game}
+        view={protectedRemoteWork}
+        applyStep={applyProtectedRemoteWorkStep}
       />
 
       <article className="panel space-y-3" aria-labelledby="facility-maintenance-heading">

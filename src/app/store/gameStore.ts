@@ -26,6 +26,12 @@ import {
   type BreachOriginRecoveryStepCommand,
 } from '../../domain/breachOriginRecoveryLivePath'
 import type { BreachRecoveryResult } from '../../domain/breachOriginRecovery'
+import {
+  applyProtectedRemoteWorkStep,
+  type ProtectedRemoteWorkStepCommand,
+} from '../../domain/protectedRemoteWorkCellLivePath'
+import type { ProtectedRemoteWorkResult } from '../../domain/protectedRemoteWorkCell'
+// ProtectedRemoteWorkResult is type-only; keep import type for Vite 8.
 import { purchaseFacilityMaintenancePackage } from '../../domain/facilityMaintenancePurchase'
 import { settlePaidEquipmentRepair, type PaidRepairResult } from '../../domain/paidEquipmentRepair'
 import {
@@ -513,6 +519,13 @@ interface GameStore {
   applyBreachOriginRecoveryStep: (
     command: BreachOriginRecoveryStepCommand
   ) => BreachRecoveryResult
+  /**
+   * SPE-3501: advance a durable protected remote-work cell via caller-owned
+   * gate/procedure facts. Does not invent SPE-100 sampling or a second resolver.
+   */
+  applyProtectedRemoteWorkStep: (
+    command: ProtectedRemoteWorkStepCommand
+  ) => ProtectedRemoteWorkResult
   purchaseFacilityMaintenancePackage: () => void
   convertFacilityMaintenanceResources: (
     request: MaintenanceConversionRequest
@@ -2232,6 +2245,16 @@ export const useGameStore = create<GameStore>()(
         let outcome!: BreachRecoveryResult
         set((s) => {
           const result = applyBreachOriginRecoveryStep(s.game, command)
+          outcome = result
+          return result.state !== undefined ? { game: result.state } : s
+        })
+        return outcome
+      },
+
+      applyProtectedRemoteWorkStep: (command) => {
+        let outcome!: ProtectedRemoteWorkResult
+        set((s) => {
+          const result = applyProtectedRemoteWorkStep(s.game, command)
           outcome = result
           return result.state !== undefined ? { game: result.state } : s
         })

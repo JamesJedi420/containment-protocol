@@ -1,0 +1,44 @@
+{
+  "candidate": {
+    "id": "orion-1958-1965",
+    "title": "Project Orion Nuclear Pulse Propulsion Study",
+    "description": "A 1958-1965 government-funded engineering study led by Ted Taylor and Freeman Dyson at General Atomics to design a spacecraft propelled by controlled nuclear detonations. The project produced detailed engineering blueprints, materials studies, and subscale non-nuclear test flights at Point Loma, California demonstrating the pusher-plate concept. Cancelled in 1965 following the Partial Test Ban Treaty which prohibited atmospheric, space, and underwater nuclear detonations. Declassified records confirm the program produced viable interplanetary designs capable of Mars missions in 125 days and outer planet travel within human lifetimes. The basic design could tolerate accelerations far beyond chemical rockets, suggesting technical maturity that led some to argue the treaty cancellation was a pretext for continued secret development.",
+    "lanes": [
+      {
+        "lane": "prototype-records",
+        "classification": "SUBSCALE TESTS CONFIRMED",
+        "evidence": "Point Loma subscale tests using conventional high explosives demonstrated the pusher-plate concept was physically sound. Declassified film shows the meter-tall model propelled by shaped explosive charges and recovered by parachute performed as predicted. Detailed engineering blueprints and materials studies were produced."
+      },
+      {
+        "lane": "material-safety",
+        "classification": "NON-NUCLEAR TESTS CONDUCTED",
+        "evidence": "Subscale tests used conventional high explosives rather than nuclear devices. The shock absorber system between pusher plate and main vehicle structure was designed and tested. Materials studies confirmed the pusher plate could absorb blast impulse from thousands of detonations."
+      },
+      {
+        "lane": "environmental-treaties",
+        "classification": "TREATY-BOUND CANCELLATION",
+        "evidence": "Cancelled 1965 by Partial Test Ban Treaty (1963) signed by US, UK, USSR prohibiting nuclear detonations in atmosphere, space, and underwater. Treaty specifically targeted the operational environment of nuclear pulse propulsion, removing legal basis for further testing."
+      },
+      {
+        "lane": "funding",
+        "classification": "ARPA/DARPA FUNDING 1958-1965",
+        "evidence": "General Atomics received Advanced Research Projects Agency (ARPA) funding starting 1958. Project operated with some classification but not as deeply secret as weapons programs. Collaboration with US Air Force studied military applications including crewed orbital platforms and weapons payload variants."
+      },
+      {
+        "lane": "cancellation-evidence",
+        "classification": "DOCUMENTED TREATY CANCELLATION",
+        "evidence": "Immediate cause: 1963 Partial Test Ban Treaty. Secondary factors: NASA's full commitment to Apollo program chemical-rocket architecture, Air Force constraints from treaty and shifting priorities. No documentary evidence found for alleged secret continuation despite claims from 'Secret Space Program' proponents."
+      }
+    ],
+    "priority": "HIGH",
+    "priority_reasoning": "This candidate represents a genuinely bounded inactive project with verifiable declassified evidence (blueprints, test footage, funding records) that establishes a clear prototype-development-to-treatment cancellation trajectory. The absence-activation path is strong: the project was real, technically viable, and cancelled by external treaty constraints rather than technical failure. The conspiracy angle (alleged secret continuation) is documented but unsupported by evidence, creating a clear distinction between established facts and attributed theories.",
+    "source_attribution": {
+      "primary_source": "Conspiracy Wiki - Project Orion article",
+      "stash_id": "RVMA-MRMH",
+      "access_date": "2026-11-11",
+      "verification_status": "SECONDARY SOURCE - requires independent verification of primary documents"
+    },
+    "cp_question": "How do prototype records, material safety, environmental treaties, funding and cancellation evidence define a bounded inactive project with a genuine absent-activation path?",
+    "status": "EXTRACTED - READY FOR CLASSIFICATION REVIEW"
+  }
+}

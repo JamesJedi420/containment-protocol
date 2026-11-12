@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import {
   abortProtectedRemoteWork,
@@ -9,6 +10,7 @@ import {
   interruptProtectedRemoteWork,
   parseFacilityProtectedRemoteWorkCells,
   projectExplainableProtectedRemoteWork,
+  projectProtectedRemoteWorkInternalTelemetry,
   resumeProtectedRemoteWork,
   runProtectedRemoteWorkPreflight,
   type ProtectedRemoteWorkPreflightGates,
@@ -302,6 +304,42 @@ describe('SPE-3501 protected remote-work cell', () => {
       expect.arrayContaining(['op-create-a', 'op-complete-a'])
     )
     expect(Object.isFrozen(loaded.facilityProtectedRemoteWorkCells)).toBe(true)
+
+    const roundTripped = loadGameSave(serializeGameSave(state))
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.stage).toBe('completed')
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.appliedOperationKeys).toEqual(
+      expect.arrayContaining(['op-create-a', 'op-complete-a'])
+    )
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.exposureCleared).toBe(false)
+  })
+
+  it('does not treat already_applied adapter receipts as a new begin execution', () => {
+    const created = createWork()
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work!,
+      operationKey: 'op-preflight-applied',
+      gates: openGates,
+      procedureAdapter: procedureAdapter('exec-remote-lab-applied'),
+    })
+    expect(preflight.ok).toBe(true)
+    const adapter = {
+      ...procedureAdapter('exec-remote-lab-applied'),
+      priorReceipts: [
+        {
+          executionKey: 'exec-remote-lab-applied',
+          evaluationFingerprint: 'foreign-fingerprint',
+          consequenceApplied: true,
+        },
+      ],
+    }
+    const started = beginProtectedRemoteWork(preflight.work!, {
+      operationKey: 'op-begin-applied',
+      procedureAdapter: adapter,
+    })
+    expect(started.ok).toBe(false)
+    expect(started.code).toBe('procedure_execution_blocked')
+    expect(started.work?.stage).toBe('failed')
+    expect(started.work?.procedureEffectsOccurred).toBe(false)
   })
 
   it('aborts before start without procedure effects', () => {
@@ -429,5 +467,40 @@ describe('SPE-3501 protected remote-work cell', () => {
       outcome: 'in_progress',
       exposureCleared: false,
     })
+  })
+
+  it('separates internal telemetry from player-facing explainability and stays bounded under load', () => {
+    const created = createWork()
+    const playerFacing = projectExplainableProtectedRemoteWork(created.work!)
+    const internal = projectProtectedRemoteWorkInternalTelemetry(created.work!)
+    expect(playerFacing).not.toHaveProperty('audience')
+    expect(internal).toMatchObject({
+      audience: 'internal_validation',
+      workId: 'rw-1',
+      stage: 'requested',
+      appliedOperationKeyCount: 1,
+      procedureEffectsOccurred: false,
+      exposureCleared: false,
+    })
+
+    const startedAt = performance.now()
+    for (let index = 0; index < 200; index += 1) {
+      const work = createProtectedRemoteWorkCell({
+        workId: `rw-perf-${index}`,
+        stationId: 'station:glovebox-a',
+        operatorRef: 'operative:lab-tech-1',
+        operatorNodeId: 'room:observation_booth',
+        targetZoneRef: 'zone:containment_lab',
+        targetRef: `sample:frag-${index}`,
+        capabilityTag: 'sample_observe',
+        operationKey: `op-perf-${index}`,
+      })
+      expect(work.ok).toBe(true)
+      expect(Object.isFrozen(work.work)).toBe(true)
+      expect(projectProtectedRemoteWorkInternalTelemetry(work.work!).audience).toBe(
+        'internal_validation'
+      )
+    }
+    expect(performance.now() - startedAt).toBeLessThan(2000)
   })
 })

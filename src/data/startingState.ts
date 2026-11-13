@@ -1,4 +1,8 @@
 import { type GameState } from '../domain/models'
+import {
+  PROTECTED_LAB,
+  createStartingProtectedRemoteWorkStation,
+} from '../domain/protectedRemoteWorkLab'
 import { createSeedCampaignLedger } from '../domain/campaignLedger'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
 import { createInitialFactionState } from '../domain/factions'
@@ -21,6 +25,19 @@ import {
 } from '../domain/departmentWorkshopIntegrityQualityMapping'
 
 const startingStateTemplate: GameState = {
+  facilityProtectedRemoteWorkStation: createStartingProtectedRemoteWorkStation(),
+  facilityState: {
+    facilities: {
+      [PROTECTED_LAB.facilityId]: {
+        facilityId: PROTECTED_LAB.facilityId,
+        category: 'clinical_observation',
+        level: 1,
+        maxLevel: 1,
+        status: 'active',
+        effects: {},
+      },
+    },
+  },
   week: 1,
   rngSeed: 1337,
   rngState: 1337,

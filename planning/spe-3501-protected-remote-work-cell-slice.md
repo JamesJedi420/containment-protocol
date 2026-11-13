@@ -1,67 +1,76 @@
 # SPE-3501 — Protected remote-work cell interaction
 
-| Field             | Value                                                                                                     |
-| ----------------- | --------------------------------------------------------------------------------------------------------- |
-| **Status**        | **In Progress**                                                                                           |
-| **Issue**         | [SPE-3501](https://linear.app/spectranoir/issue/SPE-3501/protected-remote-work-cell-interaction)           |
-| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                                  |
-| **Branch**        | `jamesdyedbq/spe-3501-protected-remote-work-cell-interaction`                                             |
-| **Base main SHA** | `fa1d86e3bd7c3a191fecacf2b7802a16d8786389`                                                                |
+| Field             | Value                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| **Status**        | **In Progress** — implementation complete; final validation and PR review pending                |
+| **Issue**         | [SPE-3501](https://linear.app/spectranoir/issue/SPE-3501/protected-remote-work-cell-interaction) |
+| **Parent**        | [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — remains open                         |
+| **Branch**        | `jamesdyedbq/spe-3501-protected-remote-work-cell-interaction-ac-reconcile`                       |
+| **Base main SHA** | `eca128cea4ecc86ddafae1dc49ba2df74b4ccb60`                                                       |
 
-## Start rationale
+## Goal and approved boundary
 
-**Date:** 2026-11-11  
-**main SHA:** `fa1d86e3bd7c3a191fecacf2b7802a16d8786389`  
-**Decision:** implement SPE-3501 after clean-main restored (Agent P #4965–#4967 merged; #4968 closed for prettier 3.10 format churn).
+Complete one authored containment-lab observation through SPE-2995 from a protected station, including actual Agency interaction, source facts, interruption, persistence and explainability. Codex owns this child; Academy gains no parallel runtime. The receiving implementation/review actor must assess this branch's full diff against the base above, and refresh anchors against the final PR head.
 
-**Queue state:** tip equals `origin/main`; no open PRs; SPE-2995 / SPE-1434 Done; stale SPE-2995 blocker cleared.
+The previous #4969 domain implementation was prematurely marked Done. The 2026-11-13 initial local audit found missing imports and no production producer. That historical audit is superseded by this continuation: the dispatcher, authored station/task, owner-fact composition and Agency controls now exist. The duplicate Cases h1 from the original working diff was reproduced as seven route-test failures and removed; CasesPage/App.test now match main.
 
-**Eligibility:** Backlog→In Progress; not umbrella; acceptance fits one coding slice; adapter prerequisite shipped.
+## Implementation and source ownership
 
-## Goal
+- `protectedRemoteWorkCell.ts` owns stages, gate outcomes, operation-key replay, canonical execution receipt persistence, interruptions and completion. `beginProtectedRemoteWork` invokes SPE-2995 exactly once. `recordProtectedRemoteWorkControl` uses the same work ledger for station controls; a replayed old disconnect cannot undo a later reconnect.
+- `protectedRemoteWorkLab.ts::PROTECTED_LAB` authors one stationary sealed reference assay supplied with the clinical observation facility. It has stable station, protected operator room, target compartment and global blast-door barrier references. It is not a material/specimen inventory, a movable subject or a custody transaction.
+- New campaigns author that active facility and `createStartingProtectedRemoteWorkStation()` facts. The source is ordinary new-game authoring, not a test-only seed. Older/malformed saves receive neither an invented station nor the starter facility through hydration fallback. Existing saves without the station explicitly show unavailable.
+- `buildProtectedLabFacts` composes canonical agent availability, SPE-1059 competency, current facility status, agency clearance, SPE-731 authorization, SPE-2932 adjacency, SPE-1896 room/configuration checks and the canonical barrier status. It checks supported capability/device tags independently of target presence. Explicit operator briefing is recorded before preflight; current owner facts are rechecked before begin, resume and completion.
+- `protectedRemoteWorkCellLivePath.ts::applyProtectedRemoteWorkStep` supplies those facts to the coordinator and persists rejected transitions when they produce blocked/held/failed state. Completion consumes the stored successful SPE-2995 receipt for the exact work execution; it never reruns the resolver to manufacture proof.
+- `gameStore.ts::applyProtectedRemoteWorkStep` and `AgencyPage.tsx` connect the action to the real campaign. `projectProtectedRemoteWorkGameplayView` uses canonical explainability. The panel offers actual roster choices and request, briefing/authorization, begin, disconnect/disable, restore/resume, complete and abort controls. It shows task state and restrictions and moves focus to the stable result region when actions remove controls.
 
-Coordinate one deterministic protected remote-work cell interaction so a qualified operator can run an authorized containment-lab sample observe/manipulate task against a sealed target zone from a different protected station location via SPE-2995, without treating the operator as present in the hazard zone.
+This is a bounded one-action observation, not queued processing or manufacture; it adds no department throughput pool, currency reward, sampling/container rules, teleoperation, private task resolver or robot actor. A new observation has a caller operation identity rather than an invented one-request-per-week capacity. SPE-328 tools, SPE-3439 transfer, SPE-3500 excursion and SPE-100 sampling remain outside this boundary. No automatic medical/exposure clearance is introduced. Barrier failure stops this consumer and leaves an explicit corrective action; this consumer does not claim that a medical/exposure dose was routed or resolved.
 
-## Boundary
+## Acceptance and five gameplay evidence conditions
 
-### In scope
+- [x] **Reachable / AC1:** a normal new campaign exposes the fixed lab in Agency's existing Future expansion navigation. Playwright chooses a qualified real starter operator and performs request → authorization → begin → completion through the store and canonical adapter, without entering the target compartment.
+- [x] **Connected / AC2:** current station, target, capability, operator, clearance, room and integrity facts gate the actual durable interaction. No all-ready fixture is passed from the panel.
+- [x] **Observable / AC3 and AC5:** disconnecting during work produces held state; reconnect alone does not complete or resume. The player explicitly resumes. Choosing an unqualified real operator produces blocked state and permits a safe abort with no procedure effects. Player-facing state, restrictions and status feedback are visible in Agency.
+- [x] **Persistent / AC4:** held station/linkage facts, briefing, identity, canonical receipt and completed outcome survive save/load. Replaying request, station control and completion keys does not repeat effects or re-disable a restored station.
+- [x] **Validated / AC6:** normal browser paths cover qualified/interrupted/reloaded/completed and unqualified/aborted alternatives without injecting campaign facts. Constructed world-state tests separately cover unsafe rooms, missing facilities/targets, unsupported devices/capabilities, clearance denial, barrier breach, absent receipts and malformed/legacy saves. These fixtures are not described as observed normal gameplay.
+- [x] Bounded internal telemetry/performance checks and schema/test inventory updates remain in this child. No parent completion follows from these checks.
 
-- Pure coordinator in `src/domain/protectedRemoteWorkCell.ts`
-- Consume SPE-2995 procedure readiness/execution and caller-owned facility/room/integrity/competency gate decisions
-- Optional durable `GameState.facilityProtectedRemoteWorkCells` + hydrate via `runTransfer`
-- Explainability projection for existing facility/action surfaces
-- Contract tests + SCHEMA_REGISTRY / slice / handoff docs
+`e2e/protected-remote-work.spec.ts` is the normal gameplay evidence. `src/test/protectedRemoteWorkLab.integration.test.ts` is source-composition/persistence and constructed-failure evidence. Existing `protectedRemoteWorkCell.contract.test.ts` remains coordinator evidence. The feature is a bounded observation interaction, not a claim that this slice alone delivers a complete emergent story or replaces SPE-2251 / SPE-3352 campaign evidence.
 
-### Out of scope
+## Six-pass pre-ship audit
 
-- Closing SPE-1052
-- SPE-328 tag-linked remote tools; SPE-3439 transfer; SPE-3500 excursion
-- New procedure engine, teleoperation minigame, robot actor, subject registry, or map/zone authority
-- New control-surface framework or Academy parallel runtime
+1. **Scope/integration:** one child and existing owners; source → dispatcher → store → Agency → save/load traced. Starter scene is new-game authoring only. No parallel registry, resolver, throughput pool or parent closure.
+2. **Edges:** absent/invalid station or facility is unavailable; legacy fallback cannot grant the lab. Current capabilities, room membership/separation and gates fail closed. Blocked work can abort. Existing operation keys suppress stale control and completion replay; request keys avoid collisions without imposing new capacity.
+3. **Determinism/state/knowledge:** authored references and operation-derived identities only; no random IDs, secret-state disclosure, automatic exposure clearance or duplicate procedure resolution. The canonical receipt is frozen and normalized with the work. Internal telemetry is not used as player knowledge.
+4. **Regression:** targeted source/panel/coordinator tests and real Chromium flows pass; complete Node 22 validators and final head-specific CI/review results are recorded below/with the PR. No isolated helper is counted as normal activation.
+5. **Docs/schema/fixtures:** optional version-1 station data uses canonical room/configuration parsers; missing legacy fields remain unavailable, malformed receipt/records fail closed, and no event or save-envelope version is added. SCHEMA_REGISTRY and test inventory are updated; backlog/manifest retain SPE-3501 as the active owner.
+6. **Cleanup:** no application dependencies or vendor SDKs added; existing Cases changes were removed after reproducing their duplicate-heading defect. Native controls, visible labels and polite result focus are used; no new motion, polyfill or custom keyboard handler.
 
-## Pre-coding summary
+## Review, guidance and tool evidence
 
-| Item           | Finding                                                                                          |
-| -------------- | ------------------------------------------------------------------------------------------------ |
-| Relevant files | new remote-work module; `models.ts`; `runTransfer.ts`; SPE-2995 / facility hydrate seams         |
-| Current        | No protected remote-work station coordinator; adapter + facility substrates exist                |
-| Expected       | Stage machine with fail-closed preflight, SPE-2995 start, interrupt/hold, durable hydrate        |
-| Risks          | Colocating operator into target zone; clearing exposure on spatial separation; second resolver |
-| Validation     | `src/test/protectedRemoteWorkCell.contract.test.ts`; lint; backlog handoff                       |
+- Freebuff source map `job-BpUcq2`: configured DeepSeek V4.1 Flash Fast, 414-word report; bounded inspection passed at 178 seconds, metadata only. Its absence findings described the pre-continuation source.
+- Producer design `job-XP0rIf`: 443-word report, inspection at 302 seconds passed. Codex rejected unsupported `researcher` role and deriving a sealed location from a custody stage without placement evidence. The implemented fixed lab scene does not use those suggestions.
+- Independent full-diff review `job-DLWQ0U`: 470-word report, inspection at 312 seconds passed. Codex verified and fixed the legacy facility fallback, independent device/capability facts, persisted execution provenance and stale documentation findings. Final verification `job-Zz7MnB` read the 2194-line final packet and verified all four fixes. Its report was 511 words (11 over the 500-word limit), so mechanical inspection failed only the report-size check; HEAD, source bounds and original-checkout fingerprint passed. Codex read the extra lines and verified the causal source anchors directly. No unsupported worker pass claim was adopted. Residual observations are the explicit station-owned room/configuration packet (there is no competing live room-reconfiguration producer for this facility) and documented fail-closed removal of a malformed receipt record; neither identifies a current acceptance failure. Future shared room reconfiguration must remain with the existing facility/room owners, not a second layout engine. Only the job's `.freebuff/project-id` metadata changed; original checkout fingerprints stayed unchanged until coordinator integration. Usage/billing unknown; no measured savings claimed.
+- Hermes checkpoints: direct for the compact documentation comparison and final source-anchor checks; existing Freebuff source findings were reused rather than duplicated. Any larger new triage needs a fresh bounded checkpoint.
+- Modern Web Guidance `accessibility` and `forms` were retrieved. Native buttons preserve built-in keyboard behavior ("Don't attach keyboard handlers to native interactive elements"); explicit label/control IDs and a fieldset expose the real roster choices. The eight roster choices remain visible because qualification and availability are needed to choose an operator. Player-facing task names and status messages use readable labels; operation keys remain persistence metadata. Controls use 48px minimum targets and wrapping. Browser validation includes a 320px panel overflow check. This client-only SPA handles submission locally; no server endpoint, network form mutation, new animation or less-supported API was introduced. No human screen-reader observation is claimed.
+- Context7 tools were unavailable in the current tool catalog; current official Playwright locator screenshot documentation was read through Tavily. Snapshot checks wait for visible completed content after reload before taking an element screenshot, rather than accepting a loading screen.
+- Sonatype remains unavailable for insufficient credits. Portable Node 22.23.5 was reviewed using the project's fallback: official Node release/security notes and distribution index, exact SHA-256 `247e9693d316da9857e44990e5e11709f596f18112251b8026ec6eed80bdf38a`, valid OpenJS Authenticode signature and MIT license. The public nodejs/node advisory endpoint returned no records; that is not a binary vulnerability scan. The tool is scoped under Codex home and changes neither app dependencies/lockfile nor global Node configuration. Source: https://nodejs.org/en/blog/release/v22.23.5 .
 
-## Acceptance
+## Validation and completion state
 
-- [x] Valid remote lab task: request → authorize → begin (SPE-2995) → complete without operator entry into target zone
-- [x] Capability / operator / station / room / integrity / procedure blockers fail closed with reason codes
-- [x] Station disablement / connection loss holds; barrier degradation can route exposure without clearing it
-- [x] Idempotent operation keys; durable hydrate round-trip; repeat does not duplicate effects
-- [x] Explainability packet exposes stage / blockers / exposure flags
-- [x] In-boundary docs (slice, SCHEMA_REGISTRY, backlog handoff)
+Local logs: `C:/Users/james/.codex/spe3501-*.log`. Initial Node 24 evidence is historical and does not establish parity. The continuation uses portable **Node 22.23.5**.
 
-## Deferred
+- A Node 22 required run passed **1044 files / 11237 unit tests**, **46 Chromium tests**, full lint, backlog handoff and production bundle. Subsequent review fixes receive focused reruns and a final frozen-source validator run before commit/PR acceptance.
+- Focused coordinator/source/panel checks: **4 files / 25 tests passed** after the replay, source and migration corrections.
+- Real lab browser paths: **2 passed**, including a visible completed outcome after reload and the 320px panel check. The first test harness attempt targeted Agency in the wrong navigation region; it was corrected to the existing Future expansion navigation. A loading-state screenshot was rejected and replaced with a positive visible-outcome wait.
+- Untouched-main literal build had 37 TypeScript diagnostics; 10 in-boundary SPE-3501 assertion errors were corrected. Remaining inherited errors are outside this child. The initial continuation census encountered a changing compiler input while review fixes were applied; it is not final compiler evidence. The extra new panel-test inference error was fixed explicitly with `useState<GameState>`.
+- Global format-check remains advisory and flags existing checkout files, including CRLF baseline content. No bulk reformat or validator weakening is authorized. Required build is the policy-selected Vite production bundle; literal compiler failures are disclosed separately.
 
-| Item                                                         | Owner      | Why                                                                 |
-| ------------------------------------------------------------ | ---------- | ------------------------------------------------------------------- |
-| Live SPE-100 sampling/container compatibility rules          | SPE-100    | Owner still Backlog; no parallel sampling registry here             |
-| Live week-close / UI wiring into facility register           | SPE-3359 / existing surfaces | Projection only; no new remote-work UI framework          |
-| Tag-linked remote manipulation tools                         | SPE-328    | Explicitly excluded                                                 |
+Done requires final validation, independent review disposition, green required CI, merge, main synchronization and verified existing-owner Linear closeout. SPE-1052 stays open. Do not begin SPE-3505 or another slice from partial completion.
+
+### Final local pre-commit validation
+
+`npm run verify:requirements -- --base origin/main`, Node 22.23.5: **exit 0**. Required backlog-handoff, full lint, **1044 files / 11237 unit tests**, **46 Chromium tests** and Vite production bundle all passed. The census was reproducible at **27 diagnostic occurrences / compiler exit 2** in both runs and completed successfully as advisory reporting. This is not a green literal TypeScript build. Global format check remained advisory-failed; no gate was changed or suppressed.
+
+Subsequent presentation-only changes gave the authored task readable labels and explicit radio label IDs. The two real Agency browser paths passed again (14.3 seconds), including visible reload continuity and a 320px overflow check; targeted panel/source checks passed (5 tests). Core simulation, source facts and receipt behavior did not change after the complete run. Final PR CI remains the head-specific acceptance gate.
+
+The jsdom maintenance PR #4972 arrived during validation. Its CI failed on the same removed magicast lock entry seen in #4970/#4971. Codex restored only that existing entry in an isolated checkout, performed the required fallback security review and clean install, and pushed repair `1404c6e281fe1ff0abbabc74a26665532c6b1a00`. This feature does not adopt that dependency in its own diff; synchronization follows the maintenance PR's verified merge.

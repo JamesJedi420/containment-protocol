@@ -16,6 +16,7 @@ import {
   type CanonicalProcedureExecutionResult,
   type ProcedureToActionAdapterInput,
   type ProcedureExecutionReadinessResult,
+  type ProcedureExecutionReceipt,
 } from './procedureToActionAdapter'
 import {
   compareCodeUnitOrder,
@@ -88,6 +89,7 @@ export type ProtectedRemoteWorkRecord = Readonly<{
   exposureCleared: boolean
   authorizationRef?: string
   procedureExecutionKey?: string
+  procedureExecutionReceipt?: ProcedureExecutionReceipt
   pendingCorrectiveAction?: string
   exposureOwnerHint?: string
 }>
@@ -238,6 +240,26 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
   }
   if (raw.exposureCleared === true) return undefined
 
+  let procedureExecutionReceipt: ProcedureExecutionReceipt | undefined
+  if (raw.procedureExecutionReceipt !== undefined) {
+    const receipt = raw.procedureExecutionReceipt
+    if (
+      !isRecord(receipt) ||
+      !isNonEmptyString(receipt.executionKey) ||
+      !isNonEmptyString(receipt.evaluationFingerprint) ||
+      receipt.evaluationFingerprint.length > 16384 ||
+      receipt.consequenceApplied !== true ||
+      raw.procedureEffectsOccurred !== true ||
+      !isNonEmptyString(raw.procedureExecutionKey) ||
+      receipt.executionKey.trim() !== raw.procedureExecutionKey.trim()
+    )
+      return undefined
+    procedureExecutionReceipt = Object.freeze({
+      executionKey: receipt.executionKey.trim(),
+      evaluationFingerprint: receipt.evaluationFingerprint,
+      consequenceApplied: true,
+    })
+  }
   return freezeWork({
     workId: id,
     stationId: raw.stationId.trim(),
@@ -253,6 +275,7 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
     ),
     procedureEffectsOccurred: raw.procedureEffectsOccurred,
     exposureCleared: raw.exposureCleared,
+    ...(procedureExecutionReceipt ? {procedureExecutionReceipt}:{}),
     ...(isNonEmptyString(raw.authorizationRef)
       ? { authorizationRef: raw.authorizationRef.trim() }
       : {}),
@@ -608,6 +631,11 @@ export function beginProtectedRemoteWork(
     exposureCleared: false,
     pendingCorrectiveAction: 'monitor_station_integrity',
     procedureExecutionKey: executionKey,
+    procedureExecutionReceipt: Object.freeze({
+      executionKey,
+      evaluationFingerprint: procedureExecution.readiness.evaluationFingerprint,
+      consequenceApplied: true,
+    }),
   })
   return {
     ok: true,
@@ -752,7 +780,7 @@ export function abortProtectedRemoteWork(
 ): ProtectedRemoteWorkResult {
   const prepared = prepareWorkMutation(workInput, operationKey, state, {
     idempotentStages: ['aborted', 'failed'],
-    allowedStages: ['requested', 'authorized', 'held'],
+    allowedStages: ['requested', 'blocked', 'authorized', 'held'],
   })
   if (prepared.kind !== 'ready') return prepared.result
   if (prepared.work.stage === 'held') {
@@ -821,8 +849,58 @@ export function projectExplainableProtectedRemoteWork(
   })
 }
 
+/**
+ * Internal validation telemetry snapshot (SPE-1119 audience separation).
+ * Not a player-facing knowledge surface — use `projectExplainableProtectedRemoteWork`
+ * for ordinary facility/action UI.
+ */
+export type ProtectedRemoteWorkInternalTelemetry = Readonly<{
+  audience: 'internal_validation'
+  workId: ProtectedRemoteWorkId
+  stage: ProtectedRemoteWorkStage
+  appliedOperationKeyCount: number
+  procedureEffectsOccurred: boolean
+  exposureCleared: boolean
+  procedureExecutionKey?: string
+  pendingCorrectiveAction?: string
+  reasonCodes: readonly ProtectedRemoteWorkReasonCode[]
+}>
+
+export function projectProtectedRemoteWorkInternalTelemetry(
+  work: ProtectedRemoteWorkRecord
+): ProtectedRemoteWorkInternalTelemetry {
+  return Object.freeze({
+    audience: 'internal_validation',
+    workId: work.workId,
+    stage: work.stage,
+    appliedOperationKeyCount: work.appliedOperationKeys.length,
+    procedureEffectsOccurred: work.procedureEffectsOccurred,
+    exposureCleared: work.exposureCleared,
+    reasonCodes: work.reasonCodes,
+    ...(work.procedureExecutionKey !== undefined
+      ? { procedureExecutionKey: work.procedureExecutionKey }
+      : {}),
+    ...(work.pendingCorrectiveAction !== undefined
+      ? { pendingCorrectiveAction: work.pendingCorrectiveAction }
+      : {}),
+  })
+}
+
 export function isProtectedRemoteWorkActive(stage: ProtectedRemoteWorkStage): boolean {
   return ACTIVE_STAGES.has(stage)
+}
+
+/** Correlate an owner-applied station control with this work's existing replay ledger. */
+export function recordProtectedRemoteWorkControl(
+  workInput: ProtectedRemoteWorkRecord,
+  operationKey: string,
+  state: GameState
+): ProtectedRemoteWorkResult {
+  const work = resolveCurrentWork(workInput, state)
+  if (!isNonEmptyString(operationKey)) return rejectWork('malformed_input', work, state)
+  const key = operationKey.trim()
+  if (work.appliedOperationKeys.includes(key)) return { ok: true, work, state }
+  return commitWork(freezeWork({ ...work, appliedOperationKeys: withAppliedKey(work, key) }), state)
 }
 
 export function isProtectedRemoteWorkTerminal(stage: ProtectedRemoteWorkStage): boolean {

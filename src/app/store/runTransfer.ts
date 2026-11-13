@@ -57,6 +57,7 @@ import { parseFacilitySecureContainedSubjectTransfers } from '../../domain/secur
 import { parseFacilityAuthorizedContainedSubjectExcursions } from '../../domain/authorizedContainedSubjectExcursion'
 import { parseFacilityBreachOriginRecoveries } from '../../domain/breachOriginRecovery'
 import { parseFacilityProtectedRemoteWorkCells } from '../../domain/protectedRemoteWorkCell'
+import { PROTECTED_LAB, parseProtectedRemoteWorkStation } from '../../domain/protectedRemoteWorkLab'
 import { parseFacilitySecuredNodes } from '../../domain/facilitySecuredNodes'
 import { parseFacilityStockQuarantine } from '../../domain/facilityStockQuarantine'
 import { parseFacilityHaulingLabor } from '../../domain/facilityHaulingLabor'
@@ -10594,7 +10595,19 @@ export function hydrateGame(
     week,
     fallback.runtimeState
   )
-  const facilityState = sanitizeFacilityState(game.facilityState, week, fallback.facilityState)
+  // Starter-scene authoring is not a migration grant for an older/malformed save.
+  const legacyFallbackFacilities = Object.fromEntries(
+    Object.entries(fallback.facilityState?.facilities ?? {}).filter(
+      ([id]) => id !== PROTECTED_LAB.facilityId
+    )
+  )
+  const facilityState = sanitizeFacilityState(
+    game.facilityState,
+    week,
+    Object.keys(legacyFallbackFacilities).length
+      ? { facilities: legacyFallbackFacilities }
+      : undefined
+  )
   const facilityCapabilityUnlock = sanitizeFacilityCapabilityUnlock(game.facilityCapabilityUnlock)
   const squadKitTemplates = sanitizeSquadKitTemplatesMap(game.squadKitTemplates)
   const squadKitAssignments = sanitizeSquadKitAssignmentsMap(
@@ -10763,6 +10776,9 @@ export function hydrateGame(
   const facilityProtectedRemoteWorkCells = parseFacilityProtectedRemoteWorkCells(
     game.facilityProtectedRemoteWorkCells
   )
+  const facilityProtectedRemoteWorkStation = parseProtectedRemoteWorkStation(
+    game.facilityProtectedRemoteWorkStation
+  )
   const facilitySecuredNodes = parseFacilitySecuredNodes(game.facilitySecuredNodes)
   const facilityStockQuarantine = parseFacilityStockQuarantine(game.facilityStockQuarantine)
   const facilityHaulingLabor = parseFacilityHaulingLabor(game.facilityHaulingLabor)
@@ -10903,6 +10919,7 @@ export function hydrateGame(
     facilityAuthorizedContainedSubjectExcursions,
     facilityBreachOriginRecoveries,
     facilityProtectedRemoteWorkCells,
+    facilityProtectedRemoteWorkStation,
     facilitySecuredNodes,
     facilityStockQuarantine,
     facilityHaulingLabor,
@@ -11106,6 +11123,7 @@ export function hydrateGame(
       : {}),
     ...(facilityBreachOriginRecoveries ? { facilityBreachOriginRecoveries } : {}),
     ...(facilityProtectedRemoteWorkCells ? { facilityProtectedRemoteWorkCells } : {}),
+    ...(facilityProtectedRemoteWorkStation ? { facilityProtectedRemoteWorkStation } : {}),
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

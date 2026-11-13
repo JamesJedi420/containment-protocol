@@ -38,7 +38,7 @@
   },
   "dependencies": {
     "@sentry/react": "11.11.0",
-    "@trigger.dev/sdk": "^4.8.4",
+    "@trigger.dev/sdk": "^4.8.5",
     "lucide-react": "^1.72.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

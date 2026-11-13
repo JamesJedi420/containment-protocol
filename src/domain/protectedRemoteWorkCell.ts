@@ -41,6 +41,7 @@ export const PROTECTED_REMOTE_WORK_STAGES = [
   'aborted',
 ] as const
 export type ProtectedRemoteWorkStage = (typeof PROTECTED_REMOTE_WORK_STAGES)[number]
+const MAX_RECEIPT_FINGERPRINT_LENGTH = 16384
 
 export const PROTECTED_REMOTE_WORK_REASON_CODES = [
   'malformed_input',
@@ -153,12 +154,7 @@ function isStage(value: unknown): value is ProtectedRemoteWorkStage {
 }
 
 function stageAllowsProcedureEffects(stage: ProtectedRemoteWorkStage): boolean {
-  return (
-    stage === 'in_progress' ||
-    stage === 'completed' ||
-    stage === 'held' ||
-    stage === 'failed'
-  )
+  return stage === 'in_progress' || stage === 'completed' || stage === 'held' || stage === 'failed'
 }
 
 function isReasonCode(value: unknown): value is ProtectedRemoteWorkReasonCode {
@@ -175,10 +171,7 @@ function sortUniqueReasons(
   return sortUniqueCodes(reasons)
 }
 
-function withAppliedKey(
-  work: ProtectedRemoteWorkRecord,
-  operationKey: string
-): readonly string[] {
+function withAppliedKey(work: ProtectedRemoteWorkRecord, operationKey: string): readonly string[] {
   return withSortedAppliedKey(work.appliedOperationKeys, operationKey)
 }
 
@@ -247,7 +240,7 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
       !isRecord(receipt) ||
       !isNonEmptyString(receipt.executionKey) ||
       !isNonEmptyString(receipt.evaluationFingerprint) ||
-      receipt.evaluationFingerprint.length > 16384 ||
+      receipt.evaluationFingerprint.length > MAX_RECEIPT_FINGERPRINT_LENGTH ||
       receipt.consequenceApplied !== true ||
       raw.procedureEffectsOccurred !== true ||
       !isNonEmptyString(raw.procedureExecutionKey) ||
@@ -270,12 +263,10 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
     capabilityTag: raw.capabilityTag.trim(),
     stage: raw.stage,
     reasonCodes: sortUniqueReasons(reasonCodes),
-    appliedOperationKeys: Object.freeze(
-      [...new Set(appliedOperationKeys)].sort(compareCodeUnit)
-    ),
+    appliedOperationKeys: Object.freeze([...new Set(appliedOperationKeys)].sort(compareCodeUnit)),
     procedureEffectsOccurred: raw.procedureEffectsOccurred,
     exposureCleared: raw.exposureCleared,
-    ...(procedureExecutionReceipt ? {procedureExecutionReceipt}:{}),
+    ...(procedureExecutionReceipt ? { procedureExecutionReceipt } : {}),
     ...(isNonEmptyString(raw.authorizationRef)
       ? { authorizationRef: raw.authorizationRef.trim() }
       : {}),
@@ -471,8 +462,7 @@ export function runProtectedRemoteWorkPreflight(
     return rejectWork('malformed_input', work, state)
   }
   const key = operationKey.trim()
-  const canRetryBlocked =
-    work.stage === 'blocked' && work.procedureEffectsOccurred === false
+  const canRetryBlocked = work.stage === 'blocked' && work.procedureEffectsOccurred === false
   if (work.stage !== 'requested' && !canRetryBlocked) {
     if (work.appliedOperationKeys.includes(key)) {
       return { ok: true, work, state }
@@ -592,13 +582,14 @@ export function beginProtectedRemoteWork(
   const { work, key } = prepared
 
   const executionKey = input.procedureAdapter.executionKey
-  if (
-    isNonEmptyString(work.procedureExecutionKey) &&
-    work.procedureExecutionKey !== executionKey
-  ) {
+  if (isNonEmptyString(work.procedureExecutionKey) && work.procedureExecutionKey !== executionKey) {
     return rejectWork('stale_operation', work, state)
   }
 
+  // Reject unpersistable evidence before the canonical execution path can commit effects.
+  const readiness = evaluateCanonicalProcedureExecutionReadiness(input.procedureAdapter)
+  if (readiness.evaluationFingerprint.length > MAX_RECEIPT_FINGERPRINT_LENGTH)
+    return rejectWork('malformed_input', work, state)
   const procedureExecution = executeCanonicalProcedureThroughCrossRoleAction(input.procedureAdapter)
   const evidence = Object.freeze({ procedureExecution })
   if (!procedureExecution.ok || procedureExecution.outcome !== 'executed') {
@@ -676,9 +667,7 @@ export function resumeProtectedRemoteWork(
 }
 
 export type ProtectedRemoteWorkInterruptKind =
-  | 'station_disabled'
-  | 'connection_lost'
-  | 'barrier_degraded'
+  'procedure_conditions_unsafe' | 'station_disabled' | 'connection_lost' | 'barrier_degraded'
 
 /**
  * Interrupt in-progress work. Spatial separation alone does not complete work or clear exposure.
@@ -701,11 +690,13 @@ export function interruptProtectedRemoteWork(
   const { work, key } = prepared
 
   const reason: ProtectedRemoteWorkReasonCode =
-    input.kind === 'station_disabled'
-      ? 'station_disabled'
-      : input.kind === 'connection_lost'
-        ? 'connection_lost'
-        : 'barrier_degraded'
+    input.kind === 'procedure_conditions_unsafe'
+      ? 'procedure_not_ready'
+      : input.kind === 'station_disabled'
+        ? 'station_disabled'
+        : input.kind === 'connection_lost'
+          ? 'connection_lost'
+          : 'barrier_degraded'
 
   const reasons: ProtectedRemoteWorkReasonCode[] = [reason, 'interrupted_during_work']
   if (input.routeExposure === true) {
@@ -720,9 +711,11 @@ export function interruptProtectedRemoteWork(
     procedureEffectsOccurred: work.procedureEffectsOccurred,
     exposureCleared: false,
     pendingCorrectiveAction:
-      input.kind === 'barrier_degraded'
-        ? 'route_exposure_and_restore_barrier'
-        : 'restore_station_and_resume_or_abort',
+      input.kind === 'procedure_conditions_unsafe'
+        ? 'resolve_remote_work_preflight_blockers'
+        : input.kind === 'barrier_degraded'
+          ? 'route_exposure_and_restore_barrier'
+          : 'restore_station_and_resume_or_abort',
     ...(input.routeExposure === true
       ? { exposureOwnerHint: work.exposureOwnerHint ?? 'exposure' }
       : {}),

@@ -165,6 +165,16 @@ export function applyProtectedRemoteWorkStep(
   if (command.kind === 'lab_step') {
     if (!isAuthoredProtectedLabWork(work))
       return { ok: false, code: 'stale_operation', reasonCodes: ['stale_operation'], state }
+    if (work.appliedOperationKeys.includes(command.operationKey.trim()))
+      return { ok: true, work, state }
+    if (command.action === 'authorize' && !['requested', 'blocked'].includes(work.stage))
+      return {
+        ok: false,
+        work,
+        code: 'illegal_transition',
+        reasonCodes: ['illegal_transition'],
+        state,
+      }
     let current = state
     const station = parseProtectedRemoteWorkStation(state.facilityProtectedRemoteWorkStation)
     if (command.action === 'authorize' && station && Object.hasOwn(state.agents, work.operatorRef))
@@ -208,6 +218,12 @@ export function applyProtectedRemoteWorkStep(
       [facts.gates.integrityOk, 'integrity_degraded'],
     ] as const
     const failed = gateCodes.find(([passed]) => !passed)
+    if (failed && work.stage === 'in_progress')
+      return interruptProtectedRemoteWork(
+        work,
+        { operationKey: command.operationKey, kind: 'procedure_conditions_unsafe' },
+        current
+      )
     if (failed)
       return { ok: false, work, code: failed[1], reasonCodes: [failed[1]], state: current }
     if (command.action === 'begin')

@@ -77,6 +77,39 @@ function runHappyPath(work: ProtectedRemoteWorkRecord): ProtectedRemoteWorkRecor
 }
 
 describe('SPE-3501 protected remote-work cell', () => {
+  it('rejects a receipt fingerprint that cannot survive reload before execution', () => {
+    const created = createWork()
+    assert(created.ok)
+    const adapter = procedureAdapter()
+    const oversized = {
+      ...adapter,
+      prerequisiteDecisions: adapter.prerequisiteDecisions.map((decision) => ({
+        ...decision,
+        reason: 'x'.repeat(17000),
+      })),
+    }
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work,
+      operationKey: 'large-authorize',
+      gates: openGates,
+      procedureAdapter: oversized,
+    })
+    assert(preflight.ok)
+    const result = beginProtectedRemoteWork(preflight.work, {
+      operationKey: 'large-begin',
+      procedureAdapter: oversized,
+    })
+    expect(result).toMatchObject({ ok: false, code: 'malformed_input' })
+    expect(result.work).toBe(preflight.work)
+    expect(result.work?.procedureEffectsOccurred).toBe(false)
+    expect(result.work?.appliedOperationKeys).not.toContain('large-begin')
+    expect(
+      parseFacilityProtectedRemoteWorkCells({ [result.work!.workId]: result.work })?.[
+        result.work!.workId
+      ]
+    ).toEqual(result.work)
+  })
+
   it('completes a valid remote sample observation without colocating the operator', () => {
     const created = createWork()
     expect(created.ok).toBe(true)

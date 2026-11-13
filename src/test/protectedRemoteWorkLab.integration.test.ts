@@ -9,6 +9,132 @@ import { PROTECTED_LAB, buildProtectedLabFacts } from '../domain/protectedRemote
 import { projectProtectedRemoteWorkGameplayView } from '../features/agency/protectedRemoteWorkGameplayView'
 
 describe('authored protected lab gameplay', () => {
+  function startedLab() {
+    const initial = createStartingState()
+    const operator = projectProtectedRemoteWorkGameplayView(initial).operators.find(
+      (entry) => entry.available && entry.qualified
+    )!
+    const requested = applyProtectedRemoteWorkStep(initial, {
+      kind: 'request_lab',
+      operatorRef: operator.id,
+      operationKey: 'review-request',
+    })
+    assert(requested.ok)
+    const workId = requested.work.workId
+    const authorized = applyProtectedRemoteWorkStep(requested.state!, {
+      kind: 'lab_step',
+      workId,
+      action: 'authorize',
+      operationKey: 'review-authorize',
+    })
+    assert(authorized.ok)
+    const begun = applyProtectedRemoteWorkStep(authorized.state!, {
+      kind: 'lab_step',
+      workId,
+      action: 'begin',
+      operationKey: 'review-begin',
+    })
+    assert(begun.ok)
+    return { state: begun.state!, operator, workId }
+  }
+
+  it('leaves briefing unchanged when a new authorization is rejected after execution', () => {
+    const { state, workId } = startedLab()
+    const unbriefed = {
+      ...state,
+      facilityProtectedRemoteWorkStation: {
+        ...state.facilityProtectedRemoteWorkStation!,
+        briefedOperatorRefs: [],
+      },
+    }
+    const result = applyProtectedRemoteWorkStep(unbriefed, {
+      kind: 'lab_step',
+      workId,
+      action: 'authorize',
+      operationKey: 'rejected-authorize',
+    })
+    expect(result).toMatchObject({ ok: false, code: 'illegal_transition' })
+    expect(result.state).toBe(unbriefed)
+  })
+
+  it('replays accepted steps before changed live gates without rebriefing or interrupting', () => {
+    const { state, workId, operator } = startedLab()
+    const changed = {
+      ...state,
+      agents: {
+        ...state.agents,
+        [operator.id]: { ...state.agents[operator.id]!, status: 'dead' as const },
+      },
+      facilityProtectedRemoteWorkStation: {
+        ...state.facilityProtectedRemoteWorkStation!,
+        connected: false,
+        briefedOperatorRefs: [],
+      },
+    }
+    for (const [action, operationKey] of [
+      ['authorize', 'review-authorize'],
+      ['begin', 'review-begin'],
+    ] as const) {
+      const replay = applyProtectedRemoteWorkStep(changed, {
+        kind: 'lab_step',
+        workId,
+        action,
+        operationKey,
+      })
+      expect(replay.ok).toBe(true)
+      expect(replay.state).toBe(changed)
+    }
+    const completed = applyProtectedRemoteWorkStep(state, {
+      kind: 'lab_step',
+      workId,
+      action: 'complete',
+      operationKey: 'review-complete',
+    })
+    assert(completed.ok)
+    const saved = loadGameSave(serializeGameSave({ ...completed.state!, agents: changed.agents }))
+    const replay = applyProtectedRemoteWorkStep(saved, {
+      kind: 'lab_step',
+      workId,
+      action: 'complete',
+      operationKey: 'review-complete',
+    })
+    expect(replay.ok).toBe(true)
+    expect(replay.state).toBe(saved)
+  })
+
+  it('holds on loss of live operator readiness and permits abandonment without clearing effects', () => {
+    const { state, workId, operator } = startedLab()
+    const changed = {
+      ...state,
+      agents: {
+        ...state.agents,
+        [operator.id]: { ...state.agents[operator.id]!, status: 'dead' as const },
+      },
+    }
+    const held = applyProtectedRemoteWorkStep(changed, {
+      kind: 'lab_step',
+      workId,
+      action: 'complete',
+      operationKey: 'unsafe-complete',
+    })
+    expect(held.work?.stage).toBe('held')
+    expect(held.work?.reasonCodes).toContain('procedure_not_ready')
+    const saved = loadGameSave(serializeGameSave(held.state!))
+    expect(projectProtectedRemoteWorkGameplayView(saved).rows[0]?.canAbort).toBe(true)
+    const aborted = applyProtectedRemoteWorkStep(saved, {
+      kind: 'abort',
+      workId,
+      operationKey: 'abandon-unsafe',
+    })
+    assert(aborted.ok)
+    expect(aborted.work).toMatchObject({
+      stage: 'failed',
+      procedureEffectsOccurred: true,
+      exposureCleared: false,
+    })
+    expect(projectProtectedRemoteWorkGameplayView(aborted.state!).canRequest).toBe(true)
+  })
+
   it('fails on a canonical barrier breach without claiming exposure clearance or applying another dose', () => {
     let state = createStartingState()
     const operator = projectProtectedRemoteWorkGameplayView(state).operators.find(

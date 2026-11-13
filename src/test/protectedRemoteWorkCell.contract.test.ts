@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
 import {
   abortProtectedRemoteWork,
@@ -9,6 +10,7 @@ import {
   interruptProtectedRemoteWork,
   parseFacilityProtectedRemoteWorkCells,
   projectExplainableProtectedRemoteWork,
+  projectProtectedRemoteWorkInternalTelemetry,
   resumeProtectedRemoteWork,
   runProtectedRemoteWorkPreflight,
   type ProtectedRemoteWorkPreflightGates,
@@ -38,9 +40,7 @@ function procedureAdapter(executionKey = 'exec-remote-lab-1') {
   })
 }
 
-function createWork(
-  overrides: Partial<Parameters<typeof createProtectedRemoteWorkCell>[0]> = {}
-) {
+function createWork(overrides: Partial<Parameters<typeof createProtectedRemoteWorkCell>[0]> = {}) {
   return createProtectedRemoteWorkCell({
     workId: 'rw-1',
     stationId: 'station:glovebox-a',
@@ -77,6 +77,39 @@ function runHappyPath(work: ProtectedRemoteWorkRecord): ProtectedRemoteWorkRecor
 }
 
 describe('SPE-3501 protected remote-work cell', () => {
+  it('rejects a receipt fingerprint that cannot survive reload before execution', () => {
+    const created = createWork()
+    assert(created.ok)
+    const adapter = procedureAdapter()
+    const oversized = {
+      ...adapter,
+      prerequisiteDecisions: adapter.prerequisiteDecisions.map((decision) => ({
+        ...decision,
+        reason: 'x'.repeat(17000),
+      })),
+    }
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work,
+      operationKey: 'large-authorize',
+      gates: openGates,
+      procedureAdapter: oversized,
+    })
+    assert(preflight.ok)
+    const result = beginProtectedRemoteWork(preflight.work, {
+      operationKey: 'large-begin',
+      procedureAdapter: oversized,
+    })
+    expect(result).toMatchObject({ ok: false, code: 'malformed_input' })
+    expect(result.work).toBe(preflight.work)
+    expect(result.work?.procedureEffectsOccurred).toBe(false)
+    expect(result.work?.appliedOperationKeys).not.toContain('large-begin')
+    expect(
+      parseFacilityProtectedRemoteWorkCells({ [result.work!.workId]: result.work })?.[
+        result.work!.workId
+      ]
+    ).toEqual(result.work)
+  })
+
   it('completes a valid remote sample observation without colocating the operator', () => {
     const created = createWork()
     expect(created.ok).toBe(true)
@@ -104,6 +137,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       targetZoneRef: 'zone:containment_lab',
     })
     expect(blocked.ok).toBe(false)
+    assert(!blocked.ok)
     expect(blocked.code).toBe('operator_in_target_zone')
   })
 
@@ -117,6 +151,7 @@ describe('SPE-3501 protected remote-work cell', () => {
     })
     expect(blocked.ok).toBe(false)
     expect(blocked.work?.stage).toBe('blocked')
+    assert(!blocked.ok)
     expect(blocked.reasonCodes).toContain('capability_unsupported')
     expect(blocked.work?.procedureEffectsOccurred).toBe(false)
   })
@@ -129,6 +164,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       gates: { ...openGates, operatorQualified: false },
     })
     expect(unqualified.ok).toBe(false)
+    assert(!unqualified.ok)
     expect(unqualified.reasonCodes).toContain('operator_unqualified')
 
     const unavailable = runProtectedRemoteWorkPreflight({
@@ -137,6 +173,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       gates: { ...openGates, operatorAvailable: false },
     })
     expect(unavailable.ok).toBe(false)
+    assert(!unavailable.ok)
     expect(unavailable.reasonCodes).toContain('operator_unavailable')
   })
 
@@ -148,6 +185,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       gates: { ...openGates, stationReady: false, stationConnected: false },
     })
     expect(broken.ok).toBe(false)
+    assert(!broken.ok)
     expect(broken.reasonCodes).toEqual(
       expect.arrayContaining(['station_not_ready', 'station_disconnected'])
     )
@@ -158,6 +196,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       gates: { ...openGates, roomConfigSafe: false, integrityOk: false },
     })
     expect(unsafe.ok).toBe(false)
+    assert(!unsafe.ok)
     expect(unsafe.reasonCodes).toEqual(
       expect.arrayContaining(['room_config_unsafe', 'integrity_degraded'])
     )
@@ -175,6 +214,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       },
     })
     expect(blocked.ok).toBe(false)
+    assert(!blocked.ok)
     expect(blocked.reasonCodes).toContain('procedure_not_ready')
     expect(blocked.evidence?.procedureReadiness?.ok).toBe(false)
   })
@@ -199,6 +239,7 @@ describe('SPE-3501 protected remote-work cell', () => {
     })
     expect(held.ok).toBe(false)
     expect(held.work?.stage).toBe('held')
+    assert(!held.ok)
     expect(held.reasonCodes).toEqual(
       expect.arrayContaining(['station_disabled', 'interrupted_during_work'])
     )
@@ -225,6 +266,7 @@ describe('SPE-3501 protected remote-work cell', () => {
     })
     expect(failed.ok).toBe(false)
     expect(failed.work?.stage).toBe('failed')
+    assert(!failed.ok)
     expect(failed.reasonCodes).toEqual(
       expect.arrayContaining(['barrier_degraded', 'interrupted_during_work', 'exposure_routed'])
     )
@@ -302,6 +344,43 @@ describe('SPE-3501 protected remote-work cell', () => {
       expect.arrayContaining(['op-create-a', 'op-complete-a'])
     )
     expect(Object.isFrozen(loaded.facilityProtectedRemoteWorkCells)).toBe(true)
+
+    const roundTripped = loadGameSave(serializeGameSave(state))
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.stage).toBe('completed')
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.appliedOperationKeys).toEqual(
+      expect.arrayContaining(['op-create-a', 'op-complete-a'])
+    )
+    expect(roundTripped.facilityProtectedRemoteWorkCells?.['rw-1']?.exposureCleared).toBe(false)
+  })
+
+  it('does not treat already_applied adapter receipts as a new begin execution', () => {
+    const created = createWork()
+    const preflight = runProtectedRemoteWorkPreflight({
+      work: created.work!,
+      operationKey: 'op-preflight-applied',
+      gates: openGates,
+      procedureAdapter: procedureAdapter('exec-remote-lab-applied'),
+    })
+    expect(preflight.ok).toBe(true)
+    const adapter = {
+      ...procedureAdapter('exec-remote-lab-applied'),
+      priorReceipts: [
+        {
+          executionKey: 'exec-remote-lab-applied',
+          evaluationFingerprint: 'foreign-fingerprint',
+          consequenceApplied: true,
+        },
+      ],
+    }
+    const started = beginProtectedRemoteWork(preflight.work!, {
+      operationKey: 'op-begin-applied',
+      procedureAdapter: adapter,
+    })
+    expect(started.ok).toBe(false)
+    assert(!started.ok)
+    expect(started.code).toBe('procedure_execution_blocked')
+    expect(started.work?.stage).toBe('failed')
+    expect(started.work?.procedureEffectsOccurred).toBe(false)
   })
 
   it('aborts before start without procedure effects', () => {
@@ -348,6 +427,7 @@ describe('SPE-3501 protected remote-work cell', () => {
       procedureAdapter: procedureAdapter('exec-other-procedure'),
     })
     expect(mismatched.ok).toBe(false)
+    assert(!mismatched.ok)
     expect(mismatched.code).toBe('stale_operation')
   })
 
@@ -429,5 +509,40 @@ describe('SPE-3501 protected remote-work cell', () => {
       outcome: 'in_progress',
       exposureCleared: false,
     })
+  })
+
+  it('separates internal telemetry from player-facing explainability and stays bounded under load', () => {
+    const created = createWork()
+    const playerFacing = projectExplainableProtectedRemoteWork(created.work!)
+    const internal = projectProtectedRemoteWorkInternalTelemetry(created.work!)
+    expect(playerFacing).not.toHaveProperty('audience')
+    expect(internal).toMatchObject({
+      audience: 'internal_validation',
+      workId: 'rw-1',
+      stage: 'requested',
+      appliedOperationKeyCount: 1,
+      procedureEffectsOccurred: false,
+      exposureCleared: false,
+    })
+
+    const startedAt = performance.now()
+    for (let index = 0; index < 200; index += 1) {
+      const work = createProtectedRemoteWorkCell({
+        workId: `rw-perf-${index}`,
+        stationId: 'station:glovebox-a',
+        operatorRef: 'operative:lab-tech-1',
+        operatorNodeId: 'room:observation_booth',
+        targetZoneRef: 'zone:containment_lab',
+        targetRef: `sample:frag-${index}`,
+        capabilityTag: 'sample_observe',
+        operationKey: `op-perf-${index}`,
+      })
+      expect(work.ok).toBe(true)
+      expect(Object.isFrozen(work.work)).toBe(true)
+      expect(projectProtectedRemoteWorkInternalTelemetry(work.work!).audience).toBe(
+        'internal_validation'
+      )
+    }
+    expect(performance.now() - startedAt).toBeLessThan(2000)
   })
 })

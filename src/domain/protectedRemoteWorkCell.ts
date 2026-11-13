@@ -16,6 +16,7 @@ import {
   type CanonicalProcedureExecutionResult,
   type ProcedureToActionAdapterInput,
   type ProcedureExecutionReadinessResult,
+  type ProcedureExecutionReceipt,
 } from './procedureToActionAdapter'
 import {
   compareCodeUnitOrder,
@@ -40,6 +41,7 @@ export const PROTECTED_REMOTE_WORK_STAGES = [
   'aborted',
 ] as const
 export type ProtectedRemoteWorkStage = (typeof PROTECTED_REMOTE_WORK_STAGES)[number]
+const MAX_RECEIPT_FINGERPRINT_LENGTH = 16384
 
 export const PROTECTED_REMOTE_WORK_REASON_CODES = [
   'malformed_input',
@@ -88,6 +90,7 @@ export type ProtectedRemoteWorkRecord = Readonly<{
   exposureCleared: boolean
   authorizationRef?: string
   procedureExecutionKey?: string
+  procedureExecutionReceipt?: ProcedureExecutionReceipt
   pendingCorrectiveAction?: string
   exposureOwnerHint?: string
 }>
@@ -151,12 +154,7 @@ function isStage(value: unknown): value is ProtectedRemoteWorkStage {
 }
 
 function stageAllowsProcedureEffects(stage: ProtectedRemoteWorkStage): boolean {
-  return (
-    stage === 'in_progress' ||
-    stage === 'completed' ||
-    stage === 'held' ||
-    stage === 'failed'
-  )
+  return stage === 'in_progress' || stage === 'completed' || stage === 'held' || stage === 'failed'
 }
 
 function isReasonCode(value: unknown): value is ProtectedRemoteWorkReasonCode {
@@ -173,10 +171,7 @@ function sortUniqueReasons(
   return sortUniqueCodes(reasons)
 }
 
-function withAppliedKey(
-  work: ProtectedRemoteWorkRecord,
-  operationKey: string
-): readonly string[] {
+function withAppliedKey(work: ProtectedRemoteWorkRecord, operationKey: string): readonly string[] {
   return withSortedAppliedKey(work.appliedOperationKeys, operationKey)
 }
 
@@ -238,6 +233,26 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
   }
   if (raw.exposureCleared === true) return undefined
 
+  let procedureExecutionReceipt: ProcedureExecutionReceipt | undefined
+  if (raw.procedureExecutionReceipt !== undefined) {
+    const receipt = raw.procedureExecutionReceipt
+    if (
+      !isRecord(receipt) ||
+      !isNonEmptyString(receipt.executionKey) ||
+      !isNonEmptyString(receipt.evaluationFingerprint) ||
+      receipt.evaluationFingerprint.length > MAX_RECEIPT_FINGERPRINT_LENGTH ||
+      receipt.consequenceApplied !== true ||
+      raw.procedureEffectsOccurred !== true ||
+      !isNonEmptyString(raw.procedureExecutionKey) ||
+      receipt.executionKey.trim() !== raw.procedureExecutionKey.trim()
+    )
+      return undefined
+    procedureExecutionReceipt = Object.freeze({
+      executionKey: receipt.executionKey.trim(),
+      evaluationFingerprint: receipt.evaluationFingerprint,
+      consequenceApplied: true,
+    })
+  }
   return freezeWork({
     workId: id,
     stationId: raw.stationId.trim(),
@@ -248,11 +263,10 @@ function parseWorkRecord(raw: unknown, id: string): ProtectedRemoteWorkRecord | 
     capabilityTag: raw.capabilityTag.trim(),
     stage: raw.stage,
     reasonCodes: sortUniqueReasons(reasonCodes),
-    appliedOperationKeys: Object.freeze(
-      [...new Set(appliedOperationKeys)].sort(compareCodeUnit)
-    ),
+    appliedOperationKeys: Object.freeze([...new Set(appliedOperationKeys)].sort(compareCodeUnit)),
     procedureEffectsOccurred: raw.procedureEffectsOccurred,
     exposureCleared: raw.exposureCleared,
+    ...(procedureExecutionReceipt ? { procedureExecutionReceipt } : {}),
     ...(isNonEmptyString(raw.authorizationRef)
       ? { authorizationRef: raw.authorizationRef.trim() }
       : {}),
@@ -448,8 +462,7 @@ export function runProtectedRemoteWorkPreflight(
     return rejectWork('malformed_input', work, state)
   }
   const key = operationKey.trim()
-  const canRetryBlocked =
-    work.stage === 'blocked' && work.procedureEffectsOccurred === false
+  const canRetryBlocked = work.stage === 'blocked' && work.procedureEffectsOccurred === false
   if (work.stage !== 'requested' && !canRetryBlocked) {
     if (work.appliedOperationKeys.includes(key)) {
       return { ok: true, work, state }
@@ -569,13 +582,14 @@ export function beginProtectedRemoteWork(
   const { work, key } = prepared
 
   const executionKey = input.procedureAdapter.executionKey
-  if (
-    isNonEmptyString(work.procedureExecutionKey) &&
-    work.procedureExecutionKey !== executionKey
-  ) {
+  if (isNonEmptyString(work.procedureExecutionKey) && work.procedureExecutionKey !== executionKey) {
     return rejectWork('stale_operation', work, state)
   }
 
+  // Reject unpersistable evidence before the canonical execution path can commit effects.
+  const readiness = evaluateCanonicalProcedureExecutionReadiness(input.procedureAdapter)
+  if (readiness.evaluationFingerprint.length > MAX_RECEIPT_FINGERPRINT_LENGTH)
+    return rejectWork('malformed_input', work, state)
   const procedureExecution = executeCanonicalProcedureThroughCrossRoleAction(input.procedureAdapter)
   const evidence = Object.freeze({ procedureExecution })
   if (!procedureExecution.ok || procedureExecution.outcome !== 'executed') {
@@ -608,6 +622,11 @@ export function beginProtectedRemoteWork(
     exposureCleared: false,
     pendingCorrectiveAction: 'monitor_station_integrity',
     procedureExecutionKey: executionKey,
+    procedureExecutionReceipt: Object.freeze({
+      executionKey,
+      evaluationFingerprint: procedureExecution.readiness.evaluationFingerprint,
+      consequenceApplied: true,
+    }),
   })
   return {
     ok: true,
@@ -648,9 +667,7 @@ export function resumeProtectedRemoteWork(
 }
 
 export type ProtectedRemoteWorkInterruptKind =
-  | 'station_disabled'
-  | 'connection_lost'
-  | 'barrier_degraded'
+  'procedure_conditions_unsafe' | 'station_disabled' | 'connection_lost' | 'barrier_degraded'
 
 /**
  * Interrupt in-progress work. Spatial separation alone does not complete work or clear exposure.
@@ -673,11 +690,13 @@ export function interruptProtectedRemoteWork(
   const { work, key } = prepared
 
   const reason: ProtectedRemoteWorkReasonCode =
-    input.kind === 'station_disabled'
-      ? 'station_disabled'
-      : input.kind === 'connection_lost'
-        ? 'connection_lost'
-        : 'barrier_degraded'
+    input.kind === 'procedure_conditions_unsafe'
+      ? 'procedure_not_ready'
+      : input.kind === 'station_disabled'
+        ? 'station_disabled'
+        : input.kind === 'connection_lost'
+          ? 'connection_lost'
+          : 'barrier_degraded'
 
   const reasons: ProtectedRemoteWorkReasonCode[] = [reason, 'interrupted_during_work']
   if (input.routeExposure === true) {
@@ -692,9 +711,11 @@ export function interruptProtectedRemoteWork(
     procedureEffectsOccurred: work.procedureEffectsOccurred,
     exposureCleared: false,
     pendingCorrectiveAction:
-      input.kind === 'barrier_degraded'
-        ? 'route_exposure_and_restore_barrier'
-        : 'restore_station_and_resume_or_abort',
+      input.kind === 'procedure_conditions_unsafe'
+        ? 'resolve_remote_work_preflight_blockers'
+        : input.kind === 'barrier_degraded'
+          ? 'route_exposure_and_restore_barrier'
+          : 'restore_station_and_resume_or_abort',
     ...(input.routeExposure === true
       ? { exposureOwnerHint: work.exposureOwnerHint ?? 'exposure' }
       : {}),
@@ -752,7 +773,7 @@ export function abortProtectedRemoteWork(
 ): ProtectedRemoteWorkResult {
   const prepared = prepareWorkMutation(workInput, operationKey, state, {
     idempotentStages: ['aborted', 'failed'],
-    allowedStages: ['requested', 'authorized', 'held'],
+    allowedStages: ['requested', 'blocked', 'authorized', 'held'],
   })
   if (prepared.kind !== 'ready') return prepared.result
   if (prepared.work.stage === 'held') {
@@ -760,7 +781,7 @@ export function abortProtectedRemoteWork(
       freezeWork({
         ...prepared.work,
         stage: 'failed',
-        reasonCodes: sortUniqueReasons(['interrupted_during_work', 'aborted_before_start']),
+        reasonCodes: sortUniqueReasons(['interrupted_during_work']),
         appliedOperationKeys: withAppliedKey(prepared.work, prepared.key),
         pendingCorrectiveAction: undefined,
         procedureEffectsOccurred: prepared.work.procedureEffectsOccurred,
@@ -821,8 +842,58 @@ export function projectExplainableProtectedRemoteWork(
   })
 }
 
+/**
+ * Internal validation telemetry snapshot (SPE-1119 audience separation).
+ * Not a player-facing knowledge surface — use `projectExplainableProtectedRemoteWork`
+ * for ordinary facility/action UI.
+ */
+export type ProtectedRemoteWorkInternalTelemetry = Readonly<{
+  audience: 'internal_validation'
+  workId: ProtectedRemoteWorkId
+  stage: ProtectedRemoteWorkStage
+  appliedOperationKeyCount: number
+  procedureEffectsOccurred: boolean
+  exposureCleared: boolean
+  procedureExecutionKey?: string
+  pendingCorrectiveAction?: string
+  reasonCodes: readonly ProtectedRemoteWorkReasonCode[]
+}>
+
+export function projectProtectedRemoteWorkInternalTelemetry(
+  work: ProtectedRemoteWorkRecord
+): ProtectedRemoteWorkInternalTelemetry {
+  return Object.freeze({
+    audience: 'internal_validation',
+    workId: work.workId,
+    stage: work.stage,
+    appliedOperationKeyCount: work.appliedOperationKeys.length,
+    procedureEffectsOccurred: work.procedureEffectsOccurred,
+    exposureCleared: work.exposureCleared,
+    reasonCodes: work.reasonCodes,
+    ...(work.procedureExecutionKey !== undefined
+      ? { procedureExecutionKey: work.procedureExecutionKey }
+      : {}),
+    ...(work.pendingCorrectiveAction !== undefined
+      ? { pendingCorrectiveAction: work.pendingCorrectiveAction }
+      : {}),
+  })
+}
+
 export function isProtectedRemoteWorkActive(stage: ProtectedRemoteWorkStage): boolean {
   return ACTIVE_STAGES.has(stage)
+}
+
+/** Correlate an owner-applied station control with this work's existing replay ledger. */
+export function recordProtectedRemoteWorkControl(
+  workInput: ProtectedRemoteWorkRecord,
+  operationKey: string,
+  state: GameState
+): ProtectedRemoteWorkResult {
+  const work = resolveCurrentWork(workInput, state)
+  if (!isNonEmptyString(operationKey)) return rejectWork('malformed_input', work, state)
+  const key = operationKey.trim()
+  if (work.appliedOperationKeys.includes(key)) return { ok: true, work, state }
+  return commitWork(freezeWork({ ...work, appliedOperationKeys: withAppliedKey(work, key) }), state)
 }
 
 export function isProtectedRemoteWorkTerminal(stage: ProtectedRemoteWorkStage): boolean {

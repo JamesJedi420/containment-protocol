@@ -1,4 +1,5 @@
 import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
+import type { ProtectedRemoteWorkStation } from './protectedRemoteWorkLab'
 import type { CustomDifficultyOverrides, DifficultyProfileId } from './difficultyProfileResolver'
 import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
 import type { ScenarioDefinitionBinding } from './scenarioDefinitionResolver'
@@ -3029,6 +3030,8 @@ export interface GameState {
    * treated as present in the sealed target zone. Omit hydrates omitted.
    */
   facilityProtectedRemoteWorkCells?: FacilityProtectedRemoteWorkCells
+  /** SPE-3501: one authored station's caller-owned physical/briefing facts; no specimen inventory. */
+  facilityProtectedRemoteWorkStation?: ProtectedRemoteWorkStation
   /**
    * SPE-2933 / SPE-1027: authored secured-node stored-content threat scoring.
    * Sibling of `facilityStockpile`, `facilityProtectionGoods`, and

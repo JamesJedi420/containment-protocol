@@ -132,7 +132,8 @@ export function applyProtectedRemoteWorkStep(
         reasonCodes: ['illegal_transition'],
         state,
       }
-    if (station[command.control] === command.value) return { ok: true, work: controlledWork, state }
+    if (station[command.control] === command.value)
+      return recordProtectedRemoteWorkControl(controlledWork, command.operationKey, state)
     let next: GameState = {
       ...state,
       facilityProtectedRemoteWorkStation: { ...station, [command.control]: command.value },

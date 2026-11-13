@@ -24,6 +24,13 @@ export type ProtectedRemoteWorkGameplayView = Readonly<{
   })[]
 }>
 
+// Stable identifiers retain the default UTF-16 order regardless of the player's locale.
+function compareCodeUnit(left: string, right: string): number {
+  if (left < right) return -1
+  if (left > right) return 1
+  return 0
+}
+
 /** Only durable owner-supplied work is displayed; absent readiness is never fabricated. */
 export function projectProtectedRemoteWorkGameplayView(
   game: GameState
@@ -44,7 +51,7 @@ export function projectProtectedRemoteWorkGameplayView(
         ['requested', 'authorized', 'in_progress', 'held', 'blocked'].includes(work.stage)
     ),
     operators: Object.keys(game.agents)
-      .sort()
+      .sort(compareCodeUnit)
       .map((id) => {
         const agent = game.agents[id]!
         const facts = buildProtectedLabFacts(game, id, `clinical-observation:w${game.week}`)
@@ -56,7 +63,7 @@ export function projectProtectedRemoteWorkGameplayView(
         }
       }),
     rows: Object.keys(works ?? {})
-      .sort()
+      .sort(compareCodeUnit)
       .map((id) => {
         const work = works![id]!
         return {

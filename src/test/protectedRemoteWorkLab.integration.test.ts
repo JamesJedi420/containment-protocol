@@ -103,6 +103,14 @@ describe('authored protected lab gameplay', () => {
         operationKey: 'no-receipt',
       })
     ).toMatchObject({ ok: false, code: 'work_not_committed' })
+    const alreadyConnected = {
+      kind: 'lab_control' as const,
+      workId,
+      control: 'connected' as const,
+      value: true,
+      operationKey: 'confirm-connected-real-lab',
+    }
+    step(alreadyConnected)
     const held = step({
       kind: 'lab_control',
       workId,
@@ -113,6 +121,10 @@ describe('authored protected lab gameplay', () => {
     expect(held.work?.stage).toBe('held')
     expect(state.facilityProtectedRemoteWorkStation?.connected).toBe(false)
     state = loadGameSave(serializeGameSave(state))
+    expect(state.facilityProtectedRemoteWorkStation?.connected).toBe(false)
+    const disconnected = state
+    step(alreadyConnected)
+    expect(state).toBe(disconnected)
     expect(state.facilityProtectedRemoteWorkStation?.connected).toBe(false)
     const blocked = applyProtectedRemoteWorkStep(state, {
       kind: 'lab_step',

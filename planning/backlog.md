@@ -7,7 +7,6 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3501](https://linear.app/spectranoir/issue/SPE-3501) — Protected remote-work cell interaction (In Progress; acceptance reconciliation / AC5 UI under SPE-1052).
 - [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; Agency gameplay remainders; not the active coding slice).
 - [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipped; full arbitration AC deferred).
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
@@ -20,10 +19,10 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** SPE-3501 — protected remote-work acceptance reconciliation under SPE-1052.
-**In progress:** SPE-3501 (coding; premature Done on #4969 corrected); SPE-3735 / SPE-3055 / SPE-1095 / SPE-104 (remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** SPE-3501 — `planning/spe-3501-protected-remote-work-cell-slice.md`.
-**After SPE-3501:** mark SPE-3501 Done only when AC1–6 evidenced (including Agency UI); keep SPE-1052 open; do not start SPE-3505 until then.
+**Current handoff (primary):** (none) — merge closeout complete; no next coding slice selected.
+**In progress:** SPE-3735 / SPE-3055 / SPE-1095 / SPE-104 (remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
+**Coding slice:** (none).
+**Next boundary:** verify live Linear scope, ownership, blockers and session preflight before selecting another approved slice; parent SPE-1052 remains open.
 
 ## Maintenance and history
 

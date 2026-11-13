@@ -1,6 +1,6 @@
 {
-  "primary": "SPE-3501",
-  "inProgress": ["SPE-3501", "SPE-3735", "SPE-3055", "SPE-1095", "SPE-104", "SPE-3338"],
+  "primary": null,
+  "inProgress": ["SPE-3735", "SPE-3055", "SPE-1095", "SPE-104", "SPE-3338"],
   "recentlyShipped": [
     "SPE-3500",
     "SPE-3439",
@@ -158,6 +158,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3501-protected-remote-work-cell-slice.md": "Shipped",
     "planning/spe-3055-operation-claim-seam-slice.md": "In Progress",
     "planning/spe-1095-recovery-movement-outcome-slice.md": "In Progress",
     "planning/spe-104-capture-secure-outcome-slice.md": "In Progress",

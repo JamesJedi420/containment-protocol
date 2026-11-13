@@ -967,6 +967,7 @@
     "src/test/squadMetadata.test.ts",
     "src/test/squadRoster.test.ts",
     "src/test/stabilityLayer.test.ts",
+    "src/test/staffRoleSignatureCapability.test.ts",
     "src/test/staffTimeAllocation.test.ts",
     "src/test/staffTreatmentTelemetry.test.ts",
     "src/test/starterContent.test.ts",

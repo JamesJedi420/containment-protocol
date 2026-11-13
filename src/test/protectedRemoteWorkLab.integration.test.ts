@@ -132,6 +132,7 @@ describe('authored protected lab gameplay', () => {
       procedureEffectsOccurred: true,
       exposureCleared: false,
     })
+    expect(aborted.work.reasonCodes).not.toContain('aborted_before_start')
     expect(projectProtectedRemoteWorkGameplayView(aborted.state!).canRequest).toBe(true)
   })
 

@@ -781,7 +781,7 @@ export function abortProtectedRemoteWork(
       freezeWork({
         ...prepared.work,
         stage: 'failed',
-        reasonCodes: sortUniqueReasons(['interrupted_during_work', 'aborted_before_start']),
+        reasonCodes: sortUniqueReasons(['interrupted_during_work']),
         appliedOperationKeys: withAppliedKey(prepared.work, prepared.key),
         pendingCorrectiveAction: undefined,
         procedureEffectsOccurred: prepared.work.procedureEffectsOccurred,

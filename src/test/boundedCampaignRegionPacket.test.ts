@@ -109,6 +109,10 @@ describe('boundedCampaignRegionPacket (SPE-2227 slice 1)', () => {
       status: 'found',
       packet: result,
     })
+    expect(lookupBoundedCampaignRegionPacket([packet], 'region-packet:full-dossier')).toEqual({
+      status: 'found',
+      packet: result,
+    })
     expect(Object.isFrozen(result)).toBe(true)
     for (const value of Object.values(result)) {
       if (Array.isArray(value)) expect(Object.isFrozen(value)).toBe(true)
@@ -165,6 +169,22 @@ describe('boundedCampaignRegionPacket (SPE-2227 slice 1)', () => {
       )
     ).toContain('duplicate_packet_id')
     expect(normalizeBoundedCampaignRegionPackets([...fixtures, duplicate])).toBeNull()
+    expect(
+      lookupBoundedCampaignRegionPacket([...fixtures, duplicate], fixtures[0]!.id).status
+    ).toBe('ambiguous_packet_id')
     expect(validateBoundedCampaignRegionPackets(null).valid).toBe(false)
+  })
+
+  it('rejects invalid matched data on direct lookup', () => {
+    for (const packet of [
+      { ...fixtures[0]!, boundaryRefs: [] },
+      { ...fixtures[0]!, premise: ' ' },
+      {
+        ...fixtures[0]!,
+        instabilityHookIds: ['unknown'],
+      } as unknown as BoundedCampaignRegionPacket,
+    ]) {
+      expect(lookupBoundedCampaignRegionPacket([packet], packet.id).status).toBe('invalid_packet')
+    }
   })
 })

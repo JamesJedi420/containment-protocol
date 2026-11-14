@@ -68,6 +68,7 @@ export type RegionPacketLookup =
   | { readonly status: 'unknown_packet_id' }
   | { readonly status: 'ambiguous_packet_id' }
   | { readonly status: 'invalid_packet_id' }
+  | { readonly status: 'invalid_packet' }
 
 const KIND_SET: ReadonlySet<string> = new Set(REGION_KINDS)
 const HOOK_SET: ReadonlySet<string> = new Set(INSTABILITY_HOOK_IDS)
@@ -283,10 +284,12 @@ export function lookupBoundedCampaignRegionPacket(
   if (!PACKET_ID.test(id)) {
     return Object.freeze({ status: 'invalid_packet_id' })
   }
-  const matches = packets.filter((packet) => packet.id === id)
+  const matches = packets.filter((packet) => token(packet.id) === id)
   if (matches.length === 0) return Object.freeze({ status: 'unknown_packet_id' })
   if (matches.length > 1) return Object.freeze({ status: 'ambiguous_packet_id' })
-  return Object.freeze({ status: 'found', packet: freezePacket(matches[0]!) })
+  const packet = validatePacket(matches[0], 0, [])
+  if (!packet) return Object.freeze({ status: 'invalid_packet' })
+  return Object.freeze({ status: 'found', packet })
 }
 
 /** Authored slice-1 fixtures. Not live map state. */

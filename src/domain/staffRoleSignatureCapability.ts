@@ -146,7 +146,7 @@ function validateCapability(
 
   if (!CAPABILITY_ID.test(id) || usesSourceSpecificLabel(id)) {
     issues.push({
-      code: 'unknown_capability_id',
+      code: 'invalid_capability_id',
       field: `${field}.id`,
       ...(id ? { capabilityId: id } : {}),
     })
@@ -193,8 +193,9 @@ function validateCapability(
 
 /**
  * Accept a list of signature capabilities. Exactly one capability may name
- * each role package. Unknown ids, niches, families, and source-specific
- * labels fail closed. Input order is not significant.
+ * each role package. Malformed ids, unknown niches/families, and source-specific
+ * labels fail closed. Capability ids are authorable; registry membership is
+ * checked by lookup. Input order is not significant.
  */
 export function validateStaffRoleSignatureCapabilities(
   input: unknown
@@ -238,7 +239,7 @@ export function normalizeStaffRoleSignatureCapabilities(
   const validation = validateStaffRoleSignatureCapabilities(input)
   if (!validation.valid) return null
   const ordered = input
-    .map((capability) => freezeCapability(capability))
+    .map((capability, index) => validateCapability(capability, index, [])!)
     .sort(
       (a, b) => compareStrings(a.id, b.id) || compareStrings(a.rolePackageRef, b.rolePackageRef)
     )

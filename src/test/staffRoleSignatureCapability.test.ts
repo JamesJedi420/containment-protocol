@@ -60,12 +60,12 @@ describe('staffRoleSignatureCapability (SPE-2222 slice 1)', () => {
     ).toBe('duplicate_role_signature')
   })
 
-  it('rejects unknown capability ids and source-specific labels', () => {
+  it('distinguishes invalid capability ids from unknown registry members', () => {
     const unknown = validateStaffRoleSignatureCapabilities([
       { id: 'scout', rolePackageRef: 'role-package:candidate-screen', niche: 'public_interface' },
     ])
     expect(unknown.valid).toBe(false)
-    expect(unknown.issues.some((issue) => issue.code === 'unknown_capability_id')).toBe(true)
+    expect(unknown.issues.some((issue) => issue.code === 'invalid_capability_id')).toBe(true)
 
     const sourceLabel = validateStaffRoleSignatureCapabilities([
       {
@@ -75,12 +75,55 @@ describe('staffRoleSignatureCapability (SPE-2222 slice 1)', () => {
       },
     ])
     expect(sourceLabel.valid).toBe(false)
-    expect(sourceLabel.issues.some((issue) => issue.code === 'unknown_capability_id')).toBe(true)
+    expect(sourceLabel.issues.some((issue) => issue.code === 'invalid_capability_id')).toBe(true)
+    expect(
+      lookupStaffRoleSignatureCapability(fixture, 'role-signature:bartender-read').status
+    ).toBe('invalid_capability_id')
     expect(lookupStaffRoleSignatureCapability(fixture, 'role-signature:missing').status).toBe(
       'unknown_capability_id'
     )
     expect(lookupStaffRoleSignatureCapability(fixture, 'not-a-capability').status).toBe(
       'invalid_capability_id'
+    )
+  })
+
+  it('normalizes accepted whitespace before lookup without changing the input', () => {
+    const input = [
+      {
+        id: ' role-signature:example ',
+        rolePackageRef: ' role-package:example ',
+        niche: ' field_observation ',
+      },
+    ] as unknown as StaffRoleSignatureCapability[]
+    const snapshot = JSON.stringify(input)
+    expect(validateStaffRoleSignatureCapabilities(input).valid).toBe(true)
+    const normalized = normalizeStaffRoleSignatureCapabilities(input)!
+    expect(normalized).toEqual([
+      {
+        id: 'role-signature:example',
+        rolePackageRef: 'role-package:example',
+        niche: 'field_observation',
+      },
+    ])
+    expect(lookupStaffRoleSignatureCapability(normalized, 'role-signature:example').status).toBe(
+      'found'
+    )
+    expect(lookupStaffRoleSignatureByRolePackage(normalized, 'role-package:example').status).toBe(
+      'found'
+    )
+    expect(JSON.stringify(input)).toBe(snapshot)
+    expect(Object.isFrozen(normalized[0])).toBe(true)
+  })
+
+  it('rejects duplicate ids and invalid registries during normalization', () => {
+    const duplicate = { ...fixture[0]!, rolePackageRef: 'role-package:alternate' }
+    const input = [...fixture, duplicate]
+    expect(
+      validateStaffRoleSignatureCapabilities(input).issues.map((issue) => issue.code)
+    ).toContain('duplicate_capability_id')
+    expect(normalizeStaffRoleSignatureCapabilities(input)).toBeNull()
+    expect(lookupStaffRoleSignatureCapability(input, duplicate.id).status).toBe(
+      'ambiguous_capability_id'
     )
   })
 

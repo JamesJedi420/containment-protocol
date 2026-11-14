@@ -105,7 +105,8 @@ function issuesResult(
 function validateRecord(
   input: unknown,
   index: number,
-  issues: IncidentalWitnessValidationIssue[]
+  issues: IncidentalWitnessValidationIssue[],
+  seenIds: Set<string>
 ): IncidentalWitnessSuspicionRecord | null {
   const field = `records[${index}]`
   if (!isPlainRecord(input)) {
@@ -127,6 +128,11 @@ function validateRecord(
       ...(id ? { recordId: id } : {}),
     })
     legal = false
+  } else {
+    if (seenIds.has(id)) {
+      issues.push({ code: 'duplicate_record_id', field: `${field}.id`, recordId: id })
+    }
+    seenIds.add(id)
   }
   if (!ACTOR_REF.test(witnessActorRef)) {
     issues.push({
@@ -243,17 +249,9 @@ function parseRegistry(input: unknown): {
   const seenIds = new Set<string>()
 
   for (let index = 0; index < input.length; index += 1) {
-    const record = validateRecord(input[index], index, issues)
+    const record = validateRecord(input[index], index, issues, seenIds)
     if (!record) continue
     records.push(record)
-    if (seenIds.has(record.id)) {
-      issues.push({
-        code: 'duplicate_record_id',
-        field: `records[${index}].id`,
-        recordId: record.id,
-      })
-    }
-    seenIds.add(record.id)
   }
 
   return { records, validation: issuesResult(issues) }

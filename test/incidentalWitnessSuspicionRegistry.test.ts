@@ -46,6 +46,10 @@ describe('incidentalWitnessSuspicionRegistry (SPE-2158)', () => {
     const result = validateIncidentalWitnessSuspicionRecords(bad)
     expect(result.valid).toBe(false)
     expect(result.issues.some((i) => i.code === 'unknown_promotion_state')).toBe(true)
+    expect(result.issues.some((i) => i.code === 'duplicate_record_id')).toBe(true)
+    const reversed = validateIncidentalWitnessSuspicionRecords([...bad].reverse())
+    expect(reversed.issues.some((i) => i.code === 'unknown_promotion_state')).toBe(true)
+    expect(reversed.issues.some((i) => i.code === 'duplicate_record_id')).toBe(true)
   })
 
   it('rejects duplicate canonical ids independently of malformed fields', () => {

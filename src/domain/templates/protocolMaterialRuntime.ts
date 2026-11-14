@@ -1,3 +1,10 @@
+import type { TemplateRuntimeOptions } from './contentTemplateKernel'
+import {
+  resolveTemplateRuntime,
+  TemplateValidationError,
+  finiteNonnegative,
+} from './contentTemplateRuntime'
+import { validateProtocolMaterial } from './contentTemplateValidation'
 // Deterministic runtime logic for protocol materials (SPE-48)
 import type { ProtocolMaterialTemplate } from './protocolMaterialTemplates'
 
@@ -13,9 +20,15 @@ export type PreparationResult =
 
 export function resolvePreparation(
   template: ProtocolMaterialTemplate,
-  attempt: PreparationAttempt
+  attempt: PreparationAttempt,
+  options?: TemplateRuntimeOptions
 ): PreparationResult {
-  if (attempt.agentSkill < template.recognitionThreshold) {
+  const errors = validateProtocolMaterial(template, options?.policy)
+  if (errors.length) throw new TemplateValidationError(errors)
+  if (!finiteNonnegative(attempt.agentSkill))
+    throw new TemplateValidationError(['Invalid agent skill'])
+  const parameters = resolveTemplateRuntime(template, 'prepare-material', options)
+  if (attempt.agentSkill < (parameters.recognitionThreshold ?? template.recognitionThreshold)) {
     return { outcome: 'failure', reason: 'Insufficient skill' }
   }
   if (

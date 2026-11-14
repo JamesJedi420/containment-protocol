@@ -1,42 +1,102 @@
-// Validation for ContentTemplateKernel and family extensions (SPE-48)
-import type { ContentTemplateKernel } from './contentTemplateKernel'
-import type { ProtocolMaterialTemplate } from './protocolMaterialTemplates'
-import type { HazardIncidentTemplate } from './hazardIncidentTemplates'
-import type { DoctrinePlaybookTemplate } from './doctrinePlaybookTemplates'
+import type { TemplateBandPolicy } from './contentTemplateKernel'
+import {
+  finiteNonnegative,
+  isRecord,
+  stringList,
+  validateTemplateKernel,
+} from './contentTemplateRuntime'
 
-export function validateKernel(template: ContentTemplateKernel): string[] {
-  const errors: string[] = []
-  if (!template.id) errors.push('Missing id')
-  if (!template.family) errors.push('Missing family')
-  if (!template.type) errors.push('Missing type')
-  if (template.presentation && !template.presentation.summary) errors.push('Missing presentation.summary')
-  // Add more kernel-level checks as needed
+export const validateKernel = validateTemplateKernel
+
+export function validateProtocolMaterial(value: unknown, policy?: TemplateBandPolicy): string[] {
+  const errors = validateKernel(value, policy)
+  if (!isRecord(value)) return errors
+  if (value.family !== 'protocol-material') errors.push('Mismatched protocol material family')
+  if (!['biological', 'chemical', 'artifact', 'environmental'].includes(String(value.sourceType)))
+    errors.push('Invalid sourceType')
+  if (!finiteNonnegative(value.recognitionThreshold)) errors.push('Invalid recognitionThreshold')
+  if (
+    !isRecord(value.preparation) ||
+    !stringList(value.preparation.steps) ||
+    !stringList([value.preparation.method, value.preparation.delivery])
+  )
+    errors.push('Invalid preparation')
+  if (
+    !isRecord(value.effect) ||
+    !stringList([value.effect.effectType]) ||
+    !finiteNonnegative(value.effect.magnitude) ||
+    (value.effect.duration !== undefined && !finiteNonnegative(value.effect.duration))
+  )
+    errors.push('Invalid effect')
+  if (
+    value.sideEffects !== undefined &&
+    (!Array.isArray(value.sideEffects) ||
+      value.sideEffects.some(
+        (entry) =>
+          !isRecord(entry) ||
+          !stringList([entry.description, entry.trigger]) ||
+          !['minor', 'moderate', 'severe'].includes(String(entry.severity))
+      ))
+  )
+    errors.push('Invalid side effects')
+  if (
+    value.contamination !== undefined &&
+    (!Array.isArray(value.contamination) ||
+      value.contamination.some(
+        (entry) =>
+          !isRecord(entry) || !stringList([entry.description, entry.failureType, entry.consequence])
+      ))
+  )
+    errors.push('Invalid contamination')
   return errors
 }
 
-export function validateProtocolMaterial(t: ProtocolMaterialTemplate): string[] {
-  const errors = validateKernel(t)
-  if (!t.sourceType) errors.push('Missing sourceType')
-  if (typeof t.recognitionThreshold !== 'number') errors.push('Missing recognitionThreshold')
-  if (!t.preparation) errors.push('Missing preparation')
-  if (!t.effect) errors.push('Missing effect')
+export function validateHazardIncident(value: unknown, policy?: TemplateBandPolicy): string[] {
+  const errors = validateKernel(value, policy)
+  if (!isRecord(value)) return errors
+  if (value.family !== 'hazard-incident') errors.push('Mismatched hazard incident family')
+  if (
+    !['containment-breach', 'exposure', 'environmental', 'rival-action'].includes(
+      String(value.hazardType)
+    )
+  )
+    errors.push('Invalid hazardType')
+  if (!stringList(value.triggers)) errors.push('Invalid triggers')
+  if (
+    !isRecord(value.escalation) ||
+    !stringList(value.escalation.steps) ||
+    !Array.isArray(value.escalation.riskThresholds) ||
+    value.escalation.riskThresholds.length === 0 ||
+    !Array.from(value.escalation.riskThresholds).every(finiteNonnegative)
+  )
+    errors.push('Invalid escalation')
+  if (
+    !isRecord(value.resolution) ||
+    !stringList(value.resolution.requiredActions) ||
+    !stringList([value.resolution.fallback])
+  )
+    errors.push('Invalid resolution')
   return errors
 }
 
-export function validateHazardIncident(t: HazardIncidentTemplate): string[] {
-  const errors = validateKernel(t)
-  if (!t.hazardType) errors.push('Missing hazardType')
-  if (!t.triggers || !t.triggers.length) errors.push('Missing triggers')
-  if (!t.escalation) errors.push('Missing escalation')
-  if (!t.resolution) errors.push('Missing resolution')
-  return errors
-}
-
-export function validateDoctrinePlaybook(t: DoctrinePlaybookTemplate): string[] {
-  const errors = validateKernel(t)
-  if (!t.doctrineType) errors.push('Missing doctrineType')
-  if (!t.applicableContexts || !t.applicableContexts.length) errors.push('Missing applicableContexts')
-  if (!t.steps || !t.steps.length) errors.push('Missing steps')
-  if (typeof t.reliability !== 'number') errors.push('Missing reliability')
+export function validateDoctrinePlaybook(value: unknown, policy?: TemplateBandPolicy): string[] {
+  const errors = validateKernel(value, policy)
+  if (!isRecord(value)) return errors
+  if (value.family !== 'doctrine-playbook') errors.push('Mismatched doctrine family')
+  if (
+    !['containment-protocol', 'investigation-playbook', 'treatment-guide'].includes(
+      String(value.doctrineType)
+    )
+  )
+    errors.push('Invalid doctrineType')
+  if (!stringList(value.applicableContexts)) errors.push('Invalid applicableContexts')
+  if (!stringList(value.steps)) errors.push('Invalid steps')
+  if (!finiteNonnegative(value.reliability) || value.reliability > 1)
+    errors.push('Invalid reliability')
+  if (
+    value.unlocks !== undefined &&
+    (!Array.isArray(value.unlocks) || value.unlocks.some((entry) => !stringList([entry])))
+  )
+    errors.push('Invalid unlocks')
   return errors
 }

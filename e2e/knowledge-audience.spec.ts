@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import { createStartingState } from '../src/data/startingState'
 import {
   clearCampaignStorage,
@@ -54,6 +54,21 @@ function fixture() {
     },
   }
   return JSON.stringify(game)
+}
+
+async function expectPreviewFits(panel: Locator, width: number) {
+  const layout = await panel.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      left: rect.left,
+      right: rect.right,
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    }
+  })
+  expect(layout.left).toBeGreaterThanOrEqual(0)
+  expect(layout.right).toBeLessThanOrEqual(width)
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.clientWidth)
 }
 
 async function readRouteLayout(page: Page) {
@@ -143,6 +158,7 @@ for (const { width, fontFallback } of [
     await expect(panel.getByText('Relay failed (week 1)', { exact: true })).toBeVisible()
     await expect(panel.getByText(/Fused from PRIVATE_FUSION_A/)).toBeVisible()
     expect(await panel.innerHTML()).not.toContain('PRIVATE_CLASSIFICATION')
+    await expectPreviewFits(panel, width)
     await panel.screenshot({ path: testInfo.outputPath(`restricted-${width}.png`) })
     await restrictedChoice.press('ArrowLeft')
     await expect(publicChoice).toBeChecked()
@@ -157,15 +173,6 @@ for (const { width, fontFallback } of [
     expect(routeAfter.route).toBe('/report/1')
     expect(routeAfter.width).toBe(routeBaseline.width)
     expect(routeAfter.header).toEqual(routeBaseline.header)
-    const panelLayout = await panel.evaluate((element) => {
-      const rect = element.getBoundingClientRect()
-      return {
-        left: rect.left,
-        right: rect.right,
-        scrollWidth: element.scrollWidth,
-        clientWidth: element.clientWidth,
-      }
-    })
     const layout = await page.evaluate(() => ({
       width: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
@@ -184,14 +191,10 @@ for (const { width, fontFallback } of [
           : []
       }),
     }))
-    expect(panelLayout.left).toBeGreaterThanOrEqual(0)
-    expect(panelLayout.right).toBeLessThanOrEqual(layout.width)
-    expect(panelLayout.scrollWidth).toBeLessThanOrEqual(panelLayout.clientWidth)
+    await expectPreviewFits(panel, width)
     expect(layout.documentWidth, JSON.stringify(layout.overflowing)).toBeLessThanOrEqual(
       Math.max(layout.width, routeBaseline.documentWidth)
     )
-    // Retained until equivalent Linux before/after evidence establishes the baseline.
-    expect(layout.documentWidth).toBeLessThanOrEqual(layout.width)
     const after = await page.evaluate(async () => {
       const modulePath = '/src/app/store/gameStore.ts'
       const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)

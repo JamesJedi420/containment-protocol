@@ -48,6 +48,7 @@ export interface CreateAgentInput {
   assignment?: AgentAssignmentState
   tags?: string[]
   relationships?: Record<string, number>
+  relationshipMetadata?: Agent['relationshipMetadata']
   fatigue?: number
   status?: Agent['status']
   createdWeek?: number
@@ -143,6 +144,7 @@ export function createAgent(input: CreateAgentInput): Agent {
     level: progression.level,
     tags: input.tags ?? [],
     relationships: input.relationships ?? {},
+    relationshipMetadata: input.relationshipMetadata,
     fatigue,
     status,
   })

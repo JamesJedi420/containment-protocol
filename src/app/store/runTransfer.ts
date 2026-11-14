@@ -1,4 +1,5 @@
 import { parseContainmentRequirementRegistry } from '../../domain/containmentRequirementFulfillment'
+import { normalizePersonnelRelationshipMetadata } from '../../domain/personnelRelationships'
 import { sanitizeInventoryQuantity } from '../../domain/inventoryQuantity'
 import { assertMissionEscalationCompatibility } from './missionEscalationCompatibility'
 import { normalizeMaintenanceConversionLedger } from '../../domain/facilityMaintenanceConversion'
@@ -1173,7 +1174,12 @@ function stripUndefinedFields<T>(value: T): T {
 
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
-      nextValue[key] = stripUndefinedFields(entry)
+      Object.defineProperty(nextValue, key, {
+        value: stripUndefinedFields(entry),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      })
     }
   }
 
@@ -3802,6 +3808,12 @@ export function sanitizeAgentsMap(
         ? raw.tags.filter((tag): tag is string => typeof tag === 'string' && tag.length > 0)
         : [],
       relationships: sanitizePassiveBonuses(raw.relationships) ?? {},
+      relationshipMetadata: normalizePersonnelRelationshipMetadata(
+        entry.relationshipMetadata,
+        sanitizePassiveBonuses(raw.relationships) ?? {},
+        agentId,
+        context.campaignWeek
+      ),
       fatigue: typeof raw.fatigue === 'number' ? raw.fatigue : 0,
       status: normalizeAgentStatus(raw.status),
     }

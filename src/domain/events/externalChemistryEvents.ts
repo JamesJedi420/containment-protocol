@@ -9,6 +9,7 @@
  */
 
 import type { GameState } from '../models'
+import { compareRelationshipKeys } from '../personnelRelationships'
 import {
   applyExternalEventToRelationships,
   calculateExternalEventInfluence,
@@ -42,7 +43,7 @@ export function applyExternalChemistryEvent(
   input: ExternalChemistryEventInput
 ): ExternalChemistryEventOutput {
   const eventDrafts: AnyOperationEventDraft[] = []
-  const associatedIds = input.associatedAgentIds ?? []
+  const associatedIds = [...new Set(input.associatedAgentIds ?? [])].sort(compareRelationshipKeys)
 
   if (associatedIds.length === 0) {
     return {
@@ -53,10 +54,14 @@ export function applyExternalChemistryEvent(
   }
 
   // Apply the external influence
-  let nextState = applyExternalEventToRelationships(originalState, input)
+  let nextState = applyExternalEventToRelationships(originalState, {
+    ...input,
+    associatedAgentIds: associatedIds,
+  })
 
   // Record snapshots and emit events for changed relationships
   let relationshipsAffected = 0
+  const changedPairs = new Set<string>()
 
   for (const agentId of associatedIds) {
     const agent = nextState.agents[agentId]
@@ -64,7 +69,6 @@ export function applyExternalChemistryEvent(
 
     for (const counterpartId of associatedIds) {
       if (agentId === counterpartId) continue
-      if (agentId > counterpartId) continue // Avoid duplicates
 
       const counterpart = nextState.agents[counterpartId]
       if (!counterpart) continue
@@ -72,22 +76,26 @@ export function applyExternalChemistryEvent(
       const sourcePrevious = originalState.agents[agentId]?.relationships[counterpartId] ?? 0
       const sourceNext = nextState.agents[agentId]?.relationships[counterpartId] ?? 0
 
-      if (Math.abs(sourceNext - sourcePrevious) > 0.01) {
-        relationshipsAffected++
+      if (sourceNext !== sourcePrevious) {
+        const pairKey = JSON.stringify([agentId, counterpartId].sort(compareRelationshipKeys))
+        if (!changedPairs.has(pairKey)) {
+          changedPairs.add(pairKey)
+          relationshipsAffected++
 
-        // Record snapshot
-        nextState = recordRelationshipSnapshot(
-          nextState,
-          {
-            agentAId: agentId,
-            agentBId: counterpartId,
-            value: sourceNext,
-            modifiers: [],
-            state: deriveRelationshipState(sourceNext),
-            stability: deriveRelationshipStability(sourceNext),
-          },
-          'external_event'
-        )
+          // Record snapshot
+          nextState = recordRelationshipSnapshot(
+            nextState,
+            {
+              agentAId: agentId,
+              agentBId: counterpartId,
+              value: sourceNext,
+              modifiers: [],
+              state: deriveRelationshipState(sourceNext),
+              stability: deriveRelationshipStability(sourceNext),
+            },
+            'external_event'
+          )
+        }
 
         // Emit event with explicit external_event reason for downstream analytics/feeds.
         const delta = sourceNext - sourcePrevious

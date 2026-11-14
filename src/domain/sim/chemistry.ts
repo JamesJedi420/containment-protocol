@@ -9,6 +9,7 @@ import {
   type TeamChemistryProfile,
 } from '../models'
 import { clamp, dot } from '../math'
+import { getPersonnelRelationshipValue } from '../personnelRelationships'
 import { getTeamMemberIds } from '../teamSimulation'
 import { calculateModifierAmplification } from './chemistryPolish'
 import { deriveRelationshipState, deriveRelationshipStability } from './relationshipProjection'
@@ -186,8 +187,8 @@ function computeAdjustedRequiredScore(c: CaseInstance, config?: Pick<GameConfig,
 }
 
 function buildRelationship(agentA: Agent, agentB: Agent): Relationship {
-  const forward = agentA.relationships[agentB.id] ?? 0
-  const reverse = agentB.relationships[agentA.id] ?? 0
+  const forward = getPersonnelRelationshipValue(agentA, agentB.id)
+  const reverse = getPersonnelRelationshipValue(agentB, agentA.id)
   const trainedForward = agentA.progression?.skillTree?.trainedRelationships?.[agentB.id] ?? 0
   const trainedReverse = agentB.progression?.skillTree?.trainedRelationships?.[agentA.id] ?? 0
   const familiarity = (trainedForward + trainedReverse) / 2

@@ -5,6 +5,7 @@ export const RELATIONSHIP_VALUE_MIN = -2
 export const RELATIONSHIP_VALUE_MAX = 2
 
 export const RELATIONSHIP_CHANGED_REASONS = [
+  'training',
   'mission_success',
   'mission_partial',
   'mission_fail',
@@ -44,8 +45,7 @@ function coerceFiniteNumber(value: unknown, fallback: number) {
 
 function isRelationshipChangedReason(value: unknown): value is RelationshipChangedReason {
   return (
-    typeof value === 'string' &&
-    (RELATIONSHIP_CHANGED_REASONS as readonly string[]).includes(value)
+    typeof value === 'string' && (RELATIONSHIP_CHANGED_REASONS as readonly string[]).includes(value)
   )
 }
 

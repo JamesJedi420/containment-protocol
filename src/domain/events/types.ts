@@ -229,6 +229,7 @@ export interface OperationEventPayloadMap {
       | 'mission_partial'
       | 'mission_fail'
       | 'passive_drift'
+      | 'training'
       | 'external_event'
       | 'reconciliation'
       | 'spontaneous_event'

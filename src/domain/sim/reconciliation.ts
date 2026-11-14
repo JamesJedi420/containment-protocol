@@ -4,6 +4,7 @@ import { clamp } from '../math'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import type { GameState, Id } from '../models'
 import { recoverTrustDamageForPair } from './betrayal'
+import { writePersonnelRelationship } from '../personnelRelationships'
 
 export const RECONCILIATION_COST = 12
 export const RECONCILIATION_DELTA_NEGATIVE = 0.45
@@ -85,13 +86,12 @@ export function reconcileAgents(state: GameState, leftId: Id, rightId: Id): Game
       {
         ...state.agents,
         [leftId]: appendAgentHistoryEntry(
-          {
-            ...leftAgent,
-            relationships: {
-              ...leftAgent.relationships,
-              [rightId]: leftNext,
-            },
-          },
+          writePersonnelRelationship(leftAgent, rightId, leftNext, {
+            tags: leftAgent.relationshipMetadata?.[rightId]?.tags ?? [],
+            reason: 'reconciliation',
+            sourceRef: 'sim:reconciliation',
+            week: state.week,
+          }),
           createAgentHistoryEntry(
             state.week,
             'simulation.weekly_tick',
@@ -99,13 +99,12 @@ export function reconcileAgents(state: GameState, leftId: Id, rightId: Id): Game
           )
         ),
         [rightId]: appendAgentHistoryEntry(
-          {
-            ...rightAgent,
-            relationships: {
-              ...rightAgent.relationships,
-              [leftId]: rightNext,
-            },
-          },
+          writePersonnelRelationship(rightAgent, leftId, rightNext, {
+            tags: rightAgent.relationshipMetadata?.[leftId]?.tags ?? [],
+            reason: 'reconciliation',
+            sourceRef: 'sim:reconciliation',
+            week: state.week,
+          }),
           createAgentHistoryEntry(
             state.week,
             'simulation.weekly_tick',

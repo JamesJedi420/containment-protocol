@@ -16,6 +16,8 @@ These `docs/*audit*.md` files are **integration and field-naming checklists**: t
 
 **Archival finding (2026-11-01):** none of these 41 audit files had a verified complete replacement or explicit approved retirement. No files were relocated based on overlap or age alone.
 
+**Debug reset crosscheck (2026-11-12):** `debug-reset-audit.md` was compared against `src/domain/debugResetTools.ts`, the reset actions in `src/app/store/gameStore.ts` and `src/features/developer/DeveloperOverlay.tsx`. Reset categories, profiles A-E, the guardrails, the single compact reset log entry and the preserved queue `nextSequence` match the recommendation. Two recommendations remain unmet: the overlay discards the returned summary instead of displaying it, and encounter reset clears the entire runtime queue rather than encounter-targeted entries. The status therefore stays **Review needed**; runtime conformance was not verified.
+
 ### Maintaining this index
 
 For each new top-level `docs/*audit*.md` file (not this index), add **one alphabetically ordered table row** with a review date and defensible status. When a document is verifiably superseded, move it under `docs/archived/`, update inbound links, and document the replacement in **Archived audits**. The audit validator checks the active top-level audit table; UX/QA references are managed separately.
@@ -36,7 +38,7 @@ For each new top-level `docs/*audit*.md` file (not this index), add **one alphab
 | [`content-branching-audit.md`](./content-branching-audit.md)                                         | 2026-11-01    | Review needed          |
 | [`contract-debrief-next-intent-audit.md`](./contract-debrief-next-intent-audit.md)                   | 2026-11-01    | Active reference       |
 | [`cursor-pre-ship-audit-user-rules-snippet.md`](./cursor-pre-ship-audit-user-rules-snippet.md)       | 2026-11-01    | Workflow review needed |
-| [`debug-reset-audit.md`](./debug-reset-audit.md)                                                     | 2026-11-01    | Review needed          |
+| [`debug-reset-audit.md`](./debug-reset-audit.md)                                                     | 2026-11-12    | Review needed          |
 | [`department-workshop-queue-audit.md`](./department-workshop-queue-audit.md)                         | 2026-11-01    | Active reference       |
 | [`deployment-readiness-time-cost-audit.md`](./deployment-readiness-time-cost-audit.md)               | 2026-11-01    | Review needed          |
 | [`encounter-tracking-audit.md`](./encounter-tracking-audit.md)                                       | 2026-11-01    | Review needed          |

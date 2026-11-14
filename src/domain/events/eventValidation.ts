@@ -66,6 +66,7 @@ const caseKindSchema = z.enum(CASE_KINDS)
 const caseStageSchema = finitePositiveIntSchema
 const caseTeamIdsSchema = z.array(idSchema).transform((teamIds) => [...new Set(teamIds)])
 const relationshipReasonSchema = z.enum([
+  'training',
   'mission_success',
   'mission_partial',
   'mission_fail',

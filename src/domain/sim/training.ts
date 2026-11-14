@@ -6,6 +6,7 @@ import {
   createAgentTrainingStartedDraft,
   createAgentTrainingCompletedDraft,
   createAgentTrainingCancelledDraft,
+  createAgentRelationshipChangedDraft,
 } from '../events'
 import {
   applyPotentialBreakthrough,
@@ -30,10 +31,7 @@ import {
 } from '../agent/lifecycle'
 import { getAgentInstructorBonus } from './instructorAssignment'
 import { getAcademyStatBonus } from './academyUpgrade'
-import {
-  applyAgentNicheUnlocks,
-  getAgentTrainingNicheAptitude,
-} from '../nicheIdentity'
+import { applyAgentNicheUnlocks, getAgentTrainingNicheAptitude } from '../nicheIdentity'
 import { cloneDomainStats, deriveDomainStatsFromBase } from '../statDomains'
 import {
   ensureNormalizedGameState,
@@ -826,10 +824,7 @@ function applyTrainingCompletionToAgent(
   const rawGain =
     entry.scope === 'team'
       ? 0
-      : entry.statDelta +
-        (entry.academyStatBonus ?? 0) +
-        totalAptitudeBonus +
-        instructorBonus
+      : entry.statDelta + (entry.academyStatBonus ?? 0) + totalAptitudeBonus + instructorBonus
   const targetCap = getAgentStatCap(currentAgent, entry.targetStat)
   const cappedStat = clamp(currentAgent.baseStats[entry.targetStat] + rawGain, 0, targetCap)
   const actualGain = cappedStat - currentAgent.baseStats[entry.targetStat]
@@ -839,7 +834,9 @@ function applyTrainingCompletionToAgent(
   // Agents who deliberately train outside their aptitude earn a cross-training bonus
   // that scales with program length to reward intentional stat diversification.
   const crossTrainingXp =
-    entry.scope !== 'team' && totalAptitudeBonus <= 0 ? Math.round(5 * (entry.durationWeeks / 2)) : 0
+    entry.scope !== 'team' && totalAptitudeBonus <= 0
+      ? Math.round(5 * (entry.durationWeeks / 2))
+      : 0
   // Instructors also improve retention, yielding a modest XP bonus on completion.
   const instructorXpBonus =
     entry.scope !== 'team' && instructorBonus > 0
@@ -925,13 +922,13 @@ function applyTrainingCompletionToAgent(
   const unlockedAgent = applyAgentNicheUnlocks(completedAgent)
   const completedAgentWithUnlockNotes = unlockedAgent.notes.reduce(
     (agent, note) =>
-      appendAgentHistoryEntry(
-        agent,
-        createAgentHistoryEntry(week, 'simulation.weekly_tick', note)
-      ),
+      appendAgentHistoryEntry(agent, createAgentHistoryEntry(week, 'simulation.weekly_tick', note)),
     unlockedAgent.agent
   )
-  const progressedAgent = applyAgentProgressionUpdate(completedAgentWithUnlockNotes, progressionUpdate)
+  const progressedAgent = applyAgentProgressionUpdate(
+    completedAgentWithUnlockNotes,
+    progressionUpdate
+  )
   const progressedAgentWithXpLog = recordAgentXpGain(
     progressedAgent,
     progressionUpdate.xpGained,
@@ -1060,7 +1057,9 @@ function applyTrainingCompletionToAgent(
 
 function applyTeamDrillCoordination(
   nextAgents: GameState['agents'],
-  completedEntries: readonly TrainingQueueEntry[]
+  completedEntries: readonly TrainingQueueEntry[],
+  week: number,
+  eventDrafts: AnyOperationEventDraft[]
 ) {
   const entriesByGroup = new Map<string, TrainingQueueEntry[]>()
 
@@ -1115,6 +1114,23 @@ function applyTeamDrillCoordination(
             -2,
             2
           )
+          const previousValue = currentAgent.relationships[partnerId] ?? 0
+          const nextValue = nextRelationships[partnerId]
+          if (nextValue !== previousValue) {
+            eventDrafts.push(
+              createAgentRelationshipChangedDraft({
+                week,
+                agentId,
+                agentName: currentAgent.name,
+                counterpartId: partnerId,
+                counterpartName: nextAgents[partnerId].name,
+                previousValue,
+                nextValue,
+                delta: Math.round((nextValue - previousValue) * 100) / 100,
+                reason: 'training',
+              })
+            )
+          }
         }
 
         if (trainedRelationshipDelta > 0) {
@@ -1225,7 +1241,7 @@ export function advanceTrainingQueues(state: GameState) {
     }
   }
 
-  applyTeamDrillCoordination(nextAgents, completed)
+  applyTeamDrillCoordination(nextAgents, completed, state.week, eventDrafts)
 
   return {
     state: normalizeGameState({

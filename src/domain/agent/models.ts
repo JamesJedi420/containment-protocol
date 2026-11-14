@@ -1,6 +1,7 @@
 // cspell:words callsign cooldown cooldowns substat substats
 import type { OperationEvent, OperationEventType } from '../events/types'
 import type { Id } from '../models'
+import type { PersonnelRelationshipMetadata } from '../personnelRelationships'
 
 /**
  * Agent role classification.
@@ -843,6 +844,8 @@ export interface Agent {
    * typical range -2..+2, stored as "how I feel about them".
    */
   relationships: Record<Id, number>
+  /** Provenance/tags only; numerical values remain solely in relationships. */
+  relationshipMetadata?: Record<Id, PersonnelRelationshipMetadata>
 
   /** Accumulated betrayal trust damage per counterpart, used by the phase-2 consequence ladder. */
   trustDamageByAgent?: Record<Id, number>

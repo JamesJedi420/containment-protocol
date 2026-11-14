@@ -209,7 +209,32 @@ describe('External Chemistry Events', () => {
       const relatedSnapshots = (result.nextState.relationshipHistory ?? []).filter(
         (snapshot) => snapshot.reason === 'external_event'
       )
-      expect(relatedSnapshots.length).toBe(relationshipDrafts.length)
+      // Snapshots are undirected pairs; canonical mutation/provenance is directional.
+      expect(relatedSnapshots).toHaveLength(3)
+      expect(relationshipDrafts).toHaveLength(6)
+      expect(
+        new Set(
+          relationshipDrafts.map(
+            (draft) => `${draft.payload.agentId}:${draft.payload.counterpartId}`
+          )
+        ).size
+      ).toBe(6)
+      for (const snapshot of relatedSnapshots) {
+        expect(
+          relationshipDrafts.some(
+            (draft) =>
+              draft.payload.agentId === snapshot.agentAId &&
+              draft.payload.counterpartId === snapshot.agentBId
+          )
+        ).toBe(true)
+        expect(
+          relationshipDrafts.some(
+            (draft) =>
+              draft.payload.agentId === snapshot.agentBId &&
+              draft.payload.counterpartId === snapshot.agentAId
+          )
+        ).toBe(true)
+      }
     })
   })
 })

@@ -1,4 +1,5 @@
 // cspell:words callsign cooldown
+import { normalizePersonnelRelationshipMetadata } from '../personnelRelationships'
 import {
   buildAgentStatCaps,
   normalizePotentialIntel,
@@ -1698,7 +1699,14 @@ function normalizeAgentAssignment(assignment: Agent['assignment']): AgentAssignm
 function normalizeRelationships(agent: AgentNormalizationInput) {
   return Object.fromEntries(
     Object.entries(agent.relationships ?? {})
-      .filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+      .filter(
+        ([id, value]) =>
+          id !== agent.id &&
+          id.trim().length > 0 &&
+          id === id.trim() &&
+          typeof value === 'number' &&
+          Number.isFinite(value)
+      )
       .map(([agentId, value]) => [agentId, clamp(value, RELATIONSHIP_MIN, RELATIONSHIP_MAX)])
   )
 }
@@ -2026,6 +2034,12 @@ export function normalizeAgent(
       ...new Set((agent.tags ?? []).filter((tag) => typeof tag === 'string' && tag.length > 0)),
     ],
     relationships: normalizeRelationships(agent),
+    relationshipMetadata: normalizePersonnelRelationshipMetadata(
+      agent.relationshipMetadata,
+      normalizeRelationships(agent),
+      agent.id,
+      options.campaignWeek
+    ),
     trustDamageByAgent: normalizeTrustDamageByAgent(
       agent.trustDamageByAgent,
       options.knownAgentIds

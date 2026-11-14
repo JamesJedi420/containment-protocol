@@ -4,6 +4,7 @@ import {
   deriveAssignmentStatus,
 } from '../agentDefaults'
 import type { OperationEvent } from '../events/types'
+import { applyPersonnelRelationshipEvent } from '../personnelRelationships'
 import type { ProgressionUpdateResult } from '../progression'
 import type {
   Agent,
@@ -569,13 +570,14 @@ export function appendAgentEventLogs(agent: Agent, events: readonly OperationEve
     if (!existingIds.has(event.id)) {
       existingIds.add(event.id)
       nextLogs.push(event)
+      agent = applyPersonnelRelationshipEvent(agent, event)
     }
   }
 
   return {
     ...agent,
     history: {
-      ...history,
+      ...(agent.history ?? history),
       logs: nextLogs,
     },
   }

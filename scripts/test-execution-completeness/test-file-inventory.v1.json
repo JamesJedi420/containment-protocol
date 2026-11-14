@@ -324,6 +324,7 @@
     "src/test/behaviorDisguiseValidation.test.ts",
     "src/test/beliefLockIllusion.test.ts",
     "src/test/biologicalMnemonicDrain.test.ts",
+    "src/test/boundedCampaignRegionPacket.test.ts",
     "src/test/branchContinuity.test.ts",
     "src/test/branchContinuityAudit.test.ts",
     "src/test/branchContinuityAuthoring.test.ts",

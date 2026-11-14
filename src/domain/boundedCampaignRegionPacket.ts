@@ -19,15 +19,37 @@ export const INSTABILITY_HOOK_IDS = [
 ] as const
 export type InstabilityHookId = (typeof INSTABILITY_HOOK_IDS)[number]
 
-export interface BoundedCampaignRegionPacket {
+const DOSSIER_TEXT_FIELDS = [
+  'premise',
+  'authorityStructure',
+  'recurringIncidentPressure',
+  'resourceScarcity',
+  'socialPressure',
+  'entryState',
+  'exitState',
+  'ecology',
+  'history',
+  'lifecycle',
+] as const
+const DOSSIER_LIST_FIELDS = [
+  'sites',
+  'unsafeRoutes',
+  'localHazards',
+  'hostileActors',
+  'unresolvedContradictions',
+  'operatingLaws',
+] as const
+type RegionDossier = Partial<
+  Record<(typeof DOSSIER_TEXT_FIELDS)[number], string> &
+    Record<(typeof DOSSIER_LIST_FIELDS)[number], readonly string[]>
+>
+
+/** Optional dossier text/lists describe authored context, never executable laws or live state. */
+export interface BoundedCampaignRegionPacket extends Readonly<RegionDossier> {
   readonly id: string
   readonly regionKind: RegionKind
   readonly boundaryRefs: readonly string[]
   readonly instabilityHookIds: readonly InstabilityHookId[]
-  /** Optional operational dossier fields. Presence is not required for validity. */
-  readonly premise?: string
-  readonly authorityStructure?: string
-  readonly recurringIncidentPressure?: string
 }
 
 export interface RegionPacketValidationIssue {
@@ -67,19 +89,20 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function freezePacket(input: BoundedCampaignRegionPacket): BoundedCampaignRegionPacket {
-  const packet: BoundedCampaignRegionPacket = {
+  const dossier: RegionDossier = {}
+  for (const field of DOSSIER_TEXT_FIELDS) {
+    if (input[field] !== undefined) dossier[field] = input[field]
+  }
+  for (const field of DOSSIER_LIST_FIELDS) {
+    if (input[field] !== undefined) dossier[field] = Object.freeze([...input[field]])
+  }
+  return Object.freeze({
     id: input.id,
     regionKind: input.regionKind,
     boundaryRefs: Object.freeze([...input.boundaryRefs]),
     instabilityHookIds: Object.freeze([...input.instabilityHookIds]),
-  }
-  if (input.premise !== undefined) (packet as { premise?: string }).premise = input.premise
-  if (input.authorityStructure !== undefined)
-    (packet as { authorityStructure?: string }).authorityStructure = input.authorityStructure
-  if (input.recurringIncidentPressure !== undefined)
-    (packet as { recurringIncidentPressure?: string }).recurringIncidentPressure =
-      input.recurringIncidentPressure
-  return Object.freeze(packet)
+    ...dossier,
+  })
 }
 
 function issuesResult(issues: RegionPacketValidationIssue[]): RegionPacketValidationResult {
@@ -179,13 +202,26 @@ function validatePacket(
     }
   }
 
-  const premise = input.premise === undefined ? undefined : token(input.premise)
-  const authorityStructure =
-    input.authorityStructure === undefined ? undefined : token(input.authorityStructure)
-  const recurringIncidentPressure =
-    input.recurringIncidentPressure === undefined
-      ? undefined
-      : token(input.recurringIncidentPressure)
+  const dossier: RegionDossier = {}
+  for (const key of DOSSIER_TEXT_FIELDS) {
+    if (input[key] === undefined) continue
+    const value = token(input[key])
+    if (typeof input[key] !== 'string' || value.length === 0) {
+      issues.push({ code: 'invalid_dossier_field', field: `${field}.${key}`, packetId: id })
+      legal = false
+    } else dossier[key] = value
+  }
+  for (const key of DOSSIER_LIST_FIELDS) {
+    const value = input[key]
+    if (value === undefined) continue
+    if (
+      !Array.isArray(value) ||
+      Array.from(value).some((item) => typeof item !== 'string' || !token(item))
+    ) {
+      issues.push({ code: 'invalid_dossier_field', field: `${field}.${key}`, packetId: id })
+      legal = false
+    } else dossier[key] = value.map(token)
+  }
 
   if (!legal || !KIND_SET.has(regionKind)) return null
 
@@ -194,9 +230,7 @@ function validatePacket(
     regionKind: regionKind as RegionKind,
     boundaryRefs,
     instabilityHookIds,
-    ...(premise ? { premise } : {}),
-    ...(authorityStructure ? { authorityStructure } : {}),
-    ...(recurringIncidentPressure ? { recurringIncidentPressure } : {}),
+    ...dossier,
   })
 }
 
@@ -205,9 +239,7 @@ function validatePacket(
  * Unknown kinds, hooks, and missing boundary refs fail closed.
  * Input order is not significant for validity.
  */
-export function validateBoundedCampaignRegionPackets(
-  input: unknown
-): RegionPacketValidationResult {
+export function validateBoundedCampaignRegionPackets(input: unknown): RegionPacketValidationResult {
   if (!Array.isArray(input)) {
     return issuesResult([{ code: 'invalid_registry', field: 'packets' }])
   }
@@ -238,7 +270,7 @@ export function normalizeBoundedCampaignRegionPackets(
   const validation = validateBoundedCampaignRegionPackets(input)
   if (!validation.valid) return null
   const ordered = input
-    .map((packet) => freezePacket(packet))
+    .map((packet, index) => validatePacket(packet, index, [])!)
     .sort((a, b) => compareStrings(a.id, b.id))
   return Object.freeze(ordered)
 }

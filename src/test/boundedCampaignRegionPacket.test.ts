@@ -69,4 +69,102 @@ describe('boundedCampaignRegionPacket (SPE-2227 slice 1)', () => {
       'invalid_packet_id'
     )
   })
+
+  it('normalizes all approved dossier fields and canonical tokens before lookup', () => {
+    const packet: BoundedCampaignRegionPacket = {
+      id: ' region-packet:full-dossier ',
+      regionKind: 'facility',
+      boundaryRefs: [' boundary:outer-edge '],
+      instabilityHookIds: ['social_pressure'],
+      premise: ' Bounded operational theater ',
+      authorityStructure: ' Local liaison ',
+      recurringIncidentPressure: ' Recurring disturbances ',
+      resourceScarcity: ' Limited resupply ',
+      socialPressure: ' Disputed jurisdiction ',
+      entryState: ' Checkpoint open ',
+      exitState: ' Clearance required ',
+      ecology: ' Contaminated wetland ',
+      history: ' Former depot ',
+      lifecycle: ' Stabilizing ',
+      sites: [' Depot '],
+      unsafeRoutes: [' River crossing '],
+      localHazards: [' Flooding '],
+      hostileActors: [' Unidentified intruders '],
+      unresolvedContradictions: [' Conflicting occupancy reports '],
+      operatingLaws: [' Escort required '],
+    }
+    const snapshot = JSON.stringify(packet)
+    expect(validateBoundedCampaignRegionPackets([packet]).valid).toBe(true)
+    const normalized = normalizeBoundedCampaignRegionPackets([packet])!
+    const result = normalized[0]!
+    expect(result).toEqual(
+      Object.fromEntries(
+        Object.entries(packet).map(([key, value]) => [
+          key,
+          Array.isArray(value) ? value.map((entry) => entry.trim()) : value.trim(),
+        ])
+      )
+    )
+    expect(lookupBoundedCampaignRegionPacket(normalized, 'region-packet:full-dossier')).toEqual({
+      status: 'found',
+      packet: result,
+    })
+    expect(Object.isFrozen(result)).toBe(true)
+    for (const value of Object.values(result)) {
+      if (Array.isArray(value)) expect(Object.isFrozen(value)).toBe(true)
+    }
+    expect(JSON.stringify(packet)).toBe(snapshot)
+    expect(result.sites).not.toBe(packet.sites)
+  })
+
+  it.each([
+    'premise',
+    'authorityStructure',
+    'recurringIncidentPressure',
+    'resourceScarcity',
+    'socialPressure',
+    'entryState',
+    'exitState',
+    'ecology',
+    'history',
+    'lifecycle',
+  ])('rejects blank and malformed %s instead of silently dropping it', (field) => {
+    for (const value of ['   ', 42, null]) {
+      const packet = { ...fixtures[0]!, [field]: value }
+      expect(validateBoundedCampaignRegionPackets([packet])).toMatchObject({
+        valid: false,
+        issues: [{ code: 'invalid_dossier_field', field: `packets[0].${field}` }],
+      })
+      expect(normalizeBoundedCampaignRegionPackets([packet])).toBeNull()
+    }
+  })
+
+  it.each([
+    'sites',
+    'unsafeRoutes',
+    'localHazards',
+    'hostileActors',
+    'unresolvedContradictions',
+    'operatingLaws',
+  ])('validates optional %s lists and preserves explicit empty lists', (field) => {
+    for (const value of ['invalid', [' '], [null], [7], Array(1)]) {
+      expect(
+        validateBoundedCampaignRegionPackets([{ ...fixtures[0]!, [field]: value }]).valid
+      ).toBe(false)
+    }
+    const normalized = normalizeBoundedCampaignRegionPackets([{ ...fixtures[1]!, [field]: [] }])!
+    expect(normalized[0]).toHaveProperty(field, [])
+    expect(normalized[0]).not.toHaveProperty('premise')
+  })
+
+  it('rejects duplicate ids after trimming and fails closed on invalid registry inputs', () => {
+    const duplicate = { ...fixtures[0]!, id: ` ${fixtures[0]!.id} ` }
+    expect(
+      validateBoundedCampaignRegionPackets([...fixtures, duplicate]).issues.map(
+        (issue) => issue.code
+      )
+    ).toContain('duplicate_packet_id')
+    expect(normalizeBoundedCampaignRegionPackets([...fixtures, duplicate])).toBeNull()
+    expect(validateBoundedCampaignRegionPackets(null).valid).toBe(false)
+  })
 })

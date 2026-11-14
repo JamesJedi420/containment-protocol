@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { getKnowledgeKey } from '../../domain/knowledge'
-import { buildReportKnowledgeView } from './reportKnowledgeView'
+import { buildReportKnowledgePreview, buildReportKnowledgeView } from './reportKnowledgeView'
 
 describe('buildReportKnowledgeView', () => {
   it('prefers snapshot knowledge and falls back to live knowledge for missing keys', () => {
@@ -69,4 +69,36 @@ describe('buildReportKnowledgeView', () => {
     expect(buildReportKnowledgeView(liveKnowledge, undefined)).toBe(liveKnowledge)
     expect(buildReportKnowledgeView(liveKnowledge, {})).toBe(liveKnowledge)
   })
+})
+
+it('derives all preview display props from the chosen audience without private metadata', () => {
+  const state = {
+    'team:one::case:one': {
+      entityId: 'team:one',
+      subjectId: 'case:one',
+      tier: 'partial' as const,
+      defeatConditionCertainty: 'family' as const,
+      trueClassification: 'SECRET_CLASS',
+      relayFailed: true,
+      lastRelayFailedWeek: 2,
+      fusedFrom: ['SECRET_A', 'SECRET_B'],
+      lastFusedWeek: 1,
+    },
+    'SECRET_TEAM::SECRET_CASE': {
+      entityId: 'SECRET_TEAM',
+      subjectId: 'SECRET_CASE',
+      tier: 'confirmed' as const,
+      masked: true,
+      defeatConditionCertainty: 'exact' as const,
+    },
+  }
+  const before = JSON.stringify(state)
+  const publicPreview = buildReportKnowledgePreview(state, 'public')
+  const restrictedPreview = buildReportKnowledgePreview(state, 'internal')
+  expect(JSON.stringify(publicPreview)).not.toContain('SECRET')
+  expect(JSON.stringify(publicPreview)).not.toContain('Relay failed')
+  expect(JSON.stringify(restrictedPreview)).toContain('SECRET_TEAM')
+  expect(JSON.stringify(restrictedPreview)).toContain('SECRET_A')
+  expect(publicPreview.groups[0].rows[0].explanation).toBe('Bypass method family suspected.')
+  expect(JSON.stringify(state)).toBe(before)
 })

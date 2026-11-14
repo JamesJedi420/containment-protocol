@@ -8,14 +8,16 @@ It is **not** a second systems map. For navigation and SPE-tagged architecture f
 
 **Parent contract:** `architecture/knowledge-state-system.md` (SPE-58).
 
-| Issue   | Topic (summary)                                  |
-| ------- | ------------------------------------------------ |
-| SPE-529 | Sensing, masking, relay surfaces; degraded feeds |
-| SPE-587 | Operational knowledge views; dispatch filters    |
-| SPE-588 | Dream, inherited, preserved knowledge channels   |
-| SPE-589 | Freshness, decay, fragmentation                  |
+| Issue   | Topic (summary)                                                      |
+| ------- | -------------------------------------------------------------------- |
+| SPE-529 | Sensing, masking, relay surfaces; degraded feeds                     |
+| SPE-587 | Output preview contract documented below; clearance remains separate |
+| SPE-588 | Dream, inherited, preserved knowledge channels                       |
+| SPE-589 | Freshness, decay, fragmentation                                      |
 
 **Status:** In-repo expansion: **`architecture/knowledge-subsystems-expansion.md`** (tables per child scope). Linear remains authoritative for acceptance criteria until types land in `src/domain/`.
+
+**SPE-587 output boundary:** [Audience-filtered knowledge previews](../docs/knowledge-audience-preview.md) documents the public/restricted report projection and its validation. It does not implement the expansion's role action gates or audit trail, SPE-2082 clearance/read-in policy, or SPE-58 acquisition/persistence. Those separate owners remain authoritative; the output contract is no longer undocumented design depth.
 
 **Integration checklist:** `docs/knowledge-intel-partial-information-audit.md`
 

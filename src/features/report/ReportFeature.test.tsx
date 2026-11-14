@@ -60,7 +60,9 @@ it('links report list entries into detail routes', () => {
   renderReportList()
 
   expect(screen.getByRole('link', { name: /^week 1$/i })).toHaveAttribute('href', '/report/1')
-  expect(screen.getByRole('region', { name: /weekly report timeline summary/i })).toBeInTheDocument()
+  expect(
+    screen.getByRole('region', { name: /weekly report timeline summary/i })
+  ).toBeInTheDocument()
   expect(screen.getByText(/status cue:/i)).toBeInTheDocument()
 })
 
@@ -352,13 +354,19 @@ it('navigates between adjacent weekly reports from the detail header', async () 
   renderReportDetail('/report/4')
 
   expect(screen.getByRole('navigation', { name: /weekly report navigation/i })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /previous week \(2\)/i })).toHaveAttribute('href', '/report/2')
+  expect(screen.getByRole('link', { name: /previous week \(2\)/i })).toHaveAttribute(
+    'href',
+    '/report/2'
+  )
   expect(screen.queryByRole('link', { name: /next week/i })).not.toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /previous week \(2\)/i }))
 
   expect(screen.getByText(/^week 2$/i)).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /next week \(4\)/i })).toHaveAttribute('href', '/report/4')
+  expect(screen.getByRole('link', { name: /next week \(4\)/i })).toHaveAttribute(
+    'href',
+    '/report/4'
+  )
 })
 
 it('shows only a next-week link on the earliest available report', () => {
@@ -387,7 +395,10 @@ it('shows only a next-week link on the earliest available report', () => {
   useGameStore.setState({ game })
   renderReportDetail('/report/1')
 
-  expect(screen.getByRole('link', { name: /next week \(3\)/i })).toHaveAttribute('href', '/report/3')
+  expect(screen.getByRole('link', { name: /next week \(3\)/i })).toHaveAttribute(
+    'href',
+    '/report/3'
+  )
   expect(screen.queryByRole('link', { name: /previous week/i })).not.toBeInTheDocument()
 })
 
@@ -415,7 +426,9 @@ it('omits week navigation when only one weekly report exists', () => {
   useGameStore.setState({ game })
   renderReportDetail('/report/3')
 
-  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('navigation', { name: /weekly report navigation/i })
+  ).not.toBeInTheDocument()
 })
 
 it('renders a local not-found state for unknown report weeks', () => {
@@ -423,12 +436,78 @@ it('renders a local not-found state for unknown report weeks', () => {
 
   expect(screen.getByText(/report not found/i)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /back to reports/i })).toHaveAttribute('href', '/report')
-  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('navigation', { name: /weekly report navigation/i })
+  ).not.toBeInTheDocument()
 })
 
 it('renders not-found without week navigation for non-integer week routes', () => {
   renderReportDetail('/report/2.5')
 
   expect(screen.getByText(/report not found/i)).toBeInTheDocument()
-  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
+  expect(
+    screen.queryByRole('navigation', { name: /weekly report navigation/i })
+  ).not.toBeInTheDocument()
+})
+
+it('switches report knowledge audiences without leaking private props or mutating knowledge', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  game.reports = [
+    {
+      week: 1,
+      rngStateBefore: 1,
+      rngStateAfter: 2,
+      newCases: [],
+      progressedCases: [],
+      resolvedCases: [],
+      failedCases: [],
+      partialCases: [],
+      unresolvedTriggers: [],
+      spawnedCases: [],
+      maxStage: 1,
+      avgFatigue: 0,
+      teamStatus: [],
+      notes: [],
+    },
+  ]
+  game.knowledge = {
+    'team:one::case:one': {
+      entityId: 'team:one',
+      subjectId: 'case:one',
+      tier: 'partial',
+      defeatConditionCertainty: 'family',
+      trueClassification: 'SECRET_CLASS',
+      notes: 'SECRET_NOTE',
+      relayFailed: true,
+      lastRelayFailedWeek: 2,
+      fusedFrom: ['SECRET_SOURCE_A', 'SECRET_SOURCE_B'],
+      lastFusedWeek: 1,
+    },
+    'MASKED_TEAM::MASKED_CASE': {
+      entityId: 'MASKED_TEAM',
+      subjectId: 'MASKED_CASE',
+      tier: 'confirmed',
+      masked: true,
+      defeatConditionCertainty: 'exact',
+    },
+  }
+  const before = JSON.stringify(game.knowledge)
+  useGameStore.setState({ game })
+  renderReportDetail('/report/1')
+  const panel = screen.getByRole('region', { name: 'Knowledge audience preview' })
+  expect(within(panel).getByRole('radio', { name: 'Public' })).toBeChecked()
+  expect(panel.innerHTML).not.toMatch(/SECRET|MASKED_TEAM|MASKED_CASE|Relay failed/)
+  expect(
+    within(panel).getByText('Subject case:one: Bypass method family suspected.')
+  ).toBeInTheDocument()
+  await user.click(within(panel).getByRole('radio', { name: 'Restricted / operator' }))
+  expect(within(panel).getByText('Team MASKED_TEAM')).toBeInTheDocument()
+  expect(within(panel).getByText('Relay failed (week 2)')).toBeInTheDocument()
+  expect(within(panel).getByText(/Fused from SECRET_SOURCE_A/)).toBeInTheDocument()
+  // Even the internal UI does not turn the raw true-classification slot into staff certainty.
+  expect(panel.innerHTML).not.toContain('SECRET_CLASS')
+  await user.click(within(panel).getByRole('radio', { name: 'Public' }))
+  expect(panel.innerHTML).not.toMatch(/SECRET|MASKED_TEAM|MASKED_CASE|Relay failed/)
+  expect(JSON.stringify(useGameStore.getState().game.knowledge)).toBe(before)
 })

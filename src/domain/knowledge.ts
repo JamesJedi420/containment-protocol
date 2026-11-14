@@ -254,44 +254,65 @@ export function getFilteredKnowledgeView(
   state: KnowledgeStateMap,
   filter: 'public' | 'internal'
 ): KnowledgeStateMap {
-  const filtered: KnowledgeStateMap = {}
-  if (filter === 'public') {
-    for (const [key, value] of Object.entries(state)) {
-      // Show confirmed knowledge as before
-      if (value.tier === 'confirmed' && !value.masked) {
-        filtered[key] = { ...value, notes: undefined }
-        continue
-      }
-      // Show defeat-condition knowledge if certainty is not 'unknown'
-      if (
-        value.defeatConditionCertainty === 'suspected' ||
-        value.defeatConditionCertainty === 'family' ||
-        value.defeatConditionCertainty === 'exact'
-      ) {
-        let notes = ''
-        if (value.defeatConditionCertainty === 'suspected') {
-          notes = 'Possible bypass exists.'
-        } else if (value.defeatConditionCertainty === 'family') {
-          notes = 'Bypass method family suspected.'
-        } else if (value.defeatConditionCertainty === 'exact') {
-          notes = 'Exact defeat/neutralization condition known.'
-        }
-        filtered[key] = {
-          ...value,
-          notes,
-          // Redact other details for public except for 'exact', which can show tier
-          tier: value.defeatConditionCertainty === 'exact' ? value.tier : 'unknown',
-          lastConfirmedWeek: value.defeatConditionCertainty === 'exact' ? value.lastConfirmedWeek : undefined,
-        }
-      }
+  const entries: [string, KnowledgeState][] = []
+  for (const [key, value] of Object.entries(state).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0
+  )) {
+    if (filter === 'internal') {
+      entries.push([
+        key,
+        { ...value, ...(value.fusedFrom ? { fusedFrom: [...value.fusedFrom] } : {}) },
+      ])
+      continue
     }
-    return filtered
-  } else {
-    for (const [key, value] of Object.entries(state)) {
-      filtered[key] = value
+    // Masking applies before every public branch, including exact/partial defeat knowledge.
+    if (value.masked || value.tier === 'pending-relay') continue
+    const uncertainty = {
+      ...(value.entityType ? { entityType: value.entityType } : {}),
+      ...(value.fragmentation ? { fragmentation: value.fragmentation } : {}),
+      ...(value.obsolete !== undefined ? { obsolete: value.obsolete } : {}),
+      ...(value.fragmented !== undefined ? { fragmented: value.fragmented } : {}),
     }
-    return filtered
+    const certainty = value.defeatConditionCertainty
+    if (value.tier === 'confirmed') {
+      // Public output is an allowlist, not a copy of internal source/relay/annotation fields.
+      entries.push([
+        key,
+        {
+          ...uncertainty,
+          entityId: value.entityId,
+          subjectId: value.subjectId,
+          tier: value.tier,
+          ...(value.subjectType ? { subjectType: value.subjectType } : {}),
+          ...(certainty ? { defeatConditionCertainty: certainty } : {}),
+          ...(value.lastConfirmedWeek !== undefined
+            ? { lastConfirmedWeek: value.lastConfirmedWeek }
+            : {}),
+        },
+      ])
+    } else if (certainty === 'suspected' || certainty === 'family' || certainty === 'exact') {
+      entries.push([
+        key,
+        {
+          ...uncertainty,
+          entityId: value.entityId,
+          subjectId: value.subjectId,
+          tier: certainty === 'exact' ? (value.tier ?? 'unknown') : 'unknown',
+          defeatConditionCertainty: certainty,
+          notes:
+            certainty === 'suspected'
+              ? 'Possible bypass exists.'
+              : certainty === 'family'
+                ? 'Bypass method family suspected.'
+                : 'Exact defeat/neutralization condition known.',
+          ...(certainty === 'exact' && value.lastConfirmedWeek !== undefined
+            ? { lastConfirmedWeek: value.lastConfirmedWeek }
+            : {}),
+        },
+      ])
+    }
   }
+  return Object.fromEntries(entries)
 }
 // --- Delayed Relay Path Logic ---
 // Marks knowledge as pending-relay, available after a delay

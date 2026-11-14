@@ -798,6 +798,19 @@ export const TRAINING_UI_TEXT: Record<string, string> = {
 /**
  * Reports page copy.
  */
+export const REPORT_KNOWLEDGE_PREVIEW_TEXT = {
+  heading: 'Knowledge audience preview',
+  legend: 'Knowledge audience',
+  public: 'Public',
+  internal: 'Restricted / operator',
+  description:
+    'Knowledge panel only. Snapshot-backed where available; current knowledge otherwise. This preview does not publish information or change clearance.',
+  empty: 'No knowledge available for this audience.',
+  team: 'Team',
+  subject: 'Subject',
+  tier: 'Knowledge tier',
+} as const
+
 export const REPORT_UI_TEXT: Record<string, string> = {
   pageHeading: 'Reports',
   pageSubtitle: 'Weekly after-action summaries from Directorate operations.',

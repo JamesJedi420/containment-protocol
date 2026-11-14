@@ -1,21 +1,23 @@
-import {
-  explainDecay,
-  explainDefeatConditionKnowledge,
-  explainFusion,
-  explainHazardKnowledge,
-  explainRelayChain,
-} from '../../domain/explanations'
-import { getKnowledgeKey, type KnowledgeState, type KnowledgeStateMap } from '../../domain/knowledge'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
+import {
+  REPORT_KNOWLEDGE_PREVIEW_TEXT,
+  REPORT_LABELS,
+  REPORT_UI_TEXT,
+  SHELL_UI_TEXT,
+  TOOLTIPS,
+} from '../../data/copy'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
 import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
-import { getCaseTemplateFamily } from './reportIntelProjection'
+import {
+  buildReportKnowledgePreview,
+  buildReportKnowledgeView,
+  type ReportKnowledgeAudience,
+} from './reportKnowledgeView'
 import { getRunTrendSummary } from './reportTrendView'
 import {
   filterReportNotesByCategory,
@@ -30,81 +32,12 @@ import {
 import { buildReportWeekNavigation } from './reportWeekNavigation'
 import { buildOperationalCertaintyView } from '../../domain/operationalCertainty'
 
-// --- Real-data knowledge/relay/fusion/decay UI helpers ---
-type TeamSubjectKnowledge = {
-  subjectId: string
-  state: KnowledgeState
-}
-
-type TeamKnowledgeGroup = {
-  teamId: string
-  anomalies: TeamSubjectKnowledge[]
-  hazards: TeamSubjectKnowledge[]
-}
-
-function buildTeamKnowledgeGroups(
-  knowledge: KnowledgeStateMap,
-  teamIds: string[],
-  anomalyIds: string[],
-  hazardIds: string[]
-): TeamKnowledgeGroup[] {
-  const groups: TeamKnowledgeGroup[] = []
-
-  for (const teamId of teamIds) {
-    const anomalies: TeamSubjectKnowledge[] = []
-    for (const subjectId of anomalyIds) {
-      const state = knowledge[getKnowledgeKey(teamId, subjectId)]
-      if (state) anomalies.push({ subjectId, state })
-    }
-    const hazards: TeamSubjectKnowledge[] = []
-    for (const subjectId of hazardIds) {
-      const state = knowledge[getKnowledgeKey(teamId, subjectId)]
-      if (state) hazards.push({ subjectId, state })
-    }
-    if (anomalies.length > 0 || hazards.length > 0) {
-      groups.push({ teamId, anomalies, hazards })
-    }
-  }
-
-  return groups
-}
-
-function getRelayChainExplanation(knowledgeState: KnowledgeState) {
-  return explainRelayChain(knowledgeState)
-}
-
-function getDecayExplanation(knowledgeState: KnowledgeState) {
-  return explainDecay(knowledgeState)
-}
-
-function getFusionExplanation(knowledgeState: KnowledgeState) {
-  return explainFusion(knowledgeState)
-}
-
-function KnowledgeStateAnnotations({ state }: { state: KnowledgeState }) {
-  const relayExplanation = getRelayChainExplanation(state)
-  const decayExplanation = getDecayExplanation(state)
-  const fusionExplanation = getFusionExplanation(state)
-
-  return (
-    <>
-      {relayExplanation ? (
-        <span className="ml-2 text-amber-300/80">{relayExplanation}</span>
-      ) : null}
-      {decayExplanation ? (
-        <span className="ml-2 opacity-50">{decayExplanation}</span>
-      ) : null}
-      {fusionExplanation ? (
-        <span className="ml-2 text-emerald-300/80">{fusionExplanation}</span>
-      ) : null}
-    </>
-  )
-}
-
 export default function ReportDetailPage() {
   const { week } = useParams()
   const location = useLocation()
   const { game } = useGameStore()
+  const [knowledgeAudience, setKnowledgeAudience] = useState<ReportKnowledgeAudience>('public')
+  const audienceId = useId()
   const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
     'all'
   )
@@ -122,9 +55,7 @@ export default function ReportDetailPage() {
         title={SHELL_UI_TEXT.reportNotFoundTitle}
         message={SHELL_UI_TEXT.reportNotFoundMessage}
         backTo={backTarget.href}
-        backLabel={
-          backTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Reports')
-        }
+        backLabel={backTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Reports')}
       />
     )
   }
@@ -140,25 +71,9 @@ export default function ReportDetailPage() {
   const reportBackTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
   const certainty = buildOperationalCertaintyView(game)
 
-  // --- Real-data knowledge/relay/ladder UI wiring ---
-  // For each team in the report, show knowledge ladders and relay/decay/fusion for each anomaly/hazard
-  const teamIds = Object.keys(game.teams)
-  const anomalyIds = Object.keys(game.cases)
-  // Hazards are cases whose template family is 'hazard-incident' or have a 'hazard' tag
-  const hazardIds = Object.values(game.cases)
-    .filter((currentCase) => {
-      const template = game.templates[currentCase.templateId]
-      return (
-        getCaseTemplateFamily(currentCase.templateId) === 'hazard' ||
-        template?.tags?.includes('hazard')
-      )
-    })
-    .map((currentCase) => currentCase.id)
-  const teamKnowledgeGroups = buildTeamKnowledgeGroups(
-    game.knowledge,
-    teamIds,
-    anomalyIds,
-    hazardIds
+  const knowledgePreview = buildReportKnowledgePreview(
+    buildReportKnowledgeView(game.knowledge, report.caseSnapshots),
+    knowledgeAudience
   )
 
   return (
@@ -168,47 +83,81 @@ export default function ReportDetailPage() {
           {reportBackTarget.label}
         </Link>
       ) : null}
-      <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
-        {/* Knowledge ladders and relay/decay/fusion status — only rendered when data exists */}
-        {teamKnowledgeGroups.length > 0 ? (
-          <div className="rounded border border-white/10 bg-white/5 px-3 py-3 text-xs">
-            <p className="font-semibold uppercase tracking-wide opacity-50">
-              Knowledge Ladders &amp; Relay Status
-            </p>
-            <ul className="mt-2 space-y-2">
-              {teamKnowledgeGroups.map(({ teamId, anomalies, hazards }) => (
-                <li key={teamId}>
-                  <p className="font-semibold opacity-70">Team {teamId}</p>
-                  <ul className="ml-2 mt-1 space-y-1">
-                    {anomalies.map(({ subjectId, state }) => (
-                      <li key={subjectId}>
-                        <span className="opacity-60">Anomaly {subjectId}:</span>{' '}
-                        <span className="opacity-80">
-                          {explainDefeatConditionKnowledge(game.knowledge, teamId, subjectId)}
-                        </span>
-                        <KnowledgeStateAnnotations state={state} />
-                      </li>
-                    ))}
-                    {hazards.map(({ subjectId, state }) => (
-                      <li key={subjectId}>
-                        <span className="text-red-300/70">Hazard {subjectId}:</span>{' '}
-                        <span className="opacity-80">{explainHazardKnowledge(state)}</span>
-                        <KnowledgeStateAnnotations state={state} />
+      <article
+        className="panel panel-primary space-y-4"
+        role="region"
+        aria-label="Weekly report dossier"
+      >
+        <section
+          aria-labelledby={audienceId + '-heading'}
+          className="rounded border border-white/10 bg-white/5 p-3 text-sm"
+        >
+          <h2 id={audienceId + '-heading'} className="font-semibold">
+            {REPORT_KNOWLEDGE_PREVIEW_TEXT.heading}
+          </h2>
+          <p id={audienceId + '-help'} className="mt-1 text-sm text-[var(--color-text-soft)]">
+            {REPORT_KNOWLEDGE_PREVIEW_TEXT.description}
+          </p>
+          <fieldset aria-describedby={audienceId + '-help'} className="mt-3">
+            <legend className="text-sm font-medium">{REPORT_KNOWLEDGE_PREVIEW_TEXT.legend}</legend>
+            <div className="flex flex-wrap gap-x-4">
+              {(['public', 'internal'] as const).map((audience) => (
+                <label
+                  key={audience}
+                  htmlFor={audienceId + '-' + audience}
+                  className="inline-flex min-h-12 cursor-pointer items-center gap-2"
+                >
+                  <input
+                    id={audienceId + '-' + audience}
+                    name={audienceId}
+                    type="radio"
+                    value={audience}
+                    checked={knowledgeAudience === audience}
+                    onChange={() => setKnowledgeAudience(audience)}
+                    className="accent-[var(--color-accent)]"
+                  />
+                  {REPORT_KNOWLEDGE_PREVIEW_TEXT[audience]}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          {knowledgePreview.groups.length === 0 ? (
+            <p className="mt-2">{REPORT_KNOWLEDGE_PREVIEW_TEXT.empty}</p>
+          ) : (
+            <ul className="mt-2 space-y-3 break-words">
+              {knowledgePreview.groups.map((group) => (
+                <li key={group.teamId}>
+                  <p className="font-semibold">
+                    {REPORT_KNOWLEDGE_PREVIEW_TEXT.team} {group.teamId}
+                  </p>
+                  <ul className="mt-1 space-y-2">
+                    {group.rows.map((row) => (
+                      <li key={row.subjectId}>
+                        <p>
+                          {REPORT_KNOWLEDGE_PREVIEW_TEXT.subject} {row.subjectId}: {row.explanation}
+                        </p>
+                        <p className="text-[var(--color-text-soft)]">
+                          {REPORT_KNOWLEDGE_PREVIEW_TEXT.tier}: {row.tier}
+                        </p>
+                        {row.annotations.map((annotation) => (
+                          <p key={annotation} className="text-[var(--color-text-soft)]">
+                            {annotation}
+                          </p>
+                        ))}
                       </li>
                     ))}
                   </ul>
                 </li>
               ))}
             </ul>
-          </div>
-        ) : null}
+          )}
+        </section>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
             <p className="text-sm font-medium">
               {REPORT_LABELS.week} {report.week}
             </p>
-            {weekNavigation.previousWeek !== undefined ||
-            weekNavigation.nextWeek !== undefined ? (
+            {weekNavigation.previousWeek !== undefined || weekNavigation.nextWeek !== undefined ? (
               <nav
                 className="flex flex-wrap items-center gap-3 text-sm"
                 aria-label="Weekly report navigation"
@@ -238,7 +187,9 @@ export default function ReportDetailPage() {
               </nav>
             ) : null}
           </div>
-          <p className={`text-sm font-semibold ${weekScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          <p
+            className={`text-sm font-semibold ${weekScore >= 0 ? 'text-green-400' : 'text-red-400'}`}
+          >
             {weekScore >= 0 ? '+' : ''}
             {weekScore} {REPORT_LABELS.points}
           </p>
@@ -284,9 +235,7 @@ export default function ReportDetailPage() {
           <span>
             Directive:{' '}
             {(report.notes.find((n) => n.type === 'directive.applied')?.metadata?.directiveLabel as
-              | string
-              | null
-              | undefined) ?? 'None'}
+              string | null | undefined) ?? 'None'}
           </span>
         </div>
       </article>

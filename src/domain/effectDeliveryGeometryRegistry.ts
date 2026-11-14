@@ -1,40 +1,44 @@
-/**
- * SPE-2192 slice 1: effect delivery geometry and scaling-cost registry.
- *
- * Pure deterministic registry for delivery geometry kinds and associated cost scaling.
- * No GameState persistence, runtime targeting, line-of-sight, or effect execution.
- * Distinct from duration modes and mobile-radius registries.
- */
-
-export type DeliveryKind = 'cone' | 'line' | 'touch' | 'remote' | 'zone' | 'radius-anchor'
-
-export const DELIVERY_KINDS: readonly DeliveryKind[] = [
+/** SPE-2192: pure delivery metadata; no targeting, propagation execution or persistence. */
+export const DELIVERY_KINDS = Object.freeze([
   'cone',
   'line',
   'touch',
   'remote',
   'zone',
   'radius-anchor',
-] as const
+] as const)
+export type DeliveryKind = (typeof DELIVERY_KINDS)[number]
 
-export type WillingnessRule = 'none' | 'consent' | 'resistance-check' | 'mandatory'
-
-export const WILLINGNESS_RULES: readonly WillingnessRule[] = [
+export const WILLINGNESS_RULES = Object.freeze([
   'none',
   'consent',
   'resistance-check',
   'mandatory',
-] as const
+] as const)
+export type WillingnessRule = (typeof WILLINGNESS_RULES)[number]
 
-/** Documented bounds for areaScaleFactor. */
-export const AREA_SCALE_FACTOR_MIN = 0 as const
-export const AREA_SCALE_FACTOR_MAX = 10 as const
+export const AREA_SCALE_FACTOR_MIN = 0
+export const AREA_SCALE_FACTOR_MAX = 10
 
-/** Delivery kinds that require a willingnessRule other than 'none'. */
-export const KINDS_REQUIRING_WILLINGNESS: ReadonlySet<DeliveryKind> = new Set([
-  'touch',
-  'remote',
-])
+/** Relative authoring bands only; no world distance or runtime radius is implied. */
+export const DELIVERY_RADIUS_BANDS = Object.freeze(['local', 'extended'] as const)
+export type DeliveryRadiusBand = (typeof DELIVERY_RADIUS_BANDS)[number]
+export type AreaDeliveryKind = Exclude<DeliveryKind, 'touch' | 'remote'>
+
+export interface DeliveryPropagation {
+  /** Caller-owned square identifiers; this registry cannot verify a live board. */
+  readonly originSquare: string
+  readonly shapeKind: AreaDeliveryKind
+  /** Authored route starts at origin; no adjacency or line-of-sight execution here. */
+  readonly lineOfEffect: readonly string[]
+  readonly barrierBlocksPropagation: true
+}
+
+export interface DeliveryMobileAnchor {
+  readonly anchorActorRef: string
+  readonly radiusBand: DeliveryRadiusBand
+  readonly followsMovement: true
+}
 
 export interface EffectDeliveryGeometryRecord {
   readonly id: string
@@ -42,16 +46,21 @@ export interface EffectDeliveryGeometryRecord {
   readonly baseCost: number
   readonly areaScaleFactor: number
   readonly willingnessRule: WillingnessRule
-  readonly label?: string
+  readonly propagation?: DeliveryPropagation
+  readonly mobileAnchor?: DeliveryMobileAnchor
 }
 
 export type EffectDeliveryGeometryValidationCode =
-  | 'unknown_delivery_kind'
-  | 'negative_base_cost'
-  | 'area_scale_factor_out_of_bounds'
-  | 'willingness_rule_required'
-  | 'invalid_willingness_rule'
+  | 'invalid_record'
   | 'missing_id'
+  | 'unknown_delivery_kind'
+  | 'invalid_base_cost'
+  | 'area_scale_factor_out_of_bounds'
+  | 'scaled_cost_overflow'
+  | 'invalid_willingness_rule'
+  | 'willingness_rule_required'
+  | 'invalid_propagation'
+  | 'invalid_mobile_anchor'
 
 export interface EffectDeliveryGeometryValidationIssue {
   readonly code: EffectDeliveryGeometryValidationCode
@@ -64,158 +73,235 @@ export interface EffectDeliveryGeometryValidationResult {
   readonly issues: readonly EffectDeliveryGeometryValidationIssue[]
 }
 
-export interface EffectDeliveryGeometryProjection {
-  readonly id: string
-  readonly deliveryKind: DeliveryKind
-  readonly baseCost: number
-  readonly areaScaleFactor: number
-  readonly willingnessRule: WillingnessRule
+export interface EffectDeliveryGeometryProjection extends EffectDeliveryGeometryRecord {
   readonly scaledCost: number
 }
 
-const DELIVERY_KIND_SET = new Set<string>(DELIVERY_KINDS)
-const WILLINGNESS_RULE_SET = new Set<string>(WILLINGNESS_RULES)
-
-function pushIssue(
-  issues: EffectDeliveryGeometryValidationIssue[],
-  issue: EffectDeliveryGeometryValidationIssue
-): void {
-  issues.push(issue)
+function object(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-export function validateEffectDeliveryGeometryRecord(
-  record: EffectDeliveryGeometryRecord
-): EffectDeliveryGeometryValidationResult {
+function identifier(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
+}
+
+function member<T extends string>(values: readonly T[], value: unknown): value is T {
+  return typeof value === 'string' && (values as readonly string[]).includes(value)
+}
+
+function parseRecord(input: unknown): {
+  value: EffectDeliveryGeometryProjection | null
+  issues: EffectDeliveryGeometryValidationIssue[]
+} {
   const issues: EffectDeliveryGeometryValidationIssue[] = []
-  const id = typeof record.id === 'string' ? record.id.trim() : ''
-
-  if (id.length === 0) {
-    pushIssue(issues, {
-      code: 'missing_id',
-      detail: 'Effect delivery geometry record requires a nonempty id.',
-      severity: 'error',
-    })
+  function reject(code: EffectDeliveryGeometryValidationCode, detail: string) {
+    issues.push({ code, detail, severity: 'error' })
+  }
+  if (!object(input)) {
+    reject('invalid_record', 'Expected a delivery geometry record.')
+    return { value: null, issues }
   }
 
-  if (!DELIVERY_KIND_SET.has(record.deliveryKind)) {
-    pushIssue(issues, {
-      code: 'unknown_delivery_kind',
-      detail: `Unknown deliveryKind: ${String(record.deliveryKind)}.`,
-      severity: 'error',
-    })
+  const {
+    id: rawId,
+    deliveryKind,
+    baseCost,
+    areaScaleFactor,
+    willingnessRule,
+    propagation: rawPropagation,
+    mobileAnchor: rawAnchor,
+  } = input
+  const id = identifier(rawId)
+  if (!id) reject('missing_id', 'A nonempty id is required.')
+  if (!member(DELIVERY_KINDS, deliveryKind)) {
+    reject('unknown_delivery_kind', 'Unknown delivery kind.')
+  }
+  const legalCost = typeof baseCost === 'number' && Number.isFinite(baseCost) && baseCost >= 0
+  if (!legalCost) reject('invalid_base_cost', 'baseCost must be finite and nonnegative.')
+  const legalScale =
+    typeof areaScaleFactor === 'number' &&
+    Number.isFinite(areaScaleFactor) &&
+    areaScaleFactor >= AREA_SCALE_FACTOR_MIN &&
+    areaScaleFactor <= AREA_SCALE_FACTOR_MAX
+  if (!legalScale) {
+    reject('area_scale_factor_out_of_bounds', 'areaScaleFactor must be finite and within [0, 10].')
+  }
+  const scaledCost = legalCost && legalScale ? baseCost * (1 + areaScaleFactor) : NaN
+  if (legalCost && legalScale && !Number.isFinite(scaledCost)) {
+    reject('scaled_cost_overflow', 'Scaled cost must remain finite.')
+  }
+  if (!member(WILLINGNESS_RULES, willingnessRule)) {
+    reject('invalid_willingness_rule', 'Unknown willingness rule.')
+  } else if (
+    (deliveryKind === 'touch' || deliveryKind === 'remote') &&
+    willingnessRule === 'none'
+  ) {
+    reject('willingness_rule_required', 'Touch and remote delivery require a willingness rule.')
   }
 
-  if (typeof record.baseCost !== 'number' || record.baseCost < 0) {
-    pushIssue(issues, {
-      code: 'negative_base_cost',
-      detail: `baseCost must be a non-negative number, got ${String(record.baseCost)}.`,
-      severity: 'error',
-    })
+  const areaKind =
+    deliveryKind === 'cone' ||
+    deliveryKind === 'line' ||
+    deliveryKind === 'zone' ||
+    deliveryKind === 'radius-anchor'
+  let propagation: DeliveryPropagation | undefined
+  if (areaKind) {
+    if (!object(rawPropagation)) {
+      reject(
+        'invalid_propagation',
+        'Area delivery requires origin, shape, route and barrier policy.'
+      )
+    } else {
+      const {
+        originSquare: rawOrigin,
+        shapeKind,
+        lineOfEffect,
+        barrierBlocksPropagation,
+      } = rawPropagation
+      const originSquare = identifier(rawOrigin)
+      const route = Array.isArray(lineOfEffect)
+        ? Array.from(lineOfEffect, (square: unknown) => identifier(square))
+        : []
+      if (
+        !originSquare ||
+        shapeKind !== deliveryKind ||
+        route.length === 0 ||
+        route.some((square) => square === null) ||
+        route[0] !== originSquare ||
+        new Set(route).size !== route.length ||
+        barrierBlocksPropagation !== true
+      ) {
+        reject(
+          'invalid_propagation',
+          'Require matching shape, unique route from origin, and solid-barrier blocking.'
+        )
+      } else {
+        propagation = Object.freeze({
+          originSquare,
+          shapeKind: deliveryKind,
+          lineOfEffect: Object.freeze(route as string[]),
+          barrierBlocksPropagation: true,
+        })
+      }
+    }
+  } else if (rawPropagation !== undefined) {
+    reject('invalid_propagation', 'Propagation metadata belongs to area delivery kinds.')
+  }
+
+  let mobileAnchor: DeliveryMobileAnchor | undefined
+  if (deliveryKind === 'radius-anchor') {
+    if (!object(rawAnchor)) {
+      reject('invalid_mobile_anchor', 'Radius-anchor delivery requires mobile-anchor metadata.')
+    } else {
+      const { anchorActorRef: rawActor, radiusBand, followsMovement } = rawAnchor
+      const anchorActorRef = identifier(rawActor)
+      if (
+        !anchorActorRef ||
+        !member(DELIVERY_RADIUS_BANDS, radiusBand) ||
+        followsMovement !== true
+      ) {
+        reject(
+          'invalid_mobile_anchor',
+          'Require an actor, known radius band and followsMovement=true.'
+        )
+      } else {
+        mobileAnchor = Object.freeze({ anchorActorRef, radiusBand, followsMovement: true })
+      }
+    }
+  } else if (rawAnchor !== undefined) {
+    reject('invalid_mobile_anchor', 'Mobile-anchor metadata requires radius-anchor delivery.')
   }
 
   if (
-    typeof record.areaScaleFactor !== 'number' ||
-    record.areaScaleFactor < AREA_SCALE_FACTOR_MIN ||
-    record.areaScaleFactor > AREA_SCALE_FACTOR_MAX
+    issues.length ||
+    !id ||
+    !member(DELIVERY_KINDS, deliveryKind) ||
+    !legalCost ||
+    !legalScale ||
+    !member(WILLINGNESS_RULES, willingnessRule)
   ) {
-    pushIssue(issues, {
-      code: 'area_scale_factor_out_of_bounds',
-      detail: `areaScaleFactor must be between ${AREA_SCALE_FACTOR_MIN} and ${AREA_SCALE_FACTOR_MAX}, got ${String(record.areaScaleFactor)}.`,
-      severity: 'error',
-    })
+    return { value: null, issues }
   }
-
-  if (!WILLINGNESS_RULE_SET.has(record.willingnessRule)) {
-    pushIssue(issues, {
-      code: 'invalid_willingness_rule',
-      detail: `Invalid willingnessRule: ${String(record.willingnessRule)}.`,
-      severity: 'error',
-    })
-  } else if (
-    KINDS_REQUIRING_WILLINGNESS.has(record.deliveryKind as DeliveryKind) &&
-    record.willingnessRule === 'none'
-  ) {
-    pushIssue(issues, {
-      code: 'willingness_rule_required',
-      detail: `willingnessRule is required (cannot be 'none') for deliveryKind ${record.deliveryKind}.`,
-      severity: 'error',
-    })
-  }
-
   return {
-    valid: issues.length === 0,
+    value: Object.freeze({
+      id,
+      deliveryKind,
+      baseCost,
+      areaScaleFactor,
+      willingnessRule,
+      ...(propagation ? { propagation } : {}),
+      ...(mobileAnchor ? { mobileAnchor } : {}),
+      scaledCost,
+    }),
     issues,
   }
 }
 
+export function validateEffectDeliveryGeometryRecord(
+  input: unknown
+): EffectDeliveryGeometryValidationResult {
+  const { value, issues } = parseRecord(input)
+  return { valid: value !== null, issues }
+}
+
+/** Normalized, frozen snapshot; no live actor/board lookup or effect execution. */
 export function projectEffectDeliveryGeometry(
-  record: EffectDeliveryGeometryRecord
+  input: unknown
 ): EffectDeliveryGeometryProjection | null {
-  const validation = validateEffectDeliveryGeometryRecord(record)
-  if (!validation.valid) {
-    return null
-  }
+  return parseRecord(input).value
+}
 
-  const scaledCost = record.baseCost * (1 + record.areaScaleFactor)
-
+function areaFixture(
+  id: string,
+  deliveryKind: AreaDeliveryKind,
+  baseCost: number,
+  areaScaleFactor: number
+): EffectDeliveryGeometryRecord {
   return {
-    id: record.id,
-    deliveryKind: record.deliveryKind,
-    baseCost: record.baseCost,
-    areaScaleFactor: record.areaScaleFactor,
-    willingnessRule: record.willingnessRule,
-    scaledCost,
+    id,
+    deliveryKind,
+    baseCost,
+    areaScaleFactor,
+    willingnessRule: 'none',
+    propagation: {
+      originSquare: 'square:origin',
+      shapeKind: deliveryKind,
+      lineOfEffect: ['square:origin', 'square:spread'],
+      barrierBlocksPropagation: true,
+    },
+    ...(deliveryKind === 'radius-anchor'
+      ? {
+          mobileAnchor: {
+            anchorActorRef: 'actor:anchor',
+            radiusBand: 'local',
+            followsMovement: true,
+          } as const,
+        }
+      : {}),
   }
 }
 
-/** Deterministic fixture records covering required delivery kinds. */
-export const EFFECT_DELIVERY_GEOMETRY_FIXTURES: readonly EffectDeliveryGeometryRecord[] = [
-  {
-    id: 'edg-cone-01',
-    deliveryKind: 'cone',
-    baseCost: 5,
-    areaScaleFactor: 1.5,
-    willingnessRule: 'none',
-    label: 'Standard cone delivery',
-  },
-  {
-    id: 'edg-line-01',
-    deliveryKind: 'line',
-    baseCost: 3,
-    areaScaleFactor: 0.5,
-    willingnessRule: 'none',
-    label: 'Linear delivery',
-  },
-  {
-    id: 'edg-touch-01',
-    deliveryKind: 'touch',
-    baseCost: 2,
-    areaScaleFactor: 0,
-    willingnessRule: 'consent',
-    label: 'Touch delivery requiring consent',
-  },
-  {
-    id: 'edg-remote-01',
-    deliveryKind: 'remote',
-    baseCost: 8,
-    areaScaleFactor: 2,
-    willingnessRule: 'resistance-check',
-    label: 'Remote delivery with resistance check',
-  },
-  {
-    id: 'edg-zone-01',
-    deliveryKind: 'zone',
-    baseCost: 10,
-    areaScaleFactor: 3,
-    willingnessRule: 'none',
-    label: 'Zone delivery',
-  },
-  {
-    id: 'edg-radius-01',
-    deliveryKind: 'radius-anchor',
-    baseCost: 4,
-    areaScaleFactor: 1,
-    willingnessRule: 'none',
-    label: 'Radius-anchor delivery',
-  },
-] as const
+/** Authored fixtures, not live campaign records or playable effects. */
+export const EFFECT_DELIVERY_GEOMETRY_FIXTURES: readonly EffectDeliveryGeometryRecord[] =
+  Object.freeze(
+    [
+      areaFixture('edg-cone-01', 'cone', 5, 1.5),
+      areaFixture('edg-line-01', 'line', 3, 0.5),
+      {
+        id: 'edg-touch-01',
+        deliveryKind: 'touch',
+        baseCost: 2,
+        areaScaleFactor: 0,
+        willingnessRule: 'consent',
+      },
+      {
+        id: 'edg-remote-01',
+        deliveryKind: 'remote',
+        baseCost: 8,
+        areaScaleFactor: 2,
+        willingnessRule: 'resistance-check',
+      },
+      areaFixture('edg-zone-01', 'zone', 10, 3),
+      areaFixture('edg-radius-01', 'radius-anchor', 4, 1),
+    ].map((record) => projectEffectDeliveryGeometry(record)!)
+  )

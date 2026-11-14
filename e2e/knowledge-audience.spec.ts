@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { createStartingState } from '../src/data/startingState'
 import {
   clearCampaignStorage,
@@ -56,6 +56,29 @@ function fixture() {
   return JSON.stringify(game)
 }
 
+async function readRouteLayout(page: Page) {
+  return page.evaluate(() => {
+    const tier = document.querySelector('.topbar-org-tier')
+    if (!tier) throw new Error('Expected the shared status bar')
+    const rect = tier.getBoundingClientRect()
+    const style = getComputedStyle(tier)
+    return {
+      route: location.pathname,
+      width: innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      header: {
+        text: tier.textContent,
+        left: rect.left,
+        right: rect.right,
+        font: style.fontFamily,
+        fontSize: style.fontSize,
+        letterSpacing: style.letterSpacing,
+        whiteSpace: style.whiteSpace,
+      },
+    }
+  })
+}
+
 for (const { width, fontFallback } of [
   { width: 1440, fontFallback: false },
   { width: 390, fontFallback: false },
@@ -80,6 +103,14 @@ for (const { width, fontFallback } of [
       useGameStore.setState({ game: JSON.parse(raw) as import('../src/domain/models').GameState })
     }, fixture())
     await page.getByRole('link', { name: 'Reports', exact: true }).first().click()
+    await expect(page).toHaveURL(/\/report$/)
+    await expect(page.getByRole('link', { name: /^Week 1$/i })).toBeVisible()
+    const routeBaseline = await readRouteLayout(page)
+    const baselineKnowledge = await page.evaluate(async () => {
+      const modulePath = '/src/app/store/gameStore.ts'
+      const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)
+      return JSON.stringify(useGameStore.getState().game.knowledge)
+    })
     await page.getByRole('link', { name: /^Week 1$/i }).click()
     const panel = page.getByRole('region', { name: 'Knowledge audience preview' })
     await expect(panel).toBeVisible()
@@ -103,6 +134,7 @@ for (const { width, fontFallback } of [
       const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)
       return JSON.stringify(useGameStore.getState().game.knowledge)
     })
+    expect(before).toBe(baselineKnowledge)
     await publicChoice.focus()
     await publicChoice.press('ArrowRight')
     await expect(restrictedChoice).toBeChecked()
@@ -116,6 +148,24 @@ for (const { width, fontFallback } of [
     await expect(publicChoice).toBeChecked()
     await expect(publicChoice).toBeFocused()
     expect(await panel.innerHTML()).not.toMatch(/PRIVATE|Team t_greentape|Relay failed/)
+    const routeAfter = await readRouteLayout(page)
+    console.info(
+      'SPE-587 route-layout evidence',
+      JSON.stringify({ width, fontFallback, before: routeBaseline, after: routeAfter })
+    )
+    expect(routeBaseline.route).toBe('/report')
+    expect(routeAfter.route).toBe('/report/1')
+    expect(routeAfter.width).toBe(routeBaseline.width)
+    expect(routeAfter.header).toEqual(routeBaseline.header)
+    const panelLayout = await panel.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        left: rect.left,
+        right: rect.right,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      }
+    })
     const layout = await page.evaluate(() => ({
       width: window.innerWidth,
       documentWidth: document.documentElement.scrollWidth,
@@ -134,15 +184,21 @@ for (const { width, fontFallback } of [
           : []
       }),
     }))
+    expect(panelLayout.left).toBeGreaterThanOrEqual(0)
+    expect(panelLayout.right).toBeLessThanOrEqual(layout.width)
+    expect(panelLayout.scrollWidth).toBeLessThanOrEqual(panelLayout.clientWidth)
     expect(layout.documentWidth, JSON.stringify(layout.overflowing)).toBeLessThanOrEqual(
-      layout.width
+      Math.max(layout.width, routeBaseline.documentWidth)
     )
+    // Retained until equivalent Linux before/after evidence establishes the baseline.
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.width)
     const after = await page.evaluate(async () => {
       const modulePath = '/src/app/store/gameStore.ts'
       const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)
       return JSON.stringify(useGameStore.getState().game.knowledge)
     })
     expect(after).toBe(before)
+    await publicChoice.focus()
     await panel.screenshot({ path: testInfo.outputPath(`public-${width}.png`) })
     await expectNoPageErrors(probe)
     probe.dispose()

@@ -451,6 +451,7 @@
     "src/test/downtimeSlot.test.ts",
     "src/test/duplicateFacilityStacking.contract.test.ts",
     "src/test/economy.test.ts",
+    "src/test/effectDeliveryGeometryRegistry.test.ts",
     "src/test/effectDurationModeRegistry.test.ts",
     "src/test/elapsedTimeInvariantUpdate.test.ts",
     "src/test/emergencyBranchBorrowingFacility.contract.test.ts",

@@ -102,3 +102,20 @@ it('derives all preview display props from the chosen audience without private m
   expect(publicPreview.groups[0].rows[0].explanation).toBe('Bypass method family suspected.')
   expect(JSON.stringify(state)).toBe(before)
 })
+
+it('uses qualified computed operator explanations instead of arbitrary freeform notes', () => {
+  const knowledge = {
+    'team:one::case:one': {
+      entityId: 'team:one',
+      subjectId: 'case:one',
+      subjectType: 'anomaly' as const,
+      tier: 'confirmed' as const,
+      defeatConditionCertainty: 'unknown' as const,
+      notes: 'ARBITRARY_NOTE_CLAIMS_CERTAINTY',
+    },
+  }
+  const preview = buildReportKnowledgePreview(knowledge, 'internal')
+  expect(preview.groups[0].rows[0].explanation).toBe('Defeat/neutralization condition is unknown.')
+  expect(JSON.stringify(preview)).not.toContain('ARBITRARY_NOTE')
+  expect(knowledge['team:one::case:one'].notes).toBe('ARBITRARY_NOTE_CLAIMS_CERTAINTY')
+})

@@ -106,6 +106,30 @@ describe('public projection boundaries', () => {
     })
     expect(JSON.stringify(view)).not.toContain('PRIVATE')
   })
+  it('keeps explicitly unknown defeat certainty on an otherwise confirmed subject', () => {
+    const view = getFilteredKnowledgeView(
+      { [key]: { ...entry, tier: 'confirmed', defeatConditionCertainty: 'unknown' } },
+      'public'
+    )
+    expect(view[key]).toMatchObject({ tier: 'confirmed', defeatConditionCertainty: 'unknown' })
+    expect(JSON.stringify(view)).not.toContain('PRIVATE')
+  })
+  it.each(['relayed', 'operationalized', 'institutionalized'] as const)(
+    'preserves the existing exact-certainty tier contract for %s without source metadata',
+    (tier) => {
+      const view = getFilteredKnowledgeView(
+        { [key]: { ...entry, tier, defeatConditionCertainty: 'exact', lastConfirmedWeek: 2 } },
+        'public'
+      )
+      expect(view[key]).toMatchObject({
+        tier,
+        defeatConditionCertainty: 'exact',
+        lastConfirmedWeek: 2,
+        notes: 'Exact defeat/neutralization condition known.',
+      })
+      expect(JSON.stringify(view)).not.toContain('PRIVATE')
+    }
+  )
   it('preserves input data and detaches mutable internal arrays', () => {
     const state: KnowledgeStateMap = { [key]: entry }
     const before = JSON.stringify(state)

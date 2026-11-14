@@ -69,6 +69,7 @@ export function buildReportKnowledgePreview(
     rows.push({
       subjectId: state.subjectId,
       tier: state.tier,
+      // Only public allowlisted summaries use notes. Operator text uses qualified domain explainers.
       explanation:
         state.notes && audience === 'public'
           ? state.notes

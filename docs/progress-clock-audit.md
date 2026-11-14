@@ -1,6 +1,8 @@
 # Progress Clock Audit (Design + Authoring Guidance)
 
 > Documentation-only support note for progress clock usage in Containment Protocol.
+>
+> **Static crosscheck (2026-11-14 at `bdbf4624`):** §2's metadata fields ship as documented (`hidden`, `description`, `tags`). §1's categories exceed the runtime catalog, which is a closed three-id allowlist — see §5 Save/load. Code reading, not runtime verification.
 
 ## 1) Clock categories
 
@@ -80,6 +82,8 @@ Use deterministic threshold patterns that are easy to evaluate and debug:
 - **Save/load**
   - Persist `runtimeState.progressClocks` as authoritative clock state.
   - Normalization should sanitize invalid values while preserving valid completed clocks.
+
+> **Divergence (static, 2026-11-14 at `bdbf4624`):** "preserving valid completed clocks" holds only for the three registered ids (`containment.breach.followup.posture`, `incident.chain.breach`, `story.breach-depth`; `src/domain/progressClocks.ts:12-16`). Hydration drops every clock whose id fails `isAllowedProgressClockId` (`src/domain/gameStateManager.ts:679`), so a clock authored outside the catalog is lost on load rather than rejected with a diagnostic.
 
 ## 6) Common pitfalls
 

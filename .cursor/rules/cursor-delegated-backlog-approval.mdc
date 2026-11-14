@@ -11,7 +11,7 @@ Canonical Cursor authority: **`docs/cursor-autonomous-authority.md`**.
 
 When continuing without a named slice:
 
-1. Clean main; no open PR.
+1. Clean synchronized main; complete current triage of every open PR including drafts under the clean-main rule. Prioritize PRs you can advance; proceeding beside a blocked or externally active PR requires current evidence, a next action and verified non-overlap/dependency independence.
 2. Resume sole In Progress slice if present.
 3. Else pick an eligible existing issue **or** create a bounded issue when safeguards justify it.
 4. Set In Progress; record rationale in Linear; implement under `implementation-lite.mdc`.

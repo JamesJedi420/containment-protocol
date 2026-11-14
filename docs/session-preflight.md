@@ -101,6 +101,7 @@ The top-level envelope carries:
 - `linear`: source-attributed lifecycle, approval, workstream, parent, blocker, and dependency evidence;
 - `github`: source-attributed remote-main and open-PR evidence plus optional independently attributed implementation evidence;
 - `git`: source-attributed local checkout/worktree evidence.
+- optional `openPrTriage`: sourced, head-bound dispositions for other open PRs and the exact proposed boundary; observations only, never approval.
 
 Every timestamp must end in `Z` or an explicit numeric offset such as `-06:00`. Ambiguous local timestamps are rejected.
 
@@ -183,7 +184,7 @@ Evidence with `collectionStatus` other than `ready` may omit current source-spec
 
 A `start` may target a Backlog/unstarted issue. It may also target an In Progress parent when the handoff explicitly names the next approved non-child slice through `sliceRef`; this supports SPE-3337’s sequential Slice A/Slice B delivery without closing the parent between slices. A `start` on an In Progress issue without an explicit slice reference is blocked.
 
-A `resume` requires the issue to remain In Progress and the sole open pull request to match the named issue and branch.
+A `resume` requires the issue to remain In Progress and exactly one open pull request to match the named issue and branch. Additional PRs require the sourced triage contract below; legacy input retains the sole-open-PR restriction.
 
 ### Local checkout
 
@@ -199,11 +200,60 @@ For `resume`, the worktree must be on the intended branch. The preflight never c
 
 ### Pull requests
 
-Any open pull request blocks `start` under the current one-active-slice policy.
+Inspect every open PR, including drafts, and prioritize those the executor can advance. An actionable PR blocks starting another slice. A PR that genuinely cannot progress may permit otherwise authorized non-overlapping work only with a current concrete blocker or evidenced accepted active executor, a next action and verified dependency independence. Draft status, authorship, assignment, preference or an old comment alone provides no exemption. Retain explicit holds, one active owned boundary, clean current main and all existing scope, lifecycle, validation, independent-review and merge gates.
 
-`resume` is ready only when there is exactly one open pull request and its verified issue ID, head branch, and `main` base match the handoff. Ambiguous ownership returns `unknown`; an unrelated or additional PR returns `blocked`.
+This includes an owned PR explicitly left paused because it is genuinely blocked: record its blocker and next action on the existing owner, retain its incomplete status and report phase A for that boundary. A fresh separately authorized independent boundary may then start under the same checks. A paused PR is not merged or completed; there is at most one active owned boundary and no additional queue, scheduler or lock.
+
+Without `openPrTriage`, any open PR still blocks `start`; `resume` requires the sole open PR's verified issue, head branch and `main` base to match. No legacy flag waives this restriction. With triage supplied, `resume` identifies exactly one matching verified issue/branch, checks its actual head against local HEAD and includes its actual changed paths in the overlap check. Other PRs require exactly one disposition each. Ambiguous ownership on the resumed PR remains `unknown`; another PR occupying the named issue or branch blocks competing work.
 
 The GitHub collector resolves issue ownership from one issue identifier in the PR title. Only when the title contains none does it accept one unique identifier from the body. Multiple identifiers at the selected level are not guessed. Empty or malformed PR output fails closed rather than being interpreted as an empty list.
+
+### Sourced per-PR triage contract
+
+The optional root `openPrTriage` uses `schemaVersion: 1` within the existing version-1 envelope. Its strict fields are:
+
+- `boundary`: `issueId`, `workstream`, `branch`, `baseMainSha`, `executor`, `paths`, `checkedAt`, `sourceRef`. Identity must match the handoff exactly. `executor` identifies this accepted session, not merely its model or human assignee. `paths` is a nonempty list of literal repository files/directory prefixes; globs, absolute paths, traversal and backslashes are rejected. Check scope completeness against the authoritative issue and intended edits before collection.
+- `items`: exactly one row per other open PR, including drafts. Each row has `number`, current `headSha`, `updatedAt`, `isDraft`, `disposition`, concrete `reason`, `nextAction`, `checkedAt`, `sourceRef`, and `dependency`.
+- `dependency`: `status` (`independent`, `dependent`, `unknown`), `checkedAt`, `sourceRef`, established from current Linear relationships and the actual scope. Known handoff dependency/blocker IDs override an independent claim; a dependent PR blocks and unknown evidence returns `unknown`.
+- For `disposition: 'blocked'`, require `blocker`: `kind` (`explicit-hold`, `external-dependency`, `permission`, `service-unavailable`), responsible `actor`, concrete `detail`, `checkedAt`, `sourceRef`. An actionable review finding or failing check alone is not an external blocker.
+- For `disposition: 'active-owner'`, require `activity`: accepted `executor`, `acceptedAt`, `acceptanceSourceRef`, `status: 'active'`, `checkedAt`, `sourceRef` to actual current progress/session evidence. An executor identical to this boundary's executor blocks a second active boundary. Acceptance alone does not prove current activity.
+- `actionable` blocks a fresh `start`. For `resume`, the selected authorized matching PR may advance beside other independently actionable PRs after all dispositions and path/dependency checks pass; two actionable drafts must not mutually deadlock continuation. No fabricated blocker or owner is needed for the unselected PR. `unknown` fails closed for either operation. Supplying activity or blocker fields with the wrong disposition is contradictory and invalid. Unsupported packet fields and duplicate PR numbers are invalid.
+
+Example row (illustrative values, not evidence of a real hold):
+
+```json
+{
+  "number": 42,
+  "headSha": "2222222222222222222222222222222222222222",
+  "updatedAt": "2026-11-03T03:29:00Z",
+  "isDraft": true,
+  "disposition": "blocked",
+  "reason": "The current instruction reserves this repair to its author",
+  "nextAction": "Author corrects the identified finding and requests fresh review",
+  "checkedAt": "2026-11-03T03:29:30Z",
+  "sourceRef": "user:current-explicit-author-only-hold",
+  "dependency": {
+    "status": "independent",
+    "checkedAt": "2026-11-03T03:29:30Z",
+    "sourceRef": "linear:current-scope-and-relationship-check"
+  },
+  "blocker": {
+    "kind": "explicit-hold",
+    "actor": "author-session:42",
+    "detail": "Taking over the repair is explicitly excluded",
+    "checkedAt": "2026-11-03T03:29:30Z",
+    "sourceRef": "user:current-explicit-author-only-hold"
+  }
+}
+```
+
+Ready GitHub evidence must have `openPullRequestsComplete: true` and each PR's current `headSha`, `updatedAt`, `isDraft`, and complete `changedPaths`. Compare literal paths conservatively, case-insensitively, including directory-prefix overlap. A different issue or branch name does not prove independence. Semantic dependencies still require the separately sourced relationship check.
+
+The collector uses paginated REST reads for all open PRs. With a triage packet it also collects every PR's file list (both previous and new rename paths), rechecks metadata after files, verifies the returned file count and re-reads the complete inventory. Changed heads/state, an incomplete file list, GitHub's 3,000-file cap or command failure makes collection unavailable. No draft filter or default 30-PR limit applies. The collector retains caller-supplied dispositions and timestamps; collecting GitHub again never refreshes their provenance.
+
+All observations use the envelope's freshness window and 30-second future tolerance, at millisecond precision or coarser. Disposition, dependency, blocker and activity observations must not predate the PR's current update; acceptance must not follow the activity observation. Head, update or draft-state changes invalidate prior triage. Missing, stale, mismatched or contradictory evidence returns `unknown`; overlap and known dependencies remain blockers. Refresh before starting/resuming and after relevant state changes.
+
+The evaluator checks the supplied evidence's consistency; it cannot authenticate prose source references, prove that planned paths cover all future edits, or discover undeclared semantic dependencies. The receiving executor must actually read the cited authoritative sources, inspect the full diff, reviews, CI and merge state, and keep planned paths truthful. The packet is neither a lock nor an approval system. JSON and Markdown preserve the observations and source references explicitly as evidence, not authority.
 
 ## Evidence and output
 

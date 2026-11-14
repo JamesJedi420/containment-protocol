@@ -1,28 +1,28 @@
 ---
-description: Do not start the next implementation slice until main is clean and every open PR is merged
+description: Require fresh clean main and complete evidenced open-PR triage before the next approved slice
 alwaysApply: true
 ---
 
-# Clean main before the next slice
+# Clean main and triage every open PR
 
-Do not begin the next implementation slice while `main` is dirty or any pull request is open.
+Before starting a slice, check `git status` and a complete, paginated inventory of **all open PRs, including drafts**. Do not rely on the default PR-list limit. Preserve unrelated checkouts and worktrees.
 
 `main` is clean only when all of these are true:
 
-- the current branch is `main`
+- the checked main worktree is on `main`
 - the working tree has no uncommitted tracked changes
-- local `main` is not ahead of or behind `origin/main`
+- local `main` is not ahead of or behind freshly verified `origin/main`
 
-Ignored local files such as `.cursor/settings.json` do not make `main` dirty.
+Ignored local files such as `.cursor/settings.json` do not make `main` dirty. Existing isolated-worktree start/resume checks in `docs/session-preflight.md` remain applicable; isolation never waives freshness or tracked cleanliness.
 
-Before starting a slice, run `git status` and `gh pr list --state open`.
+For each open PR:
 
-When `main` is dirty or a PR is open:
+1. Inspect its current head, full diff, review findings, CI, merge state and actual executor activity. Prioritize PRs you can advance under existing authority: fix in-boundary findings, obtain independent review and green required checks, merge, then synchronize main.
+2. If it genuinely cannot progress, record a current concrete external blocker or explicit hold, or fresh evidence of an accepted active executor. Name the responsible actor/executor, evidence reference, current PR head/state, observation time and next action. Draft status, author, assignee, model preference or an old comment alone establishes neither active work nor a blocker. An actionable review/CI correction is work to prioritize, not a reason to skip the PR.
+3. Honor explicit holds and active work. Do not take over another executor's work or manufacture ownership to clear this gate.
 
-1. Do not create a branch, set a new issue In Progress, or edit code for a new slice.
-2. For each open PR: review the full diff, triage review comments, fix in-boundary findings, watch CI until green, then merge.
-3. `git checkout main` and `git pull origin main`.
-4. Repeat until `main` is clean and no PR is open.
-5. Only then start the next slice.
+Otherwise approved work may proceed beside those blocked or externally active PRs only after every PR is accounted for and current evidence establishes path non-overlap and dependency independence. Unknown, missing, stale, changed-head or contradictory evidence blocks readiness. Repeat triage when heads, PR state, scope, dependencies or main change. Complete an actionable owned boundary first, or explicitly leave a genuinely blocked boundary paused with current blocker, responsible actor and next-action evidence on its existing owner. A paused PR remains open and incomplete with truthful lifecycle; pausing is not merge or completion. Work on at most one eligible active owned boundary after fresh clean-main, scope and independence checks. No second queue, scheduler or lock is introduced.
 
-If merge is blocked, stop and report the blocker. Do not start the next slice beside the open PR.
+Resuming the selected authorized matching PR may proceed beside independently actionable PRs after all other triage, overlap, dependency and active-executor checks pass. Do not make two actionable drafts mutually block continuation or invent holds/owners for them. Actionable PRs still prevent starting fresh work.
+
+Dirty/stale main, actionable PRs, overlap, unresolved dependencies or unverified dispositions prevent starting a new slice. Report the exact blocker and next action. Existing scope authorization, Linear lifecycle, validation, independent review, merge and closeout gates remain mandatory. This rule adds no queue, lock, approval or global bypass. The optional sourced per-PR packet in `docs/session-preflight.md` makes this distinction executable; legacy input retains its conservative open-PR restrictions.

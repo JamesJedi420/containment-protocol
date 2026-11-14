@@ -1,5 +1,11 @@
 # Event Schema Registry
 
+## Knowledge certainty hydration (bounded SPE-58 repair)
+
+Optional `KnowledgeState.defeatConditionCertainty` already belongs to the canonical knowledge model. The shared `sanitizeKnowledgeStateMap` now preserves exactly `unknown`, `suspected`, `family` and `exact` for live knowledge and historical weekly-report snapshots. Missing or malformed values remain absent; they are never inferred from tier, notes, true classification, timestamps or current knowledge. Explicit `unknown` remains distinct from omission. Existing `lastDefeatConditionUpdateWeek` clamping, identity/reference checks, optional-field normalization, fallback behavior and snapshot authority are unchanged.
+
+This repairs recognition of an existing optional field in `hydrateGame`; it adds no persisted field, event shape, serializer, migration owner or envelope. Supported legacy/current paths retain valid certainty and audience output across repeated round trips. Save version 1, store version 7 and event versions remain unchanged. Wrapper timestamp/future-version rejection is unchanged; generic compatibility policy, including the low-level store migrator's different future-version behavior, remains SPE-3403. Previously discarded certainty is not reconstructed. Constructed producer-state tests establish persistence/output behavior, not normal gameplay acquisition or full SPE-58 completion. See [knowledge audience preview evidence](docs/knowledge-audience-preview.md).
+
 ## Personnel relationship provenance (SPE-3103)
 
 `Agent.relationships` remains canonical directional chemistry in `[-2, 2]`. Optional `Agent.relationshipMetadata` stores typed tags and source/reason/week/event references, not another numeric value. Explicitly removed edges retain terminal metadata with reason `removed` while their current value is absent. Hydration preserves valid active/terminal records in stable key order, drops malformed/orphan/self metadata and future weeks when a campaign clock is available, and leaves missing legacy provenance unknown. Run import does not inherit omitted metadata from fallback agents. History bonds remain compatibility/history mirrors; canonical chemistry consumers use current relationships. Existing operation history is retained.

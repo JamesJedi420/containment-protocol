@@ -1,5 +1,6 @@
 import {
   getKnowledgeKey,
+  type DefeatConditionCertainty,
   type KnowledgeFragmentation,
   type KnowledgeOwnerType,
   type KnowledgeState,
@@ -37,6 +38,13 @@ const KNOWLEDGE_SUBJECT_TYPES = new Set<KnowledgeSubjectType>([
 ])
 
 const KNOWLEDGE_FRAGMENTATION = new Set<KnowledgeFragmentation>(['none', 'fragmented', 'obsolete'])
+
+const DEFEAT_CONDITION_CERTAINTIES = new Set<DefeatConditionCertainty>([
+  'unknown',
+  'suspected',
+  'family',
+  'exact',
+])
 
 const CONFIRMATION_STATES = new Set<NonNullable<KnowledgeState['confirmationState']>>([
   'provisional',
@@ -121,6 +129,11 @@ function sanitizeKnowledgeEntry(
     value.lastDefeatConditionUpdateWeek,
     context.campaignWeek
   )
+  const defeatConditionCertainty =
+    typeof value.defeatConditionCertainty === 'string' &&
+    DEFEAT_CONDITION_CERTAINTIES.has(value.defeatConditionCertainty as DefeatConditionCertainty)
+      ? (value.defeatConditionCertainty as DefeatConditionCertainty)
+      : undefined
 
   const fragmentation =
     typeof value.fragmentation === 'string' &&
@@ -211,6 +224,7 @@ function sanitizeKnowledgeEntry(
       ...(value.masked === true ? { masked: true } : {}),
       ...(lastMaskedWeek !== undefined ? { lastMaskedWeek } : {}),
       ...(lastDefeatConditionUpdateWeek !== undefined ? { lastDefeatConditionUpdateWeek } : {}),
+      ...(defeatConditionCertainty !== undefined ? { defeatConditionCertainty } : {}),
     },
   ]
 }

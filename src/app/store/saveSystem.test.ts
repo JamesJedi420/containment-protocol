@@ -16,7 +16,27 @@ import {
   setEncounterRuntimeState,
   setUiDebugState,
 } from '../../domain/gameStateManager'
-import { RUN_EXPORT_KIND, createRunExportPayload } from './runTransfer'
+import {
+  RUN_EXPORT_KIND,
+  GAME_STORE_VERSION,
+  buildReportCaseSnapshot,
+  createRunExportPayload,
+  hydrateGame,
+  migratePersistedStore,
+  parseRunExport,
+  serializeRunExport,
+  stripGameTemplates,
+} from './runTransfer'
+import {
+  applyDefeatConditionKnowledge,
+  getKnowledgeKey,
+  hasDefeatConditionCertainty,
+  type DefeatConditionCertainty,
+} from '../../domain/knowledge'
+import {
+  buildReportKnowledgePreview,
+  buildReportKnowledgeView,
+} from '../../features/report/reportKnowledgeView'
 import {
   GAME_SAVE_KIND,
   GAME_SAVE_VERSION,
@@ -508,4 +528,163 @@ describe('saveSystem', () => {
       )
     ).toThrow('Run payload version is not supported by this build.')
   })
+})
+
+// Constructed knowledge uses the existing producer; this is persistence/output evidence, not acquisition wiring.
+function knowledgeRoundTripFixture(certainty: DefeatConditionCertainty) {
+  const game = createStartingState()
+  game.week = 5
+  const [teamId, otherTeamId] = Object.keys(game.teams) as [string, string]
+  const subjectId = Object.keys(game.cases)[0]!
+  const key = getKnowledgeKey(teamId, subjectId)
+  game.knowledge = applyDefeatConditionKnowledge(game.knowledge, teamId, subjectId, certainty, 3)
+  game.knowledge[key] = {
+    ...game.knowledge[key],
+    obsolete: true,
+    fragmented: true,
+    trueClassification: 'PRIVATE_CLASS',
+    source: 'PRIVATE_SOURCE',
+    relayFailed: true,
+    lastRelayFailedWeek: 3,
+    fusedFrom: [otherTeamId],
+    lastFusedWeek: 3,
+  }
+  const maskedKey = getKnowledgeKey(otherTeamId, subjectId)
+  game.knowledge[maskedKey] = {
+    entityId: otherTeamId,
+    subjectId,
+    tier: 'confirmed',
+    masked: true,
+    defeatConditionCertainty: 'exact',
+  }
+  game.reports = [
+    {
+      week: 3,
+      rngStateBefore: 1,
+      rngStateAfter: 2,
+      newCases: [],
+      progressedCases: [],
+      resolvedCases: [],
+      failedCases: [],
+      partialCases: [],
+      unresolvedTriggers: [],
+      spawnedCases: [],
+      maxStage: 1,
+      avgFatigue: 0,
+      teamStatus: [],
+      notes: [],
+      caseSnapshots: {
+        [subjectId]: buildReportCaseSnapshot(game.cases[subjectId], {
+          [teamId]: game.knowledge[key],
+          [otherTeamId]: game.knowledge[maskedKey],
+        }),
+      },
+    },
+  ]
+  return { game, teamId, subjectId, key }
+}
+
+function knowledgePreviews(game: ReturnType<typeof createStartingState>) {
+  const knowledge = buildReportKnowledgeView(game.knowledge, game.reports[0].caseSnapshots)
+  return {
+    public: buildReportKnowledgePreview(knowledge, 'public'),
+    internal: buildReportKnowledgePreview(knowledge, 'internal'),
+  }
+}
+
+describe.each(['run export', 'manual save'] as const)(
+  'SPE-58 %s knowledge preservation',
+  (channel) => {
+    const serialize = channel === 'run export' ? serializeRunExport : serializeGameSave
+    const load = channel === 'run export' ? parseRunExport : loadGameSave
+
+    it.each(['unknown', 'suspected', 'family', 'exact'] as const)(
+      'round-trips %s certainty, live state, snapshot authority and audience output',
+      (certainty) => {
+        const { game, teamId, subjectId, key } = knowledgeRoundTripFixture(certainty)
+        const before = JSON.stringify(game)
+        const expectedViews = knowledgePreviews(game)
+        const raw = serialize(game)
+        const payload = JSON.parse(raw)
+        const serializedState = channel === 'run export' ? payload.game : payload.state
+        expect(serializedState.knowledge[key].defeatConditionCertainty).toBe(certainty)
+        const loaded = load(raw)
+        expect(loaded.knowledge[key]).toMatchObject({
+          defeatConditionCertainty: certainty,
+          lastDefeatConditionUpdateWeek: 3,
+          obsolete: true,
+          fragmented: true,
+        })
+        expect(
+          loaded.reports[0].caseSnapshots?.[subjectId].knowledge?.[teamId].defeatConditionCertainty
+        ).toBe(certainty)
+        for (const required of ['unknown', 'suspected', 'family', 'exact'] as const) {
+          expect(hasDefeatConditionCertainty(loaded.knowledge, teamId, subjectId, required)).toBe(
+            hasDefeatConditionCertainty(game.knowledge, teamId, subjectId, required)
+          )
+        }
+        expect(knowledgePreviews(loaded)).toEqual(expectedViews)
+        expect(JSON.stringify(expectedViews.public)).not.toContain('PRIVATE')
+        expect(expectedViews.public.groups).toHaveLength(certainty === 'unknown' ? 0 : 1)
+        const twice = load(serialize(loaded))
+        expect(twice.knowledge).toEqual(loaded.knowledge)
+        expect(twice.reports[0].caseSnapshots?.[subjectId].knowledge).toEqual(
+          loaded.reports[0].caseSnapshots?.[subjectId].knowledge
+        )
+        expect(knowledgePreviews(twice)).toEqual(expectedViews)
+        expect(JSON.stringify(game)).toBe(before)
+        // A later live update cannot overwrite an earlier report's saved interpretation.
+        loaded.knowledge = applyDefeatConditionKnowledge(
+          loaded.knowledge,
+          teamId,
+          subjectId,
+          certainty === 'exact' ? 'family' : 'exact',
+          5
+        )
+        expect(knowledgePreviews(loaded)).toEqual(expectedViews)
+      }
+    )
+  }
+)
+
+it('preserves existing certainty through supported legacy/current migration without filling omitted legacy knowledge', () => {
+  const { game, key, subjectId, teamId } = knowledgeRoundTripFixture('family')
+  const persisted = stripGameTemplates(game)
+  for (const version of [1, GAME_STORE_VERSION]) {
+    const migrated = migratePersistedStore({ game: persisted }, version)
+    expect(migrated.game.knowledge[key].defeatConditionCertainty).toBe('family')
+    expect(
+      migrated.game.reports[0].caseSnapshots?.[subjectId].knowledge?.[teamId]
+        .defeatConditionCertainty
+    ).toBe('family')
+  }
+  for (const version of [1, GAME_STORE_VERSION]) {
+    const raw = JSON.stringify({ ...createRunExportPayload(game), version })
+    expect(parseRunExport(raw).knowledge[key].defeatConditionCertainty).toBe('family')
+    expect(loadGameSave(raw).knowledge[key].defeatConditionCertainty).toBe('family')
+  }
+  const legacy = JSON.parse(JSON.stringify(persisted))
+  delete legacy.knowledge[key].defeatConditionCertainty
+  delete legacy.reports[0].caseSnapshots[subjectId].knowledge[teamId].defeatConditionCertainty
+  const hydrated = hydrateGame(legacy, game)
+  expect(hydrated.knowledge[key]).not.toHaveProperty('defeatConditionCertainty')
+  expect(hydrated.reports[0].caseSnapshots?.[subjectId].knowledge?.[teamId]).not.toHaveProperty(
+    'defeatConditionCertainty'
+  )
+  expect(hydrated.knowledge[key].lastDefeatConditionUpdateWeek).toBe(3)
+})
+
+it('keeps future-wrapper and timestamp rejection with otherwise valid certainty payloads', () => {
+  const { game } = knowledgeRoundTripFixture('family')
+  const run = createRunExportPayload(game)
+  const save = createGameSavePayload(game)
+  expect(() => parseRunExport(JSON.stringify({ ...run, version: GAME_STORE_VERSION + 1 }))).toThrow(
+    'Run payload version is not supported by this build.'
+  )
+  expect(() => loadGameSave(JSON.stringify({ ...save, version: GAME_SAVE_VERSION + 1 }))).toThrow(
+    'Save payload version is not supported by this build.'
+  )
+  expect(() => parseRunExport(JSON.stringify({ ...run, exportedAt: 'invalid' }))).toThrow(
+    'Run payload exportedAt timestamp is missing or invalid.'
+  )
 })

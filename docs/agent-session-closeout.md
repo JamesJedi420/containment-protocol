@@ -6,6 +6,8 @@ The shared procedure lives in [Agent Operating Manual §4](agent-operating-manua
 
 Pre-ship audit → commit/push/PR → independent review and CI → merge → sync main → truthful Linear evidence → phase B. Phase A is an interim blocked/open-PR report. Follow the gameplay-evidence continuation in `AGENTS.md` for necessary work on the originally authorized feature; otherwise no next-issue implementation or candidate reconciliation in merge closeout. After closeout and required post-merge checkpoints, related approved work may continue in the same chat under manual §2's fresh checks and chat-continuity criteria. Later Cursor continuation retains its canonical autonomous authority.
 
+A genuinely blocked owned PR may instead be explicitly left paused after phase A records its current blocker, responsible actor, next action and truthful incomplete lifecycle. Phase A reports that boundary only; it is not merge/completion or authorization for another slice. A separately authorized continuation may then start one eligible non-overlapping active boundary after manual §2's fresh all-PR, clean-main, scope and dependency checks. Complete actionable owned work first; do not fabricate blockers or active ownership to change boundaries.
+
 ## Deferred work recording (mandatory)
 
 Use manual §§1, 3–5: record in-boundary deferrals on the slice and existing owner; new boundaries follow the actor’s candidate/authority route. Closeout must match those durable records. No invented issue or silent parent closure to populate a handoff.

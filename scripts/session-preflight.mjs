@@ -8,9 +8,18 @@ import {
 } from './session-preflight-core.mjs'
 import { spawnSafe } from './validation/spawn-safe.mjs'
 import { renderSessionHandoff } from './session-preflight-presentation.mjs'
+import { isTriagePath } from './session-preflight-pr-triage.mjs'
 
 function trimOutput(result) {
   return typeof result.stdout === 'string' ? result.stdout.trim() : ''
+}
+
+function parseArrayPages(output) {
+  // gh --paginate --jq '... | @json' emits one compact JSON array per page.
+  // --slurp cannot be combined with --jq. Do not silently drop later pages.
+  const pages = output.split(/\r?\n/).map((line) => JSON.parse(line))
+  if (!pages.every(Array.isArray)) throw new Error('expected JSON array pages')
+  return pages.flat()
 }
 
 export function runReadOnly(command, args, cwd, env = {}, spawn = spawnSafe) {
@@ -106,6 +115,11 @@ function isCollectedPullRequest(value) {
     value.baseRefName.length > 0 &&
     typeof value.title === 'string' &&
     value.title.length > 0 &&
+    typeof value.headRefOid === 'string' &&
+    /^[0-9a-f]{40}$/i.test(value.headRefOid) &&
+    typeof value.isDraft === 'boolean' &&
+    typeof value.updatedAt === 'string' &&
+    Number.isFinite(Date.parse(value.updatedAt)) &&
     (typeof value.body === 'string' || value.body === null)
   )
 }
@@ -129,6 +143,7 @@ export function collectGitHubEvidence({
   repository,
   checkedAt,
   implementationEvidence,
+  includeChangedPaths = false,
   cwd = process.cwd(),
   run = runReadOnly,
 } = {}) {
@@ -145,20 +160,16 @@ export function collectGitHubEvidence({
     return failedEvidence(checkedAt, `github:${repository}`, 'remote-main-unavailable')
   }
 
-  const pullRequests = run(
-    'gh',
-    [
-      'pr',
-      'list',
-      '--repo',
-      repository,
-      '--state',
-      'open',
-      '--json',
-      'number,url,headRefName,baseRefName,title,body',
-    ],
-    cwd
-  )
+  const inventoryArgs = [
+    'api',
+    `repos/${repository}/pulls?state=open&per_page=100`,
+    '--method',
+    'GET',
+    '--paginate',
+    '--jq',
+    'map({number,url:.html_url,headRefName:.head.ref,headRefOid:.head.sha,baseRefName:.base.ref,title,body,isDraft:.draft,updatedAt:.updated_at}) | @json',
+  ]
+  const pullRequests = run('gh', inventoryArgs, cwd)
   if (pullRequests.status !== 0) {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-unavailable')
   }
@@ -170,12 +181,105 @@ export function collectGitHubEvidence({
 
   let parsed
   try {
-    parsed = JSON.parse(pullRequestOutput)
+    parsed = parseArrayPages(pullRequestOutput)
   } catch {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
   }
   if (!Array.isArray(parsed) || !parsed.every(isCollectedPullRequest)) {
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-malformed')
+  }
+  if (new Set(parsed.map((pr) => pr.number)).size !== parsed.length)
+    return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-duplicated')
+  const pathsByNumber = new Map()
+  if (includeChangedPaths) {
+    for (const pr of parsed) {
+      const files = run(
+        'gh',
+        [
+          'api',
+          `repos/${repository}/pulls/${pr.number}/files?per_page=100`,
+          '--method',
+          'GET',
+          '--paginate',
+          '--jq',
+          'map({filename,previous_filename}) | @json',
+        ],
+        cwd
+      )
+      const metadata = run(
+        'gh',
+        [
+          'api',
+          `repos/${repository}/pulls/${pr.number}`,
+          '--method',
+          'GET',
+          '--jq',
+          '{headSha:.head.sha,headBranch:.head.ref,baseBranch:.base.ref,updatedAt:.updated_at,isDraft:.draft,changedFiles:.changed_files,state,merged}',
+        ],
+        cwd
+      )
+      if (files.status !== 0 || metadata.status !== 0)
+        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-unavailable')
+      let rows, current
+      try {
+        rows = parseArrayPages(trimOutput(files))
+        current = JSON.parse(trimOutput(metadata))
+      } catch {
+        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-malformed')
+      }
+      // GitHub's files API caps at 3,000. Never claim a capped/partial diff is complete.
+      if (
+        !Array.isArray(rows) ||
+        !current ||
+        !Number.isSafeInteger(current.changedFiles) ||
+        current.changedFiles < 1 ||
+        current.changedFiles >= 3000 ||
+        current.changedFiles !== rows.length ||
+        !rows.every(
+          (row) =>
+            row &&
+            isTriagePath(row.filename) &&
+            (row.previous_filename == null || isTriagePath(row.previous_filename))
+        )
+      )
+        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-incomplete')
+      if (
+        current.headSha !== pr.headRefOid ||
+        current.headBranch !== pr.headRefName ||
+        current.baseBranch !== pr.baseRefName ||
+        current.updatedAt !== pr.updatedAt ||
+        current.isDraft !== pr.isDraft ||
+        current.state !== 'open' ||
+        current.merged !== false
+      )
+        return failedEvidence(checkedAt, `github:${repository}`, 'pr-changed-during-collection')
+      pathsByNumber.set(
+        pr.number,
+        [
+          ...new Set(
+            rows.flatMap((row) => [
+              row.filename,
+              ...(row.previous_filename ? [row.previous_filename] : []),
+            ])
+          ),
+        ].sort()
+      )
+    }
+    const confirmed = run('gh', inventoryArgs, cwd)
+    let confirmedPrs
+    try {
+      confirmedPrs = parseArrayPages(trimOutput(confirmed))
+    } catch {
+      /* fail closed below */
+    }
+    const ordered = (prs) => [...prs].sort((a, b) => a.number - b.number)
+    if (
+      confirmed.status !== 0 ||
+      !Array.isArray(confirmedPrs) ||
+      !confirmedPrs.every(isCollectedPullRequest) ||
+      JSON.stringify(ordered(confirmedPrs)) !== JSON.stringify(ordered(parsed))
+    )
+      return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-changed-during-collection')
   }
 
   const evidence = {
@@ -183,6 +287,7 @@ export function collectGitHubEvidence({
     checkedAt,
     sourceRef: `github:${repository}:open-prs`,
     remoteMainSha,
+    openPullRequestsComplete: true,
     openPullRequests: parsed.map((pullRequest) => {
       const ownership = extractIssueIdentity(pullRequest.title, pullRequest.body)
       return {
@@ -194,6 +299,12 @@ export function collectGitHubEvidence({
         ownershipVerified: ownership.ownershipVerified,
         state: 'open',
         merged: false,
+        headSha: pullRequest.headRefOid,
+        isDraft: pullRequest.isDraft,
+        updatedAt: pullRequest.updatedAt,
+        ...(pathsByNumber.has(pullRequest.number)
+          ? { changedPaths: pathsByNumber.get(pullRequest.number) }
+          : {}),
       }
     }),
   }
@@ -231,6 +342,7 @@ export function collectLocalSessionEvidence(
     repository: input.repository,
     checkedAt,
     implementationEvidence: input.github?.implementationEvidence,
+    includeChangedPaths: input.openPrTriage !== undefined,
     cwd,
     run,
   })

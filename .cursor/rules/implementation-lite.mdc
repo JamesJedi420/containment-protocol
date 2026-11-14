@@ -11,7 +11,7 @@ Read `docs/agent-operating-manual.md` before substantive work. This tracked entr
 
 Read the issue, comments, parent/children, linked evidence, and slice doc. Linear owns approved scope and lifecycle; GitHub supplies implementation evidence. Follow `docs/cursor-autonomous-authority.md` for Cursor; ChatGPT phase gates do not bind Cursor. Keep the active PR within its verified boundary. Prefer existing systems and owners; no speculative frameworks, unrelated cleanup, or child-only parent closure.
 
-**Prerequisite gates:** Verify `clean-main` (`.cursor/rules/clean-main-before-next-slice.mdc`) before implementation selection; finish any open PR or sync `main` before starting a new slice.
+**Prerequisite gates:** Verify `clean-main` (`.cursor/rules/clean-main-before-next-slice.mdc`) before implementation selection: synchronize clean `main`, inspect every open PR including drafts, and prioritize those you can advance. Otherwise approved non-overlapping work requires current per-PR blocker or active-executor evidence, next actions and verified independence; preserve explicit holds and one active owned boundary.
 
 ## Pre-coding summary and audit
 

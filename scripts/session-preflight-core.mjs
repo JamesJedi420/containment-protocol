@@ -8,6 +8,12 @@ import {
   validateAgentDesignations,
   projectAgentDesignations,
 } from './session-preflight-designations.mjs'
+import {
+  evaluateOpenPrTriage,
+  isTriagePath,
+  openPrTriageSourceRefs,
+  validateOpenPrTriage,
+} from './session-preflight-pr-triage.mjs'
 
 const SCHEMA_VERSION = 1
 const SHA_RE = /^[0-9a-f]{40}$/i
@@ -201,6 +207,18 @@ function validatePullRequest(errors, pullRequest, index) {
   )
   pushError(errors, pullRequest.state === 'open', `${path}.state must be open`)
   pushError(errors, pullRequest.merged === false, `${path}.merged must be false`)
+  if (pullRequest.headSha !== undefined)
+    pushError(errors, isSha(pullRequest.headSha), `${path}.headSha is invalid`)
+  if (pullRequest.updatedAt !== undefined)
+    pushError(errors, isIsoTimestamp(pullRequest.updatedAt), `${path}.updatedAt is invalid`)
+  if (pullRequest.isDraft !== undefined)
+    pushError(errors, typeof pullRequest.isDraft === 'boolean', `${path}.isDraft must be boolean`)
+  if (pullRequest.changedPaths !== undefined)
+    pushError(
+      errors,
+      Array.isArray(pullRequest.changedPaths) && pullRequest.changedPaths.every(isTriagePath),
+      `${path}.changedPaths must be literal repository paths`
+    )
 }
 
 function validateImplementationEvidence(errors, evidence) {
@@ -235,12 +253,24 @@ function validateGitHubEvidence(errors, github) {
   validateImplementationEvidence(errors, github.implementationEvidence)
   if (github.collectionStatus !== 'ready') return
   pushError(errors, isSha(github.remoteMainSha), 'github.remoteMainSha is invalid')
+  if (github.openPullRequestsComplete !== undefined)
+    pushError(
+      errors,
+      typeof github.openPullRequestsComplete === 'boolean',
+      'github.openPullRequestsComplete must be boolean'
+    )
   pushError(
     errors,
     Array.isArray(github.openPullRequests),
     'github.openPullRequests must be an array'
   )
   if (Array.isArray(github.openPullRequests)) {
+    pushError(
+      errors,
+      new Set(github.openPullRequests.map((pr) => pr?.number)).size ===
+        github.openPullRequests.length,
+      'github.openPullRequests contains duplicate numbers'
+    )
     github.openPullRequests.forEach((pullRequest, index) =>
       validatePullRequest(errors, pullRequest, index)
     )
@@ -279,6 +309,13 @@ export function validateSessionPreflightInput(input) {
   validateLinearEvidence(errors, input.linear)
   validateGitHubEvidence(errors, input.github)
   validateGitEvidence(errors, input.git)
+  errors.push(...validateOpenPrTriage(input.openPrTriage))
+  if (
+    input.openPrTriage !== undefined &&
+    typeof input.observedAt === 'string' &&
+    /\.\d{4,}/.test(input.observedAt)
+  )
+    errors.push('openPrTriage freshness requires observedAt at millisecond precision or coarser')
   if (input.followUps !== undefined)
     errors.push(...validateFollowUps(input.followUps, input.handoff?.issueId))
   if (input.agentDesignations !== undefined) {
@@ -516,14 +553,14 @@ function evaluateMatchingResumePullRequest(pullRequest, handoff, reasons) {
   }
 }
 
-function evaluateResumePullRequests(pullRequests, handoff, reasons) {
+function evaluateResumePullRequests(pullRequests, handoff, reasons, triageSupplied) {
   if (pullRequests.length === 0) {
     reasons.push(
       makeReason('resume_pr_missing', 'github', 'resume requires the matching open pull request')
     )
     return
   }
-  if (pullRequests.length > 1) {
+  if (pullRequests.length > 1 && !triageSupplied) {
     reasons.push(
       makeReason(
         'multiple_open_prs',
@@ -533,7 +570,25 @@ function evaluateResumePullRequests(pullRequests, handoff, reasons) {
     )
     return
   }
-  evaluateMatchingResumePullRequest(pullRequests[0], handoff, reasons)
+  if (pullRequests.length === 1) {
+    evaluateMatchingResumePullRequest(pullRequests[0], handoff, reasons)
+    return pullRequests[0]
+  }
+  const matching = pullRequests.filter(
+    (pr) => pr.issueId === handoff.issueId && pr.headBranch === handoff.intendedBranch
+  )
+  if (matching.length !== 1) {
+    reasons.push(
+      makeReason(
+        'resume_pr_missing',
+        'github',
+        'resume requires exactly one matching owned issue and branch'
+      )
+    )
+    return
+  }
+  evaluateMatchingResumePullRequest(matching[0], handoff, reasons)
+  return matching[0]
 }
 
 function evaluateGitHub(input, reasons) {
@@ -551,7 +606,12 @@ function evaluateGitHub(input, reasons) {
     const pullRequests = [...github.openPullRequests].sort(
       (left, right) => left.number - right.number
     )
-    if (requestedOperation === 'start' && pullRequests.length > 0) {
+    let resumed
+    if (
+      requestedOperation === 'start' &&
+      pullRequests.length > 0 &&
+      input.openPrTriage === undefined
+    ) {
       reasons.push(
         makeReason(
           'open_pr_blocks_start',
@@ -560,8 +620,15 @@ function evaluateGitHub(input, reasons) {
         )
       )
     } else if (requestedOperation === 'resume') {
-      evaluateResumePullRequests(pullRequests, handoff, reasons)
+      resumed = evaluateResumePullRequests(
+        pullRequests,
+        handoff,
+        reasons,
+        input.openPrTriage !== undefined
+      )
     }
+    if (input.openPrTriage !== undefined)
+      evaluateOpenPrTriage(input, pullRequests, resumed, reasons)
   }
 
   if (
@@ -696,6 +763,10 @@ function evaluateGit(input, reasons) {
 }
 
 const UNKNOWN_CODES = new Set([
+  'pr_triage_missing',
+  'pr_triage_stale',
+  'pr_triage_mismatch',
+  'pr_triage_unknown',
   'linear_mcp_unavailable',
   'linear_mcp_stale',
   'linear_mcp_from_future',
@@ -783,6 +854,12 @@ function projectOpenPullRequests(github) {
     baseBranch: pullRequest.baseBranch,
     issueId: pullRequest.issueId,
     ownershipVerified: pullRequest.ownershipVerified,
+    ...(pullRequest.headSha === undefined ? {} : { headSha: pullRequest.headSha }),
+    ...(pullRequest.updatedAt === undefined ? {} : { updatedAt: pullRequest.updatedAt }),
+    ...(pullRequest.isDraft === undefined ? {} : { isDraft: pullRequest.isDraft }),
+    ...(pullRequest.changedPaths === undefined
+      ? {}
+      : { changedPaths: [...pullRequest.changedPaths] }),
   }))
 }
 
@@ -818,6 +895,7 @@ function projectGitEvidence(git) {
 
 function collectSourceRefs(input) {
   const sourceRefs = [input.linear.sourceRef, input.github.sourceRef, input.git.sourceRef]
+  sourceRefs.push(...openPrTriageSourceRefs(input.openPrTriage))
   if (input.linearMcp?.evidenceRef) sourceRefs.push(input.linearMcp.evidenceRef)
   if (input.followUps !== undefined) sourceRefs.push(...followUpSourceRefs(input.followUps))
   if (input.agentDesignations !== undefined) {
@@ -890,6 +968,9 @@ export function evaluateSessionPreflight(input) {
     evidence: {
       linearLifecycle: projectLinearLifecycle(input.linear),
       githubImplementation: projectGitHubImplementation(input.github),
+      ...(input.openPrTriage === undefined
+        ? {}
+        : { openPrTriage: structuredClone(input.openPrTriage) }),
       git: projectGitEvidence(input.git),
       handoff: {
         issueId: input.handoff.issueId,

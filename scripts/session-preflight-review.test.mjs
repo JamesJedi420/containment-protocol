@@ -1,6 +1,7 @@
 import './session-preflight-linear-diagnostics.test.mjs'
 import './session-preflight-designations.test.mjs'
 import './session-preflight-followups.test.mjs'
+import './session-preflight-pr-triage.test.mjs'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { existsSync } from 'node:fs'
@@ -107,7 +108,7 @@ function collectorResponses(prOutput = '[]') {
       { status: 0, stdout: `${SHA}\n` },
     ],
     [
-      'gh pr list --repo JamesJedi420/containment-protocol --state open --json number,url,headRefName,baseRefName,title,body',
+      'gh api repos/JamesJedi420/containment-protocol/pulls?state=open&per_page=100 --method GET --paginate --jq map({number,url:.html_url,headRefName:.head.ref,headRefOid:.head.sha,baseRefName:.base.ref,title,body,isDraft:.draft,updatedAt:.updated_at}) | @json',
       { status: 0, stdout: prOutput },
     ],
   ])

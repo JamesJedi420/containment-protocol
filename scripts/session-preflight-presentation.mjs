@@ -25,6 +25,7 @@ export function renderSessionHandoff(result) {
     ['handoff', 'Named implementation boundary'],
     ['linearLifecycle', 'Authoritative Linear lifecycle observation'],
     ['githubImplementation', 'Separate GitHub implementation evidence'],
+    ['openPrTriage', 'Sourced per-PR triage observations (not approval)'],
     ['git', 'Repository observation'],
     ['linearMcp', 'Linear read diagnostics'],
     ['agentDesignations', 'Nonexclusive agent preference evidence'],

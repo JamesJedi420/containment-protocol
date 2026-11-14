@@ -72,7 +72,9 @@ test('resume rejects a sole verified pull request owned by another issue', () =>
 })
 
 test('an open pull request blocks start, including the same issue', () => {
-  const result = evaluateSessionPreflight(baseInput({ github: { openPullRequests: [matchingPullRequest()] } }))
+  const result = evaluateSessionPreflight(
+    baseInput({ github: { openPullRequests: [matchingPullRequest()] } })
+  )
   assert.equal(result.status, 'blocked')
   assert.ok(reasonCodes(result).includes('open_pr_blocks_start'))
 })
@@ -143,7 +145,9 @@ test('Codex managed worktree may start detached only at the exact expected base'
 })
 
 test('unavailable and stale evidence are unknown', () => {
-  const unavailable = evaluateSessionPreflight(baseInput({ linear: { collectionStatus: 'needsAuth' } }))
+  const unavailable = evaluateSessionPreflight(
+    baseInput({ linear: { collectionStatus: 'needsAuth' } })
+  )
   assert.equal(unavailable.status, 'unknown')
   assert.ok(reasonCodes(unavailable).includes('linear_evidence_unavailable'))
 
@@ -198,7 +202,9 @@ test('unavailable evidence may omit current source-specific fields', () => {
 
 test('completed, canceled, and changed prerequisites are blocked', () => {
   for (const statusType of ['completed', 'canceled']) {
-    const result = evaluateSessionPreflight(baseInput({ linear: { statusType, status: statusType } }))
+    const result = evaluateSessionPreflight(
+      baseInput({ linear: { statusType, status: statusType } })
+    )
     assert.equal(result.status, 'blocked')
     assert.ok(reasonCodes(result).includes('issue_not_active'))
   }
@@ -213,7 +219,16 @@ test('completed, canceled, and changed prerequisites are blocked', () => {
 
 test('merged evidence disagreement stays explicit and never infers completion', () => {
   const result = evaluateSessionPreflight(
-    baseInput({ github: { implementationEvidence: { checkedAt: CHECKED_AT, sourceRef: 'github:implementation:merged', mergedCurrentMain: true, mergedPrUrls: ['https://example.test/pr/1'] } } })
+    baseInput({
+      github: {
+        implementationEvidence: {
+          checkedAt: CHECKED_AT,
+          sourceRef: 'github:implementation:merged',
+          mergedCurrentMain: true,
+          mergedPrUrls: ['https://example.test/pr/1'],
+        },
+      },
+    })
   )
   assert.equal(result.status, 'unknown')
   assert.ok(reasonCodes(result).includes('lifecycle_evidence_conflict'))
@@ -241,8 +256,12 @@ test('merged evidence does not invent a lifecycle conflict when Linear is unavai
 })
 
 test('CP core and Academy consume the same contract', () => {
-  const cp = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'CP-core' }, linear: { workstream: 'CP-core' } }))
-  const academy = evaluateSessionPreflight(baseInput({ handoff: { workstream: 'Academy' }, linear: { workstream: 'Academy' } }))
+  const cp = evaluateSessionPreflight(
+    baseInput({ handoff: { workstream: 'CP-core' }, linear: { workstream: 'CP-core' } })
+  )
+  const academy = evaluateSessionPreflight(
+    baseInput({ handoff: { workstream: 'Academy' }, linear: { workstream: 'Academy' } })
+  )
   assert.equal(cp.status, 'ready')
   assert.equal(academy.status, 'ready')
   assert.deepEqual(cp.reasons, academy.reasons)
@@ -317,7 +336,10 @@ test('local Git collector uses only fixed read-only commands', () => {
     ['git symbolic-ref --quiet --short HEAD', { status: 1, stdout: '' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
-    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
+    [
+      'git remote get-url origin',
+      { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' },
+    ],
     ['git ls-remote origin refs/heads/main', { status: 0, stdout: `${SHA}\trefs/heads/main\n` }],
   ])
   const run = (command, args) => {
@@ -329,7 +351,9 @@ test('local Git collector uses only fixed read-only commands', () => {
   assert.equal(result.collectionStatus, 'ready')
   assert.equal(result.detachedHead, true)
   assert.deepEqual(calls, [...responses.keys()])
-  assert.ok(calls.every((call) => !/\b(checkout|switch|commit|push|merge|reset|clean)\b/.test(call)))
+  assert.ok(
+    calls.every((call) => !/\b(checkout|switch|commit|push|merge|reset|clean)\b/.test(call))
+  )
 })
 
 test('local Git collector fails closed when remote main output is empty', () => {
@@ -338,7 +362,10 @@ test('local Git collector fails closed when remote main output is empty', () => 
     ['git symbolic-ref --quiet --short HEAD', { status: 0, stdout: 'main\n' }],
     ['git status --porcelain=v1 --untracked-files=no', { status: 0, stdout: '' }],
     ['git rev-parse refs/heads/main', { status: 0, stdout: `${SHA}\n` }],
-    ['git remote get-url origin', { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' }],
+    [
+      'git remote get-url origin',
+      { status: 0, stdout: 'https://github.com/JamesJedi420/containment-protocol.git\n' },
+    ],
     ['git ls-remote origin refs/heads/main', { status: 0, stdout: '\n' }],
   ])
   const run = (command, args) => responses.get(`${command} ${args.join(' ')}`)
@@ -377,7 +404,7 @@ test('GitHub collector uses read-only gh commands and verifies one issue identit
   const calls = []
   const run = (command, args) => {
     calls.push(`${command} ${args.join(' ')}`)
-    if (args[0] === 'api') return { status: 0, stdout: `${SHA}\n` }
+    if (args[1].endsWith('/git/ref/heads/main')) return { status: 0, stdout: `${SHA}\n` }
     return {
       status: 0,
       stdout: JSON.stringify([
@@ -386,6 +413,9 @@ test('GitHub collector uses read-only gh commands and verifies one issue identit
           url: 'https://github.com/JamesJedi420/containment-protocol/pull/42',
           headRefName: 'codex/spe-3337-session-preflight',
           baseRefName: 'main',
+          headRefOid: OTHER_SHA,
+          isDraft: false,
+          updatedAt: CHECKED_AT,
           title: 'feat(SPE-3337): preflight',
           body: 'Implements the named slice under parent SPE-3336.',
         },
@@ -405,7 +435,7 @@ test('GitHub collector uses read-only gh commands and verifies one issue identit
 
 test('GitHub collector fails closed when remote main output is empty', () => {
   const run = (_command, args) => {
-    if (args[0] === 'api') return { status: 0, stdout: '\n' }
+    if (args[1].endsWith('/git/ref/heads/main')) return { status: 0, stdout: '\n' }
     throw new Error('PR collection must not run after missing remote main')
   }
   const result = collectGitHubEvidence({
@@ -419,7 +449,7 @@ test('GitHub collector fails closed when remote main output is empty', () => {
 
 test('GitHub collector fails closed when PR JSON is valid but not an array', () => {
   const run = (_command, args) => {
-    if (args[0] === 'api') return { status: 0, stdout: `${SHA}\n` }
+    if (args[1].endsWith('/git/ref/heads/main')) return { status: 0, stdout: `${SHA}\n` }
     return { status: 0, stdout: JSON.stringify({ number: 42 }) }
   }
   const result = collectGitHubEvidence({
@@ -454,7 +484,7 @@ test('GitHub collector fails closed when a PR array entry is malformed', () => {
 
   for (const malformedEntry of malformedEntries) {
     const run = (_command, args) => {
-      if (args[0] === 'api') return { status: 0, stdout: `${SHA}\n` }
+      if (args[1].endsWith('/git/ref/heads/main')) return { status: 0, stdout: `${SHA}\n` }
       return { status: 0, stdout: JSON.stringify([malformedEntry]) }
     }
     const result = collectGitHubEvidence({

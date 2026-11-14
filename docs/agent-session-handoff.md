@@ -59,7 +59,7 @@ Follow manual §4: sync main, post truthful existing-boundary evidence, and comp
 
 ## During an open PR
 
-Continue implementation, review fixes, and CI on the same active boundary. Use phase A if merge is blocked; do not start unrelated scope. A `resume` preflight is ready only when the sole open PR has a verified issue and branch matching the named handoff.
+Continue implementation, review fixes, and CI on the same actionable active owned boundary. If genuinely blocked, record the current blocker, responsible actor and next action on its existing owner and leave that boundary explicitly paused with truthful incomplete status. Use phase A for its open-PR closeout; do not select unrelated scope in closeout. A `resume` preflight requires exactly one PR with verified issue and branch matching the named handoff. Additional open PRs, including drafts, require the current per-PR triage contract in [session preflight](session-preflight.md): complete dispositions, next actions and verified path/dependency independence. A selected matching PR may resume beside independent actionable PRs; a fresh start requires the others to be genuinely blocked or externally active. Legacy inputs retain the sole-open-PR restriction. A separately authorized later boundary requires manual §2's fresh checks and at most one active owned boundary; a paused PR is not merged/completed and a handoff grants no new authority.
 
 ## Cloud / move to local
 

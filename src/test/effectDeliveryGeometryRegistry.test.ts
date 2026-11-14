@@ -14,6 +14,7 @@ describe('effectDeliveryGeometryRegistry', () => {
     expect(kinds.has('touch')).toBe(true)
     expect(kinds.has('remote')).toBe(true)
     expect(kinds.has('zone')).toBe(true)
+    expect(kinds.has('radius-anchor')).toBe(true)
 
     for (const fixture of EFFECT_DELIVERY_GEOMETRY_FIXTURES) {
       const result = validateEffectDeliveryGeometryRecord(fixture)

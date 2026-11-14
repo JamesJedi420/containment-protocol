@@ -90,7 +90,8 @@ export function validateTemplateKernel(value: unknown, policy?: TemplateBandPoli
   for (const key of ['cost', 'scope', 'exceptions', 'power']) {
     if (!finiteNonnegative(runtime[key])) errors.push(`Invalid ${key}`)
   }
-  if (!Number.isInteger(runtime.exceptions)) errors.push('Invalid exception count')
+  if (finiteNonnegative(runtime.exceptions) && !Number.isInteger(runtime.exceptions))
+    errors.push('Invalid exception count')
   if (
     !isRecord(policy) ||
     !token(policy.id) ||
@@ -152,8 +153,23 @@ export function validateTemplateKernel(value: unknown, policy?: TemplateBandPoli
         ) {
           errors.push('Invalid alternative conditions')
         }
-        if (!validParameters(alternative.parameters, String(runtime.hook)))
+        const allowed =
+          runtime.hook === 'prepare-material'
+            ? 'recognitionThreshold'
+            : runtime.hook === 'resolve-incident'
+              ? 'riskThresholds'
+              : 'reliability'
+        if (
+          isRecord(alternative.parameters) &&
+          Object.keys(alternative.parameters).some((key) => key !== allowed)
+        ) {
+          errors.push('Unsupported hook parameters')
+        } else if (
+          typeof runtime.hook !== 'string' ||
+          !validParameters(alternative.parameters, runtime.hook)
+        ) {
           errors.push('Invalid hook parameters')
+        }
       }
     }
   }

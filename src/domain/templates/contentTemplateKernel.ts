@@ -39,6 +39,8 @@ export type TemplateBandPolicy = {
   powerBands: Record<string, { maxPower: number }>
 }
 
+/** Resolution result shape. Each alternative may contain only its declared hook's field;
+ * other keys reject with Unsupported hook parameters, distinct from invalid values. */
 export type TemplateRuntimeParameters = {
   recognitionThreshold?: number
   riskThresholds?: number[]

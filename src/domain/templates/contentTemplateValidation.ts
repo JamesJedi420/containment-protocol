@@ -6,13 +6,17 @@ import {
   validateTemplateKernel,
 } from './contentTemplateRuntime'
 
+function oneOf(value: unknown, allowed: readonly string[]): boolean {
+  return typeof value === 'string' && allowed.includes(value)
+}
+
 export const validateKernel = validateTemplateKernel
 
 export function validateProtocolMaterial(value: unknown, policy?: TemplateBandPolicy): string[] {
   const errors = validateKernel(value, policy)
   if (!isRecord(value)) return errors
   if (value.family !== 'protocol-material') errors.push('Mismatched protocol material family')
-  if (!['biological', 'chemical', 'artifact', 'environmental'].includes(String(value.sourceType)))
+  if (!oneOf(value.sourceType, ['biological', 'chemical', 'artifact', 'environmental']))
     errors.push('Invalid sourceType')
   if (!finiteNonnegative(value.recognitionThreshold)) errors.push('Invalid recognitionThreshold')
   if (
@@ -31,18 +35,18 @@ export function validateProtocolMaterial(value: unknown, policy?: TemplateBandPo
   if (
     value.sideEffects !== undefined &&
     (!Array.isArray(value.sideEffects) ||
-      value.sideEffects.some(
+      Array.from(value.sideEffects).some(
         (entry) =>
           !isRecord(entry) ||
           !stringList([entry.description, entry.trigger]) ||
-          !['minor', 'moderate', 'severe'].includes(String(entry.severity))
+          !oneOf(entry.severity, ['minor', 'moderate', 'severe'])
       ))
   )
     errors.push('Invalid side effects')
   if (
     value.contamination !== undefined &&
     (!Array.isArray(value.contamination) ||
-      value.contamination.some(
+      Array.from(value.contamination).some(
         (entry) =>
           !isRecord(entry) || !stringList([entry.description, entry.failureType, entry.consequence])
       ))
@@ -55,11 +59,7 @@ export function validateHazardIncident(value: unknown, policy?: TemplateBandPoli
   const errors = validateKernel(value, policy)
   if (!isRecord(value)) return errors
   if (value.family !== 'hazard-incident') errors.push('Mismatched hazard incident family')
-  if (
-    !['containment-breach', 'exposure', 'environmental', 'rival-action'].includes(
-      String(value.hazardType)
-    )
-  )
+  if (!oneOf(value.hazardType, ['containment-breach', 'exposure', 'environmental', 'rival-action']))
     errors.push('Invalid hazardType')
   if (!stringList(value.triggers)) errors.push('Invalid triggers')
   if (
@@ -76,6 +76,25 @@ export function validateHazardIncident(value: unknown, policy?: TemplateBandPoli
     !stringList([value.resolution.fallback])
   )
     errors.push('Invalid resolution')
+  // Overrides replace the entire threshold list; require coverage through the final stage.
+  if (
+    isRecord(value.escalation) &&
+    Array.isArray(value.escalation.steps) &&
+    isRecord(value.runtime) &&
+    Array.isArray(value.runtime.alternatives)
+  ) {
+    const required = Math.max(0, value.escalation.steps.length - 1)
+    for (const alternative of value.runtime.alternatives) {
+      if (
+        isRecord(alternative) &&
+        isRecord(alternative.parameters) &&
+        Array.isArray(alternative.parameters.riskThresholds) &&
+        alternative.parameters.riskThresholds.length < required
+      ) {
+        errors.push('Incident alternative thresholds must cover non-final steps')
+      }
+    }
+  }
   return errors
 }
 
@@ -84,9 +103,11 @@ export function validateDoctrinePlaybook(value: unknown, policy?: TemplateBandPo
   if (!isRecord(value)) return errors
   if (value.family !== 'doctrine-playbook') errors.push('Mismatched doctrine family')
   if (
-    !['containment-protocol', 'investigation-playbook', 'treatment-guide'].includes(
-      String(value.doctrineType)
-    )
+    !oneOf(value.doctrineType, [
+      'containment-protocol',
+      'investigation-playbook',
+      'treatment-guide',
+    ])
   )
     errors.push('Invalid doctrineType')
   if (!stringList(value.applicableContexts)) errors.push('Invalid applicableContexts')
@@ -95,7 +116,8 @@ export function validateDoctrinePlaybook(value: unknown, policy?: TemplateBandPo
     errors.push('Invalid reliability')
   if (
     value.unlocks !== undefined &&
-    (!Array.isArray(value.unlocks) || value.unlocks.some((entry) => !stringList([entry])))
+    (!Array.isArray(value.unlocks) ||
+      Array.from(value.unlocks).some((entry) => !stringList([entry])))
   )
     errors.push('Invalid unlocks')
   return errors

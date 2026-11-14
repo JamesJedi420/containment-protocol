@@ -391,3 +391,88 @@ describe('template validation malformed collections', () => {
     ).toContain('Invalid cost')
   })
 })
+
+describe('independent-review authoring regressions', () => {
+  it('rejects JSON enum objects with noncallable toString without native coercion errors', () => {
+    const malformed = JSON.parse('{"toString":null}')
+    expect(
+      validateProtocolMaterial({ ...protocolMaterialTemplates[0], sourceType: malformed })
+    ).toContain('Invalid sourceType')
+    expect(
+      validateHazardIncident({ ...hazardIncidentTemplates[0], hazardType: malformed })
+    ).toContain('Invalid hazardType')
+    expect(
+      validateDoctrinePlaybook({ ...doctrinePlaybookTemplates[0], doctrineType: malformed })
+    ).toContain('Invalid doctrineType')
+    expect(
+      validateProtocolMaterial({
+        ...protocolMaterialTemplates[0],
+        sideEffects: [{ description: 'x', trigger: 'x', severity: malformed }],
+      })
+    ).toContain('Invalid side effects')
+    expect(() =>
+      resolvePreparation(
+        { ...material(), runtime: { ...declaration(), hook: malformed } },
+        attempt,
+        options
+      )
+    ).toThrow(TemplateValidationError)
+  })
+  it('rejects sparse optional family collections before dispatch', () => {
+    for (const key of ['sideEffects', 'contamination']) {
+      expect(() =>
+        resolvePreparation({ ...protocolMaterialTemplates[0], [key]: new Array(1) }, attempt)
+      ).toThrow(TemplateValidationError)
+    }
+    expect(() =>
+      applyDoctrine(
+        { ...doctrinePlaybookTemplates[0], unlocks: new Array(1) },
+        { context: 'artifact', reliability: 0.9 }
+      )
+    ).toThrow(TemplateValidationError)
+  })
+  it('rejects short full-replacement incident threshold overrides even when not selected', () => {
+    const template = { ...hazardIncidentTemplates[0], runtime: declaration('resolve-incident') }
+    template.runtime.alternatives = [
+      {
+        id: 'short',
+        when: [{ context: 'environment', value: 'hot' }],
+        parameters: { riskThresholds: [0] },
+      },
+    ]
+    expect(() =>
+      resolveIncident(
+        template,
+        { escalationStep: 1, risk: 10, resolved: false },
+        'seal breach',
+        options
+      )
+    ).toThrow(/cover non-final/)
+    template.runtime.alternatives[0].parameters.riskThresholds = [0, 4]
+    expect(
+      resolveIncident(template, { escalationStep: 1, risk: 10, resolved: false }, 'seal breach', {
+        ...options,
+        context: { environment: 'hot' },
+      }).resolved
+    ).toBe(true)
+  })
+  it('distinguishes unsupported parameter keys from malformed values and avoids duplicate count diagnostics', () => {
+    const alternative = {
+      id: 'cold',
+      when: [{ context: 'environment', value: 'cold' }],
+      parameters: { reliability: 0.5 },
+    }
+    expect(
+      validateKernel(
+        { ...material(), runtime: { ...declaration(), alternatives: [alternative] } },
+        fixturePolicy
+      )
+    ).toContain('Unsupported hook parameters')
+    expect(
+      validateKernel(
+        { ...material(), runtime: { ...declaration(), exceptions: 'bad' } },
+        fixturePolicy
+      ).filter((x) => /exception/i.test(x))
+    ).toEqual(['Invalid exceptions'])
+  })
+})

@@ -212,9 +212,7 @@ function validateRecord(
         delayedRefs.push({
           refId,
           actionKind,
-          ...(typeof dueAfterSteps === 'number'
-            ? { dueAfterSteps }
-            : {}),
+          ...(typeof dueAfterSteps === 'number' ? { dueAfterSteps } : {}),
         })
       }
     }

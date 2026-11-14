@@ -1051,6 +1051,7 @@
     "src/tooling/simulationExperimentTask.test.ts",
     "test/backlog-handoff.test.ts",
     "test/boundary-enforcement.test.ts",
-    "test/handoff-validation.test.ts"
+    "test/handoff-validation.test.ts",
+    "test/incidentalWitnessSuspicionRegistry.test.ts"
   ]
 }

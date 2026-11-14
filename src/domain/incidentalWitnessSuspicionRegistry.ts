@@ -23,12 +23,7 @@ export const DETECTION_CHANNELS = [
 ] as const
 export type DetectionChannel = (typeof DETECTION_CHANNELS)[number]
 
-export const SUSPICION_BANDS = [
-  'none',
-  'low',
-  'moderate',
-  'high',
-] as const
+export const SUSPICION_BANDS = ['none', 'low', 'moderate', 'high'] as const
 export type SuspicionBand = (typeof SUSPICION_BANDS)[number]
 
 export interface DelayedActionRef {
@@ -57,9 +52,9 @@ export interface IncidentalWitnessValidationResult {
   readonly issues: readonly IncidentalWitnessValidationIssue[]
 }
 
-const PROMOTION_SET = new Set(WITNESS_PROMOTION_STATES)
-const CHANNEL_SET = new Set(DETECTION_CHANNELS)
-const BAND_SET = new Set(SUSPICION_BANDS)
+const PROMOTION_SET: ReadonlySet<string> = new Set(WITNESS_PROMOTION_STATES)
+const CHANNEL_SET: ReadonlySet<string> = new Set(DETECTION_CHANNELS)
+const BAND_SET: ReadonlySet<string> = new Set(SUSPICION_BANDS)
 const RECORD_ID = /^witness-suspicion:[a-z0-9]+(?:-[a-z0-9]+)*$/
 const ACTOR_REF = /^actor:[a-z0-9]+(?:-[a-z0-9]+)*$/
 
@@ -199,11 +194,26 @@ function validateRecord(
           legal = false
           continue
         }
+        const dueAfterSteps = d.dueAfterSteps
+        if (
+          dueAfterSteps !== undefined &&
+          (typeof dueAfterSteps !== 'number' ||
+            !Number.isSafeInteger(dueAfterSteps) ||
+            dueAfterSteps < 0)
+        ) {
+          issues.push({
+            code: 'invalid_due_after_steps',
+            field: `${field}.delayedActionRefs[${dIndex}].dueAfterSteps`,
+            recordId: id,
+          })
+          legal = false
+          continue
+        }
         delayedRefs.push({
           refId,
           actionKind,
-          ...(typeof d.dueAfterSteps === 'number' && d.dueAfterSteps >= 0
-            ? { dueAfterSteps: d.dueAfterSteps }
+          ...(typeof dueAfterSteps === 'number'
+            ? { dueAfterSteps }
             : {}),
         })
       }
@@ -222,11 +232,13 @@ function validateRecord(
   })
 }
 
-export function validateIncidentalWitnessSuspicionRecords(
-  input: unknown
-): IncidentalWitnessValidationResult {
+function parseRegistry(input: unknown): {
+  records: IncidentalWitnessSuspicionRecord[]
+  validation: IncidentalWitnessValidationResult
+} {
+  const records: IncidentalWitnessSuspicionRecord[] = []
   if (!Array.isArray(input)) {
-    return issuesResult([{ code: 'invalid_registry', field: 'records' }])
+    return { records, validation: issuesResult([{ code: 'invalid_registry', field: 'records' }]) }
   }
 
   const issues: IncidentalWitnessValidationIssue[] = []
@@ -235,6 +247,7 @@ export function validateIncidentalWitnessSuspicionRecords(
   for (let index = 0; index < input.length; index += 1) {
     const record = validateRecord(input[index], index, issues)
     if (!record) continue
+    records.push(record)
     if (seenIds.has(record.id)) {
       issues.push({
         code: 'duplicate_record_id',
@@ -245,17 +258,21 @@ export function validateIncidentalWitnessSuspicionRecords(
     seenIds.add(record.id)
   }
 
-  return issuesResult(issues)
+  return { records, validation: issuesResult(issues) }
+}
+
+export function validateIncidentalWitnessSuspicionRecords(
+  input: unknown
+): IncidentalWitnessValidationResult {
+  return parseRegistry(input).validation
 }
 
 export function normalizeIncidentalWitnessSuspicionRecords(
   input: readonly IncidentalWitnessSuspicionRecord[]
 ): readonly IncidentalWitnessSuspicionRecord[] | null {
-  const validation = validateIncidentalWitnessSuspicionRecords(input)
+  const { validation, records } = parseRegistry(input)
   if (!validation.valid) return null
-  const ordered = input
-    .map((record, index) => validateRecord(record, index, [])!)
-    .sort((a, b) => compareStrings(a.id, b.id))
+  const ordered = records.sort((a, b) => compareStrings(a.id, b.id))
   return Object.freeze(ordered)
 }
 

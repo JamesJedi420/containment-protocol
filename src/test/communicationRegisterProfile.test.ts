@@ -86,6 +86,7 @@ describe('communicationRegisterProfile (SPE-2238 slice 1)', () => {
       ...base,
       recentActivityKey: 'hidden-truth-event',
     })
-    expect(without).toEqual(withHidden)
+    expect(withHidden).toBeNull()
+    expect(without).not.toBeNull()
   })
 })

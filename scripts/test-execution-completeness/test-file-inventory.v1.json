@@ -366,6 +366,7 @@
     "src/test/cognitiveHazardWeeklyOrchestration.test.ts",
     "src/test/collectiveMemoryStabilization.test.ts",
     "src/test/combatStim.contract.test.ts",
+    "src/test/communicationPayload.test.ts",
     "src/test/communityAdvisoryDecisionInfluence.test.ts",
     "src/test/compactCards.test.ts",
     "src/test/concealmentActivationFeed.test.ts",

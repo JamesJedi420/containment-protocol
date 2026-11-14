@@ -139,6 +139,113 @@ function extractIssueIdentity(title, body) {
   }
 }
 
+function completeFileList(rows, current) {
+  // GitHub's files API caps at 3,000. Never claim a capped/partial diff is complete.
+  return (
+    Array.isArray(rows) &&
+    current &&
+    Number.isSafeInteger(current.changedFiles) &&
+    current.changedFiles > 0 &&
+    current.changedFiles < 3000 &&
+    current.changedFiles === rows.length &&
+    rows.every(
+      (row) =>
+        row &&
+        isTriagePath(row.filename) &&
+        (row.previous_filename == null || isTriagePath(row.previous_filename))
+    )
+  )
+}
+
+function samePullRequestSnapshot(pr, current) {
+  return (
+    current.headSha === pr.headRefOid &&
+    current.headBranch === pr.headRefName &&
+    current.baseBranch === pr.baseRefName &&
+    current.updatedAt === pr.updatedAt &&
+    current.isDraft === pr.isDraft &&
+    current.state === 'open' &&
+    current.merged === false
+  )
+}
+
+function collectPullRequestPaths(pr, { repository, cwd, run }) {
+  const files = run(
+    'gh',
+    [
+      'api',
+      `repos/${repository}/pulls/${pr.number}/files?per_page=100`,
+      '--method',
+      'GET',
+      '--paginate',
+      '--jq',
+      'map({filename,previous_filename}) | @json',
+    ],
+    cwd
+  )
+  const metadata = run(
+    'gh',
+    [
+      'api',
+      `repos/${repository}/pulls/${pr.number}`,
+      '--method',
+      'GET',
+      '--jq',
+      '{headSha:.head.sha,headBranch:.head.ref,baseBranch:.base.ref,updatedAt:.updated_at,isDraft:.draft,changedFiles:.changed_files,state,merged}',
+    ],
+    cwd
+  )
+  if (files.status !== 0 || metadata.status !== 0) return { failureCode: 'pr-paths-unavailable' }
+  let rows, current
+  try {
+    rows = parseArrayPages(trimOutput(files))
+    current = JSON.parse(trimOutput(metadata))
+  } catch {
+    return { failureCode: 'pr-paths-malformed' }
+  }
+  if (!completeFileList(rows, current)) return { failureCode: 'pr-paths-incomplete' }
+  if (!samePullRequestSnapshot(pr, current)) return { failureCode: 'pr-changed-during-collection' }
+  const paths = [
+    ...new Set(
+      rows.flatMap((row) => [
+        row.filename,
+        ...(row.previous_filename ? [row.previous_filename] : []),
+      ])
+    ),
+  ]
+  return {
+    paths: paths.sort((left, right) => {
+      if (left < right) return -1
+      if (left > right) return 1
+      return 0
+    }),
+  }
+}
+
+function collectOpenPrPaths(parsed, inventoryArgs, options) {
+  const pathsByNumber = new Map()
+  for (const pr of parsed) {
+    const result = collectPullRequestPaths(pr, options)
+    if (result.failureCode) return result
+    pathsByNumber.set(pr.number, result.paths)
+  }
+  const confirmed = options.run('gh', inventoryArgs, options.cwd)
+  let confirmedPrs
+  try {
+    confirmedPrs = parseArrayPages(trimOutput(confirmed))
+  } catch {
+    return { failureCode: 'open-prs-changed-during-collection' }
+  }
+  const ordered = (prs) => [...prs].sort((a, b) => a.number - b.number)
+  if (
+    confirmed.status !== 0 ||
+    !confirmedPrs.every(isCollectedPullRequest) ||
+    JSON.stringify(ordered(confirmedPrs)) !== JSON.stringify(ordered(parsed))
+  )
+    return { failureCode: 'open-prs-changed-during-collection' }
+  return { pathsByNumber }
+}
+
 export function collectGitHubEvidence({
   repository,
   checkedAt,
@@ -190,96 +297,12 @@ export function collectGitHubEvidence({
   }
   if (new Set(parsed.map((pr) => pr.number)).size !== parsed.length)
     return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-duplicated')
-  const pathsByNumber = new Map()
+  let pathsByNumber = new Map()
   if (includeChangedPaths) {
-    for (const pr of parsed) {
-      const files = run(
-        'gh',
-        [
-          'api',
-          `repos/${repository}/pulls/${pr.number}/files?per_page=100`,
-          '--method',
-          'GET',
-          '--paginate',
-          '--jq',
-          'map({filename,previous_filename}) | @json',
-        ],
-        cwd
-      )
-      const metadata = run(
-        'gh',
-        [
-          'api',
-          `repos/${repository}/pulls/${pr.number}`,
-          '--method',
-          'GET',
-          '--jq',
-          '{headSha:.head.sha,headBranch:.head.ref,baseBranch:.base.ref,updatedAt:.updated_at,isDraft:.draft,changedFiles:.changed_files,state,merged}',
-        ],
-        cwd
-      )
-      if (files.status !== 0 || metadata.status !== 0)
-        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-unavailable')
-      let rows, current
-      try {
-        rows = parseArrayPages(trimOutput(files))
-        current = JSON.parse(trimOutput(metadata))
-      } catch {
-        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-malformed')
-      }
-      // GitHub's files API caps at 3,000. Never claim a capped/partial diff is complete.
-      if (
-        !Array.isArray(rows) ||
-        !current ||
-        !Number.isSafeInteger(current.changedFiles) ||
-        current.changedFiles < 1 ||
-        current.changedFiles >= 3000 ||
-        current.changedFiles !== rows.length ||
-        !rows.every(
-          (row) =>
-            row &&
-            isTriagePath(row.filename) &&
-            (row.previous_filename == null || isTriagePath(row.previous_filename))
-        )
-      )
-        return failedEvidence(checkedAt, `github:${repository}`, 'pr-paths-incomplete')
-      if (
-        current.headSha !== pr.headRefOid ||
-        current.headBranch !== pr.headRefName ||
-        current.baseBranch !== pr.baseRefName ||
-        current.updatedAt !== pr.updatedAt ||
-        current.isDraft !== pr.isDraft ||
-        current.state !== 'open' ||
-        current.merged !== false
-      )
-        return failedEvidence(checkedAt, `github:${repository}`, 'pr-changed-during-collection')
-      pathsByNumber.set(
-        pr.number,
-        [
-          ...new Set(
-            rows.flatMap((row) => [
-              row.filename,
-              ...(row.previous_filename ? [row.previous_filename] : []),
-            ])
-          ),
-        ].sort()
-      )
-    }
-    const confirmed = run('gh', inventoryArgs, cwd)
-    let confirmedPrs
-    try {
-      confirmedPrs = parseArrayPages(trimOutput(confirmed))
-    } catch {
-      /* fail closed below */
-    }
-    const ordered = (prs) => [...prs].sort((a, b) => a.number - b.number)
-    if (
-      confirmed.status !== 0 ||
-      !Array.isArray(confirmedPrs) ||
-      !confirmedPrs.every(isCollectedPullRequest) ||
-      JSON.stringify(ordered(confirmedPrs)) !== JSON.stringify(ordered(parsed))
-    )
-      return failedEvidence(checkedAt, `github:${repository}`, 'open-prs-changed-during-collection')
+    const collected = collectOpenPrPaths(parsed, inventoryArgs, { repository, cwd, run })
+    if (collected.failureCode)
+      return failedEvidence(checkedAt, `github:${repository}`, collected.failureCode)
+    pathsByNumber = collected.pathsByNumber
   }
 
   const evidence = {

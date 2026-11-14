@@ -18,7 +18,7 @@ export function isTriagePath(value) {
   return (
     text(value) &&
     value === value.trim() &&
-    !/[\\:*?\[\]{}\u0000-\u001f\u007f]/.test(value) &&
+    !/[\\:*?[\]{}\u0000-\u001f\u007f]/.test(value) &&
     value.split('/').every((part) => part.length > 0 && part !== '.' && part !== '..')
   )
 }
@@ -112,66 +112,69 @@ export function validateOpenPrTriage(packet) {
     if (!dispositions.has(item.disposition)) errors.push(`${path}.disposition is invalid`)
     if (!text(item.reason) || !text(item.nextAction))
       errors.push(`${path} requires a concrete reason and nextAction`)
+    validateDependency(item.dependency, `${path}.dependency`, errors)
+    validateBlocker(item, path, errors)
+    validateActivity(item, path, errors)
+  })
+  return errors
+}
+
+function validateDependency(dependency, path, errors) {
+  if (exactKeys(dependency, ['status', 'checkedAt', 'sourceRef'], [], path, errors)) {
+    observation(dependency, path, errors)
+    if (!['independent', 'dependent', 'unknown'].includes(dependency.status))
+      errors.push(`${path}.status is invalid`)
+  }
+}
+
+function validateBlocker(item, path, errors) {
+  if (item.disposition === 'blocked') {
     if (
       exactKeys(
-        item.dependency,
-        ['status', 'checkedAt', 'sourceRef'],
+        item.blocker,
+        ['kind', 'actor', 'detail', 'checkedAt', 'sourceRef'],
         [],
-        `${path}.dependency`,
+        `${path}.blocker`,
         errors
       )
     ) {
-      observation(item.dependency, `${path}.dependency`, errors)
-      if (!['independent', 'dependent', 'unknown'].includes(item.dependency.status))
-        errors.push(`${path}.dependency.status is invalid`)
+      observation(item.blocker, `${path}.blocker`, errors)
+      if (
+        !blockerKinds.has(item.blocker.kind) ||
+        !text(item.blocker.actor) ||
+        !text(item.blocker.detail)
+      )
+        errors.push(
+          `${path}.blocker requires an external blocker or explicit hold and its responsible actor`
+        )
     }
-    if (item.disposition === 'blocked') {
+  } else if (item.blocker !== undefined) errors.push(`${path}.blocker contradicts its disposition`)
+}
+
+function validateActivity(item, path, errors) {
+  if (item.disposition === 'active-owner') {
+    if (
+      exactKeys(
+        item.activity,
+        ['executor', 'acceptedAt', 'acceptanceSourceRef', 'status', 'checkedAt', 'sourceRef'],
+        [],
+        `${path}.activity`,
+        errors
+      )
+    ) {
+      observation(item.activity, `${path}.activity`, errors)
       if (
-        exactKeys(
-          item.blocker,
-          ['kind', 'actor', 'detail', 'checkedAt', 'sourceRef'],
-          [],
-          `${path}.blocker`,
-          errors
+        !text(item.activity.executor) ||
+        !text(item.activity.acceptanceSourceRef) ||
+        !timestamp(item.activity.acceptedAt) ||
+        item.activity.status !== 'active'
+      )
+        errors.push(
+          `${path}.activity requires accepted executor and actual active-session evidence`
         )
-      ) {
-        observation(item.blocker, `${path}.blocker`, errors)
-        if (
-          !blockerKinds.has(item.blocker.kind) ||
-          !text(item.blocker.actor) ||
-          !text(item.blocker.detail)
-        )
-          errors.push(
-            `${path}.blocker requires an external blocker or explicit hold and its responsible actor`
-          )
-      }
-    } else if (item.blocker !== undefined)
-      errors.push(`${path}.blocker contradicts its disposition`)
-    if (item.disposition === 'active-owner') {
-      if (
-        exactKeys(
-          item.activity,
-          ['executor', 'acceptedAt', 'acceptanceSourceRef', 'status', 'checkedAt', 'sourceRef'],
-          [],
-          `${path}.activity`,
-          errors
-        )
-      ) {
-        observation(item.activity, `${path}.activity`, errors)
-        if (
-          !text(item.activity.executor) ||
-          !text(item.activity.acceptanceSourceRef) ||
-          !timestamp(item.activity.acceptedAt) ||
-          item.activity.status !== 'active'
-        )
-          errors.push(
-            `${path}.activity requires accepted executor and actual active-session evidence`
-          )
-      }
-    } else if (item.activity !== undefined)
-      errors.push(`${path}.activity contradicts its disposition`)
-  })
-  return errors
+    }
+  } else if (item.activity !== undefined)
+    errors.push(`${path}.activity contradicts its disposition`)
 }
 
 function reason(reasons, code, detail) {
@@ -221,8 +224,26 @@ export function evaluateOpenPrTriage(input, pullRequests, resumed, reasons) {
       'triage must account for exactly every other currently open PR, including drafts'
     )
   }
+  const plannedPaths = resumePaths(input, resumed, reasons)
+  for (const pr of otherPrs) {
+    const item = byNumber.get(pr.number)
+    if (!item) {
+      reason(
+        reasons,
+        'pr_triage_missing',
+        `#${pr.number} has no current disposition; prioritize its triage`
+      )
+      continue
+    }
+    evaluateItemSnapshot(input, pr, item, reasons)
+    evaluateItemScope(input, pr, item, plannedPaths, reasons)
+    evaluateDisposition(input, pr, item, reasons)
+  }
+}
+
+function resumePaths(input, resumed, reasons) {
   // Include the owned PR's actual diff, so omitted planned paths cannot hide overlap on resume.
-  const plannedPaths = [...boundary.paths]
+  const plannedPaths = [...input.openPrTriage.boundary.paths]
   if (resumed) {
     if (
       !sha(resumed.headSha) ||
@@ -240,78 +261,75 @@ export function evaluateOpenPrTriage(input, pullRequests, resumed, reasons) {
       reason(reasons, 'pr_triage_missing', 'resuming PR changed paths are unavailable')
     else plannedPaths.push(...resumed.changedPaths)
   }
-  for (const pr of otherPrs) {
-    const item = byNumber.get(pr.number)
-    if (!item) {
+  return plannedPaths
+}
+
+function evaluateItemSnapshot(input, pr, item, reasons) {
+  fresh(item, input, `#${pr.number}`, reasons)
+  fresh(item.dependency, input, `#${pr.number} dependency check`, reasons)
+  for (const observation of [item.dependency, item.blocker, item.activity].filter(Boolean)) {
+    if (Date.parse(observation.checkedAt) < Date.parse(pr.updatedAt))
       reason(
         reasons,
-        'pr_triage_missing',
-        `#${pr.number} has no current disposition; prioritize its triage`
+        'pr_triage_stale',
+        `#${pr.number} changed after its supporting evidence was checked`
       )
-      continue
-    }
-    fresh(item, input, `#${pr.number}`, reasons)
-    fresh(item.dependency, input, `#${pr.number} dependency check`, reasons)
-    for (const observation of [item.dependency, item.blocker, item.activity].filter(Boolean)) {
-      if (Date.parse(observation.checkedAt) < Date.parse(pr.updatedAt))
-        reason(
-          reasons,
-          'pr_triage_stale',
-          `#${pr.number} changed after its supporting evidence was checked`
-        )
-    }
-    if (
-      pr.headSha !== item.headSha ||
-      pr.updatedAt !== item.updatedAt ||
-      pr.isDraft !== item.isDraft
+  }
+  if (
+    pr.headSha !== item.headSha ||
+    Date.parse(pr.updatedAt) !== Date.parse(item.updatedAt) ||
+    pr.isDraft !== item.isDraft
+  )
+    reason(reasons, 'pr_triage_mismatch', `#${pr.number} head or state changed; re-triage`)
+  if (Date.parse(item.updatedAt) > Date.parse(item.checkedAt))
+    reason(reasons, 'pr_triage_stale', `#${pr.number} changed after its disposition was checked`)
+}
+
+function evaluateItemScope(input, pr, item, plannedPaths, reasons) {
+  const { handoff } = input
+  if (!Array.isArray(pr.changedPaths) || pr.changedPaths.length === 0)
+    reason(reasons, 'pr_triage_missing', `#${pr.number} complete changed paths are unavailable`)
+  else if (plannedPaths.some((path) => pr.changedPaths.some((other) => pathsOverlap(path, other))))
+    reason(reasons, 'pr_scope_overlap', `#${pr.number} overlaps the named boundary's paths`)
+  if (pr.issueId === handoff.issueId || pr.headBranch === handoff.intendedBranch)
+    reason(
+      reasons,
+      'pr_boundary_conflict',
+      `#${pr.number} already occupies this issue or branch; resume rather than start a competing boundary`
     )
-      reason(reasons, 'pr_triage_mismatch', `#${pr.number} head or state changed; re-triage`)
-    if (Date.parse(item.updatedAt) > Date.parse(item.checkedAt))
-      reason(reasons, 'pr_triage_stale', `#${pr.number} changed after its disposition was checked`)
-    if (!Array.isArray(pr.changedPaths) || pr.changedPaths.length === 0)
-      reason(reasons, 'pr_triage_missing', `#${pr.number} complete changed paths are unavailable`)
-    else if (
-      plannedPaths.some((path) => pr.changedPaths.some((other) => pathsOverlap(path, other)))
+  if (
+    item.dependency.status === 'dependent' ||
+    (pr.issueId !== null && [...handoff.dependencyIds, ...handoff.blockerIds].includes(pr.issueId))
+  )
+    reason(
+      reasons,
+      'pr_dependency_conflict',
+      `#${pr.number} is an unresolved dependency of the named boundary`
     )
-      reason(reasons, 'pr_scope_overlap', `#${pr.number} overlaps the named boundary's paths`)
-    if (pr.issueId === handoff.issueId || pr.headBranch === handoff.intendedBranch)
+  if (item.dependency.status === 'unknown')
+    reason(reasons, 'pr_triage_unknown', `#${pr.number} dependency relationship is unverified`)
+}
+
+function evaluateDisposition(input, pr, item, reasons) {
+  if (item.disposition === 'actionable' && input.requestedOperation === 'start')
+    reason(reasons, 'pr_actionable', `#${pr.number} can be advanced: ${item.nextAction}`)
+  if (item.disposition === 'unknown')
+    reason(
+      reasons,
+      'pr_triage_unknown',
+      `#${pr.number} disposition is unverified: ${item.nextAction}`
+    )
+  if (item.blocker) fresh(item.blocker, input, `#${pr.number} blocker`, reasons)
+  if (item.activity) {
+    fresh(item.activity, input, `#${pr.number} actual executor activity`, reasons)
+    if (Date.parse(item.activity.acceptedAt) > Date.parse(item.activity.checkedAt))
+      reason(reasons, 'pr_triage_mismatch', `#${pr.number} activity predates executor acceptance`)
+    if (item.activity.executor === input.openPrTriage.boundary.executor)
       reason(
         reasons,
         'pr_boundary_conflict',
-        `#${pr.number} already occupies this issue or branch; resume rather than start a competing boundary`
+        `#${pr.number} is already active for this executor; retain one active owned boundary`
       )
-    if (
-      item.dependency.status === 'dependent' ||
-      (pr.issueId !== null &&
-        [...handoff.dependencyIds, ...handoff.blockerIds].includes(pr.issueId))
-    )
-      reason(
-        reasons,
-        'pr_dependency_conflict',
-        `#${pr.number} is an unresolved dependency of the named boundary`
-      )
-    if (item.dependency.status === 'unknown')
-      reason(reasons, 'pr_triage_unknown', `#${pr.number} dependency relationship is unverified`)
-    if (item.disposition === 'actionable' && input.requestedOperation === 'start')
-      reason(reasons, 'pr_actionable', `#${pr.number} can be advanced: ${item.nextAction}`)
-    if (item.disposition === 'unknown')
-      reason(
-        reasons,
-        'pr_triage_unknown',
-        `#${pr.number} disposition is unverified: ${item.nextAction}`
-      )
-    if (item.blocker) fresh(item.blocker, input, `#${pr.number} blocker`, reasons)
-    if (item.activity) {
-      fresh(item.activity, input, `#${pr.number} actual executor activity`, reasons)
-      if (Date.parse(item.activity.acceptedAt) > Date.parse(item.activity.checkedAt))
-        reason(reasons, 'pr_triage_mismatch', `#${pr.number} activity predates executor acceptance`)
-      if (item.activity.executor === boundary.executor)
-        reason(
-          reasons,
-          'pr_boundary_conflict',
-          `#${pr.number} is already active for this executor; retain one active owned boundary`
-        )
-    }
   }
 }
 

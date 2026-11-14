@@ -232,6 +232,17 @@ test('every triage observation uses the existing freshness window, including exe
   assert.equal(evaluateSessionPreflight(bad).status, 'unknown')
 })
 
+test('equivalent ISO update instants remain valid, but a one-millisecond change requires re-triage', () => {
+  for (const updatedAt of ['2026-11-03T03:29:00Z', '2026-11-02T21:29:00-06:00']) {
+    const same = input()
+    same.openPrTriage.items[0].updatedAt = updatedAt
+    assert.equal(evaluateSessionPreflight(same).status, 'ready')
+  }
+  const changed = input()
+  changed.openPrTriage.items[0].updatedAt = '2026-11-03T03:29:00.001Z'
+  assert.equal(evaluateSessionPreflight(changed).status, 'unknown')
+})
+
 test('path, issue, branch and dependency conflicts still block blocked or externally owned PRs', () => {
   for (const changedPaths of [
     ['scripts/session-preflight-core.mjs'],

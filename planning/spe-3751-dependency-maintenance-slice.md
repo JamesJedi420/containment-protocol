@@ -136,3 +136,57 @@ accurate schema-free documentation/security evidence; minimal diff and touched-f
 formatting. No assertion, timeout, validator, policy or unrelated dependency change.
 Final committed-head independent review and hosted CI remain mandatory before
 normal merge; the first portion does not complete the two-PR issue.
+
+## Lucide portion preflight
+
+Playwright PR #4987 merged as `af5c56f07ed3f3a50889ad55dc3e7c85d379ddd6`
+from reviewed head `9c6e94f41a505c2c628722d5bd18485e4cd64e70`. Hosted Test run
+43641258203 passed all 11,447 tests / 1,050 files at normal concurrency and all
+required validators. Its browser job skipped execution by path selection; actual
+local Chromium checks above supply the 51 + 5 evidence. Codex and Q exact-head
+reviews were clear; the original Devin finding was addressed and resolved.
+CodeRabbit skipped the bot-authored manual review despite available capacity;
+no approval, seat purchase or bypass is claimed. Main synced clean with an
+identical reviewed tree; post-merge backlog, audits and theme checks passed.
+SPE-3751 remained In Progress under James Dye for this second portion.
+
+Before Lucide edits, #4986 remained an unchanged single-commit Sonatype Guide PR,
+with no visible active repair. Newer #4990 and #4991 are other workers' nonoverlapping
+documentation PRs; they are preserved. The old existing #4986 is being completed,
+not a new parallel implementation. Isolated branch `codex/spe-3751-lucide` refreshes
+that PR against the synchronized main above. Restore/retain the exact nested peer,
+preserve all three Playwright 1.65.1 records and change only the root Lucide range
+and its package record to 1.73.0. Reuse unchanged same-day exact-version/bundled
+security evidence; complete fresh actual install, validation, browser and review
+gates for this combined tree. No previously recorded advisory is erased.
+
+Lucide clean installation passed under Node 22.23.5/npm 10.9.9 (354 installed,
+zero audit findings); actual audit JSON exited 0, and signatures verified 360
+packages / 164 attestations. Required backlog handoff, lint and Vite bundle passed.
+Both compiler censuses report 27 baseline occurrences. Literal build exits 2;
+comparing file/code/message fingerprints with the first portion finds exactly
+the same 27 diagnostic occurrences, with no additions/removals. No compiler
+success or cleanup is claimed.
+
+The default-concurrency local VM run executed the full suite and reported two
+existing App navigation heading-wait failures. No source, assertion, timeout,
+retry or discovery changed. The isolated App file passed all 44 tests, and the
+complete four-worker VM rerun passed **11,447 tests / 1,050 files** (151.31s).
+These observations remain recorded, without claiming an application defect was
+fixed. Hosted final-head CI must still pass its normal forks pool and unchanged
+completeness guard. Actual browser acceptance and independent reviews remain
+pending at this checkpoint. Logs use the same host-local directory with the
+`spe3751-lucide-` prefix: `install.log`, `audit.json`, `signatures.log`,
+`required.log`, `app-recheck.log`, `full-recheck.log`, `literal-build.log` and
+`literal-comparison.json`.
+
+The subsequent actual isolated headless browser run passed all 51 campaign checks
+(6.0m) and five error checks (13.6s), without retries, using the preserved
+Playwright 1.65.1 / Chromium r1255 cache. This is **local** browser evidence;
+hosted execution must be reported according to its actual path selection.
+The same six direct audit passes were repeated for the Lucide-only graph,
+preserved peer/Playwright records, unchanged deterministic/persistent consumers,
+full test and actual browser evidence, accurate documentation and minimal cleanup.
+Touched-file formatting and diff checks precede commit. No in-boundary deferral
+or new application/test/CI/policy change. Independent final-head review, required
+hosted CI, normal merge and main sync remain mandatory before SPE-3751 completion.

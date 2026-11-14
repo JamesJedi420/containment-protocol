@@ -106,6 +106,11 @@ describe('public projection boundaries', () => {
     })
     expect(JSON.stringify(view)).not.toContain('PRIVATE')
   })
+  it('projects exact certainty created from an empty map with an unknown tier', () => {
+    const state = applyDefeatConditionKnowledge({}, 'team:one', 'case:one', 'exact', 2)
+    expect(getFilteredKnowledgeView(state, 'public')[key].tier).toBe('unknown')
+    expect(state[key].tier).toBeUndefined()
+  })
   it('keeps explicitly unknown defeat certainty on an otherwise confirmed subject', () => {
     const view = getFilteredKnowledgeView(
       { [key]: { ...entry, tier: 'confirmed', defeatConditionCertainty: 'unknown' } },

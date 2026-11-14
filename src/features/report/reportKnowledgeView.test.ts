@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getKnowledgeKey } from '../../domain/knowledge'
+import { applyDefeatConditionKnowledge, getKnowledgeKey } from '../../domain/knowledge'
 import { buildReportKnowledgePreview, buildReportKnowledgeView } from './reportKnowledgeView'
 
 describe('buildReportKnowledgeView', () => {
@@ -118,4 +118,30 @@ it('uses qualified computed operator explanations instead of arbitrary freeform 
   expect(preview.groups[0].rows[0].explanation).toBe('Defeat/neutralization condition is unknown.')
   expect(JSON.stringify(preview)).not.toContain('ARBITRARY_NOTE')
   expect(knowledge['team:one::case:one'].notes).toBe('ARBITRARY_NOTE_CLAIMS_CERTAINTY')
+})
+
+it('keeps public exact-tier visibility without generating relay provenance annotations', () => {
+  const knowledge = {
+    'team:one::case:one': {
+      entityId: 'team:one',
+      subjectId: 'case:one',
+      tier: 'relayed' as const,
+      defeatConditionCertainty: 'exact' as const,
+      relaySource: 'PRIVATE_SOURCE',
+      lastRelayedWeek: 2,
+    },
+  }
+  const publicRow = buildReportKnowledgePreview(knowledge, 'public').groups[0].rows[0]
+  expect(publicRow.tier).toBe('relayed')
+  expect(publicRow.annotations).toEqual([])
+  expect(
+    buildReportKnowledgePreview(knowledge, 'internal').groups[0].rows[0].annotations
+  ).toContain('Relayed from PRIVATE_SOURCE (week 2)')
+})
+
+it('gives a tier to both previews for exact certainty created without previous knowledge', () => {
+  const knowledge = applyDefeatConditionKnowledge({}, 'team:one', 'case:one', 'exact', 2)
+  for (const audience of ['public', 'internal'] as const) {
+    expect(buildReportKnowledgePreview(knowledge, audience).groups[0].rows[0].tier).toBe('unknown')
+  }
 })

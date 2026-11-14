@@ -56,14 +56,24 @@ function fixture() {
   return JSON.stringify(game)
 }
 
-for (const width of [1440, 390, 320]) {
-  test(`knowledge audience preview is isolated and keyboard operable at ${width}px`, async ({
+for (const { width, fontFallback } of [
+  { width: 1440, fontFallback: false },
+  { width: 390, fontFallback: false },
+  { width: 320, fontFallback: false },
+  { width: 320, fontFallback: true },
+]) {
+  test(`knowledge audience preview is isolated and keyboard operable at ${width}px${fontFallback ? ' with generic font fallback' : ''}`, async ({
     page,
   }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     const probe = attachPageErrorProbe(page)
     await clearCampaignStorage(page)
+    if (fontFallback) {
+      await page.addStyleTag({
+        content: ':root { --font-body: sans-serif; --font-heading: serif; }',
+      })
+    }
     await page.evaluate(async (raw) => {
       const modulePath = '/src/app/store/gameStore.ts'
       const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)
@@ -106,9 +116,27 @@ for (const width of [1440, 390, 320]) {
     await expect(publicChoice).toBeChecked()
     await expect(publicChoice).toBeFocused()
     expect(await panel.innerHTML()).not.toMatch(/PRIVATE|Team t_greentape|Relay failed/)
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)
-    ).toBe(true)
+    const layout = await page.evaluate(() => ({
+      width: window.innerWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      overflowing: [...document.querySelectorAll('body *')].flatMap((element) => {
+        const rect = element.getBoundingClientRect()
+        return rect.right > window.innerWidth || rect.left < 0
+          ? [
+              {
+                tag: element.tagName,
+                className: element.className,
+                text: element.textContent?.slice(0, 90),
+                left: rect.left,
+                right: rect.right,
+              },
+            ]
+          : []
+      }),
+    }))
+    expect(layout.documentWidth, JSON.stringify(layout.overflowing)).toBeLessThanOrEqual(
+      layout.width
+    )
     const after = await page.evaluate(async () => {
       const modulePath = '/src/app/store/gameStore.ts'
       const { useGameStore }: typeof import('../src/app/store/gameStore') = await import(modulePath)

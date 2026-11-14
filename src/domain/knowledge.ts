@@ -297,7 +297,7 @@ export function getFilteredKnowledgeView(
           ...uncertainty,
           entityId: value.entityId,
           subjectId: value.subjectId,
-          tier: certainty === 'exact' ? value.tier : 'unknown',
+          tier: certainty === 'exact' ? (value.tier ?? 'unknown') : 'unknown',
           defeatConditionCertainty: certainty,
           notes:
             certainty === 'suspected'

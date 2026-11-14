@@ -68,7 +68,7 @@ export function buildReportKnowledgePreview(
     const rows = groups.get(state.entityId) ?? []
     rows.push({
       subjectId: state.subjectId,
-      tier: state.tier,
+      tier: state.tier ?? 'unknown',
       // Only public allowlisted summaries use notes. Operator text uses qualified domain explainers.
       explanation:
         state.notes && audience === 'public'
@@ -77,7 +77,7 @@ export function buildReportKnowledgePreview(
             ? explainHazardKnowledge(state)
             : explainDefeatConditionKnowledge(projected, state.entityId, state.subjectId),
       annotations: [
-        explainRelayChain(state),
+        audience === 'internal' ? explainRelayChain(state) : '',
         explainDecay(state),
         explainFusion(state),
         state.obsolete || state.fragmentation === 'obsolete' ? 'Knowledge may be obsolete.' : '',

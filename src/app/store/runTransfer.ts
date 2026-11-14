@@ -1174,7 +1174,12 @@ function stripUndefinedFields<T>(value: T): T {
 
   for (const [key, entry] of Object.entries(value)) {
     if (entry !== undefined) {
-      nextValue[key] = stripUndefinedFields(entry)
+      Object.defineProperty(nextValue, key, {
+        value: stripUndefinedFields(entry),
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      })
     }
   }
 

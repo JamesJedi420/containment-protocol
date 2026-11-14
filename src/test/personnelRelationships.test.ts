@@ -6,12 +6,14 @@ import { resetGameStoreFixture } from './storeFixtures'
 import { calcTeamChemistry } from '../domain/sim/chemistry'
 import { normalizeAgent } from '../domain/agent/normalize'
 import { appendAgentEventLogs } from '../domain/agent/lifecycle'
+import { createOperationEvent } from '../domain/events/eventBus'
 import { queueTeamTraining } from '../domain/sim/training'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { trainingCatalog } from '../data/training'
 import {
   getPersonnelRelationship,
   applyPersonnelRelationshipEvent,
+  normalizePersonnelRelationshipMetadata,
   queryPersonnelRelationships,
   writePersonnelRelationship,
   removePersonnelRelationship,
@@ -19,6 +21,78 @@ import {
 
 describe('canonical personnel relationships', () => {
   beforeEach(() => resetGameStoreFixture())
+  it.each(['constructor', 'toString', '__proto__'])(
+    'requires valid own provenance for opaque ID %s',
+    (id) => {
+      const agent = createStartingState().agents.a_ava
+      const valid = { tags: [] as const, reason: 'external_event', sourceRef: 'test:valid' }
+      expect(() =>
+        writePersonnelRelationship(agent, id, 0.5, { ...valid, sourceRef: '' })
+      ).toThrow()
+      const created = writePersonnelRelationship(agent, id, 0.5, valid)
+      expect(getPersonnelRelationship(created, id)?.metadata?.sourceRef).toBe('test:valid')
+      const game = createStartingState()
+      const loaded = parseRunExport(
+        serializeRunExport({ ...game, agents: { ...game.agents, a_ava: created } })
+      )
+      expect(getPersonnelRelationship(loaded.agents.a_ava, id)).toEqual(
+        getPersonnelRelationship(created, id)
+      )
+      expect(() => removePersonnelRelationship(created, id, { sourceRef: '' })).toThrow()
+      expect(Object.getPrototypeOf(created.relationshipMetadata)).toBe(Object.prototype)
+    }
+  )
+  it('preserves last real provenance for no-op writes and directional events', () => {
+    const game = createStartingState()
+    const agent = writePersonnelRelationship(game.agents.a_ava, 'a_sato', 0, {
+      tags: [],
+      reason: 'external_event',
+      sourceRef: 'test:original',
+      week: game.week,
+    })
+    expect(
+      writePersonnelRelationship(agent, 'a_sato', 0, {
+        tags: [],
+        reason: 'reconciliation',
+        sourceRef: 'test:no-op',
+        week: game.week,
+      })
+    ).toBe(agent)
+    const event = createOperationEvent(1, {
+      type: 'agent.relationship_changed',
+      sourceSystem: 'agent',
+      payload: {
+        week: game.week,
+        agentId: agent.id,
+        agentName: agent.name,
+        counterpartId: 'a_sato',
+        counterpartName: game.agents.a_sato.name,
+        previousValue: 0,
+        nextValue: 0,
+        delta: 0,
+        reason: 'passive_drift',
+      },
+    })
+    expect(applyPersonnelRelationshipEvent(agent, event)).toBe(agent)
+  })
+  it('normalizes JSON prototype-name keys as own data without changing object prototypes', () => {
+    const raw = JSON.parse(
+      '{"__proto__":{"tags":[],"sourceRef":"test:terminal","reason":"removed","terminal":true}}'
+    )
+    const result = normalizePersonnelRelationshipMetadata(raw, {}, 'owner')
+    expect(Object.hasOwn(result, '__proto__')).toBe(true)
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype)
+    expect(Object.getPrototypeOf({})).toBe(Object.prototype)
+    expect(result['__proto__'].terminal).toBe(true)
+    const payload = JSON.parse(serializeRunExport(createStartingState()))
+    payload.game.agents.a_ava.relationshipMetadata = raw
+    expect(
+      Object.hasOwn(normalizeAgent(payload.game.agents.a_ava).relationshipMetadata!, '__proto__')
+    ).toBe(true)
+    const loaded = parseRunExport(JSON.stringify(payload)).agents.a_ava.relationshipMetadata!
+    expect(Object.getPrototypeOf(loaded)).toBe(Object.prototype)
+    expect(Object.hasOwn(loaded, '__proto__')).toBe(true)
+  })
   it('rejects malformed terminal keys and inherited metadata properties', () => {
     const agent = createStartingState().agents.a_ava
     expect(
@@ -213,6 +287,21 @@ describe('canonical personnel relationships', () => {
             reverse.payload.counterpartId === event.payload.agentId
         )
       ).toBe(true)
+      const agent = game.agents[event.payload.agentId]
+      const edge = getPersonnelRelationship(agent, event.payload.counterpartId)!
+      expect(edge.metadata?.eventId).toMatch(/^evt-/)
+      const provenanceEvent = agent.history?.logs.find((item) => item.id === edge.metadata?.eventId)
+      expect(provenanceEvent?.type).toBe('agent.relationship_changed')
+      if (provenanceEvent?.type !== 'agent.relationship_changed')
+        throw new Error('Missing provenance event')
+      expect(provenanceEvent.payload.nextValue).toBe(edge.value)
+      expect(provenanceEvent.payload.counterpartId).toBe(event.payload.counterpartId)
+      expect(
+        getPersonnelRelationship(
+          parseRunExport(serializeRunExport(game)).agents[agent.id],
+          event.payload.counterpartId
+        )?.metadata
+      ).toEqual(edge.metadata)
     }
     expect(
       parseRunExport(serializeRunExport(game)).events.filter(

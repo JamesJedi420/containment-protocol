@@ -17,6 +17,10 @@ export const PERSONNEL_RELATIONSHIP_TAGS = [
   'betrayal',
 ] as const
 export type PersonnelRelationshipTag = (typeof PERSONNEL_RELATIONSHIP_TAGS)[number]
+/** Stable UTF-16 ordering; locale-dependent collation must not affect replay. */
+export function compareRelationshipKeys(left: string, right: string) {
+  return left < right ? -1 : left > right ? 1 : 0
+}
 export interface PersonnelRelationshipMetadata {
   readonly tags: readonly PersonnelRelationshipTag[]
   readonly sourceRef: string
@@ -49,7 +53,7 @@ export function getPersonnelRelationship(agent: Agent, counterpartId: string) {
 /** Query only the requested actor's adjacency list; never traverse the world graph. */
 export function queryPersonnelRelationships(agent: Agent, counterpartIds?: readonly string[]) {
   const ids = counterpartIds ? [...new Set(counterpartIds)] : Object.keys(agent.relationships)
-  return ids.sort().flatMap((id) => {
+  return ids.sort(compareRelationshipKeys).flatMap((id) => {
     const edge = getPersonnelRelationship(agent, id)
     return edge ? [edge] : []
   })
@@ -76,7 +80,18 @@ export function writePersonnelRelationship(
     { [counterpartId]: value },
     agent.id
   )
-  if (!relationshipMetadata[counterpartId]) throw new Error('Relationship provenance is required.')
+  if (!Object.hasOwn(relationshipMetadata, counterpartId))
+    throw new Error('Relationship provenance is required.')
+  const oldTags = getPersonnelRelationship(agent, counterpartId)?.metadata?.tags ?? []
+  const newTags = relationshipMetadata[counterpartId].tags
+  if (
+    Object.hasOwn(agent.relationships, counterpartId) &&
+    metadata.eventId === undefined &&
+    agent.relationships[counterpartId] === value &&
+    oldTags.length === newTags.length &&
+    oldTags.every((tag) => newTags.includes(tag))
+  )
+    return agent
   const relationships = { ...agent.relationships, [counterpartId]: value }
   return {
     ...agent,
@@ -120,7 +135,7 @@ export function removePersonnelRelationship(
     relationships,
     agent.id
   )
-  if (!normalized[counterpartId]) throw new Error('Removal provenance is required.')
+  if (!Object.hasOwn(normalized, counterpartId)) throw new Error('Removal provenance is required.')
   const bonds = { ...agent.history?.bonds }
   delete bonds[counterpartId]
   return {
@@ -140,7 +155,9 @@ export function normalizePersonnelRelationshipMetadata(
 ): Record<string, PersonnelRelationshipMetadata> {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
   const result: Record<string, PersonnelRelationshipMetadata> = {}
-  for (const id of [...new Set([...Object.keys(relationships), ...Object.keys(raw)])].sort()) {
+  for (const id of [...new Set([...Object.keys(relationships), ...Object.keys(raw)])].sort(
+    compareRelationshipKeys
+  )) {
     if (!id.trim() || id !== id.trim() || id === ownerId || !Object.hasOwn(raw, id)) continue
     const entry: unknown = (raw as Record<string, unknown>)[id]
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue
@@ -170,14 +187,14 @@ export function normalizePersonnelRelationshipMetadata(
       configurable: true,
       writable: true,
       value: Object.freeze({
-        tags: Object.freeze([...new Set(tags)].sort()),
+        tags: Object.freeze([...new Set(tags)].sort(compareRelationshipKeys)),
         sourceRef: sourceRef.trim(),
         reason: reason.trim(),
         ...(week === undefined ? {} : { week }),
         ...(eventId === undefined ? {} : { eventId: eventId.trim() }),
+        ...(terminal === true ? { terminal: true } : {}),
       }),
     })
-    if (terminal === true) result[id] = Object.freeze({ ...result[id], terminal: true })
   }
   return result
 }
@@ -187,6 +204,7 @@ export function applyPersonnelRelationshipEvent(agent: Agent, event: OperationEv
   if (event.type !== 'agent.relationship_changed' || event.payload.agentId !== agent.id)
     return agent
   const { counterpartId, nextValue, reason, week } = event.payload
+  if (event.payload.previousValue === nextValue) return agent
   if (!Object.hasOwn(agent.relationships, counterpartId)) return agent
   const previousWeek = agent.relationshipMetadata?.[counterpartId]?.week
   if (previousWeek !== undefined && previousWeek > week) return agent

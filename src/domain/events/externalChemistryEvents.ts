@@ -9,6 +9,7 @@
  */
 
 import type { GameState } from '../models'
+import { compareRelationshipKeys } from '../personnelRelationships'
 import {
   applyExternalEventToRelationships,
   calculateExternalEventInfluence,
@@ -42,7 +43,7 @@ export function applyExternalChemistryEvent(
   input: ExternalChemistryEventInput
 ): ExternalChemistryEventOutput {
   const eventDrafts: AnyOperationEventDraft[] = []
-  const associatedIds = [...new Set(input.associatedAgentIds ?? [])].sort()
+  const associatedIds = [...new Set(input.associatedAgentIds ?? [])].sort(compareRelationshipKeys)
 
   if (associatedIds.length === 0) {
     return {
@@ -76,7 +77,7 @@ export function applyExternalChemistryEvent(
       const sourceNext = nextState.agents[agentId]?.relationships[counterpartId] ?? 0
 
       if (sourceNext !== sourcePrevious) {
-        const pairKey = JSON.stringify([agentId, counterpartId].sort())
+        const pairKey = JSON.stringify([agentId, counterpartId].sort(compareRelationshipKeys))
         if (!changedPairs.has(pairKey)) {
           changedPairs.add(pairKey)
           relationshipsAffected++

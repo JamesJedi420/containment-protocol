@@ -296,7 +296,7 @@ export const BOUNDED_CAMPAIGN_REGION_PACKET_FIXTURES: readonly BoundedCampaignRe
       id: 'region-packet:north-district',
       regionKind: 'district',
       boundaryRefs: Object.freeze(['boundary:north-edge', 'boundary:river-corridor']),
-      instabilityHookIds: Object.freeze(['resource_scarcity', 'social_pressure']),
+      instabilityHookIds: Object.freeze(['resource_scarcity', 'social_pressure'] as const),
       premise: 'Dense urban district with limited external resupply',
       authorityStructure: 'Municipal liaison with local containment post',
       recurringIncidentPressure: 'Weekly low-grade anomaly reports',
@@ -305,6 +305,6 @@ export const BOUNDED_CAMPAIGN_REGION_PACKET_FIXTURES: readonly BoundedCampaignRe
       id: 'region-packet:service-corridor',
       regionKind: 'corridor',
       boundaryRefs: Object.freeze(['boundary:service-north', 'boundary:service-south']),
-      instabilityHookIds: Object.freeze(['unsafe_route']),
+      instabilityHookIds: Object.freeze(['unsafe_route'] as const),
     }),
   ])

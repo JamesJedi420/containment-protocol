@@ -16359,3 +16359,70 @@ describe('runTransfer import sanitization (326-332)', () => {
     })
   })
 })
+
+describe('SPE-58 optional certainty hydration boundary', () => {
+  it.each([undefined, null, '', 'FAMILY', ' family ', 'guessed', 0, true, {}, [], ['family']])(
+    'does not infer certainty from malformed/absent value %j or fallback knowledge',
+    (certainty) => {
+      const game = createStartingState()
+      const teamId = Object.keys(game.teams)[0]!
+      const subjectId = Object.keys(game.cases)[0]!
+      const key = getKnowledgeKey(teamId, subjectId)
+      const fallback = {
+        [key]: {
+          entityId: teamId,
+          subjectId,
+          tier: 'confirmed' as const,
+          defeatConditionCertainty: 'exact' as const,
+        },
+      }
+      const input = {
+        'wrong-key': {
+          entityId: teamId,
+          subjectId,
+          tier: 'confirmed',
+          defeatConditionCertainty: certainty,
+          lastDefeatConditionUpdateWeek: 99,
+          notes: 'family',
+          trueClassification: 'exact',
+        },
+      }
+      const before = JSON.stringify(input)
+      const view = sanitizeKnowledgeStateMap(input, fallback, {
+        campaignWeek: 5,
+        knownTeamIds: new Set([teamId]),
+      })
+      expect(view[key]).not.toHaveProperty('defeatConditionCertainty')
+      expect(view[key].lastDefeatConditionUpdateWeek).toBe(5)
+      expect(view[key].tier).toBe('confirmed')
+      expect(view).not.toHaveProperty('wrong-key')
+      expect(JSON.stringify(input)).toBe(before)
+      expect(fallback[key].defeatConditionCertainty).toBe('exact')
+    }
+  )
+
+  it('retains existing invalid-record fallback and known-team validation', () => {
+    const fallback = {
+      [getKnowledgeKey('known', 'case')]: {
+        entityId: 'known',
+        subjectId: 'case',
+        tier: 'partial' as const,
+        defeatConditionCertainty: 'family' as const,
+      },
+    }
+    expect(sanitizeKnowledgeStateMap(null, fallback)).toBe(fallback)
+    expect(
+      sanitizeKnowledgeStateMap(
+        { bad: { entityId: '', subjectId: 'case', defeatConditionCertainty: 'exact' } },
+        fallback
+      )
+    ).toBe(fallback)
+    expect(
+      sanitizeKnowledgeStateMap(
+        { bad: { entityId: 'orphan', subjectId: 'case', defeatConditionCertainty: 'exact' } },
+        fallback,
+        { knownTeamIds: new Set(['known']) }
+      )
+    ).toBe(fallback)
+  })
+})

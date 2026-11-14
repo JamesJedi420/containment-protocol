@@ -112,6 +112,14 @@ describe('staffRoleSignatureCapability (SPE-2222 slice 1)', () => {
       'found'
     )
     expect(JSON.stringify(input)).toBe(snapshot)
+    expect(lookupStaffRoleSignatureCapability(input, 'role-signature:example')).toEqual({
+      status: 'found',
+      capability: normalized[0],
+    })
+    expect(lookupStaffRoleSignatureByRolePackage(input, 'role-package:example')).toEqual({
+      status: 'found',
+      capability: normalized[0],
+    })
     expect(Object.isFrozen(normalized[0])).toBe(true)
   })
 
@@ -125,6 +133,25 @@ describe('staffRoleSignatureCapability (SPE-2222 slice 1)', () => {
     expect(lookupStaffRoleSignatureCapability(input, duplicate.id).status).toBe(
       'ambiguous_capability_id'
     )
+  })
+
+  it('rejects invalid matched records without requiring normalization first', () => {
+    const input = [
+      { ...fixture[0]!, niche: 'unknown' },
+    ] as unknown as StaffRoleSignatureCapability[]
+    expect(lookupStaffRoleSignatureCapability(input, fixture[0]!.id).status).toBe(
+      'invalid_capability'
+    )
+    expect(lookupStaffRoleSignatureByRolePackage(input, fixture[0]!.rolePackageRef).status).toBe(
+      'invalid_capability'
+    )
+    const duplicate = [{ ...fixture[0]!, id: ` ${fixture[0]!.id} ` }, fixture[0]!]
+    expect(lookupStaffRoleSignatureCapability(duplicate, fixture[0]!.id).status).toBe(
+      'ambiguous_capability_id'
+    )
+    expect(
+      lookupStaffRoleSignatureByRolePackage(duplicate, fixture[0]!.rolePackageRef).status
+    ).toBe('duplicate_role_signature')
   })
 
   it('looks up capabilities deterministically without live staff or input mutation', () => {

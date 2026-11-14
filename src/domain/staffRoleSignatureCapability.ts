@@ -51,12 +51,14 @@ export type StaffRoleSignatureLookup =
   | { readonly status: 'unknown_capability_id' }
   | { readonly status: 'ambiguous_capability_id' }
   | { readonly status: 'invalid_capability_id' }
+  | { readonly status: 'invalid_capability' }
 
 export type StaffRolePackageSignatureLookup =
   | { readonly status: 'found'; readonly capability: StaffRoleSignatureCapability }
   | { readonly status: 'unknown_role_package' }
   | { readonly status: 'duplicate_role_signature' }
   | { readonly status: 'invalid_role_package_ref' }
+  | { readonly status: 'invalid_capability' }
 
 export interface RecruitmentAssessmentFamilyBinding {
   readonly rolePackageRef: string
@@ -254,10 +256,12 @@ export function lookupStaffRoleSignatureCapability(
   if (!CAPABILITY_ID.test(id) || usesSourceSpecificLabel(id)) {
     return Object.freeze({ status: 'invalid_capability_id' })
   }
-  const matches = capabilities.filter((capability) => capability.id === id)
+  const matches = capabilities.filter((capability) => token(capability.id) === id)
   if (matches.length === 0) return Object.freeze({ status: 'unknown_capability_id' })
   if (matches.length > 1) return Object.freeze({ status: 'ambiguous_capability_id' })
-  return Object.freeze({ status: 'found', capability: freezeCapability(matches[0]!) })
+  const capability = validateCapability(matches[0], 0, [])
+  if (!capability) return Object.freeze({ status: 'invalid_capability' })
+  return Object.freeze({ status: 'found', capability })
 }
 
 export function lookupStaffRoleSignatureByRolePackage(
@@ -268,10 +272,12 @@ export function lookupStaffRoleSignatureByRolePackage(
   if (!ROLE_PACKAGE_REF.test(roleRef) || usesSourceSpecificLabel(roleRef)) {
     return Object.freeze({ status: 'invalid_role_package_ref' })
   }
-  const matches = capabilities.filter((capability) => capability.rolePackageRef === roleRef)
+  const matches = capabilities.filter((capability) => token(capability.rolePackageRef) === roleRef)
   if (matches.length === 0) return Object.freeze({ status: 'unknown_role_package' })
   if (matches.length > 1) return Object.freeze({ status: 'duplicate_role_signature' })
-  return Object.freeze({ status: 'found', capability: freezeCapability(matches[0]!) })
+  const capability = validateCapability(matches[0], 0, [])
+  if (!capability) return Object.freeze({ status: 'invalid_capability' })
+  return Object.freeze({ status: 'found', capability })
 }
 
 /**

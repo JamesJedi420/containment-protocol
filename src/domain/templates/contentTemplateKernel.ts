@@ -5,6 +5,8 @@ export type ContentTemplateKernel = {
   id: string
   family: 'protocol-material' | 'hazard-incident' | 'doctrine-playbook'
   type: string // sub-type within family
+  runtime?: TemplateRuntimeDeclaration
+  brief?: TemplateAuthoringBrief
   requirements?: RequirementEntry[]
   conditions?: ConditionEntry[]
   modifiers?: ModifierEntry[]
@@ -20,6 +22,50 @@ export type ContentTemplateKernel = {
     notes?: string
     tags?: string[]
   }
+}
+
+export type TemplateAuthoringBrief = {
+  implementationSurface: string
+  runtimeBehavior: string
+  playerResult: string
+}
+
+export type TemplateRuntimeHook = 'prepare-material' | 'resolve-incident' | 'apply-doctrine'
+
+/** Caller-owned authoring ratings, not gameplay effect units or universal balance values. */
+export type TemplateBandPolicy = {
+  id: string
+  actionBands: Record<string, { minCost: number; maxScope: number; maxExceptions: number }>
+  powerBands: Record<string, { maxPower: number }>
+}
+
+/** Resolution result shape. Each alternative may contain only its declared hook's field;
+ * other keys reject with Unsupported hook parameters, distinct from invalid values. */
+export type TemplateRuntimeParameters = {
+  recognitionThreshold?: number
+  riskThresholds?: number[]
+  reliability?: number
+}
+
+export type TemplateRuntimeDeclaration = {
+  hook: TemplateRuntimeHook
+  policyRef: string
+  actionBand: string
+  powerBand: string
+  cost: number
+  scope: number
+  exceptions: number
+  power: number
+  alternatives?: {
+    id: string
+    when: ConditionEntry[]
+    parameters: TemplateRuntimeParameters
+  }[]
+}
+
+export type TemplateRuntimeOptions = {
+  policy: TemplateBandPolicy
+  context?: Readonly<Record<string, string | number | boolean>>
 }
 
 // Minimal stubs for kernel fields (expand as needed)

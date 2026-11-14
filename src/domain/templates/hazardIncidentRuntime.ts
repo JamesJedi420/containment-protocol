@@ -1,3 +1,10 @@
+import type { TemplateRuntimeOptions } from './contentTemplateKernel'
+import {
+  resolveTemplateRuntime,
+  TemplateValidationError,
+  finiteNonnegative,
+} from './contentTemplateRuntime'
+import { validateHazardIncident } from './contentTemplateValidation'
 // Deterministic runtime logic for hazard/incident templates (SPE-48)
 import type { HazardIncidentTemplate } from './hazardIncidentTemplates'
 import { cloneIncidentImpact, type IncidentImpact } from './incidentImpact'
@@ -13,21 +20,33 @@ export type IncidentState = {
 export function resolveIncident(
   template: HazardIncidentTemplate,
   state: IncidentState,
-  action: string
+  action: string,
+  options?: TemplateRuntimeOptions
 ): IncidentState {
-  // Deterministic escalation: advance if risk threshold met and action matches required
-  let nextStep = state.escalationStep;
+  const errors = validateHazardIncident(template, options?.policy)
+  if (errors.length) throw new TemplateValidationError(errors)
   if (
-    state.risk >= (template.escalation.riskThresholds[state.escalationStep] || Infinity) &&
+    !finiteNonnegative(state.risk) ||
+    !Number.isInteger(state.escalationStep) ||
+    state.escalationStep < 0
+  )
+    throw new TemplateValidationError(['Invalid incident state'])
+  const parameters = resolveTemplateRuntime(template, 'resolve-incident', options)
+  // Deterministic escalation: advance if risk threshold met and action matches required
+  let nextStep = state.escalationStep
+  if (
+    state.risk >=
+      ((parameters.riskThresholds ?? template.escalation.riskThresholds)[state.escalationStep] ??
+        Infinity) &&
     template.resolution.requiredActions.includes(action)
   ) {
-    nextStep = state.escalationStep + 1;
+    nextStep = state.escalationStep + 1
   }
   // Mark as resolved if the last required action is performed at the final step
   const resolved =
     nextStep >= template.escalation.steps.length ||
     (nextStep === template.escalation.steps.length - 1 &&
-      template.resolution.requiredActions.includes(action));
+      template.resolution.requiredActions.includes(action))
 
   const impact = template.impact
     ? cloneIncidentImpact(template.impact)
@@ -40,5 +59,5 @@ export function resolveIncident(
     risk: state.risk,
     resolved,
     impact,
-  };
+  }
 }

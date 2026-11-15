@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { declareActor, isInteractionAllowed } from '../domain/actorTaxonomy'
+import type { PhysicalityState, UnifiedActorDeclaration } from '../domain/actorTaxonomy'
 import {
   resolveCaptureSecureOutcome,
   toCaptureSecureEvidence,
@@ -173,5 +175,105 @@ describe('SPE-104 capture-secure outcome producer', () => {
     expect(failed.recovery?.stage).toBe('capture_failed')
     expect(failed.recovery?.terminalOutcomeReported).toBe(true)
     expect(failed.recovery?.stage).not.toBe('completed')
+  })
+})
+
+describe('actor taxonomy and capture restraint agreement', () => {
+  const physicalities: PhysicalityState[] = [
+    'physical',
+    'semi_physical',
+    'nonphysical',
+    'projected',
+    'anchored',
+    'vessel_bound',
+    'possessed',
+  ]
+  const actor = (physicality: PhysicalityState, canRestrain: boolean): UnifiedActorDeclaration =>
+    declareActor({
+      id: 'actor:agreement',
+      label: 'Agreement actor',
+      actorClass: 'human',
+      physicality,
+      behaviorState: 'contained',
+      movementModes: [],
+      sensingChannels: [],
+      needs: [],
+      drives: [],
+      capabilities: {
+        canInterview: true,
+        canRestrain,
+        canSedate: true,
+        canInjure: true,
+        canTrack: true,
+        canPhotograph: true,
+        canRecord: true,
+        canWard: true,
+        canBargain: true,
+        canArchive: true,
+        canPhysicallyStore: true,
+      },
+    })
+  const attempt = {
+    attemptId: 'agreement',
+    subjectRef: 'subject:agreement',
+    controlCommitted: true,
+    restraintCompatible: true,
+  } as const
+
+  it.each(
+    physicalities.flatMap((physicality) =>
+      [true, false].map((canRestrain) => ({ physicality, canRestrain }))
+    )
+  )('agrees for $physicality with canRestrain=$canRestrain', ({ physicality, canRestrain }) => {
+    const declaration = actor(physicality, canRestrain)
+    const result = resolveCaptureSecureOutcome({ ...attempt, subjectActor: declaration })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected a capture outcome')
+    const allowed = isInteractionAllowed(declaration, 'restrain')
+    expect(allowed).toBe(
+      canRestrain && ['physical', 'possessed', 'vessel_bound'].includes(physicality)
+    )
+    expect(result.outcome.secured).toBe(allowed)
+    expect(result.outcome.reasonCodes).toEqual([
+      allowed ? 'capture_secured' : 'restraint_incompatible',
+    ])
+  })
+
+  it.each([
+    { override: { categoryMismatch: true }, reason: 'category_mismatch' },
+    { override: { restraintCompatible: false }, reason: 'restraint_incompatible' },
+  ] as const)('treats $reason as a capture-only override', ({ override, reason }) => {
+    const declaration = actor('physical', true)
+    expect(isInteractionAllowed(declaration, 'restrain')).toBe(true)
+    const result = resolveCaptureSecureOutcome({
+      ...attempt,
+      ...override,
+      subjectActor: declaration,
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected a capture outcome')
+    expect(result.outcome.secured).toBe(false)
+    expect(result.outcome.reasonCodes).toEqual([reason])
+  })
+
+  it('keeps omitted capture capabilities distinct from either required taxonomy capability', () => {
+    const result = resolveCaptureSecureOutcome({
+      ...attempt,
+      subjectActor: { physicality: 'physical' },
+    })
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected a capture outcome')
+    expect(result.outcome.secured).toBe(true)
+    expect(result.outcome.reasonCodes).toEqual(['capture_secured'])
+    expect(isInteractionAllowed(actor('physical', true), 'restrain')).toBe(true)
+    expect(isInteractionAllowed(actor('physical', false), 'restrain')).toBe(false)
+    const intangible = resolveCaptureSecureOutcome({
+      ...attempt,
+      subjectActor: { physicality: 'nonphysical' },
+    })
+    expect(intangible.ok).toBe(true)
+    if (!intangible.ok) throw new Error('Expected a capture outcome')
+    expect(intangible.outcome.secured).toBe(false)
+    expect(intangible.outcome.reasonCodes).toEqual(['restraint_incompatible'])
   })
 })

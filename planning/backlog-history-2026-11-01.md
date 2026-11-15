@@ -1,12 +1,18 @@
-# Near-term backlog
+# Near-term backlog — frozen historical snapshot (2026-11-01)
 
-This file is the **canonical ordered queue** for concrete engineering and design follow-ups that were previously split across `README.md` and high-level hints in `planning/roadmap.md`. **Edit order here when priorities change**; avoid duplicating long tactical lists elsewhere.
+> **Frozen historical evidence — no live authority.** This file preserves the former ordered queue as it stood on 2026-11-01, including its shipped-work records and handoff notes. It is not a queue, not a priority order, and not an input for selecting work; do not edit order here when priorities change.
+>
+> Linear is the only authority for issue scope, priority, lifecycle, relationships and blockers. The approved-work projection mechanism is [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) and currently produces no output. Status and priority claims below are historical, and some are known stale.
+>
+> `npm run verify:backlog-handoff` still reads this file, but only to check that its handoff section agrees with `planning/backlog-handoff-manifest.json`. A passing run certifies internal consistency, never authority or freshness.
 
-## Governance guardrail (current)
+## Governance guardrail (as recorded 2026-11-01 — historical, superseded)
+
+Recorded as it stood on that date; retained for history, not as current instruction.
 
 Linear is the system of record for this queue. **Cursor** may select existing issues or create/fold bounded Linear scope under `docs/cursor-autonomous-authority.md` (ChatGPT Phase 1–4 gates do not bind Cursor). **ChatGPT** actors still use Phases 1–4 for backlog-shape mutations. Ordinary lifecycle/evidence Linear updates never require phases. Prefer existing owners over duplicates; keep new issues reviewable with Goal/Scope/Constraints/Acceptance.
 
-**How to use:** Pick from the active queue unless a dependency blocks it. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
+**How to use this file:** read it as history only. Nothing below selects work — confirm current Linear state, blockers and an approved bounded slice before starting anything. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
 
 ## Context (not always a single task)
 
@@ -18,7 +24,7 @@ From `README.md` **Current design notes**:
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
-## Active queue (highest leverage first — reorder as needed)
+## Active queue as recorded 2026-11-01 (historical ordering, not live priority)
 
 **Recently shipped:** [SPE-3155](https://linear.app/spectranoir/issue/SPE-3155) — equipment defect recall and remediation; PR #4527. Parent SPE-877 remains Backlog.
 
@@ -761,7 +767,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
-**Status:** design harvest only — not canon, not player-facing copy, not an implementation commitment. This section maps external design extraction themes to existing Linear owners or explicit gaps. It is **non-authoritative** for sequencing; reorder the active queue above when priorities change.
+**Status:** design harvest only — not canon, not player-facing copy, not an implementation commitment. This section maps external design extraction themes to existing Linear owners or explicit gaps. It is **non-authoritative** for sequencing; the ordering above is historical and carries no priority.
 
 **Content policy:** Do not use SCP wiki URLs or SCP numbers in player-facing copy without licensing/content review. Translate harvest ideas into bounded institutional-sim mechanics (deterministic weekly SPA), not a live 3D engine, hardware/camera stack, or wiki implementation.
 

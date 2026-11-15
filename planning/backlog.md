@@ -1,7 +1,12 @@
 # Near-term backlog
 
-Canonical near-term queue; Linear owns scope, lifecycle, priority, and dependencies.
-This is a curated shortlist checked on 2026-11-01, not an automated readiness projection.
+> **Not an authority.** Linear is the only authority for issue scope, priority, lifecycle, relationships and blockers. This file and `backlog-handoff-manifest.json` are a retained human-readable shortlist and **are not inputs** for selecting executable work or priority ([SPE-3338](https://linear.app/spectranoir/issue/SPE-3338)). Ordering here carries no priority; confirm current Linear state before acting on any entry.
+>
+> `npm run verify:backlog-handoff` survives, re-scoped to **internal consistency only**: this file's handoff section, the frozen history file and the manifest must agree with each other. It does not assert authority, priority or freshness, and a green run is not evidence that this list is the queue. The authoritative projection mechanism is SPE-3338; it currently produces no output because its inputs are incomplete.
+>
+> The verifier also enforces shape limits: 1–12 active entries, at most 350 characters per entry, at most 6,000 bytes for this file, distinct owning issue IDs, and inclusion of each manifest handoff issue. These limits do not establish work readiness.
+
+Shortlist checked on 2026-11-01; it is not an automated readiness projection.
 Continue existing work first; confirm blockers and an approved bounded slice in Linear before starting a Backlog item.
 Parent entries coordinate child work, not whole-umbrella implementation.
 

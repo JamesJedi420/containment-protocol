@@ -27,33 +27,19 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 ## Linear evidence sweeps (response-size limits)
 
-Linear issue **descriptions are read through a connector whose response is truncated by size**, not by query shape. Two limits hold in practice:
+Linear issue **descriptions arrive through a connector that truncates by response size**, not by query shape. Two behaviours were observed: a batch query carrying many descriptions cuts off part-way, so later issues arrive empty or partial; and the largest descriptions fail even when fetched alone. Either way the surviving rows look like a complete result set.
 
-- a **batch** query carrying descriptions cuts off around **~10 KB** of output, so later issues arrive empty or partial;
-- a **single-issue** fetch still fails on the largest descriptions, cutting off above roughly **~30 KB**.
-
-The consequence is the trap this protocol exists to prevent: the surviving rows look like a complete result set. A real example from this repository: a citation sweep reported **"22 of 52 issues read, 30 skipped"**. Both numbers were artefacts. The **52** was simply the row count of one truncated batch response, not a filtered population; the **30** were the rows that never arrived — an output-size boundary, not a list of issues anyone had identified and deferred. Counting by filter instead gave **59 issues matching `architecture/` and at least 100 matching `docs/`** (overlapping), so the published population was off by a factor of three and the "skipped" set described nothing real.
+What that produced here: a citation sweep published **"22 of 52 issues read, 30 skipped"**. The 52 was the row count of one truncated batch response, and the 30 were rows that never arrived — an output-size boundary, not a set of issues anyone had identified and deferred. Counting by filter instead gave **59 issues matching `architecture/` and at least 100 matching `docs/`** (overlapping).
 
 Rules for any sweep that extracts paths, anchors, or claims from issue descriptions:
 
 - **One issue per call.** Batch only issue identifiers, titles and states; never batch descriptions when the text will be quoted or scanned.
-- **Request only `description`.** Ask for `identifier`, `title` and `description` and nothing else; committed comments, relations and attachments multiply payload size without adding citable facts.
+- **Request only `description`.** Ask for `identifier`, `title` and `description` and nothing else; comments carry their own truncation risk and belong in a sweep only when they are the evidence.
 - **Treat truncation as failure, not as an empty issue.** A `truncated: true` response or an empty `preview` means the issue is **unread**. Do not record it as "no findings".
 - **Count the population with the filter, not with the page.** Read `pageInfo.hasNextPage`; a filter that returns 100 rows with more pages is not a 100-issue population. State the filter used and whether it was exhausted.
 - **Publish the unread set with the result.** Every sweep reports what it read *and* the identifiers it could not read, grouped by reason (truncated / not attempted / filter exceeded). A sweep with an unstated gap is a coverage claim, not evidence.
 - **Anchor to a revision.** Name the commit or SHA the paths were checked against, and say plainly when a citation is *planned* rather than missing-by-error.
-
-### Fetch pattern
-
-One issue per call, `description` only:
-
-```graphql
-query($id: String!) { issue(id: $id) { identifier title description } }
-```
-
-Pass the shorthand identifier (`SPE-1234`) rather than a UUID, so a sweep report is readable without a second lookup, and batch only the identifier/title/state queries used to build the population. A batch of up to ~8 per-issue calls per request keeps wall-clock time down without reintroducing the size problem, because each call carries one description.
-
-Chunking a description across paged reads, or re-querying with a narrower field selection, does not raise these limits — only per-issue reads do.
+- **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Several of these can share one request (six to eight worked in practice); each carries a single description, so combining them does not reintroduce the size problem.
 
 ## Anti-patterns
 

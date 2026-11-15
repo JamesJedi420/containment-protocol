@@ -192,7 +192,7 @@ Hard guardrails for all reset tooling:
 
 ## 6) Open questions
 
-**Resolved by shipped code (verified 2026-11-14 at `bdbf4624`):**
+**Resolved by shipped code (verified 2026-11-15 at `44205211`):**
 
 - ~~Should bounded full runtime-debug reset preserve current location/player identity by default?~~ **Resolved — yes by default.** The `fullRuntimeDebugReset` branch replaces only `runtimeState` and re-applies the prior `player` and `currentLocation`, with the intent stated in-line (“Preserve identity + current location so reset does not strand navigation.”). Anchor: `src/domain/debugResetTools.ts:132-143` (comment at line 139, preserved `player` and `currentLocation` at lines 140-141). Simulation systems are not touched.
 - ~~Should queue reset preserve `nextSequence` or reset it to 1 in all profiles?~~ **Resolved — behavior differs by operation.** `clearRuntimeEventQueue` preserves the cursor (`src/domain/eventQueue.ts:162-167`), including the queue-clearing helper profiles. `fullRuntimeDebugReset` instead replaces runtime state with defaults (`src/domain/debugResetTools.ts:132-143`), whose queue starts at `nextSequence: 1` (`src/domain/gameStateManager.ts:1049-1068`).

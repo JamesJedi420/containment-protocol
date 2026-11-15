@@ -11,6 +11,8 @@ test('summary implementation, canonical queue dependency and operator contract s
   for (const file of [
     'scripts/engineering-summary.mjs',
     'scripts/engineering-summary.test.mjs',
+    'scripts/engineering-summary-github.mjs',
+    'scripts/engineering-summary-github.test.mjs',
     'scripts/project-approved-work.mjs',
     'scripts/validation/engineering-summary-selection.check.mjs',
     'docs/engineering-activity-summary.md',

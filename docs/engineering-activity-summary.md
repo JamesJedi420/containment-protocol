@@ -10,6 +10,8 @@ This tooling implements deterministic summaries of **supplied snapshots** and pu
 
 The explicit mode is `selection` for resolve-only/dry-run or `execution` for actual runs. Selection cannot contain passed or failed results; execution cannot contain selected results. Statuses remain canonical and required/advisory/exception classifications stay in sanitized provenance. Raw invocation details, paths and output are not retained. Missing required validators, filters and unknown source scope never establish complete coverage: every supplied report remains partial and missing reports are unavailable. Last success is supplied history and is never advanced automatically.
 
+`observedAt` is when the supplied validation facts were observed, not a later time when an old report was copied or fetched again. The producer report has no observation timestamp, so the caller must establish that time; when it is unknown, report the source as unavailable rather than inventing a fresh observation. The same timestamp is used for each normalized record, and the existing summary independently applies its caller-supplied freshness policy.
+
 `scripts/engineering-summary.mjs` exports `summarizeEngineeringActivity(input)` (object), `serializeEngineeringSummary(input)` (stable JSON plus newline), and `renderEngineeringSummary(input)` (Markdown). Each takes the same input envelope. None reads the clock, network, environment or filesystem. There is no persistent report/evidence store.
 
 ```js

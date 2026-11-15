@@ -3,8 +3,10 @@ import type {
   MaintenanceConversionRequest,
   MaintenanceConversionResult,
 } from '../../domain/facilityMaintenanceConversion'
+import { previewFacilityMaintenanceConversion } from '../../domain/facilityMaintenanceConversion'
 import { MAINTENANCE_CONVERSION_EXPLANATIONS } from './facilityMaintenanceView'
 import type { projectFacilityMaintenanceView } from './facilityMaintenanceView'
+import { projectActionAcknowledgement } from '../../domain/actionAcknowledgement'
 
 export function MaintenanceConversionPanel({
   conversion,
@@ -14,7 +16,7 @@ export function MaintenanceConversionPanel({
   onConvert: (request: MaintenanceConversionRequest) => MaintenanceConversionResult
 }) {
   const [staffId, setStaffId] = useState('')
-  const [announcement, setAnnouncement] = useState('')
+  const [announcement, setAnnouncement] = useState<{ text: string; revision: string } | null>(null)
   const selected = conversion.staff.find((staff) => staff.staffId === staffId)
   return (
     <div className="space-y-3" aria-labelledby="maintenance-conversion-heading">
@@ -40,7 +42,7 @@ export function MaintenanceConversionPanel({
         value={staffId}
         onChange={(event) => {
           setStaffId(event.target.value)
-          setAnnouncement('')
+          setAnnouncement(null)
         }}
       >
         <option value="">Select staff member</option>
@@ -66,13 +68,33 @@ export function MaintenanceConversionPanel({
         onClick={() => {
           if (!selected) return
           const result = onConvert(selected.request)
-          setAnnouncement(MAINTENANCE_CONVERSION_EXPLANATIONS[result.reason])
+          const acknowledgement = projectActionAcknowledgement({
+            kind: 'maintenance',
+            result,
+            id: `${selected.request.staffId}:${selected.request.week}`,
+          }).summary
+          const label =
+            acknowledgement === 'applied'
+              ? 'Applied'
+              : acknowledgement === 'no_op'
+                ? 'Already completed'
+                : 'Blocked'
+          setAnnouncement({
+            text: `${label}: ${MAINTENANCE_CONVERSION_EXPLANATIONS[result.reason]}`,
+            revision:
+              result.status === 'applied'
+                ? previewFacilityMaintenanceConversion(result.game, selected.staffId).request
+                    .revision
+                : selected.request.revision,
+          })
         }}
       >
         Convert gasket and staff time
       </button>
       <p role="status" aria-live="polite" aria-atomic="true" className="text-sm">
-        {announcement}
+        {announcement && selected?.request.revision === announcement.revision
+          ? announcement.text
+          : ''}
       </p>
     </div>
   )

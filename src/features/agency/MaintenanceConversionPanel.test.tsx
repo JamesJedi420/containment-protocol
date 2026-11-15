@@ -11,6 +11,8 @@ import { previewFacilityMaintenanceConversion } from '../../domain/facilityMaint
 import { projectFacilityMaintenanceView } from './facilityMaintenanceView'
 import { MaintenanceConversionPanel } from './MaintenanceConversionPanel'
 import AgencyPage from './AgencyPage'
+import { projectActionAcknowledgement } from '../../domain/actionAcknowledgement'
+import { validateOperationalExplanationRecord } from '../../domain/operationalExplanation'
 
 beforeEach(() => {
   useGameStore.persist.clearStorage()
@@ -40,6 +42,25 @@ function Surface() {
 }
 
 describe('Agency Command conversion controls', () => {
+  it('projects applied, duplicate and blocked results without upgrading the latter', () => {
+    const game = useGameStore.getState().game
+    const record = (status: 'applied' | 'no_op' | 'blocked') =>
+      projectActionAcknowledgement({
+        kind: 'maintenance',
+        id: 'analyst:1',
+        result: {
+          game,
+          status,
+          reason:
+            status === 'applied' ? 'converted' : status === 'no_op' ? 'no_op' : 'stale_request',
+        },
+      })
+    expect(record('applied').summary).toBe('applied')
+    expect(record('no_op').summary).toBe('no_op')
+    expect(record('blocked').summary).toBe('blocked')
+    expect(record('applied').id).toBe(record('blocked').id)
+    expect(validateOperationalExplanationRecord(record('blocked')).valid).toBe(true)
+  })
   it('exposes requirements and stock tradeoff, executes by pointer, and announces release and weekly exhaustion', () => {
     render(<Surface />)
     expect(
@@ -51,6 +72,7 @@ describe('Agency Command conversion controls', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Convert gasket and staff time' }))
     expect(screen.getByRole('status')).toHaveTextContent('Staff capacity is released')
+    expect(screen.getByRole('status')).toHaveTextContent('Applied')
     expect(screen.getByRole('status')).toHaveAttribute('aria-atomic', 'true')
     expect(screen.getByText(/already converted this week/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Convert gasket and staff time' })).toBeDisabled()

@@ -26,9 +26,13 @@ export const OPERATIONAL_EXPLANATION_DEPTHS = ['summary', 'detail', 'diagnostic'
 export type OperationalExplanationDepth = (typeof OPERATIONAL_EXPLANATION_DEPTHS)[number]
 
 export interface OperationalExplanationSource {
-  readonly system: 'department_workshop' | 'deployable_readiness' | 'historical_route_replay'
+  readonly system:
+    | 'department_workshop'
+    | 'deployable_readiness'
+    | 'historical_route_replay'
+    | 'maintenance_conversion'
   readonly recordType:
-    'work_order' | 'completion_outcome' | 'readiness_composition' | 'replay_record'
+    'work_order' | 'completion_outcome' | 'readiness_composition' | 'replay_record' | 'conversion'
   readonly recordId: string
 }
 
@@ -215,16 +219,23 @@ export function validateOperationalExplanationRecord(
     issues.push('source-required')
   } else {
     if (
-      !['department_workshop', 'deployable_readiness', 'historical_route_replay'].includes(
-        source.system as string
-      )
+      ![
+        'department_workshop',
+        'deployable_readiness',
+        'historical_route_replay',
+        'maintenance_conversion',
+      ].includes(source.system as string)
     ) {
       issues.push('invalid-source-system')
     }
     if (
-      !['work_order', 'completion_outcome', 'readiness_composition', 'replay_record'].includes(
-        source.recordType as string
-      )
+      ![
+        'work_order',
+        'completion_outcome',
+        'readiness_composition',
+        'replay_record',
+        'conversion',
+      ].includes(source.recordType as string)
     ) {
       issues.push('invalid-record-type')
     }

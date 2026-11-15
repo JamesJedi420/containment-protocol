@@ -73,7 +73,11 @@ export default function DepartmentWorkshopMirrorPage() {
 
       <WorkshopStaffTimePanel />
       {view.departments.length === 0 ? (
-        <article className="panel panel-support space-y-2" role="region" aria-label="Empty workshop state">
+        <article
+          className="panel panel-support space-y-2"
+          role="region"
+          aria-label="Empty workshop state"
+        >
           <h3 className="text-lg font-semibold">
             {view.isEmpty
               ? DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.emptyTitle
@@ -159,7 +163,9 @@ export default function DepartmentWorkshopMirrorPage() {
                             className="border-b border-white/5 align-top"
                           >
                             <td className="px-2 py-2 font-medium">{item.workOrderId}</td>
-                            <td className="px-2 py-2">{item.laneLabel}</td>
+                            <td className="px-2 py-2">
+                              {item.laneLabel} · {item.acknowledgement}
+                            </td>
                             <td className="px-2 py-2">{item.taskTypeLabel}</td>
                             <td className="px-2 py-2">{item.caseId}</td>
                             <td className="px-2 py-2">{item.progressLabel}</td>
@@ -186,20 +192,26 @@ export default function DepartmentWorkshopMirrorPage() {
           <h3 className="text-lg font-semibold">
             {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesHeading}
           </h3>
-          <p className="text-sm opacity-60">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesSubtitle}</p>
+          <p className="text-sm opacity-60">
+            {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesSubtitle}
+          </p>
         </div>
 
         {view.outcomesEmpty ? (
           <div role="region" aria-label="Empty completion ledger">
             <h4 className="font-medium">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesEmptyTitle}</h4>
-            <p className="text-sm opacity-70">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesEmptyBody}</p>
+            <p className="text-sm opacity-70">
+              {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.outcomesEmptyBody}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
-                  <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.workOrderColumn}</th>
+                  <th className="px-2 py-2">
+                    {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.workOrderColumn}
+                  </th>
                   <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.weekColumn}</th>
                   <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.qualityColumn}</th>
                   <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.safetyColumn}</th>
@@ -216,7 +228,7 @@ export default function DepartmentWorkshopMirrorPage() {
                     </td>
                     <td className="px-2 py-2">{outcome.completedWeekLabel}</td>
                     <td className="px-2 py-2">
-                      {outcome.qualityLabel}
+                      {outcome.qualityLabel} · {outcome.acknowledgement}
                       {outcome.qualityReasonLabel ? (
                         <p className="text-xs opacity-55">{outcome.qualityReasonLabel}</p>
                       ) : null}
@@ -264,8 +276,12 @@ export default function DepartmentWorkshopMirrorPage() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
-                  <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.workOrderColumn}</th>
-                  <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.spawnedCaseColumn}</th>
+                  <th className="px-2 py-2">
+                    {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.workOrderColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.spawnedCaseColumn}
+                  </th>
                   <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.qualityColumn}</th>
                   <th className="px-2 py-2">{DEPARTMENT_WORKSHOP_MIRROR_UI_TEXT.safetyColumn}</th>
                 </tr>

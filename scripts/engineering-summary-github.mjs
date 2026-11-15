@@ -1,5 +1,6 @@
 // SPE-3512: normalize supplied JSON captures only; never acquire or persist evidence.
 import { createHash } from 'node:crypto'
+import { captureValidation } from './engineering-summary-capture.mjs'
 
 const WORKSTREAMS = ['CP-core', 'Academy', 'shared-system', 'cross-project']
 const FAILURE_CODES = [
@@ -11,69 +12,19 @@ const FAILURE_CODES = [
   'network',
   'partial-response',
 ]
-const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const positive = (value) => Number.isSafeInteger(value) && value > 0
-const revision = (value) =>
-  typeof value === 'string' && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(value)
-const requireValue = (condition, field) => {
-  if (!condition) throw new Error(`engineering-summary-github: invalid ${field}`)
-}
-function fields(value, names, field) {
-  requireValue(
-    object(value) &&
-      names.every((name) => Object.hasOwn(value, name)) &&
-      Object.keys(value).every((name) => names.includes(name)),
-    field
-  )
-}
-function timestamp(value) {
-  requireValue(
-    typeof value === 'string' &&
-      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value),
-    'timestamp'
-  )
-  const time = Date.parse(value)
-  requireValue(
-    Number.isFinite(time) &&
-      new Date(`${value.slice(0, 10)}T00:00:00Z`).toISOString().slice(0, 10) === value.slice(0, 10),
-    'timestamp'
-  )
-  return new Date(time).toISOString()
-}
-function parseUrl(value, limit = 2048) {
-  requireValue(typeof value === 'string' && value.length <= limit, 'URL')
-  let url
-  try {
-    url = new URL(value)
-  } catch {
-    throw new Error('engineering-summary-github: invalid URL')
-  }
-  requireValue(
-    url.protocol === 'https:' && !url.username && !url.password && !url.port && !url.hash,
-    'URL'
-  )
-  return url
-}
-function reference(value, input) {
-  const url = parseUrl(value)
-  const prefix = `/${input.repository.fullName}/`
-  const github =
-    url.hostname === 'github.com' &&
-    url.pathname.startsWith(prefix) &&
-    /^(?:pull\/[1-9]\d*|commit\/[a-f0-9]{40}|actions\/runs\/[1-9]\d*|blob\/[a-f0-9]{40}\/[A-Za-z0-9_./-]+)$/.test(
-      url.pathname.slice(prefix.length)
-    )
-  const linear =
-    url.hostname === 'linear.app' &&
-    new RegExp(`^/${input.linearWorkspace}/issue/SPE-[1-9]\\d*(?:/[a-z0-9-]+)?$`).test(url.pathname)
-  requireValue(
-    !url.search &&
-      (github || linear) &&
-      !url.pathname.split('/').some((part) => part === '.' || part === '..'),
-    'reference'
-  )
-  return url.href
-}
+const {
+  object,
+  positive,
+  revision,
+  requireValue,
+  fields,
+  timestamp,
+  parseUrl,
+  reference,
+  paginationLinks,
+  validatePageChain,
+} = captureValidation('engineering-summary-github')
+
 function requestPage(value, input) {
   const url = parseUrl(value)
   requireValue(
@@ -101,26 +52,6 @@ function requestPage(value, input) {
   const page = url.searchParams.get('page')
   requireValue(/^[1-9]\d*$/.test(page ?? '') && positive(Number(page)), 'page identity')
   return Number(page)
-}
-function paginationLinks(link, current, input) {
-  if (link === null) return { nextPage: null, lastPage: null }
-  requireValue(typeof link === 'string' && link.length > 0 && link.length <= 16384, 'Link header')
-  const relations = new Map()
-  for (const item of link.split(',')) {
-    const match = /^\s*<([^<>]+)>;\s*rel="(next|prev|first|last)"\s*$/.exec(item)
-    requireValue(match !== null && !relations.has(match[2]), 'Link relations')
-    relations.set(match[2], requestPage(match[1], input))
-  }
-  requireValue(
-    (!relations.has('next') || relations.get('next') === current + 1) &&
-      (!relations.has('prev') || relations.get('prev') === current - 1) &&
-      (!relations.has('first') || relations.get('first') === 1) &&
-      (!relations.has('last') ||
-        (relations.get('last') >= (relations.get('next') ?? current) &&
-          (relations.get('last') === current || relations.has('next')))),
-    'page chain'
-  )
-  return { nextPage: relations.get('next') ?? null, lastPage: relations.get('last') ?? null }
 }
 function lastSuccess(value, input) {
   if (value === null) return null
@@ -288,28 +219,15 @@ function pages(input, times) {
           return value
         })
         .sort((a, b) => a.number - b.number)
-      return { number, observedAt, ...paginationLinks(page.link, number, input), records }
+      return {
+        number,
+        observedAt,
+        ...paginationLinks(page.link, number, (value) => requestPage(value, input)),
+        records,
+      }
     })
     .sort((a, b) => a.number - b.number)
-  for (let i = 0; i < result.length; i++) {
-    requireValue(
-      result[i].number === i + 1 &&
-        (i === 0 ||
-          (result[i - 1].nextPage === result[i].number &&
-            result[i - 1].observedAt <= result[i].observedAt)),
-      'page chain'
-    )
-  }
-  const lastPages = new Set(result.map((page) => page.lastPage).filter((value) => value !== null))
-  const last = result.at(-1)
-  requireValue(
-    lastPages.size <= 1 &&
-      (!last ||
-        !lastPages.size ||
-        (last.number <= [...lastPages][0] &&
-          (last.nextPage !== null || last.number === [...lastPages][0]))),
-    'page chain'
-  )
+  validatePageChain(result)
   return result
 }
 

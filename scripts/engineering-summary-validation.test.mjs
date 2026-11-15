@@ -173,6 +173,24 @@ test('input order does not change normalized output and inputs are not mutated',
   input.report.results.reverse()
   assert.deepEqual(adaptValidationReport(input), output)
 })
+
+test('an advisory failure remains visible when required execution passes', () => {
+  const input = make()
+  input.mode = 'execution'
+  input.report.advisoryIds = ['format-check']
+  input.report.results[0].status = 'passed'
+  input.report.results.push({
+    id: 'format-check',
+    status: 'failed',
+    enforcement: 'advisory',
+    whenUnavailable: 'report-unavailable',
+  })
+  const { source, provenance } = adaptValidationReport(input)
+  assert.equal(provenance.reportOk, true)
+  assert.equal(provenance.results.find((row) => row.id === 'format-check').enforcement, 'advisory')
+  assert.equal(source.records.find((row) => row.id === 'format-check').state, 'failed')
+  assert.equal(source.coverage.complete, false)
+})
 test('rejects invalid references, future last success, inconsistent missing checks and report/error conflicts', () => {
   const input = make()
   input.sourceRef += '?token=secret'

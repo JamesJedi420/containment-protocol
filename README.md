@@ -162,7 +162,7 @@ Recent shipped work includes:
 - **Registry umbrella grooming** for SPE-947 and SPE-1046, with parent issues kept in Backlog until full parent acceptance is satisfied.
 - **Mission triage and hidden-state slices** for concealment, intake signal chips, modality tells, and deterministic report notes.
 
-The repository's near-term queue projection is `planning/backlog.md`; authoritative scope, priority, and lifecycle state live in Linear (see SPE-3338). Avoid duplicating long tactical lists in this README.
+Linear is the only authority for issue scope, priority, lifecycle, relationships and blockers. `planning/backlog.md` is a retained human-readable shortlist — not a queue projection and **not an input** for selecting work ([SPE-3338](https://linear.app/spectranoir/issue/SPE-3338)); the deterministic projection that issue specifies currently produces no output because its inputs are incomplete. `npm run verify:backlog-handoff` checks that shortlist's internal consistency only, so a green run does not make it authoritative. Avoid duplicating long tactical lists in this README.
 
 ## Project Structure
 
@@ -170,7 +170,7 @@ The repository's near-term queue projection is `planning/backlog.md`; authoritat
 .
 |-- architecture/            # Long-lived architecture and contract docs
 |-- docs/                    # Audits, handoffs, contribution docs, and references
-|-- planning/                # Canonical backlog and slice plans
+|-- planning/                # Non-authoritative backlog shortlist and slice plans
 |-- scripts/                 # Repository verification scripts
 |-- src/
 |   |-- app/                 # App shell, routes, and Zustand store

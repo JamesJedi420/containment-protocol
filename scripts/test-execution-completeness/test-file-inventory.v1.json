@@ -215,6 +215,7 @@
     "src/test/academy-upgrade.test.ts",
     "src/test/academy.test.ts",
     "src/test/accommodationAccessAudit.test.ts",
+    "src/test/activationChannels.test.ts",
     "src/test/actorDossier.test.ts",
     "src/test/advanceWeek.affiliationPersonStatus.integration.test.ts",
     "src/test/advanceWeek.behaviorValidation.test.ts",

@@ -338,6 +338,13 @@ test('rejects missing/repeated/cyclic page chains and inconsistent request/Link 
   for (const change of changes) expectInvalid(change)
 })
 
+test('declared last page binds later PR pages that omit their own last relation', () => {
+  expectInvalid((value) => {
+    value.capture.pages = [page(1, [pr(1), pr(2)], 2), page(2, [pr(3), pr(4)], 3)]
+    value.capture.pages[0].link += `, <${url(2)}>; rel="last"`
+  })
+})
+
 test('rejects wrong repository/base/URL identity and invalid provider state or revision times', () => {
   const changes = [
     (row) => {

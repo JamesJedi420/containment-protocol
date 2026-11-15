@@ -103,7 +103,8 @@ export function captureValidation(prefix) {
       lastPages.size <= 1 &&
         (!last ||
           lastPage === undefined ||
-          (last.number <= lastPage && (last.nextPage !== null || last.number === lastPage))),
+          (last.number <= lastPage &&
+            (last.nextPage !== null ? last.nextPage <= lastPage : last.number === lastPage))),
       'page chain'
     )
   }

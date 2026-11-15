@@ -404,6 +404,13 @@ test('missing/repeated/cyclic pages, contradictory last links and changing total
     invalid(change)
 })
 
+test('declared last page binds later check pages that omit their own last relation', () => {
+  invalid((value) => {
+    value.capture.pages = [page(1, [check(1), check(2)], 4, 2), page(2, [check(3), check(4)], 4, 3)]
+    value.capture.pages[0].link += `, <${url(2)}>; rel="last"`
+  })
+})
+
 test('unknown/mismatched/conflicting workstream metadata never becomes CP or merges Academy priorities', () => {
   const value = input()
   value.workstreamEvidence = { revision: null, checkedAt: END, assignments: [] }

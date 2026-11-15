@@ -29,6 +29,8 @@ SPE-3512 stays In Progress/unassigned and parent incomplete; no owner/parent/rel
 
 ## Validation and checkpoints
 
+CodeRabbit identified a cross-page last-bound gap inherited from the PR validator: an earlier `last=2` did not reject a later page's `next=3` when that page omitted its own last relation. Constructed PR and check-run regressions both failed before the fix. The shared validator now binds the final row's next page to the known cross-page last bound. This corrects inconsistent-input handling within the existing capture boundary; it does not change valid packet schemas or create complete coverage.
+
 Run constructed adapter/summary/PR regressions and selector tests, touched-file format/lint and SPE-3348-selected required validation. Open the PR initially draft; independent final-head full-diff review, required CI/security and material finding resolution precede normal merge. Sync clean main, run post-merge curation and read back factual partial Linear state. Reuse equivalent reviewed/tested trees rather than claim duplicate tests. Source anchors/results belong to exact PR/Linear revisions, not this mutable plan.
 
 Hermes local Qwen3.5 attempt `local-5cbebac0b17603ea46c3cb272d49d4e28c8ae93f8c0a8846b36fbd4da66ca758` read the existing summary/operator contracts only. Its packet confused PR/check-run fields and falsely claimed `merged_at` removal; rejected. Direct official-schema/consumer inspection and regression tests are the accepted evidence. No independent mapping pass or measured savings is claimed. Short curation/review grouping is direct when delegation overhead exceeds evidence volume; reassess substantial feedback/logs if needed. No frontend behavior or dependencies change, so frontend/dependency workflows are inapplicable.

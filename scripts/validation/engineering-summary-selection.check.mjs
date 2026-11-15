@@ -17,6 +17,8 @@ test('summary implementation, canonical queue dependency and operator contract s
     'scripts/engineering-summary-checks.test.mjs',
     'scripts/engineering-summary-validation.mjs',
     'scripts/engineering-summary-validation.test.mjs',
+    'scripts/engineering-summary-collector.mjs',
+    'scripts/engineering-summary-collector.test.mjs',
     'scripts/engineering-summary-capture.mjs',
     'scripts/project-approved-work.mjs',
     'scripts/validation/engineering-summary-selection.check.mjs',

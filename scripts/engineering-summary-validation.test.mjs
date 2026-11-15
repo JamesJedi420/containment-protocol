@@ -191,6 +191,25 @@ test('an advisory failure remains visible when required execution passes', () =>
   assert.equal(source.records.find((row) => row.id === 'format-check').state, 'failed')
   assert.equal(source.coverage.complete, false)
 })
+
+test('an empty selected report remains partial, not a verified zero', () => {
+  const input = make()
+  input.report.requiredIds = []
+  input.report.results = []
+  const { source } = adaptValidationReport(input)
+  assert.equal(source.status, 'partial')
+  assert.equal(source.coverage.complete, false)
+  assert.deepEqual(source.records, [])
+})
+
+test('rejects malformed source revisions and future workstream evidence', () => {
+  const input = make()
+  input.revision = 'invalid'
+  assert.throws(() => adaptValidationReport(input), /time\/revision/)
+  input.revision = sha
+  input.workstreamEvidence.checkedAt = '2026-11-15T00:00:00Z'
+  assert.throws(() => adaptValidationReport(input), /workstream time/)
+})
 test('rejects invalid references, future last success, inconsistent missing checks and report/error conflicts', () => {
   const input = make()
   input.sourceRef += '?token=secret'

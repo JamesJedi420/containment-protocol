@@ -11,19 +11,32 @@ export function ProtectedRemoteWorkPanel({
   readonly applyStep: (command: ProtectedRemoteWorkStepCommand) => ProtectedRemoteWorkResult
 }) {
   const headingId = useId()
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<{ text: string; workId?: string; stage?: string } | null>(
+    null
+  )
   const [operatorRef, setOperatorRef] = useState('')
+  const [previousRows, setPreviousRows] = useState(view.rows)
   const statusRef = useRef<HTMLParagraphElement>(null)
+  if (previousRows !== view.rows) {
+    setPreviousRows(view.rows)
+    if (
+      message?.workId &&
+      !view.rows.some((row) => row.workId === message.workId && row.stage === message.stage)
+    )
+      setMessage(null)
+  }
   useEffect(() => {
     if (message) statusRef.current?.focus()
   }, [message])
   const apply = (command: ProtectedRemoteWorkStepCommand) => {
     const result = applyStep(command)
-    setMessage(
-      result.ok
+    setMessage({
+      text: result.ok
         ? `Observation ${result.work.stage.replaceAll('_', ' ')}.`
-        : `Observation blocked: ${result.reasonCodes.map((code) => code.replaceAll('_', ' ')).join(', ')}.`
-    )
+        : `Observation blocked: ${result.reasonCodes.map((code) => code.replaceAll('_', ' ')).join(', ')}.`,
+      workId: result.work?.workId,
+      stage: result.work?.stage,
+    })
   }
   const abort = (workId: string, stage: string) => {
     const result = applyStep({
@@ -31,11 +44,13 @@ export function ProtectedRemoteWorkPanel({
       workId,
       operationKey: `agency-abort:${workId}:${stage}`,
     })
-    setMessage(
-      result.ok
+    setMessage({
+      text: result.ok
         ? `Remote work ${workId}: ${result.work.stage}.`
-        : `Remote work blocked: ${result.reasonCodes.join(', ')}.`
-    )
+        : `Remote work blocked: ${result.reasonCodes.join(', ')}.`,
+      workId: result.work?.workId,
+      stage: result.work?.stage,
+    })
   }
   return (
     <article className="panel space-y-3 break-words" aria-labelledby={headingId}>
@@ -47,7 +62,11 @@ export function ProtectedRemoteWorkPanel({
         may still route exposure; spatial separation does not clear it.
       </p>
       <p ref={statusRef} role="status" tabIndex={-1}>
-        {message}
+        {message &&
+        (!message.workId ||
+          view.rows.some((row) => row.workId === message.workId && row.stage === message.stage))
+          ? message.text
+          : ''}
       </p>
       {view.station ? (
         <>
@@ -116,7 +135,7 @@ export function ProtectedRemoteWorkPanel({
           {view.rows.map((row) => (
             <li key={row.workId} className="rounded border border-white/10 px-3 py-2">
               <p className="font-medium">
-                {row.isLabWork ? 'Sealed sample observation' : row.workId} — {row.stage}
+                {row.isLabWork ? 'Sealed sample observation' : row.workId} — {row.acknowledgement}
               </p>
               {row.isLabWork ? (
                 <p>

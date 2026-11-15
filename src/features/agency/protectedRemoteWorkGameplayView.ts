@@ -1,4 +1,5 @@
 import type { GameState } from '../../domain/models'
+import { projectActionAcknowledgement } from '../../domain/actionAcknowledgement'
 import {
   parseFacilityProtectedRemoteWorkCells,
   projectExplainableProtectedRemoteWork,
@@ -21,6 +22,7 @@ export type ProtectedRemoteWorkGameplayView = Readonly<{
     readonly labAction: 'authorize' | 'begin' | 'resume' | 'complete' | null
     readonly isLabWork: boolean
     readonly operationKey: string
+    readonly acknowledgement: string
   })[]
 }>
 
@@ -66,8 +68,11 @@ export function projectProtectedRemoteWorkGameplayView(
       .sort(compareCodeUnit)
       .map((id) => {
         const work = works![id]!
+        const explainable = projectExplainableProtectedRemoteWork(work)
         return {
-          ...projectExplainableProtectedRemoteWork(work),
+          ...explainable,
+          acknowledgement: projectActionAcknowledgement({ kind: 'remote', work: explainable })
+            .summary,
           canAbort: ['requested', 'blocked', 'authorized', 'held'].includes(work.stage),
           isLabWork: isAuthoredProtectedLabWork(work),
           operationKey: `agency:${work.workId}:${work.stage}:${work.appliedOperationKeys.length}`,

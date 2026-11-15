@@ -31,8 +31,14 @@ export interface OperationalExplanationSource {
     | 'deployable_readiness'
     | 'historical_route_replay'
     | 'maintenance_conversion'
+    | 'protected_remote_work'
   readonly recordType:
-    'work_order' | 'completion_outcome' | 'readiness_composition' | 'replay_record' | 'conversion'
+    | 'work_order'
+    | 'completion_outcome'
+    | 'readiness_composition'
+    | 'replay_record'
+    | 'conversion'
+    | 'remote_work'
   readonly recordId: string
 }
 
@@ -224,6 +230,7 @@ export function validateOperationalExplanationRecord(
         'deployable_readiness',
         'historical_route_replay',
         'maintenance_conversion',
+        'protected_remote_work',
       ].includes(source.system as string)
     ) {
       issues.push('invalid-source-system')
@@ -235,6 +242,7 @@ export function validateOperationalExplanationRecord(
         'readiness_composition',
         'replay_record',
         'conversion',
+        'remote_work',
       ].includes(source.recordType as string)
     ) {
       issues.push('invalid-record-type')

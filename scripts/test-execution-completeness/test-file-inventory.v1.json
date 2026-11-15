@@ -726,6 +726,7 @@
     "src/test/personnel.operations.test.tsx",
     "src/test/personnelPpeReplacementDemand.contract.test.ts",
     "src/test/personnelRelationships.test.ts",
+    "src/test/plannedBuildLiveRecordSplit.test.ts",
     "src/test/platformOperationDegrade.test.ts",
     "src/test/platformReachMultiplier.test.ts",
     "src/test/playbookWrongDocumentFailure.test.ts",

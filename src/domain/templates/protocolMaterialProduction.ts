@@ -1,4 +1,5 @@
-import type { ProductionRecipe } from '../../data/production'
+import type { TemplateBandPolicy } from './contentTemplateKernel'
+import type { ProtocolMaterialTemplate } from './protocolMaterialTemplates'
 import { resolvePreparation } from './protocolMaterialRuntime'
 import { TemplateValidationError } from './contentTemplateRuntime'
 
@@ -7,7 +8,12 @@ import { TemplateValidationError } from './contentTemplateRuntime'
  * not a claim about any agent. Existing recipe stock, funding and grade gates
  * remain authoritative, as does the output equipment's own use behavior.
  */
-export function acceptsProtocolMaterialProduction(recipe: ProductionRecipe): boolean {
+export function acceptsProtocolMaterialProduction(recipe: {
+  recipeId: string
+  outputItemId: string
+  outputQuantity: number
+  protocolMaterial?: { template: ProtocolMaterialTemplate; policy: TemplateBandPolicy }
+}): boolean {
   const binding = recipe.protocolMaterial
   if (binding === undefined) return true
   if (binding === null || typeof binding !== 'object') return false

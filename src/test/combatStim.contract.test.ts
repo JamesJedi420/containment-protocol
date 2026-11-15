@@ -241,24 +241,38 @@ describe('SPE-695 Combat Stim protocol material', () => {
       'a_ava',
       'utility1'
     )
-    equipped.cases[caseId] = {
-      ...equipped.cases[caseId],
-      kind: 'raid',
-      stage: 4,
-      status: 'in_progress',
-    }
-    equipped.agents.a_ava = {
-      ...equipped.agents.a_ava,
-      status: 'active',
-      assignment: { state: 'assigned', caseId, teamId: 't_nightwatch', startedWeek: equipped.week },
-      energyBudget: {
-        currentReserve: 5,
-        reserveBand: 'depleted',
-        exertionDebt: 0,
-        estimateConfidence: 'high',
+    const ready = {
+      ...equipped,
+      cases: {
+        ...equipped.cases,
+        [caseId]: {
+          ...equipped.cases[caseId],
+          kind: 'raid' as const,
+          stage: 4,
+          status: 'in_progress' as const,
+        },
+      },
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          status: 'active' as const,
+          assignment: {
+            state: 'assigned' as const,
+            caseId,
+            teamId: 't_nightwatch',
+            startedWeek: equipped.week,
+          },
+          energyBudget: {
+            currentReserve: 5,
+            reserveBand: 'depleted' as const,
+            exertionDebt: 0,
+            estimateConfidence: 'high' as const,
+          },
+        },
       },
     }
-    const activated = activateCombatStim(equipped, materialized.instance.instanceId)
+    const activated = activateCombatStim(ready, materialized.instance.instanceId)
     expect(activated.ok).toBe(true)
     if (!activated.ok) throw new Error(activated.code)
     expect(

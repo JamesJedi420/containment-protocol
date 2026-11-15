@@ -25,6 +25,22 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 - **When Linear external doc changes:** refresh **`docs/linear-external-documentation-follow-ups.md`** from source so SPE-186+ mirror stays diffable.
 - **During wiki curation:** compare wiki navigation and summaries against current `main`; point planning, architecture, terminology, authoring, and QA pages at their canonical repository sources; update the page's verification date/commit when checked.
 
+## Linear evidence sweeps (response-size limits)
+
+Linear issue **descriptions arrive through a connector that truncates by response size**, not by query shape. Two behaviours were observed: a batch query carrying many descriptions cuts off part-way, so later issues arrive empty or partial; and the largest descriptions fail even when fetched alone. Either way the surviving rows look like a complete result set.
+
+What that produced here: a citation sweep published **"22 of 52 issues read, 30 skipped"**. The 52 was the row count of one truncated batch response, and the 30 were rows that never arrived — an output-size boundary, not a set of issues anyone had identified and deferred. Counting by filter instead gave **59 issues matching `architecture/` and at least 100 matching `docs/`** (overlapping).
+
+Rules for any sweep that extracts paths, anchors, or claims from issue descriptions:
+
+- **One issue per call.** Batch only issue identifiers, titles and states; never batch descriptions when the text will be quoted or scanned.
+- **Request minimal fields.** Ask for `identifier`, `title` and `description` and nothing else; comments carry their own truncation risk and belong in a sweep only when they are the evidence.
+- **Treat truncation as failure, not as an empty issue.** A `truncated: true` response or an empty `preview` means the issue is **unread**. Do not record it as "no findings".
+- **Count the population with the filter, not with the page.** Read `pageInfo.hasNextPage`; a filter that returns 100 rows with more pages is not a 100-issue population. State the filter used and whether it was exhausted.
+- **Publish the unread set with the result.** Every sweep reports what it read *and* the identifiers it could not read, grouped by reason (truncated / not attempted / filter exceeded). A sweep with an unstated gap is a coverage claim, not evidence.
+- **Anchor to a revision.** Name the commit or SHA the paths were checked against, and say plainly when a citation is *planned* rather than missing-by-error.
+- **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Independent calls may run concurrently, but keep their responses separate and check each for completeness; concurrency does not remove response-size limits.
+
 ## Anti-patterns
 
 - Same tactical item listed in **README**, **backlog**, and a **Linear** description with conflicting priority—use Linear authority and a single short near-term view (`planning/backlog.md`).
@@ -33,6 +49,7 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 - New audit file without index row—**CI will fail** after merge if `verify:audits-index` is not run locally.
 - Mirror / theme **SPE** mismatch—**CI will fail** if `verify:theme-contracts` is not run after editing the mirror or theme clusters.
 - Promoting a design into **`architecture/`** without linking it from **`game-state-and-core-loop.md`**—the map stops being complete.
+- Reporting an evidence-sweep population from a **truncated batch response**—the total and the "skipped" count are artefacts of output size, not facts about the backlog. See **Linear evidence sweeps (response-size limits)** above.
 
 ## See also
 

@@ -289,9 +289,7 @@ function stale(time, name, input, times) {
   )
 }
 
-function sourceReasons(name, source, input, times) {
-  const reasons = []
-  if (source.status !== 'ready') reasons.push(source.status)
+function coverageReasons(source, input, times, reasons) {
   if (
     !source.coverage.complete ||
     !source.coverage.paginationComplete ||
@@ -300,6 +298,17 @@ function sourceReasons(name, source, input, times) {
     instant(source.coverage.window.end) < times.end
   )
     reasons.push('incomplete-coverage')
+  if (
+    instant(source.coverage.window.end) >
+    instant(source.checkedAt) + input.policy.futureToleranceSeconds * 1000
+  )
+    reasons.push('coverage-time-conflict')
+}
+
+function sourceReasons(name, source, input, times) {
+  const reasons = []
+  if (source.status !== 'ready') reasons.push(source.status)
+  coverageReasons(source, input, times, reasons)
   if (stale(source.checkedAt, name, input, times)) reasons.push('stale')
   if (source.revision === null || input.policy.expectedRevisions[name] === null)
     reasons.push('unverified-revision')
@@ -355,7 +364,9 @@ function scopedRecords(name, source, input, times, reasons) {
 
 function queueEvidence(source, input, times, reasons) {
   requireValue(
-    source.snapshot && source.snapshot.issues?.length <= input.policy.maxRecordsPerSource,
+    source.snapshot &&
+      Array.isArray(source.snapshot.issues) &&
+      source.snapshot.issues.length <= input.policy.maxRecordsPerSource,
     'queue snapshot/bound'
   )
   let projection

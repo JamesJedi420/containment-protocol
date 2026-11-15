@@ -186,6 +186,8 @@ test('each coverage failure makes a successful empty source partial, never no-ev
 
 test('freshness boundaries preserve milliseconds and use explicit caller clock tolerance', () => {
   const value = input()
+  value.window.end = '2026-11-14T19:54:00.000Z'
+  value.sources.github.coverage.window.end = value.window.end
   value.sources.github.checkedAt = '2026-11-14T19:55:00.000Z'
   assert.equal(summarize(value).sources.github.status, 'no-events')
   value.sources.github.checkedAt = '2026-11-14T19:54:59.999Z'
@@ -196,6 +198,18 @@ test('freshness boundaries preserve milliseconds and use explicit caller clock t
   assert.equal(summarize(value).sources.github.status, 'no-events')
   value.sources.github.checkedAt = '2026-11-14T20:00:01.001Z'
   assert.equal(summarize(value).sources.github.status, 'stale')
+})
+
+test('complete coverage cannot extend beyond the actual source observation', () => {
+  const value = input()
+  value.sources.github.coverage.window.end = '2026-11-14T20:00:00.001Z'
+  assert.equal(summarize(value).sources.github.status, 'conflicted')
+  assert.equal(summarize(value).sources.github.count, null)
+  value.policy.futureToleranceSeconds = 1
+  assert.equal(summarize(value).sources.github.status, 'no-events')
+  const malformedQueue = input()
+  delete malformedQueue.sources.queue.snapshot.issues
+  assert.throws(() => summarize(malformedQueue), /invalid queue snapshot\/bound/)
 })
 
 test('merged PRs use start-inclusive/end-exclusive windows; current snapshots are separate', () => {

@@ -54,7 +54,7 @@ For `queue`, `records` must be `null`. Supply the existing complete Linear autho
 
 ## Time, conflict and completeness semantics
 
-Merged PRs use **start-inclusive, end-exclusive** merge times. Blockers, current CI failures and other current evidence are observations at their actual observation time, not events filtered by issue creation time. Their freshness is independently checked. Old observations cannot become fresh merely because a wrapper was fetched again. Record times cannot exceed source observation time beyond the supplied tolerance.
+Merged PRs use **start-inclusive, end-exclusive** merge times. Blockers, current CI failures and other current evidence are observations at their actual observation time, not events filtered by issue creation time. Their freshness is independently checked. Old observations cannot become fresh merely because a wrapper was fetched again. Record times and claimed coverage end cannot exceed source observation time beyond the supplied tolerance.
 
 Source and record revisions must match the pinned expected source revision. Duplicate kind/ID observations, duplicate recommendation positions, contradictory source states or temporal/revision contradictions are explicit conflicts. Unknown workstreams degrade coverage and never become CP or Academy. Known other-workstream records are filtered without changing their authority.
 

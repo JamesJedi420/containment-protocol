@@ -9,6 +9,46 @@ import { ProtectedRemoteWorkPanel } from './ProtectedRemoteWorkPanel'
 import { projectProtectedRemoteWorkGameplayView } from './protectedRemoteWorkGameplayView'
 
 describe('protected remote-work controls', () => {
+  it('removes a stale announcement when authoritative work changes', async () => {
+    const created = applyProtectedRemoteWorkStep(createStartingState(), {
+      kind: 'create',
+      workId: 'work-stale',
+      stationId: 'station-a',
+      operatorRef: 'agent-a',
+      operatorNodeId: 'operator-room',
+      targetZoneRef: 'sealed-zone',
+      targetRef: 'sample-a',
+      capabilityTag: 'sample_observe',
+      operationKey: 'create-stale',
+    })
+    const aborted = applyProtectedRemoteWorkStep(created.state!, {
+      kind: 'abort',
+      workId: 'work-stale',
+      operationKey: 'abort-stale',
+    })
+    const callback = () => aborted
+    const { rerender } = render(
+      <ProtectedRemoteWorkPanel
+        view={projectProtectedRemoteWorkGameplayView(created.state!)}
+        applyStep={callback}
+      />
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Abort remote work work-stale' }))
+    rerender(
+      <ProtectedRemoteWorkPanel
+        view={projectProtectedRemoteWorkGameplayView(aborted.state!)}
+        applyStep={callback}
+      />
+    )
+    expect(screen.getByRole('status')).toHaveTextContent('aborted')
+    rerender(
+      <ProtectedRemoteWorkPanel
+        view={projectProtectedRemoteWorkGameplayView(created.state!)}
+        applyStep={callback}
+      />
+    )
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+  })
   it('allows keyboard abort and announces the actual coordinator result', async () => {
     const created = applyProtectedRemoteWorkStep(createStartingState(), {
       kind: 'create',

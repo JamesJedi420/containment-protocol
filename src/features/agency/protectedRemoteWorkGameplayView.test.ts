@@ -49,6 +49,20 @@ describe('protected remote-work Agency consumer', () => {
       procedureAdapter,
     })
     expect(started.ok).toBe(true)
+    expect(projectProtectedRemoteWorkGameplayView(started.state!).rows[0]?.acknowledgement).toBe(
+      'in progress'
+    )
+    const failed = applyProtectedRemoteWorkStep(started.state!, {
+      kind: 'interrupt',
+      workId: 'work-complete',
+      operationKey: 'barrier-failed',
+      interruption: 'barrier_degraded',
+    })
+    expect(projectProtectedRemoteWorkGameplayView(failed.state!).rows[0]).toMatchObject({
+      acknowledgement: 'failed',
+      procedureEffectsOccurred: true,
+      exposureCleared: false,
+    })
     const complete = {
       kind: 'complete' as const,
       workId: 'work-complete',
@@ -62,6 +76,7 @@ describe('protected remote-work Agency consumer', () => {
     expect(repeated.state).toBe(loaded)
     expect(projectProtectedRemoteWorkGameplayView(repeated.state!).rows[0]).toMatchObject({
       stage: 'completed',
+      acknowledgement: 'completed',
       procedureEffectsOccurred: true,
       exposureCleared: false,
       canAbort: false,
@@ -89,6 +104,7 @@ describe('protected remote-work Agency consumer', () => {
     expect(view.rows[0]).toMatchObject({
       workId: 'work-1',
       stage: 'requested',
+      acknowledgement: 'requested',
       canAbort: true,
       exposureCleared: false,
     })
@@ -100,6 +116,7 @@ describe('protected remote-work Agency consumer', () => {
     expect(aborted.ok).toBe(true)
     expect(projectProtectedRemoteWorkGameplayView(aborted.state!).rows[0]).toMatchObject({
       stage: 'aborted',
+      acknowledgement: 'aborted',
       canAbort: false,
     })
     expect(

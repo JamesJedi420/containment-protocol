@@ -44,5 +44,6 @@ export function normalizeFolkloreCarriers(input: FolkloreCaseCarriers): Folklore
 }
 
 export function hasMixedCarrier(carriers: readonly FolkloreCarrierTag[]): boolean {
-  return carriers.some((c) => c.carrierType === 'mixed_carrier') || carriers.length > 1
+  const uniqueTypes = new Set(carriers.map((c) => c.carrierType))
+  return uniqueTypes.has('mixed_carrier') || uniqueTypes.size > 1
 }

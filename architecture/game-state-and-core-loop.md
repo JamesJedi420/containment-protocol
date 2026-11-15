@@ -265,7 +265,7 @@ Issue numbers in the **See also** list are **not contiguous by design**. Gaps us
 - `architecture/institution-records-calendars-affiliated-orders.md` — SPE-174
 - `architecture/ceremonial-legitimacy-transfer-succession-machine.md` — SPE-175
 - `architecture/containment-environment-patterns.md` — SPE-1387 `barrier_integrity` pairing for the SPE-877 blast-door consumer (SPE-471 wall/zone-breach states)
-- `architecture/equipment-grade-contract.md` — SPE-2798 canonical `grade_1`–`grade_5` scale; `src/domain/equipmentGrade.ts` is the only source of grade identifiers and labels
+- `architecture/equipment-grade-contract.md` — SPE-2798 canonical `grade_1`–`grade_5` scale; `src/domain/equipmentGrade.ts` owns grade identifiers and labels; the identifier copies in `src/domain/events/eventValidation.ts` and `src/domain/events/types.ts` must stay synchronized
 - `architecture/subjective-vs-authoritative-time-decision.md` — SPE-3180 subjective/local elapsed time versus authoritative simulation time (SPE-1071 remains clock owner)
 - `architecture/scenario-configuration-viability-decision.md` — SPE-3396 configuration precedence and override authority; no universal override engine
 - `architecture/scenario-definition-resolver.md` — SPE-3397 versioned scenario-definition contract shared by presets and custom scenarios

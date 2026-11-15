@@ -24,7 +24,7 @@ From `README.md` **Current design notes**:
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
-## Active queue (highest leverage first — reorder as needed)
+## Active queue as recorded 2026-11-01 (historical ordering, not live priority)
 
 **Recently shipped:** [SPE-3155](https://linear.app/spectranoir/issue/SPE-3155) — equipment defect recall and remediation; PR #4527. Parent SPE-877 remains Backlog.
 

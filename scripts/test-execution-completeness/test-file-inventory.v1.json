@@ -84,6 +84,7 @@
     "src/domain/ruleChangeTransitionContract.test.ts",
     "src/domain/scenarioConfigurationViabilityContradiction.test.ts",
     "src/domain/scenarioDefinitionResolver.test.ts",
+    "src/domain/scenarioTimeSheetPacing.test.ts",
     "src/domain/sceneDifficultyMitigationResolver.test.ts",
     "src/domain/sharedUniverseCanonReleaseBinding.test.ts",
     "src/domain/sharedUniverseCanonReleaseCatalog.test.ts",

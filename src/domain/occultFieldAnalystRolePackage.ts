@@ -1,6 +1,7 @@
 /** SPE-2229 authoring template; references do not grant access or instantiate staff. */
 import type { CompetencyDomain } from './competencyFramework'
 import { TRAIT_DEFINITIONS } from './traits'
+import { isStaffRolePackageRef } from './staffRoleSignatureCapability'
 
 const COMPETENCIES = {
   response: true,
@@ -46,7 +47,8 @@ export function validateOccultFieldAnalystRolePackage(
   input: unknown,
   knownDocumentAccess: readonly string[]
 ): AnalystPackageResult {
-  if (!isRecord(input) || !isText(input.id)) return { ok: false, reason: 'invalid-id' }
+  if (!isRecord(input) || !isStaffRolePackageRef(input.id))
+    return { ok: false, reason: 'invalid-id' }
   if (
     !validList(
       input.startingCompetencies,
@@ -86,16 +88,24 @@ export function lookupOccultFieldAnalystRolePackage(
   id: string,
   knownDocumentAccess: readonly string[]
 ): AnalystPackageResult {
-  if (!isText(id) || !Array.isArray(catalog)) return { ok: false, reason: 'invalid-lookup' }
+  if (!isStaffRolePackageRef(id) || !Array.isArray(catalog))
+    return { ok: false, reason: 'invalid-lookup' }
   const matches: OccultFieldAnalystRolePackage[] = []
   const seen = new Set<string>()
+  let invalid = false
+  let duplicate = false
   for (const entry of catalog) {
     const result = validateOccultFieldAnalystRolePackage(entry, knownDocumentAccess)
-    if (!result.ok) return result
-    if (seen.has(result.package.id)) return { ok: false, reason: 'duplicate-id' }
+    if (!result.ok) {
+      invalid = true
+      continue
+    }
+    if (seen.has(result.package.id)) duplicate = true
     seen.add(result.package.id)
     if (result.package.id === id) matches.push(result.package)
   }
+  if (invalid) return { ok: false, reason: 'invalid-catalog' }
+  if (duplicate) return { ok: false, reason: 'duplicate-id' }
   if (matches.length === 0) return { ok: false, reason: 'not-found' }
   return { ok: true, package: matches[0] }
 }

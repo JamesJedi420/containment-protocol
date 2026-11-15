@@ -26,6 +26,18 @@ describe('occult field analyst authoring package (SPE-2229)', () => {
     const result = validateOccultFieldAnalystRolePackage(authored, access)
     expect(result.ok).toBe(true)
     expect(lookupOccultFieldAnalystRolePackage([authored], authored.id, access)).toEqual(result)
+    expect(
+      lookupStaffRoleSignatureByRolePackage(
+        [
+          {
+            id: 'role-signature:field-analyst',
+            rolePackageRef: authored.id,
+            niche: 'field_observation',
+          },
+        ],
+        authored.id
+      ).status
+    ).toBe('found')
     expect(lookupOccultFieldAnalystRolePackage([authored], authored.id, access)).toEqual(result)
     if (!result.ok) throw new Error(result.reason)
     expect(result.package.startingCompetencies).toEqual(['research', 'response'])
@@ -55,6 +67,21 @@ describe('occult field analyst authoring package (SPE-2229)', () => {
   })
 
   it('requires an explicitly known document policy and fails closed on duplicate packages', () => {
+    expect(
+      validateOccultFieldAnalystRolePackage({ ...authored, id: 'field-analyst' }, access)
+    ).toMatchObject({ ok: false, reason: 'invalid-id' })
+    expect(
+      validateOccultFieldAnalystRolePackage({ ...authored, id: 'role-package:scout' }, access)
+    ).toMatchObject({ ok: false, reason: 'invalid-id' })
+    const invalid = { ...authored, id: 'role-package:other', documentAccess: 'unknown' }
+    expect(lookupOccultFieldAnalystRolePackage([authored, invalid], authored.id, access)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
+    expect(lookupOccultFieldAnalystRolePackage([invalid, authored], authored.id, access)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
     expect(validateOccultFieldAnalystRolePackage(authored, [])).toMatchObject({
       ok: false,
       reason: 'invalid-document-access',

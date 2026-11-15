@@ -26,27 +26,28 @@ describe('protected remote-work controls', () => {
       workId: 'work-stale',
       operationKey: 'abort-stale',
     })
-    const callback = () => aborted
-    const { rerender } = render(
-      <ProtectedRemoteWorkPanel
-        view={projectProtectedRemoteWorkGameplayView(created.state!)}
-        applyStep={callback}
-      />
-    )
+    function Harness() {
+      const [current, setCurrent] = useState(created.state!)
+      return (
+        <>
+          <ProtectedRemoteWorkPanel
+            view={projectProtectedRemoteWorkGameplayView(current)}
+            applyStep={() => {
+              setCurrent(aborted.state!)
+              return aborted
+            }}
+          />
+          <button onClick={() => setCurrent(created.state!)}>Restore request</button>
+          <button onClick={() => setCurrent(aborted.state!)}>Restore abort</button>
+        </>
+      )
+    }
+    render(<Harness />)
     await userEvent.click(screen.getByRole('button', { name: 'Abort remote work work-stale' }))
-    rerender(
-      <ProtectedRemoteWorkPanel
-        view={projectProtectedRemoteWorkGameplayView(aborted.state!)}
-        applyStep={callback}
-      />
-    )
     expect(screen.getByRole('status')).toHaveTextContent('aborted')
-    rerender(
-      <ProtectedRemoteWorkPanel
-        view={projectProtectedRemoteWorkGameplayView(created.state!)}
-        applyStep={callback}
-      />
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Restore request' }))
+    expect(screen.getByRole('status')).toBeEmptyDOMElement()
+    await userEvent.click(screen.getByRole('button', { name: 'Restore abort' }))
     expect(screen.getByRole('status')).toBeEmptyDOMElement()
   })
   it('allows keyboard abort and announces the actual coordinator result', async () => {

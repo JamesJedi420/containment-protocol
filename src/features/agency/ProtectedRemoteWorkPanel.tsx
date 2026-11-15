@@ -15,7 +15,16 @@ export function ProtectedRemoteWorkPanel({
     null
   )
   const [operatorRef, setOperatorRef] = useState('')
+  const [previousRows, setPreviousRows] = useState(view.rows)
   const statusRef = useRef<HTMLParagraphElement>(null)
+  if (previousRows !== view.rows) {
+    setPreviousRows(view.rows)
+    if (
+      message?.workId &&
+      !view.rows.some((row) => row.workId === message.workId && row.stage === message.stage)
+    )
+      setMessage(null)
+  }
   useEffect(() => {
     if (message) statusRef.current?.focus()
   }, [message])

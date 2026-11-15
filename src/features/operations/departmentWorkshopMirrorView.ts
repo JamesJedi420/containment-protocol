@@ -149,16 +149,19 @@ function toDepartmentView(
       ...listLaneItems('active', snapshot.active, workOrders),
       ...listLaneItems('queued', snapshot.queued, workOrders),
       ...listLaneItems('paused', snapshot.paused, workOrders),
-    ].filter((item) => {
+    ].map((item) => {
       const receipt = outcomes[item.workOrderId]
       const order = workOrders[item.workOrderId]
-      return (
-        !receipt ||
-        !order ||
-        receipt.caseId !== order.caseId ||
-        receipt.departmentId !== order.departmentId ||
-        receipt.taskType !== order.taskType
-      )
+      return receipt &&
+        order &&
+        receipt.caseId === order.caseId &&
+        receipt.departmentId === order.departmentId &&
+        receipt.taskType === order.taskType
+        ? Object.freeze({
+            ...item,
+            acknowledgement: 'completion recorded; lane awaiting reconciliation',
+          })
+        : item
     })
   )
 

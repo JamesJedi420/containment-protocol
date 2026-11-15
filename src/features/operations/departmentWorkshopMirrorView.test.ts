@@ -105,9 +105,10 @@ describe('departmentWorkshopSurfacing blockers (SPE-2773)', () => {
     expect(replay.registeredWorkOrderIds).toEqual([])
     const view = getDepartmentWorkshopMirrorView(loaded)
     expect(view.outcomes[0]?.acknowledgement).toBe('completed')
-    expect(view.departments[0]?.workItems.some((item) => item.workOrderId === 'work:alpha')).toBe(
-      false
-    )
+    expect(
+      view.departments[0]?.workItems.find((item) => item.workOrderId === 'work:alpha')
+        ?.acknowledgement
+    ).toBe('completion recorded; lane awaiting reconciliation')
   })
   it('replaces pending with a receipt under a stable explanation identity', () => {
     const pending = projectActionAcknowledgement({ kind: 'workshop', id: 'work:done-safe' })
@@ -146,9 +147,12 @@ describe('departmentWorkshopSurfacing blockers (SPE-2773)', () => {
       ...base,
       departmentWorkshopCompletionOutcomes: { 'work:alpha': receipt },
     })
-    expect(view.departments[0]?.workItems.some((item) => item.workOrderId === 'work:alpha')).toBe(
-      false
-    )
+    expect(
+      view.departments[0]?.workItems.find((item) => item.workOrderId === 'work:alpha')
+        ?.acknowledgement
+    ).toBe('completion recorded; lane awaiting reconciliation')
+    expect(view.departments[0]?.activeCount).toBe(1)
+    expect(view.departments[0]?.freeSlots).toBe(0)
     expect(view.outcomes[0]?.acknowledgement).toBe('degraded')
     const mismatch = getDepartmentWorkshopMirrorView({
       ...base,

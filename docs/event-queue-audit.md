@@ -3,6 +3,8 @@
 > Documentation-only support note for authored/runtime event queue usage in Containment Protocol.
 >
 > Scope: design guidance and integration patterns only. No runtime behavior changes.
+>
+> **Static crosscheck (2026-11-14 at `bdbf4624`):** the runtime queue backs §3–§4 as described (FIFO head/tail, monotonic ids, clear preserving `nextSequence`). One divergence is recorded under §4 Save/load: queued `type` values are a closed allowlist, so authored types outside it are dropped on hydrate. Code reading, not runtime verification.
 
 ## 1) Queue categories
 
@@ -113,6 +115,8 @@ Use strict deterministic queue semantics to prevent drift:
   - preserve valid ordering
   - preserve next sequence cursor deterministically
 - Avoid lossy transformations that can reorder or duplicate queue items.
+
+> **Divergence (static, 2026-11-14 at `bdbf4624`):** "reject malformed entries safely" is also a type filter. Hydration drops any entry whose `type` is not in `RUNTIME_QUEUED_EVENT_TYPES` and whose `targetId` is neither a known encounter id nor a dotted id, and renames duplicate ids to `id-dup-N` instead of preserving identity (`src/domain/gameStateManager.ts:746-750`, `:773-789`). A queue type authored outside the allowlist therefore survives in memory and disappears on save/load.
 
 ## 5) Common pitfalls
 

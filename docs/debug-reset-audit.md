@@ -3,6 +3,8 @@
 > Scope: design support note for deterministic debug reset tools in Containment Protocol.
 >
 > Constraints respected: no runtime logic edits, no symbol renames, no test changes, documentation-only output.
+>
+> **Resolution status (2026-11-14, static verification at `bdbf4624`):** two open questions in §6 are answered by shipped code and are marked resolved with code anchors. The overlay-summary and encounter-queue recommendations are **unmet** and stay flagged. This is code reading, not runtime verification.
 
 ## 1) Reset categories
 
@@ -123,7 +125,7 @@ Hard guardrails for all reset tooling:
   - “Reset Queue + Log”
   - “Reset Encounter State”
   - “Front-Desk Baseline”
-- Show last reset summary in overlay for immediate verification.
+- Show last reset summary in overlay for immediate verification. **Unmet (2026-11-14):** the store actions return a reset summary, but the overlay calls them without keeping the result (`src/features/developer/DeveloperOverlay.tsx:50`, `:57`, `:64`), so no summary is rendered.
 
 ### Logging integration
 
@@ -190,11 +192,16 @@ Hard guardrails for all reset tooling:
 
 ## 6) Open questions
 
-- Should bounded full runtime-debug reset preserve current location/player identity by default?
-- Should queue reset preserve `nextSequence` or reset it to 1 in all profiles?
-- Which reset summaries should be user-visible in overlay vs developer-log-only?
-- Should profile presets be centralized (single catalog) or remain composed in store/UI actions?
-- Do we need a policy for automatically clearing encounter-targeted queue events when encounter reset is selected?
-- Should one-shot reset support namespace/prefix filters in addition to explicit id lists?
-- Is there a need for “dry-run reset” preview to show what would be reset before applying?
-- Should save/export include optional metadata noting last reset action for QA reproducibility?
+**Resolved by shipped code (verified 2026-11-14 at `bdbf4624`):**
+
+- ~~Should bounded full runtime-debug reset preserve current location/player identity by default?~~ **Resolved — yes by default.** The `fullRuntimeDebugReset` branch replaces only `runtimeState` and re-applies the prior `player` and `currentLocation`, with the intent stated in-line (“Preserve identity + current location so reset does not strand navigation.”). Anchor: `src/domain/debugResetTools.ts:132-143` (comment at line 139, preserved `player` and `currentLocation` at lines 140-141). Simulation systems are not touched.
+- ~~Should queue reset preserve `nextSequence` or reset it to 1 in all profiles?~~ **Resolved — preserved in every profile.** `clearRuntimeEventQueue` empties `entries` and passes `nextSequence` through unchanged. Anchor: `src/domain/eventQueue.ts:162-167` (line 165). Every queue-clearing profile routes through it, including `applyEncounterDebugReset` (`src/domain/debugResetTools.ts:301-306`).
+
+**Still open, including the two unmet recommendations:**
+
+- Which reset summaries should be user-visible in overlay vs developer-log-only? **Unmet:** reset actions return a `summary` (`src/app/store/gameStore.ts:926-1050`) that the overlay discards (`src/features/developer/DeveloperOverlay.tsx:50`, `:57`, `:64`); no reset summary reaches the player or QA surface.
+- Do we need a policy for automatically clearing encounter-targeted queue events when encounter reset is selected? **Unmet:** `applyEncounterDebugReset` clears the whole runtime event queue, not encounter-targeted entries (`src/domain/debugResetTools.ts:301-306`); no targeting policy is implemented.
+- Should profile presets be centralized (single catalog) or remain composed in store/UI actions? — open; presets are currently composed in `debugResetTools.ts` helpers and called from the store.
+- Should one-shot reset support namespace/prefix filters in addition to explicit id lists? — open; explicit id lists and `clearAll` only.
+- Is there a need for “dry-run reset” preview to show what would be reset before applying? — open; not implemented.
+- Should save/export include optional metadata noting last reset action for QA reproducibility? — open; not implemented.

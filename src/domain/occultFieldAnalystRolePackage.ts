@@ -33,6 +33,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function compareIds(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
 function validList(value: unknown, isAllowed: (entry: unknown) => boolean): value is string[] {
   return (
     Array.isArray(value) &&
@@ -74,9 +78,9 @@ export function validateOccultFieldAnalystRolePackage(
   const result: OccultFieldAnalystRolePackage = Object.freeze({
     id: input.id,
     startingCompetencies: Object.freeze(
-      [...input.startingCompetencies].sort() as CompetencyDomain[]
+      [...input.startingCompetencies].sort(compareIds) as CompetencyDomain[]
     ),
-    signatureTraits: Object.freeze([...input.signatureTraits].sort()),
+    signatureTraits: Object.freeze([...input.signatureTraits].sort(compareIds)),
     documentAccess: input.documentAccess,
   })
   return { ok: true, package: result }

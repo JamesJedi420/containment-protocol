@@ -82,7 +82,7 @@ export function validateOccultFieldAnalystRolePackage(
   return { ok: true, package: result }
 }
 
-/** Deterministic lookup rejects duplicate IDs and malformed catalog entries. */
+/** Invalid entries take precedence over duplicate IDs, independent of catalog order. */
 export function lookupOccultFieldAnalystRolePackage(
   catalog: readonly unknown[],
   id: string,

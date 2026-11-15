@@ -82,6 +82,12 @@ describe('occult field analyst authoring package (SPE-2229)', () => {
       ok: false,
       reason: 'invalid-catalog',
     })
+    expect(
+      lookupOccultFieldAnalystRolePackage([authored, authored, invalid], authored.id, access)
+    ).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
     expect(validateOccultFieldAnalystRolePackage(authored, [])).toMatchObject({
       ok: false,
       reason: 'invalid-document-access',

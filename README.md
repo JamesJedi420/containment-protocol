@@ -212,7 +212,7 @@ After a PR merges, sync local `main` before starting the next approved slice.
 
 ## Planning and Documentation
 
-- Near-term queue projection (from Linear): `planning/backlog.md`
+- Backlog shortlist (non-authoritative; Linear owns scope, priority and lifecycle): `planning/backlog.md`
 - Deferred deep design: `planning/deferred-design-documents.md`
 - Documentation curation rhythm: `planning/documentation-curation.md`
 - Schema ownership: `SCHEMA_REGISTRY.md`

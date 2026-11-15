@@ -22,6 +22,7 @@ import {
 import { isCaseScopedWorkshopFinalizationHandoff } from '../prerequisiteProcessingOrders'
 import { stripInfiltrationEncounterCoverStanceOnResolvedCase } from '../infiltrationEncounterCoverStanceTick'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
+import { acceptsProtocolMaterialProduction } from '../templates/protocolMaterialProduction'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
   hasRecipeMaterialStock,
@@ -265,7 +266,10 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
     return ensureNormalizedGameState(state)
   }
 
-  if (!resolveProductionRecipeGradeOutcome(recipe).valid) {
+  if (
+    !resolveProductionRecipeGradeOutcome(recipe).valid ||
+    !acceptsProtocolMaterialProduction(recipe)
+  ) {
     return ensureNormalizedGameState(state)
   }
 

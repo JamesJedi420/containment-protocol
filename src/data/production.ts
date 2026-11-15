@@ -15,6 +15,8 @@ import {
   getEquipmentGradeCatalogParticipation,
   getEquipmentGradeCatalogVisibility,
 } from '../domain/equipmentGradeCatalog'
+import type { ProtocolMaterialTemplate } from '../domain/templates/protocolMaterialTemplates'
+import type { TemplateBandPolicy } from '../domain/templates/contentTemplateKernel'
 
 export interface ProductionMaterialDefinition {
   materialId: string
@@ -34,6 +36,7 @@ export interface ProductionRecipe {
   baseFundingCost: number
   inputMaterials: Record<string, number>
   gradeOutputRule: EquipmentGradeFabricationRule
+  protocolMaterial?: { template: ProtocolMaterialTemplate; policy: TemplateBandPolicy }
 }
 
 export type MarketListingCategory = 'equipment' | 'component' | 'material'
@@ -125,6 +128,38 @@ export const productionCatalog: ProductionRecipe[] = [
       medical_supplies: 2,
     },
     gradeOutputRule: { kind: 'fixed', gradeId: 'grade_1' },
+    protocolMaterial: {
+      // Authoring bounds describe this single-output fabrication hook, not a dose potency.
+      policy: {
+        id: 'fabricated-equipment-v1',
+        actionBands: { standard: { minCost: 0, maxScope: 1, maxExceptions: 0 } },
+        powerBands: { standard: { maxPower: 1 } },
+      },
+      template: {
+        id: 'protocol-combat-stims',
+        family: 'protocol-material',
+        type: 'licensed-stimulant',
+        sourceType: 'chemical',
+        // The existing workshop command has no individual preparer or skill gate.
+        recognitionThreshold: 0,
+        preparation: { method: 'fabrication', delivery: 'equipment', steps: ['fabricate'] },
+        effect: { effectType: 'equipment:combat_stims', magnitude: 1 },
+        runtime: {
+          hook: 'prepare-material',
+          policyRef: 'fabricated-equipment-v1',
+          actionBand: 'standard',
+          powerBand: 'standard',
+          cost: 0,
+          scope: 1,
+          exceptions: 0,
+          power: 1,
+        },
+        presentation: {
+          summary:
+            'Licensed Combat Stim fabrication; use remains governed by the existing dose and overdrive rules.',
+        },
+      },
+    },
   },
   {
     recipeId: 'silver-rounds',

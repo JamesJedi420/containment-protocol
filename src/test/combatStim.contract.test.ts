@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { FIELD_CONTAINMENT_BLAST_DOOR_INSTANCE_ID } from '../domain/departmentWorkshopIntegrityQualityMapping'
 import {
@@ -45,6 +45,13 @@ import {
 } from '../domain/events'
 import { validateOperationEventPayload } from '../domain/events/eventValidation'
 import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
+import { getProductionRecipe } from '../data/production'
+import { queueFabrication } from '../domain/sim/production'
+import { acceptsProtocolMaterialProduction } from '../domain/templates/protocolMaterialProduction'
+import * as protocolMaterialRuntime from '../domain/templates/protocolMaterialRuntime'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { useGameStore } from '../app/store/gameStore'
+import { getOperationsDeskPanelsView } from '../features/dashboard/operationsDeskView'
 
 function createCriticalStimState(reserveBand: 'depleted' | 'overdrawn' = 'depleted') {
   const state = createStartingState()
@@ -84,6 +91,207 @@ function equipAndAssignCriticalStim(reserveBand: 'depleted' | 'overdrawn' = 'dep
   }
   return equipped
 }
+
+describe('SPE-695 Combat Stim protocol material', () => {
+  it('reaches the existing player-facing queue through the store action', () => {
+    const prior = useGameStore.getState().game
+    const { state } = createCriticalStimState()
+    state.funding = 1_000
+    state.inventory.medical_supplies = 2
+    try {
+      useGameStore.setState({ game: state })
+      useGameStore.getState().queueFabrication('combat-stims')
+      const queued = useGameStore.getState().game
+      expect(getOperationsDeskPanelsView(queued).fabricationQueue).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            recipeName: 'Combat Stim Batch',
+            outputLabel: '1x Combat Stims',
+          }),
+        ])
+      )
+      expect(queued.inventory.medical_supplies).toBe(0)
+    } finally {
+      useGameStore.setState({ game: prior })
+    }
+  })
+
+  it('fails the real queue before spending when preparation rejects', () => {
+    const { state } = createCriticalStimState()
+    state.funding = 1_000
+    state.inventory.medical_supplies = 2
+    const hook = vi.spyOn(protocolMaterialRuntime, 'resolvePreparation').mockReturnValue({
+      outcome: 'failure',
+      reason: 'Incorrect method or delivery',
+    })
+    try {
+      const result = queueFabrication(state, 'combat-stims')
+      expect(hook).toHaveBeenCalledOnce()
+      expect(result.funding).toBe(state.funding)
+      expect(result.inventory.medical_supplies).toBe(2)
+      expect(result.productionQueue).toHaveLength(0)
+    } finally {
+      hook.mockRestore()
+    }
+  })
+
+  it('validates the actual recipe and rejects malformed or mismatched authored output', () => {
+    const recipe = getProductionRecipe('combat-stims')!
+    const binding = recipe.protocolMaterial!
+    expect(acceptsProtocolMaterialProduction(recipe)).toBe(true)
+    expect(acceptsProtocolMaterialProduction({ ...recipe, outputItemId: 'medkits' })).toBe(false)
+    expect(acceptsProtocolMaterialProduction({ ...recipe, outputQuantity: 2 })).toBe(false)
+    expect(
+      acceptsProtocolMaterialProduction({
+        ...recipe,
+        protocolMaterial: {
+          ...binding,
+          template: {
+            ...binding.template,
+            sideEffects: [{ description: 'Unsupported', severity: 'minor', trigger: 'use' }],
+          },
+        },
+      })
+    ).toBe(false)
+    expect(
+      acceptsProtocolMaterialProduction({
+        ...recipe,
+        protocolMaterial: {
+          ...binding,
+          template: { ...binding.template, recognitionThreshold: -1 },
+        },
+      })
+    ).toBe(false)
+    expect(
+      acceptsProtocolMaterialProduction({
+        ...recipe,
+        protocolMaterial: { ...binding, policy: { ...binding.policy, id: 'wrong-policy' } },
+      })
+    ).toBe(false)
+    // A second recipe can use the same hook by declaring its own existing equipment output.
+    expect(
+      acceptsProtocolMaterialProduction({
+        ...recipe,
+        outputItemId: 'medkits',
+        protocolMaterial: {
+          ...binding,
+          template: {
+            ...binding.template,
+            id: 'other-material',
+            effect: { effectType: 'equipment:medkits', magnitude: 1 },
+          },
+        },
+      })
+    ).toBe(true)
+  })
+
+  it('applies an explicitly authored context alternative deterministically', () => {
+    const recipe = getProductionRecipe('combat-stims')!
+    const binding = recipe.protocolMaterial!
+    const runtime = binding.template.runtime!
+    const candidate = {
+      ...recipe,
+      protocolMaterial: {
+        ...binding,
+        template: {
+          ...binding.template,
+          runtime: {
+            ...runtime,
+            alternatives: [
+              {
+                id: 'specific-recipe',
+                when: [{ context: 'recipeId', value: 'combat-stims' }],
+                parameters: { recognitionThreshold: 1 },
+              },
+            ],
+          },
+        },
+      },
+    }
+    expect(acceptsProtocolMaterialProduction(candidate)).toBe(false)
+    expect(acceptsProtocolMaterialProduction({ ...candidate, recipeId: 'other-recipe' })).toBe(true)
+  })
+
+  it('queues, saves, completes and uses the fabricated dose through existing owners', () => {
+    const { state, caseId } = createCriticalStimState()
+    state.inventory.combat_stims = 0
+    state.inventory.medical_supplies = 2
+    state.funding = 1_000
+    const queued = queueFabrication(state, 'combat-stims')
+    const job = queued.productionQueue.find((entry) => entry.recipeId === 'combat-stims')!
+    expect(job).toBeDefined()
+    expect(queued.inventory.medical_supplies).toBe(0)
+    const resumed = loadGameSave(serializeGameSave(queued))
+    const produced = advanceWeek(resumed, 1_000)
+    expect(produced.inventory.combat_stims).toBe(1)
+    expect(produced.fabricatedEquipmentLots?.[job.id]).toMatchObject({
+      recipeId: 'combat-stims',
+      quantity: 1,
+      gradeId: 'grade_1',
+    })
+    const materialized = materializeStoredCombatStimInstance(produced, {
+      kind: 'fabricated_lot',
+      fabricationQueueId: job.id,
+    })
+    expect(materialized.ok).toBe(true)
+    if (!materialized.ok) throw new Error(materialized.code)
+    const equipped = equipStoredCombatStimInstance(
+      materialized.state,
+      materialized.instance.instanceId,
+      'a_ava',
+      'utility1'
+    )
+    const ready = {
+      ...equipped,
+      cases: {
+        ...equipped.cases,
+        [caseId]: {
+          ...equipped.cases[caseId],
+          kind: 'raid' as const,
+          stage: 4,
+          status: 'in_progress' as const,
+        },
+      },
+      agents: {
+        ...equipped.agents,
+        a_ava: {
+          ...equipped.agents.a_ava,
+          status: 'active' as const,
+          assignment: {
+            state: 'assigned' as const,
+            caseId,
+            teamId: 't_nightwatch',
+            startedWeek: equipped.week,
+          },
+          energyBudget: {
+            currentReserve: 5,
+            reserveBand: 'depleted' as const,
+            exertionDebt: 0,
+            estimateConfidence: 'high' as const,
+          },
+        },
+      },
+    }
+    const activated = activateCombatStim(ready, materialized.instance.instanceId)
+    expect(activated.ok).toBe(true)
+    if (!activated.ok) throw new Error(activated.code)
+    expect(
+      activated.state.equipmentInstances?.[materialized.instance.instanceId].payload?.remaining
+    ).toBe(1)
+    expect(activated.state.agents.a_ava.overdrive).toMatchObject({
+      active: true,
+      remainingPhases: 1,
+      recoveryDebt: 2,
+    })
+    const loaded = loadGameSave(serializeGameSave(activated.state))
+    expect(loaded.agents.a_ava.overdrive).toMatchObject({
+      active: true,
+      remainingPhases: 1,
+      recoveryDebt: 2,
+    })
+    expect(loaded.equipmentInstances?.[materialized.instance.instanceId].payload?.remaining).toBe(1)
+  })
+})
 
 describe('SPE-2829 Combat Stim emergency overdrive', () => {
   it('strictly validates the governed 2/2 materialization event payload', () => {

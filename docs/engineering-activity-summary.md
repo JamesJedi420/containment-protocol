@@ -4,6 +4,12 @@ This tooling implements deterministic summaries of **supplied snapshots** and pu
 
 ## Consumer API
 
+### Supplied validation report adapter
+
+`adaptValidationReport` in `scripts/engineering-summary-validation.mjs` accepts a supplied SPE-3348 report and explicit repository, observation time, revision, safe source reference, reporting window, workstream evidence, capture mode, error and prior-success metadata. It returns `{source, provenance}`; place `source` in `sources.validation`. The caller must verify the declared evidence and provide an independent expected revision. The adapter does not perform retrieval or establish source authority.
+
+The explicit mode is `selection` for resolve-only/dry-run or `execution` for actual runs. Selection cannot contain passed or failed results; execution cannot contain selected results. Statuses remain canonical and required/advisory/exception classifications stay in sanitized provenance. Raw invocation details, paths and output are not retained. Missing required validators, filters and unknown source scope never establish complete coverage: every supplied report remains partial and missing reports are unavailable. Last success is supplied history and is never advanced automatically.
+
 `scripts/engineering-summary.mjs` exports `summarizeEngineeringActivity(input)` (object), `serializeEngineeringSummary(input)` (stable JSON plus newline), and `renderEngineeringSummary(input)` (Markdown). Each takes the same input envelope. None reads the clock, network, environment or filesystem. There is no persistent report/evidence store.
 
 ```js

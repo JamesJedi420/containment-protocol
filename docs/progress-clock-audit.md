@@ -2,7 +2,7 @@
 
 > Documentation-only support note for progress clock usage in Containment Protocol.
 >
-> **Static crosscheck (2026-11-14 at `bdbf4624`):** §2's metadata fields ship as documented (`hidden`, `description`, `tags`). §1's categories exceed the runtime catalog, which is a closed three-id allowlist — see §5 Save/load. Code reading, not runtime verification.
+> **Static crosscheck (2026-11-15 at `44205211`):** §2's metadata fields ship as documented (`hidden`, `description`, `tags`). Hydration accepts the three registered clock IDs and documented procedural prefixes; other IDs are dropped — see §5 Save/load. Code reading, not runtime verification.
 
 ## 1) Clock categories
 
@@ -83,7 +83,7 @@ Use deterministic threshold patterns that are easy to evaluate and debug:
   - Persist `runtimeState.progressClocks` as authoritative clock state.
   - Normalization should sanitize invalid values while preserving valid completed clocks.
 
-> **Divergence (static, 2026-11-14 at `bdbf4624`):** "preserving valid completed clocks" holds only for the three registered ids (`containment.breach.followup.posture`, `incident.chain.breach`, `story.breach-depth`; `src/domain/progressClocks.ts:12-16`). Hydration drops every clock whose id fails `isAllowedProgressClockId` (`src/domain/gameStateManager.ts:679`), so a clock authored outside the catalog is lost on load rather than rejected with a diagnostic.
+> **Divergence (static, 2026-11-15 at `44205211`):** Hydration accepts the three registered IDs and IDs beginning with a documented procedural prefix (`src/domain/progressClocks.ts:92-120`). It drops IDs that fail `isAllowedProgressClockId` (`src/domain/gameStateManager.ts:679`), rather than reporting a diagnostic; being outside the three-ID catalog alone does not make an ID invalid.
 
 ## 6) Common pitfalls
 

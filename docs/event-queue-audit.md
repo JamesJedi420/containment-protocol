@@ -4,7 +4,7 @@
 >
 > Scope: design guidance and integration patterns only. No runtime behavior changes.
 >
-> **Static crosscheck (2026-11-14 at `bdbf4624`):** the runtime queue backs §3–§4 as described (FIFO head/tail, monotonic ids, clear preserving `nextSequence`). One divergence is recorded under §4 Save/load: queued `type` values are a closed allowlist, so authored types outside it are dropped on hydrate. Code reading, not runtime verification.
+> **Static crosscheck (2026-11-15 at `44205211`):** the runtime queue backs §3–§4 as described (FIFO head/tail, monotonic ids, queue-helper clear preserving `nextSequence`). Hydration filters type and type-specific target independently; see §4 Save/load. A full runtime debug reset replaces the queue with defaults. Code reading, not runtime verification.
 
 ## 1) Queue categories
 
@@ -116,7 +116,7 @@ Use strict deterministic queue semantics to prevent drift:
   - preserve next sequence cursor deterministically
 - Avoid lossy transformations that can reorder or duplicate queue items.
 
-> **Divergence (static, 2026-11-14 at `bdbf4624`):** "reject malformed entries safely" is also a type filter. Hydration drops any entry whose `type` is not in `RUNTIME_QUEUED_EVENT_TYPES` and whose `targetId` is neither a known encounter id nor a dotted id, and renames duplicate ids to `id-dup-N` instead of preserving identity (`src/domain/gameStateManager.ts:746-750`, `:773-789`). A queue type authored outside the allowlist therefore survives in memory and disappears on save/load.
+> **Divergence (static, 2026-11-15 at `44205211`):** Hydration drops an entry if its `type` is outside `RUNTIME_QUEUED_EVENT_TYPES` **or** its target fails that type's rule (`src/domain/gameStateManager.ts:208-233`, `:746-750`). For example, `encounter.patched` requires an existing encounter; `authored.follow_up` requires a nonempty target. Duplicate IDs are renamed to `id-dup-N` rather than preserved (`:773-789`). A type outside the allowlist can therefore survive in memory but disappear on save/load.
 
 ## 5) Common pitfalls
 

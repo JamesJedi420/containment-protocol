@@ -185,11 +185,21 @@ test('an advisory failure remains visible when required execution passes', () =>
     enforcement: 'advisory',
     whenUnavailable: 'report-unavailable',
   })
+  input.report.advisoryFailures = ['format-check']
   const { source, provenance } = adaptValidationReport(input)
   assert.equal(provenance.reportOk, true)
+  assert.deepEqual(provenance.advisoryFailures, ['format-check'])
   assert.equal(provenance.results.find((row) => row.id === 'format-check').enforcement, 'advisory')
   assert.equal(source.records.find((row) => row.id === 'format-check').state, 'failed')
   assert.equal(source.coverage.complete, false)
+})
+
+test('rejects an advisory failure list that contradicts individual results', () => {
+  const input = make()
+  input.mode = 'execution'
+  input.report.results[0].status = 'passed'
+  input.report.advisoryFailures = ['lint']
+  assert.throws(() => adaptValidationReport(input), /advisory failures/)
 })
 
 test('an empty selected report remains partial, not a verified zero', () => {

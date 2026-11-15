@@ -15,6 +15,26 @@ function compareId(a, b) {
   return compareText(a.id, b.id)
 }
 
+function validateAdvisoryFailures(report) {
+  if (!Object.hasOwn(report, 'advisoryFailures')) return
+  const failures = report.advisoryFailures
+  v.requireValue(
+    Array.isArray(failures) &&
+      failures.length <= 100000 &&
+      failures.every((id) => typeof id === 'string' && idPattern.test(id)) &&
+      new Set(failures).size === failures.length,
+    'advisory failures'
+  )
+  const observed = report.results
+    .filter((row) => row.enforcement === 'advisory' && row.status === 'failed')
+    .map((row) => row.id)
+    .sort(compareText)
+  v.requireValue(
+    JSON.stringify([...failures].sort(compareText)) === JSON.stringify(observed),
+    'advisory failures conflict'
+  )
+}
+
 function validateExecution(report, rowsById, mode) {
   if (mode === 'execution') {
     const expectedMissing = report.requiredIds.flatMap((id) => {
@@ -75,6 +95,7 @@ function validateLists(report, rowsById, mode) {
       new Set(report.missingRequired.map((row) => row.id)).size === report.missingRequired.length,
     'missing required'
   )
+  validateAdvisoryFailures(report)
   validateExecution(report, rowsById, mode)
   return { required, advisory, exceptions }
 }
@@ -290,6 +311,9 @@ export function adaptValidationReport(input) {
       requiredIds: [...required].sort(compareText),
       advisoryIds: [...advisory].sort(compareText),
       skippedExceptionIds: [...exceptions].sort(compareText),
+      ...(Object.hasOwn(report, 'advisoryFailures')
+        ? { advisoryFailures: [...report.advisoryFailures].sort(compareText) }
+        : {}),
       workstreamEvidence: {
         ...evidence,
         checkedAt: v.timestamp(evidence.checkedAt),

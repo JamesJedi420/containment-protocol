@@ -98,6 +98,15 @@ describe('activation channel grammar', () => {
       ok: false,
       reason: 'duplicate-id',
     })
+    const invalid = { ...catalog[1], kind: 'unknown' }
+    expect(lookupActivationChannel([catalog[0], catalog[0], invalid], catalog[0].id)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
+    expect(lookupActivationChannel([invalid, catalog[0], catalog[0]], catalog[0].id)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
     const first = lookupActivationChannel(catalog, catalog[0].id)
     expect(first).toEqual(lookupActivationChannel([...catalog].reverse(), catalog[0].id))
     if (!first.ok) throw new Error(first.reason)

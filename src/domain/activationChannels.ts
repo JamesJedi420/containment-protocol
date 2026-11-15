@@ -64,7 +64,7 @@ export function parseActivationChannel(input: unknown): ChannelResult {
   }
 }
 
-/** Validates the entire caller-supplied catalog before returning a named channel. */
+/** Invalid entries take precedence over duplicates, independent of catalog order. */
 export function lookupActivationChannel(catalog: readonly unknown[], id: string): ChannelResult {
   if (!Array.isArray(catalog) || !text(id)) return { ok: false, reason: 'invalid-lookup' }
   const seen = new Set<string>()

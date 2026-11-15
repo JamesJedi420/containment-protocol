@@ -1,14 +1,11 @@
-import { createElement } from 'react'
-import { MemoryRouter } from 'react-router'
-import { renderToStaticMarkup } from 'react-dom/server'
-import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
-import type { GameState } from '../domain/models'
-import { MissionResultSummary, ReportCaseGroup } from '../features/report/reportDetailHelpers'
+import {
+  observeSettlementReport,
+  reloadSettlementReport,
+} from './helpers/majorIncidentSettlementReportFixture'
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   buildDerivedMajorIncidentRuntime,
-  evaluateMajorIncidentPlan,
   buildPlannedMajorIncidentRuntime,
   getAppliedMajorIncidentRewardPreview,
 } from '../domain/majorIncidentOperations'
@@ -313,108 +310,6 @@ describe('SPE-3076 major-incident terminal settlement', () => {
   })
 })
 
-function makeSettlementReportBaseState(): GameState {
-  const state = createStartingState()
-  return {
-    ...state,
-    rngSeed: 42,
-    rngState: 42,
-    agents: {},
-    teams: {},
-    cases: {},
-    templates: {},
-    inventory: {},
-    knowledge: {},
-    agency: { ...state.agency!, supportAvailable: 10 },
-    // Keep the scenario's difficulty and payout scale explicit.
-    config: {
-      ...state.config,
-      stageScalar: 1,
-      fundingPerResolution: 10,
-      containmentDeltaPerResolution: 1,
-    },
-  }
-}
-
-function buildSettlementReportFixture(activeCount: number): GameState {
-  const state = makeSettlementReportBaseState()
-  const baseAgent = createStartingState().agents.a_ava
-  for (let i = 0; i <= activeCount + 4; i++) {
-    const agentId = `a${i}`
-    state.agents[agentId] = {
-      ...baseAgent,
-      id: agentId,
-      name: `Agent ${i}`,
-      baseStats: { combat: 100, investigation: 100, utility: 100, social: 100 },
-      fatigue: 0,
-      status: 'active',
-    }
-    state.teams[`t${i}`] = {
-      id: `t${i}`,
-      name: `Team ${i}`,
-      agentIds: [agentId],
-      memberIds: [agentId],
-      leaderId: agentId,
-      tags: [],
-    }
-  }
-  for (let i = 0; i < activeCount; i++) {
-    const id = `c${i}`
-    state.cases[id] = {
-      id,
-      templateId: `template-${i}`,
-      title: i === 0 ? 'Report Settlement Incident' : `Case ${i}`,
-      description: '',
-      mode: 'deterministic',
-      kind: i === 0 ? 'raid' : 'case',
-      status: i === 0 ? 'open' : 'in_progress',
-      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
-      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
-      tags: [],
-      requiredTags: [],
-      preferredTags: [],
-      requiredRoles: [],
-      stage: i === 0 ? 3 : 1,
-      durationWeeks: 1,
-      deadlineWeeks: 5,
-      deadlineRemaining: 5,
-      assignedTeamIds: i === 0 ? [] : [`t${i + 4}`],
-      onPartial: { stageDelta: 0 },
-      onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
-      onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
-      ...(i === 0 ? { raid: { minTeams: 2, maxTeams: 4 } } : {}),
-    }
-  }
-  const runtime = buildDerivedMajorIncidentRuntime(state.cases.c0, state)!
-  expect(runtime).not.toBeNull()
-  const teamIds = Array.from({ length: runtime.requiredTeams }, (_, i) => 't' + i)
-  const plan = evaluateMajorIncidentPlan(state, state.cases.c0, teamIds, {
-    strategy: 'balanced',
-    provisions: [],
-  })
-  expect(plan?.valid, JSON.stringify(plan)).toBe(true)
-  const launched = launchMajorIncident(state, 'c0', teamIds, 'balanced', [])
-  expect(launched.cases.c0.status).toBe('in_progress')
-  expect(launched.cases.c0.majorIncident).toBeDefined()
-  // Construct the last resolution window; actual launch, resolution, resettlement,
-  // report building and report consumer remain production implementations.
-  launched.cases.c0 = { ...launched.cases.c0, weeksRemaining: 1 }
-  return launched
-}
-
-function observeSettlementReport(activeCount: number) {
-  const source = buildSettlementReportFixture(activeCount)
-  const after = advanceWeek(source, 0)
-  const report = after.reports.at(-1)!
-  const mission = report.caseSnapshots!.c0.missionResult!
-  const receipt = after.cases.c0.majorIncident!.settlementReceipt!
-  if (!isValidMajorIncidentSettlementReceipt(receipt)) {
-    throw new Error('Expected a valid terminal settlement receipt')
-  }
-  const html = renderToStaticMarkup(createElement(MissionResultSummary, { missionResult: mission }))
-  return { source, after, report, mission, receipt, html }
-}
-
 describe('SPE-3076 final settlement report handoff', () => {
   it.each([
     { activeCount: 4, outcome: 'success', rewards: 'Funding +30, containment +5, reputation +18.' },
@@ -422,7 +317,7 @@ describe('SPE-3076 final settlement report handoff', () => {
   ] as const)(
     'reports the final $outcome receipt with $activeCount concurrent operations',
     ({ activeCount, outcome, rewards }) => {
-      const { after, report, mission, receipt, html } = observeSettlementReport(activeCount)
+      const { after, report, mission, receipt } = observeSettlementReport(activeCount)
       expect(after.coordinationFrictionActive).toBe(activeCount === 5)
       expect(receipt.finalOutcome).toBe(outcome)
       expect(receipt.reportableOutcome.outcome).toBe(outcome)
@@ -443,65 +338,42 @@ describe('SPE-3076 final settlement report handoff', () => {
       expect(
         mission.explanationNotes.some((note) => note.startsWith('Durable contacts marked: '))
       ).toBe(true)
-      expect(
-        mission.explanationNotes.filter((note) => note.startsWith('Funding '))
-      ).toEqual([rewards])
+      expect(mission.explanationNotes.filter((note) => note.startsWith('Funding '))).toEqual([
+        rewards,
+      ])
       expect(
         mission.explanationNotes.some((note) => note.includes('Command-coordination friction'))
       ).toBe(activeCount === 5)
-      expect(html).toContain(receipt.reportableOutcome.summary)
-      expect(html).not.toContain(
-        outcome === 'partial' ? 'settled as success' : 'settled as partial'
-      )
     }
   )
 
   it.each([4, 5])(
     'preserves the final report through replay, save/load and valid relaunch with %i operations',
     (activeCount) => {
-      const { source, after, report, mission, receipt } = observeSettlementReport(activeCount)
+      const observation = observeSettlementReport(activeCount)
+      const { source, mission, receipt } = observation
       const replay = advanceWeek(source, 0)
       expect(replay.reports.at(-1)!.caseSnapshots!.c0.missionResult).toEqual(mission)
       expect(replay.cases.c0.majorIncident!.settlementReceipt).toEqual(receipt)
-      const loaded = loadGameSave(serializeGameSave(after))
-      const savedReport = loaded.reports.find((item) => item.week === report.week)!
+      const { loaded, current, savedReport, historical } = reloadSettlementReport(
+        observation,
+        activeCount === 5
+      )
       expect(savedReport.caseSnapshots!.c0.missionResult).toMatchObject({
         caseId: mission.caseId,
         outcome: mission.outcome,
         explanationNotes: mission.explanationNotes,
       })
       expect(loaded.cases.c0.majorIncident!.settlementReceipt).toEqual(receipt)
-      // Only partial outcomes remain open and can be relaunched through the normal command.
-      const current =
-        activeCount === 5
-          ? launchMajorIncident(loaded, 'c0', source.cases.c0.assignedTeamIds, 'balanced', [])
-          : loaded
       if (activeCount === 5) {
         expect(current.cases.c0.status).toBe('in_progress')
         expect(current.cases.c0.majorIncident!.settlementReceipt).toBeUndefined()
       }
-      const historical = current.reports.find((item) => item.week === report.week)!
-      expect(historical.caseSnapshots!.c0.missionResult).toEqual(
-        savedReport.caseSnapshots!.c0.missionResult
-      )
-      const groupHtml = renderToStaticMarkup(
-        createElement(
-          MemoryRouter,
-          null,
-          createElement(ReportCaseGroup, {
-            title: 'Settled cases',
-            emptyLabel: 'None',
-            caseIds: activeCount === 5 ? historical.partialCases : historical.resolvedCases,
-            existingCaseIds: new Set(Object.keys(current.cases)),
-            currentCases: current.cases,
-            snapshots: historical.caseSnapshots,
-          })
-        )
-      )
-      expect(groupHtml).toContain(receipt.reportableOutcome.summary)
-      expect(groupHtml).not.toContain(
-        activeCount === 5 ? 'settled as success' : 'settled as partial'
-      )
+      expect(historical.caseSnapshots!.c0.missionResult).toMatchObject({
+        caseId: mission.caseId,
+        outcome: mission.outcome,
+        explanationNotes: mission.explanationNotes,
+      })
     }
   )
 })

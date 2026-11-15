@@ -65,7 +65,10 @@ lifecycle, visibility, or acknowledgement policy. Already-saved historical repor
 are not rewritten.
 
 Regression coverage extends the already inventoried
-`src/test/majorIncidentTerminalSettlement.test.ts`: a valid production planner and
+`src/test/majorIncidentTerminalSettlement.test.ts` and
+`src/features/report/ReportFeature.projectionMismatch.test.tsx`. A domain-only
+fixture helper reuses canonical starting state without importing UI into `src/test`.
+The shared scenario uses a valid production planner and
 launch, a constructed final resolution window, real week close and rendered
 `MissionResultSummary` / `ReportCaseGroup` consumers. Four operations retain
 success; five trigger coordination and partial settlement. Both report identity and
@@ -74,7 +77,7 @@ save/load, and the partial report after a valid relaunch clears the live receipt
 These are constructed production-path/rendered-consumer tests, not a manual
 browser playthrough or a hidden-information audit. No discovered test path changes.
 
-Pre-fix verification: the two partial-report assertions failed with stale success
-wording while the other 13 settlement/coordination assertions passed. Post-fix
-focused settlement/coordination/major-incident suite: 25 tests passed. Full pre-ship
-and final-head review evidence is recorded on the repair PR.
+Final regression negative control against main: three partial-report assertions
+failed with stale success wording while the other 27 assertions passed. With the
+repair, all 30 focused settlement, coordination, major-incident and report-consumer
+tests pass. Full pre-ship and final-head review evidence is recorded on the repair PR.

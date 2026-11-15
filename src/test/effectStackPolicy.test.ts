@@ -12,6 +12,17 @@ describe('authored effect overlap policies', () => {
 
   it('retains the strongest with stable tie ordering and rejects duplicate families when authored', () => {
     expect(
+      resolveEffectStack(
+        { kind: 'strongest', family: 'family:focus' },
+        [{ ...weaker, magnitude: 0, duration: 0 }],
+        { ...stronger, magnitude: 0, duration: 0 }
+      )
+    ).toMatchObject({
+      ok: true,
+      outcome: 'strongest',
+      retained: [{ ...weaker, magnitude: 0, duration: 0 }],
+    })
+    expect(
       resolveEffectStack({ kind: 'strongest', family: 'family:focus' }, [weaker], stronger)
     ).toMatchObject({
       ok: true,
@@ -41,6 +52,13 @@ describe('authored effect overlap policies', () => {
       outcome: 'extended',
       retained: [{ ...weaker, duration: 7 }],
     })
+    expect(
+      resolveEffectStack(
+        { kind: 'extend-duration', family: 'family:focus' },
+        [{ ...weaker, magnitude: 0, duration: 0 }],
+        { ...stronger, magnitude: 0, duration: 0 }
+      )
+    ).toMatchObject({ ok: true, retained: [{ ...weaker, magnitude: 0, duration: 0 }] })
   })
 
   it('caps the effective total without changing the separate instances', () => {
@@ -66,6 +84,23 @@ describe('authored effect overlap policies', () => {
         stronger
       )
     )
+  })
+
+  it('bounds maximum caps and rejects duplicate identities across opposed families', () => {
+    expect(
+      resolveEffectStack(
+        { kind: 'cap-total', family: 'family:focus', cap: Number.MAX_SAFE_INTEGER },
+        [{ ...weaker, magnitude: Number.MAX_SAFE_INTEGER }],
+        { ...stronger, magnitude: 1 }
+      )
+    ).toMatchObject({ ok: true, effectiveMagnitude: Number.MAX_SAFE_INTEGER })
+    expect(
+      resolveEffectStack(
+        { kind: 'cancel-opposed', family: 'family:panic', opposedFamily: 'family:calm' },
+        [{ ...weaker, family: 'family:calm' }],
+        { ...stronger, id: weaker.id, family: 'family:panic' }
+      )
+    ).toMatchObject({ ok: false, reason: 'duplicate-id' })
   })
 
   it('cancels one explicitly opposed pair without inferring opposition', () => {

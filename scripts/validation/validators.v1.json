@@ -50,7 +50,7 @@
     {
       "id": "engineering-summary",
       "ownerIssue": "SPE-3512",
-      "ownerNote": "Pure summary contract and captured-response adapter; no live collectors, scheduling or operational authority.",
+      "ownerNote": "Pure summary contract and captured-response adapters; no live collectors, scheduling or operational authority.",
       "npmScript": "verify:engineering-summary",
       "enforcement": "required",
       "activation": {

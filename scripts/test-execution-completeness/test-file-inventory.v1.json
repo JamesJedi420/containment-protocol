@@ -714,6 +714,7 @@
     "src/test/outcome.thresholds.test.ts",
     "src/test/outcomeBranching.test.ts",
     "src/test/outcomes.contest.test.ts",
+    "src/test/parentWorldNodes.test.ts",
     "src/test/partialMissionOutcomes.integration.test.ts",
     "src/test/partyCardDrawContinuation.test.ts",
     "src/test/patrolDoctrine.test.ts",

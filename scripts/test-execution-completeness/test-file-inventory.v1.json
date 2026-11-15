@@ -2,8 +2,14 @@
   "schemaVersion": 1,
   "owner": "SPE-3427",
   "discovery": {
-    "include": ["src/**/*.test.{ts,tsx}", "test/**/*.test.{ts,tsx}"],
-    "exclude": ["docs/**", "**/docs/**"]
+    "include": [
+      "src/**/*.test.{ts,tsx}",
+      "test/**/*.test.{ts,tsx}"
+    ],
+    "exclude": [
+      "docs/**",
+      "**/docs/**"
+    ]
   },
   "files": [
     "src/app/App.affiliationPersonStatus.route.test.tsx",
@@ -313,6 +319,7 @@
     "src/test/allyBehavior.test.ts",
     "src/test/alternateRealityThresholdRouteRegistry.test.ts",
     "src/test/anomalousByproductLifecycle.test.ts",
+    "src/test/anomalousPopulationRegistry.test.ts",
     "src/test/antiNarrativeRecordCollapseRegistry.test.ts",
     "src/test/archivedPrototypeHygiene.test.ts",
     "src/test/ascendantResidentContainment.contract.test.ts",

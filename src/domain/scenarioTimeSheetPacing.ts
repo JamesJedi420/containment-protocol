@@ -55,6 +55,10 @@ function compareStrings(a: string, b: string): number {
   return 0
 }
 
+function compareWindows(a: TimeWindow, b: TimeWindow): number {
+  return a.startTick - b.startTick || compareStrings(a.id, b.id)
+}
+
 function token(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -116,6 +120,14 @@ function validateWindow(
     legal = false
   }
 
+  for (const refField of ['actorRef', 'clueRef', 'deadlineRef']) {
+    const ref = input[refField]
+    if (ref !== undefined && (typeof ref !== 'string' || token(ref).length === 0)) {
+      issues.push({ code: 'invalid_reference', field: `${field}.${refField}` })
+      legal = false
+    }
+  }
+
   if (!legal) return null
 
   const window: TimeWindow = {
@@ -170,9 +182,7 @@ export function normalizeScenarioTimeSheet(input: unknown): ScenarioTimeSheet | 
   const validation = validateScenarioTimeSheet(input)
   if (!validation.valid) return null
   const sheet = input as ScenarioTimeSheet
-  const windows = sheet.windows
-    .map((w, i) => validateWindow(w, i, [])!)
-    .sort((a, b) => a.startTick - b.startTick || compareStrings(a.id, b.id))
+  const windows = sheet.windows.map((w, i) => validateWindow(w, i, [])!).sort(compareWindows)
   return Object.freeze({
     id: token(sheet.id),
     windows: Object.freeze(windows),
@@ -183,7 +193,7 @@ export function normalizeScenarioTimeSheet(input: unknown): ScenarioTimeSheet | 
 export function activeWindowsAtTick(sheet: ScenarioTimeSheet, tick: number): readonly TimeWindow[] {
   if (!Number.isInteger(tick) || tick < 0) return Object.freeze([])
   const active = sheet.windows.filter((w) => w.startTick <= tick && tick < w.endTick)
-  return Object.freeze([...active])
+  return Object.freeze(active.sort(compareWindows))
 }
 
 /** Authored slice-1 fixtures. */

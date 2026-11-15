@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { TimeWindow } from './scenarioTimeSheetPacing'
 import {
   activeWindowsAtTick,
   normalizeScenarioTimeSheet,
@@ -104,6 +105,58 @@ describe('scenarioTimeSheetPacing', () => {
     expect(normalized.windows[1]).not.toHaveProperty('actorRef')
     expect(normalized.windows[1]).not.toHaveProperty('clueRef')
     expect(normalized.windows[1]).not.toHaveProperty('deadlineRef')
+  })
+
+  it.each(['actorRef', 'clueRef', 'deadlineRef'])(
+    'rejects malformed supplied %s rather than silently dropping its link',
+    (ref) => {
+      for (const value of [42, null, false, {}, '', '  ']) {
+        const input = {
+          id: 'timesheet:refs',
+          windows: [{ id: 'window:ref', kind: 'patrol', startTick: 0, endTick: 5, [ref]: value }],
+        }
+        expect(validateScenarioTimeSheet(input)).toMatchObject({
+          valid: false,
+          issues: [expect.objectContaining({ field: `windows[0].${ref}` })],
+        })
+        expect(normalizeScenarioTimeSheet(input)).toBeNull()
+      }
+      expect(
+        validateScenarioTimeSheet({
+          id: 'timesheet:refs',
+          windows: [
+            { id: 'window:ref', kind: 'patrol', startTick: 0, endTick: 5, [ref]: undefined },
+          ],
+        }).valid
+      ).toBe(true)
+    }
+  )
+
+  it('orders direct resolution of equivalent authored sheets without normalizing first', () => {
+    const windows: TimeWindow[] = [
+      { id: 'window:z', kind: 'beat', startTick: 1, endTick: 5 },
+      { id: 'window:b', kind: 'beat', startTick: 0, endTick: 5 },
+      { id: 'window:a', kind: 'beat', startTick: 0, endTick: 5 },
+    ]
+    const before = structuredClone(windows)
+    const input = { id: 'timesheet:direct', windows }
+    const active = activeWindowsAtTick(input, 2)
+    expect(active.map((w) => w.id)).toEqual(['window:a', 'window:b', 'window:z'])
+    expect(activeWindowsAtTick({ ...input, windows: [...windows].reverse() }, 2)).toEqual(active)
+    expect(windows).toEqual(before)
+    expect(Object.isFrozen(active)).toBe(true)
+  })
+
+  it('attributes an invalid start and a valid end only to the invalid start field', () => {
+    const input = {
+      id: 'timesheet:diagnostic',
+      windows: [{ id: 'window:diagnostic', kind: 'beat', startTick: null, endTick: 5 }],
+    }
+    expect(validateScenarioTimeSheet(input)).toEqual({
+      valid: false,
+      issues: [{ code: 'invalid_start_tick', field: 'windows[0].startTick' }],
+    })
+    expect(normalizeScenarioTimeSheet(input)).toBeNull()
   })
 
   it('orders shuffled and tied windows without mutating authoring input', () => {

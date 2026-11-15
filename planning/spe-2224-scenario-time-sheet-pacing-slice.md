@@ -2,7 +2,7 @@
 
 | Field          | Value                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------- |
-| Status         | **See Linear**                                                                           |
+| **Status**     | **See Linear**                                                                           |
 | Issue          | [SPE-2224](https://linear.app/spectranoir/issue/SPE-2224)                                |
 | Parent         | SPE-1071; incomplete, assessed separately                                                |
 | Human owner    | James Dye; unchanged                                                                     |
@@ -24,6 +24,8 @@ The coordinator assigned fresh assessment, then eligible in-boundary repair/ship
 On the exact original commit, the six runtime tests passed. Targeted project-based TypeScript compilation failed with three TS2540 diagnostics: post-construction assignment to readonly actorRef, clueRef and deadlineRef. Current main had 27 unrelated diagnostics; the original proposal had exactly those 27 plus these three. Initialize the optional fields in the object literal; retain readonly types and frozen outputs. No casts, suppressions, compiler-policy changes or unrelated cleanup are permitted to conceal diagnostics.
 
 Input-validation regressions also reproduced coercion of null, booleans and strings into ticks, plus a Symbol conversion exception. Tick fields are numeric in TimeWindow; validate their types before existing nonnegative-integer/ordered bounds, returning issues rather than coercing invalid authoring input. Existing valid numeric tick behavior is unchanged.
+
+Independent PR review reproduced two additional validation/ordering gaps: supplied malformed references could disappear during normalization, and direct resolution of unnormalized valid sheets retained arbitrary authoring order. Reject non-string or blank supplied references with field-specific issues (omitted/undefined remain optional), and share the start-tick/ID comparator between normalization and direct resolution of the filtered copy. Four regressions failed before these fixes. A separate exact-diagnostic regression confirms that an invalid start with a valid end reports only the invalid start; NaN cannot make that sheet valid, and the suggested ordering guard does not change that outcome.
 
 ## Fresh preflight and exclusions
 

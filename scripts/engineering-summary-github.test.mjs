@@ -93,6 +93,7 @@ function expectInvalid(change) {
 test('REST-shaped merged facts integrate with both renderers but never qualify GitHub coverage', () => {
   const { source, provenance } = adapt(input())
   assert.equal(source.status, 'partial')
+  assert.deepEqual(source.currentError, { code: 'incomplete-coverage' })
   assert.equal(source.records[0].id, 'PR-1')
   assert.equal(source.records[0].at, '2026-11-14T12:00:00.000Z')
   assert.equal(source.records[0].workstream, 'CP-core')
@@ -130,7 +131,7 @@ test('successful empty and closed-but-unmerged captures stay partial, never succ
     assert.equal(github.status, 'partial')
     assert.equal(github.count, null)
     assert.equal(github.observedCount, 0)
-    assert.equal(result.source.currentError.code, 'not-collected')
+    assert.equal(result.source.currentError.code, 'incomplete-coverage')
   }
 })
 
@@ -464,7 +465,14 @@ test('minimized output and errors exclude provider bodies, raw errors, request U
   })
   const output = JSON.stringify(adapt(value))
   assert.ok(!output.includes('secret-canary'))
-  assert.ok(!output.includes('api.github.com'))
+  for (const capturedPage of adapt(value).provenance.capture.pages)
+    assert.deepEqual(Object.keys(capturedPage).sort(), [
+      'lastPage',
+      'nextPage',
+      'number',
+      'observedAt',
+      'records',
+    ])
   value.capture.error = { code: 'http-403', body: 'secret-canary' }
   assert.throws(
     () => adapt(value),

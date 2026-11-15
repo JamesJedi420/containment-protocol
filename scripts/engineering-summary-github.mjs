@@ -395,9 +395,7 @@ export function adaptGitHubMergedPrCapture(input) {
       currentError: {
         code:
           input.capture.error?.code ??
-          (capturedPages.length === 0 || paginationComplete
-            ? 'not-collected'
-            : 'incomplete-coverage'),
+          (capturedPages.length === 0 ? 'not-collected' : 'incomplete-coverage'),
       },
     },
     provenance: { ...provenance, revision: digest },

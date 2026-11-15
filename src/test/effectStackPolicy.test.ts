@@ -11,15 +11,22 @@ describe('authored effect overlap policies', () => {
   }
 
   it('retains the strongest with stable tie ordering and rejects duplicate families when authored', () => {
-    expect(resolveEffectStack({ kind: 'strongest' }, [weaker], stronger)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'strongest', family: 'family:focus' }, [weaker], stronger)
+    ).toMatchObject({
       ok: true,
       outcome: 'strongest',
       retained: [stronger],
     })
     expect(
-      resolveEffectStack({ kind: 'strongest' }, [weaker], { ...stronger, magnitude: 2 })
-    ).toMatchObject({ ok: true, retained: [weaker] })
-    expect(resolveEffectStack({ kind: 'reject-duplicate' }, [weaker], stronger)).toMatchObject({
+      resolveEffectStack({ kind: 'strongest', family: 'family:focus' }, [weaker], {
+        ...stronger,
+        magnitude: 2,
+      })
+    ).toMatchObject({ ok: true, outcome: 'strongest', retained: [weaker] })
+    expect(
+      resolveEffectStack({ kind: 'reject-duplicate', family: 'family:focus' }, [weaker], stronger)
+    ).toMatchObject({
       ok: true,
       outcome: 'rejected',
       retained: [weaker],
@@ -27,7 +34,9 @@ describe('authored effect overlap policies', () => {
   })
 
   it('extends duration without increasing the original magnitude', () => {
-    expect(resolveEffectStack({ kind: 'extend-duration' }, [weaker], stronger)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'extend-duration', family: 'family:focus' }, [weaker], stronger)
+    ).toMatchObject({
       ok: true,
       outcome: 'extended',
       retained: [{ ...weaker, duration: 7 }],
@@ -35,15 +44,27 @@ describe('authored effect overlap policies', () => {
   })
 
   it('caps the effective total without changing the separate instances', () => {
-    expect(resolveEffectStack({ kind: 'cap-total', cap: 6 }, [weaker], stronger)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'cap-total', family: 'family:focus', cap: 6 }, [weaker], stronger)
+    ).toMatchObject({
       ok: true,
       outcome: 'capped',
       retained: [weaker, stronger],
       effectiveMagnitude: 6,
     })
     const third = { ...weaker, id: 'effect:c', magnitude: 1 }
-    expect(resolveEffectStack({ kind: 'cap-total', cap: 6 }, [weaker, third], stronger)).toEqual(
-      resolveEffectStack({ kind: 'cap-total', cap: 6 }, [third, weaker], stronger)
+    expect(
+      resolveEffectStack(
+        { kind: 'cap-total', family: 'family:focus', cap: 6 },
+        [weaker, third],
+        stronger
+      )
+    ).toEqual(
+      resolveEffectStack(
+        { kind: 'cap-total', family: 'family:focus', cap: 6 },
+        [third, weaker],
+        stronger
+      )
     )
   })
 
@@ -51,35 +72,63 @@ describe('authored effect overlap policies', () => {
     const calm = { ...weaker, family: 'family:calm' }
     const panic = { ...stronger, family: 'family:panic' }
     expect(
-      resolveEffectStack({ kind: 'cancel-opposed', opposedFamily: 'family:calm' }, [calm], panic)
+      resolveEffectStack(
+        { kind: 'cancel-opposed', family: 'family:panic', opposedFamily: 'family:calm' },
+        [],
+        panic
+      )
+    ).toMatchObject({ ok: true, outcome: 'accepted', retained: [panic] })
+    expect(
+      resolveEffectStack(
+        { kind: 'cancel-opposed', family: 'family:other', opposedFamily: 'family:calm' },
+        [],
+        panic
+      )
+    ).toMatchObject({ ok: false, reason: 'policy-family-mismatch' })
+    expect(
+      resolveEffectStack(
+        { kind: 'cancel-opposed', family: 'family:panic', opposedFamily: 'family:calm' },
+        [calm],
+        panic
+      )
     ).toMatchObject({ ok: true, outcome: 'canceled', retained: [] })
     expect(
-      resolveEffectStack({ kind: 'cancel-opposed', opposedFamily: 'family:other' }, [calm], panic)
+      resolveEffectStack(
+        { kind: 'cancel-opposed', family: 'family:panic', opposedFamily: 'family:other' },
+        [calm],
+        panic
+      )
     ).toMatchObject({ ok: false, reason: 'invalid-opposition' })
   })
 
   it('fails closed on duplicate identities, invalid values and ambiguous extension', () => {
-    expect(resolveEffectStack({ kind: 'strongest' }, [weaker], weaker)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'strongest', family: 'family:focus' }, [weaker], weaker)
+    ).toMatchObject({
       ok: false,
       reason: 'duplicate-id',
     })
-    expect(resolveEffectStack({ kind: 'cap-total', cap: -1 }, [weaker], stronger)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'cap-total', family: 'family:focus', cap: -1 }, [weaker], stronger)
+    ).toMatchObject({
       ok: false,
       reason: 'invalid-cap',
     })
     expect(
-      resolveEffectStack({ kind: 'extend-duration' }, [weaker, stronger], {
+      resolveEffectStack({ kind: 'extend-duration', family: 'family:focus' }, [weaker, stronger], {
         ...stronger,
         id: 'effect:c',
       })
     ).toMatchObject({ ok: false, reason: 'ambiguous-extension' })
-    expect(resolveEffectStack({ kind: 'strongest' }, new Array(1), stronger)).toMatchObject({
+    expect(
+      resolveEffectStack({ kind: 'strongest', family: 'family:focus' }, new Array(1), stronger)
+    ).toMatchObject({
       ok: false,
       reason: 'invalid-effect',
     })
     expect(
       resolveEffectStack(
-        { kind: 'extend-duration' },
+        { kind: 'extend-duration', family: 'family:focus' },
         [{ ...weaker, duration: Number.MAX_SAFE_INTEGER }],
         stronger
       )

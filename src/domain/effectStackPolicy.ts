@@ -6,10 +6,11 @@ export interface StackEffect {
   readonly duration: number
 }
 
-export type StackPolicy =
+export type StackPolicy = { readonly family: string } & (
   | { readonly kind: 'strongest' | 'reject-duplicate' | 'extend-duration' }
   | { readonly kind: 'cap-total'; readonly cap: number }
   | { readonly kind: 'cancel-opposed'; readonly opposedFamily: string }
+)
 
 export type StackResult =
   | {
@@ -59,6 +60,8 @@ export function resolveEffectStack(
   const next = parseEffect(incoming)
   const prior = Array.from(existing, parseEffect)
   if (!next || prior.some((entry) => !entry)) return { ok: false, reason: 'invalid-effect' }
+  if (!text(policy.family) || policy.family !== next.family)
+    return { ok: false, reason: 'policy-family-mismatch' }
   const active = prior as StackEffect[]
   const ids = [...active.map((entry) => entry.id), next.id]
   if (new Set(ids).size !== ids.length) return { ok: false, reason: 'duplicate-id' }

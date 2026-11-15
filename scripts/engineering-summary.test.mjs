@@ -239,6 +239,11 @@ test('source, record and policy revision mismatches are conflicts; unknown revis
   assert.equal(summarize(value).sources.github.status, 'conflicted')
   value.policy.expectedRevisions.github = null
   assert.equal(summarize(value).sources.github.status, 'partial')
+  value.sources.github.revision = null
+  value.sources.github.records = [record('merged-pr')]
+  assert.equal(summarize(value).sources.github.status, 'partial')
+  assert.equal(summarize(value).sources.github.count, null)
+  assert.ok(!summarize(value).sources.github.reasons.includes('revision-conflict'))
   value.sources.github.lastSuccess = {
     checkedAt: '2026-11-14T20:00:00.001Z',
     revision: SHA,

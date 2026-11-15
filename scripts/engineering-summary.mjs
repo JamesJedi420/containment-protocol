@@ -325,7 +325,8 @@ function recordReasons(record, name, source, input, times, seen, positions, reas
   const key = `${record.kind}:${record.id}`
   if (seen.has(key)) reasons.push('duplicate-record')
   seen.add(key)
-  if (record.revision !== source.revision) reasons.push('revision-conflict')
+  if (source.revision !== null && record.revision !== source.revision)
+    reasons.push('revision-conflict')
   if (record.workstream === null) reasons.push('unknown-workstream')
   if (instant(record.at) > instant(source.checkedAt) + input.policy.futureToleranceSeconds * 1000)
     reasons.push('record-time-conflict')

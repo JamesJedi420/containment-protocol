@@ -314,55 +314,25 @@ describe('SPE-3076 major-incident terminal settlement', () => {
 })
 
 function makeSettlementReportBaseState(): GameState {
+  const state = createStartingState()
   return {
-    week: 1,
+    ...state,
     rngSeed: 42,
     rngState: 42,
-    gameOver: false,
-    directiveState: { selectedId: null, history: [] },
     agents: {},
-    staff: {},
-    candidates: [],
     teams: {},
     cases: {},
     templates: {},
-    reports: [],
-    events: [],
     inventory: {},
-    trainingQueue: [],
-    productionQueue: [],
-    market: { week: 1, featuredRecipeId: '', pressure: 'stable', costMultiplier: 1 },
-    config: {
-      maxActiveCases: 10,
-      trainingSlots: 2,
-      partialMargin: 2,
-      stageScalar: 1,
-      challengeModeEnabled: false,
-      durationModel: 'capacity',
-      attritionPerWeek: 1,
-      probabilityK: 1,
-      raidCoordinationPenaltyPerExtraTeam: 0,
-      weeksPerYear: 52,
-      fundingBasePerWeek: 100,
-      fundingPerResolution: 10,
-      fundingPenaltyPerFail: -10,
-      fundingPenaltyPerUnresolved: -20,
-      containmentWeeklyDecay: 1,
-      containmentDeltaPerResolution: 1,
-      containmentDeltaPerFail: -1,
-      containmentDeltaPerUnresolved: -2,
-      clearanceThresholds: [10, 20, 30],
-    },
-    containmentRating: 50,
-    clearanceLevel: 1,
-    funding: 1000,
-    agency: {
-      containmentRating: 50,
-      clearanceLevel: 1,
-      funding: 1000,
-      supportAvailable: 10,
-    },
     knowledge: {},
+    agency: { ...state.agency!, supportAvailable: 10 },
+    // Keep the scenario's difficulty and payout scale explicit.
+    config: {
+      ...state.config,
+      stageScalar: 1,
+      fundingPerResolution: 10,
+      containmentDeltaPerResolution: 1,
+    },
   }
 }
 
@@ -473,7 +443,9 @@ describe('SPE-3076 final settlement report handoff', () => {
       expect(
         mission.explanationNotes.some((note) => note.startsWith('Durable contacts marked: '))
       ).toBe(true)
-      expect(mission.explanationNotes).toContain(rewards)
+      expect(
+        mission.explanationNotes.filter((note) => note.startsWith('Funding '))
+      ).toEqual([rewards])
       expect(
         mission.explanationNotes.some((note) => note.includes('Command-coordination friction'))
       ).toBe(activeCount === 5)

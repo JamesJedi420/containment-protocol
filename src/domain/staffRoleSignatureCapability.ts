@@ -98,6 +98,12 @@ function usesSourceSpecificLabel(value: string): boolean {
     .some((part) => SOURCE_SPECIFIC_LABELS.has(part))
 }
 
+export function isStaffRolePackageRef(value: unknown): value is string {
+  return (
+    typeof value === 'string' && ROLE_PACKAGE_REF.test(value) && !usesSourceSpecificLabel(value)
+  )
+}
+
 function freezeCapability(input: StaffRoleSignatureCapability): StaffRoleSignatureCapability {
   const capability: StaffRoleSignatureCapability = {
     id: input.id,
@@ -154,7 +160,7 @@ function validateCapability(
     })
     legal = false
   }
-  if (!ROLE_PACKAGE_REF.test(rolePackageRef) || usesSourceSpecificLabel(rolePackageRef)) {
+  if (!isStaffRolePackageRef(rolePackageRef)) {
     issues.push({
       code: 'invalid_role_package_ref',
       field: `${field}.rolePackageRef`,
@@ -269,7 +275,7 @@ export function lookupStaffRoleSignatureByRolePackage(
   rolePackageRef: string
 ): StaffRolePackageSignatureLookup {
   const roleRef = token(rolePackageRef)
-  if (!ROLE_PACKAGE_REF.test(roleRef) || usesSourceSpecificLabel(roleRef)) {
+  if (!isStaffRolePackageRef(roleRef)) {
     return Object.freeze({ status: 'invalid_role_package_ref' })
   }
   const matches = capabilities.filter((capability) => token(capability.rolePackageRef) === roleRef)

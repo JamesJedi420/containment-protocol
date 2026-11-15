@@ -8,6 +8,98 @@ import {
   validateStaffRoleSignatureCapabilities,
 } from '../domain/staffRoleSignatureCapability'
 import type { StaffRoleSignatureCapability } from '../domain/staffRoleSignatureCapability'
+import {
+  lookupOccultFieldAnalystRolePackage,
+  validateOccultFieldAnalystRolePackage,
+} from '../domain/occultFieldAnalystRolePackage'
+
+describe('occult field analyst authoring package (SPE-2229)', () => {
+  const authored = {
+    id: 'role-package:field-analyst',
+    startingCompetencies: ['research', 'response'],
+    signatureTraits: ['fieldcraft', 'cold-reader'],
+    documentAccess: 'policy:case-records',
+  }
+  const access = ['policy:case-records']
+
+  it('validates a CP-native authoring fixture and deterministically looks it up', () => {
+    const result = validateOccultFieldAnalystRolePackage(authored, access)
+    expect(result.ok).toBe(true)
+    expect(lookupOccultFieldAnalystRolePackage([authored], authored.id, access)).toEqual(result)
+    expect(
+      lookupStaffRoleSignatureByRolePackage(
+        [
+          {
+            id: 'role-signature:field-analyst',
+            rolePackageRef: authored.id,
+            niche: 'field_observation',
+          },
+        ],
+        authored.id
+      ).status
+    ).toBe('found')
+    expect(lookupOccultFieldAnalystRolePackage([authored], authored.id, access)).toEqual(result)
+    if (!result.ok) throw new Error(result.reason)
+    expect(result.package.startingCompetencies).toEqual(['research', 'response'])
+    expect(result.package.signatureTraits).toEqual(['cold-reader', 'fieldcraft'])
+    expect(Object.isFrozen(result.package.signatureTraits)).toBe(true)
+  })
+
+  it('rejects unknown competencies and non-CP trait names', () => {
+    expect(
+      validateOccultFieldAnalystRolePackage(
+        { ...authored, startingCompetencies: ['unknown'] },
+        access
+      )
+    ).toMatchObject({ ok: false, reason: 'invalid-competencies' })
+    expect(
+      validateOccultFieldAnalystRolePackage(
+        { ...authored, signatureTraits: ['Pathfinder Thaumaturge'] },
+        access
+      )
+    ).toMatchObject({ ok: false, reason: 'invalid-traits' })
+    expect(
+      validateOccultFieldAnalystRolePackage(
+        { ...authored, startingCompetencies: new Array(1) },
+        access
+      )
+    ).toMatchObject({ ok: false, reason: 'invalid-competencies' })
+  })
+
+  it('requires an explicitly known document policy and fails closed on duplicate packages', () => {
+    expect(
+      validateOccultFieldAnalystRolePackage({ ...authored, id: 'field-analyst' }, access)
+    ).toMatchObject({ ok: false, reason: 'invalid-id' })
+    expect(
+      validateOccultFieldAnalystRolePackage({ ...authored, id: 'role-package:scout' }, access)
+    ).toMatchObject({ ok: false, reason: 'invalid-id' })
+    const invalid = { ...authored, id: 'role-package:other', documentAccess: 'unknown' }
+    expect(lookupOccultFieldAnalystRolePackage([authored, invalid], authored.id, access)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
+    expect(lookupOccultFieldAnalystRolePackage([invalid, authored], authored.id, access)).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
+    expect(
+      lookupOccultFieldAnalystRolePackage([authored, authored, invalid], authored.id, access)
+    ).toEqual({
+      ok: false,
+      reason: 'invalid-catalog',
+    })
+    expect(validateOccultFieldAnalystRolePackage(authored, [])).toMatchObject({
+      ok: false,
+      reason: 'invalid-document-access',
+    })
+    expect(
+      lookupOccultFieldAnalystRolePackage([authored, authored], authored.id, access)
+    ).toMatchObject({ ok: false, reason: 'duplicate-id' })
+    expect(
+      lookupOccultFieldAnalystRolePackage([authored], 'role-package:missing', access)
+    ).toMatchObject({ ok: false, reason: 'not-found' })
+  })
+})
 
 const fixture = STAFF_ROLE_SIGNATURE_FIXTURE_CAPABILITIES
 

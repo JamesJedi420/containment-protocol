@@ -44,3 +44,37 @@
 ## Validation
 
 - `npm run test:run -- src/test/majorIncidentTerminalSettlement.test.ts src/test/majorIncidents.test.ts`
+
+## Final settlement report maintenance (2026-11-15)
+
+This bounded repair starts from main `b68859c9e2950b55ed5f3e52d1bbff5f88bb7a61`
+on branch `codex/final-settlement-report`. SPE-3076 retains its existing owner and
+Done status; SPE-36 and SPE-3504 are unchanged. This is maintenance of the shipped
+receipt/report consistency contract, not completion of acknowledgement projection.
+
+The coordination downgrade already resettles the runtime and reward outcome as
+partial, but its mission draft retained the earlier success explanation. After
+successful resettlement, `downgradeResolvedCaseToPartial` now replaces only the
+explanation matching the previous receipt with the final receipt's summary and ID.
+Unrelated reasons retain their content and ordering. The refreshed mission draft
+then flows through the existing finalizer into the immutable weekly report snapshot.
+
+There is no new snapshot schema, historical migration, receipt inferred from prose,
+UI read of mutable live receipts, or change to settlement, rewards, coordination,
+lifecycle, visibility, or acknowledgement policy. Already-saved historical reports
+are not rewritten.
+
+Regression coverage extends the already inventoried
+`src/test/majorIncidentTerminalSettlement.test.ts`: a valid production planner and
+launch, a constructed final resolution window, real week close and rendered
+`MissionResultSummary` / `ReportCaseGroup` consumers. Four operations retain
+success; five trigger coordination and partial settlement. Both report identity and
+reward explanations are checked, along with deterministic replay, canonical
+save/load, and the partial report after a valid relaunch clears the live receipt.
+These are constructed production-path/rendered-consumer tests, not a manual
+browser playthrough or a hidden-information audit. No discovered test path changes.
+
+Pre-fix verification: the two partial-report assertions failed with stale success
+wording while the other 13 settlement/coordination assertions passed. Post-fix
+focused settlement/coordination/major-incident suite: 25 tests passed. Full pre-ship
+and final-head review evidence is recorded on the repair PR.

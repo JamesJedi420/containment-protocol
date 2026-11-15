@@ -376,6 +376,13 @@ test('recommendations retain source order and require independently qualified ca
   )
   value.sources.queue.snapshot.issues[1].evidenceDrift = true
   assert.equal(summarize(value).sources.recommendations.status, 'conflicted')
+  assert.equal(summarize(value).sources.recommendations.observedCount, 2)
+  assert.deepEqual(summarize(value).sources.recommendations.observations, [])
+  assert.deepEqual(
+    summarize(value).sources.recommendations.rejectedObservations.map((row) => row.id),
+    ['SPE-2', 'SPE-1']
+  )
+  assert.match(render(value), /Rejected supplied recommendation SPE-2/)
   value.sources.recommendations.records = []
   delete value.sources.queue
   assert.equal(summarize(value).sources.recommendations.count, null)
@@ -444,6 +451,17 @@ test('record identities and reference bounds cannot disguise another evidence ki
   value.sources.github.records = []
   value.sources.github.sourceRef = `https://github.com/JamesJedi420/containment-protocol/blob/${SHA}/${'a'.repeat(2048)}`
   assert.throws(() => summarize(value), /invalid source reference/)
+})
+
+test('explicit malformed source values are rejected rather than treated as absent', () => {
+  for (const malformed of [null, false, 0, '', [], 'ready']) {
+    const value = input()
+    value.sources.github = malformed
+    assert.throws(() => summarize(value), /engineering-summary: invalid source/)
+  }
+  const value = input()
+  delete value.sources.github
+  assert.equal(summarize(value).sources.github.status, 'unavailable')
 })
 
 test('malformed envelopes, impossible dates, unbounded data and missing policy fail safely', () => {

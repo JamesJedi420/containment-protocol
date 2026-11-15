@@ -398,7 +398,7 @@ function health(reasons, count) {
 }
 
 function summarizeSource(name, source, input, times) {
-  if (!source)
+  if (source === undefined)
     return {
       authority: AUTHORITIES[name],
       status: 'unavailable',
@@ -463,6 +463,7 @@ function qualifyRecommendations(sources) {
     recommendations.status = 'conflicted'
     recommendations.count = null
     recommendations.reasons.push('queue-qualification-conflict')
+    recommendations.rejectedObservations = recommendations.observations
     recommendations.observations = []
   }
 }
@@ -547,10 +548,8 @@ function sourceLines(name, source) {
       `Last successful refresh: ${source.lastSuccess.checkedAt}; revision: ${source.lastSuccess.revision}; source: ${source.lastSuccess.sourceRef}`
     )
   if (source.observations?.length) lines.push('')
-  for (const row of source.observations ?? [])
-    lines.push(
-      `- ${row.kind} ${row.id}: ${row.state}; ${row.at}; revision: ${row.revision}; ${row.sourceRef}`
-    )
+  lines.push(...recordLines(source.observations, ''))
+  lines.push(...recordLines(source.rejectedObservations, 'Rejected supplied '))
   if (source.observations?.length) lines.push('')
   if (source.approvedWork)
     lines.push(
@@ -558,4 +557,11 @@ function sourceLines(name, source) {
     )
   lines.push('')
   return lines
+}
+
+function recordLines(records, prefix) {
+  return (records ?? []).map(
+    (row) =>
+      `- ${prefix}${row.kind} ${row.id}: ${row.state}; ${row.at}; revision: ${row.revision}; ${row.sourceRef}`
+  )
 }

@@ -34,12 +34,12 @@ What that produced here: a citation sweep published **"22 of 52 issues read, 30 
 Rules for any sweep that extracts paths, anchors, or claims from issue descriptions:
 
 - **One issue per call.** Batch only issue identifiers, titles and states; never batch descriptions when the text will be quoted or scanned.
-- **Request only `description`.** Ask for `identifier`, `title` and `description` and nothing else; comments carry their own truncation risk and belong in a sweep only when they are the evidence.
+- **Request minimal fields.** Ask for `identifier`, `title` and `description` and nothing else; comments carry their own truncation risk and belong in a sweep only when they are the evidence.
 - **Treat truncation as failure, not as an empty issue.** A `truncated: true` response or an empty `preview` means the issue is **unread**. Do not record it as "no findings".
 - **Count the population with the filter, not with the page.** Read `pageInfo.hasNextPage`; a filter that returns 100 rows with more pages is not a 100-issue population. State the filter used and whether it was exhausted.
 - **Publish the unread set with the result.** Every sweep reports what it read *and* the identifiers it could not read, grouped by reason (truncated / not attempted / filter exceeded). A sweep with an unstated gap is a coverage claim, not evidence.
 - **Anchor to a revision.** Name the commit or SHA the paths were checked against, and say plainly when a citation is *planned* rather than missing-by-error.
-- **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Several of these can share one request (six to eight worked in practice); each carries a single description, so combining them does not reintroduce the size problem.
+- **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Independent calls may run concurrently, but keep their responses separate and check each for completeness; concurrency does not remove response-size limits.
 
 ## Anti-patterns
 

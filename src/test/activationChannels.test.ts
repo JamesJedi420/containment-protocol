@@ -94,6 +94,18 @@ describe('activation channel grammar', () => {
       ok: false,
       reason: 'invalid-kind',
     })
+    const valid = parseActivationChannel(catalog[0])
+    if (!valid.ok) throw new Error(valid.reason)
+    expect(
+      matchesActivationSignals(
+        { ...valid.channel, requiredSignals: [] },
+        {
+          kind: 'speech',
+          triggerRef: 'trigger:phrase',
+          signals: [],
+        }
+      )
+    ).toBe(false)
     expect(lookupActivationChannel([catalog[0], catalog[0]], catalog[0].id)).toMatchObject({
       ok: false,
       reason: 'duplicate-id',

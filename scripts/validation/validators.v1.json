@@ -48,6 +48,23 @@
   },
   "validators": [
     {
+      "id": "engineering-summary",
+      "ownerIssue": "SPE-3512",
+      "ownerNote": "Pure snapshot-to-summary contract; no live collectors, scheduling or operational authority.",
+      "npmScript": "verify:engineering-summary",
+      "enforcement": "required",
+      "activation": {
+        "pathGlobs": [
+          "scripts/engineering-summary*.mjs",
+          "scripts/project-approved-work.mjs",
+          "scripts/validation/engineering-summary-selection.check.mjs",
+          "scripts/validation/validators.v1.json",
+          "docs/engineering-activity-summary.md"
+        ]
+      },
+      "whenUnavailable": "fail"
+    },
+    {
       "id": "typecheck-census-tests",
       "ownerIssue": "SPE-3376",
       "ownerNote": "Diagnostic reporting integrity only; does not activate the production build gate.",

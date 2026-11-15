@@ -3,6 +3,8 @@
 > Scope: non-invasive support notes for ongoing save/load integration work.
 >
 > Intent: identify canonical round-trip fields, normalization boundaries, and risks without changing runtime behavior.
+>
+> **Static crosscheck (2026-11-14 at `bdbf4624`):** the envelope constants and hydration entrypoints in §1 and §4 are current. The §2 round-trip inventory is missing two persisted fields, noted there. Code reading, not runtime verification.
 
 ## 1) Files and modules involved
 
@@ -98,6 +100,8 @@
   - selection keys, `inspectorPanel?`
   - `authoring?` breadcrumbs (`activeContextId`, `lastChoiceId`, `lastNextTargetId`, `lastFollowUpIds`, `updatedWeek`)
   - `debug` (`enabled`, `flags`)
+
+> **Divergence (static, 2026-11-14 at `bdbf4624`):** this list is incomplete. `runtimeState.eventQueue` (`src/domain/models.ts:2119`) persists and is sanitized with a recomputed `nextSequence` (`src/domain/gameStateManager.ts:735-821`), and the optional `runtimeState.tutorials` (SPE-2918, `src/domain/models.ts:2111`) round-trips as well. Neither appears above, so the list is not the full set of nested runtime fields that must survive save/load.
 
 ---
 

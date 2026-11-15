@@ -3,6 +3,8 @@
 > Scope: documentation-only support note for encounter state tracking in Containment Protocol.
 >
 > Constraints respected: no runtime logic changes, no symbol renames, no test edits.
+>
+> **Static crosscheck (2026-11-14 at `bdbf4624`):** the tracked field set, default outcome mapping and hydration sanitizing match §2–§3. The two follow-up write paths disagree on merge semantics — see §3 item 6. Code reading, not runtime verification.
 
 ## 1) Encounter lifecycle stages
 
@@ -80,6 +82,8 @@ Use explicit, deterministic transitions (no implicit render-time mutation):
 
 6. **Idempotency**
    - Re-attaching the same resolution should not duplicate follow-up IDs or corrupt deterministic order.
+
+> **Divergence (static, 2026-11-14 at `bdbf4624`):** idempotency holds within each write path but not across them. `recordEncounterFollowUps` merges through a `Set` (`src/domain/encounterTracking.ts:195-215`), while `attachEncounterResolution` replaces `followUpIds` wholesale (`:180-186`); a later attachment therefore discards follow-ups recorded by the other path — neither duplication nor loss is caught by the rule above.
 
 ## 4) Integration guidance
 

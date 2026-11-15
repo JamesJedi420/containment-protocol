@@ -1,6 +1,8 @@
 # One-shot Enforcement Audit (Integration Patterns)
 
 > Documentation-only support note for integrating one-shot enforcement consistently across authored surfaces.
+>
+> **Static crosscheck (2026-11-14 at `bdbf4624`):** read-time gating in `evaluateFlagConditions` and idempotent `consume_one_shot` match §2–§3. Consume attempts that report `consumed=false` are not logged — see §4 Logging. Code reading, not runtime verification.
 
 ## 1) Common one-shot content categories
 
@@ -84,6 +86,8 @@ Enforce one-shot behavior at multiple explicit integration points (not one globa
     - consumed one-shot ids,
     - last choice id/next target/follow-up ids,
     - recent developer log entries.
+
+> **Divergence (static, 2026-11-14 at `bdbf4624`):** only successful consumptions are logged. The store appends `one_shot.consumed` inside the `result.consumed` branch and emits nothing when the call is a no-op (`src/app/store/gameStore.ts:1116-1132`), although `consumeOneShotContent` returns `consumed: false` alongside the preserved original record (`src/domain/flagSystem.ts:148-159`).
 
 - **Save/load**
   - Keep `runtimeState.oneShotEvents` authoritative for spent status.

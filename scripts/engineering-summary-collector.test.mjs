@@ -94,6 +94,36 @@ test('bounded pagination stops without claiming success', async () => {
   assert.equal(result.checks.source.status, 'partial')
 })
 
+test('an oversized provider page is unavailable rather than treated as a valid bounded capture', async () => {
+  const value = config()
+  value.maxRecords = 2
+  const result = await capture(
+    async (path) =>
+      path.includes('/pulls?') ? ok([pr(), pr(), pr()]) : ok({ total_count: 0, check_runs: [] }),
+    value
+  )
+  assert.equal(result.pr.source.status, 'unavailable')
+  assert.equal(result.pr.source.currentError.code, 'partial-response')
+  assert.equal(result.pr.source.records, null)
+})
+
+test('record budget stops before a further request and preserves the valid prior page', async () => {
+  const value = config()
+  value.maxRecords = 2
+  const next = `https://api.github.com/repos/${repo}/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=2&page=2`
+  const paths = []
+  const result = await capture(async (path) => {
+    paths.push(path)
+    return path.includes('/pulls?')
+      ? ok([pr()], `<${next}>; rel="next"`)
+      : ok({ total_count: 0, check_runs: [] })
+  }, value)
+  assert.equal(paths.length, 2)
+  assert.equal(result.pr.source.status, 'partial')
+  assert.equal(result.pr.source.records[0].id, 'PR-1')
+  assert.equal(result.pr.provenance.mergedPrPaginationComplete, false)
+})
+
 test('sequential pages are checked and retained without mixing source revisions', async () => {
   const next = `https://api.github.com/repositories/1200651972/pulls?state=closed&base=main&sort=updated&direction=desc&per_page=2&page=2`
   const paths = []

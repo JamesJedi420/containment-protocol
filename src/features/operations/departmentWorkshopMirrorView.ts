@@ -1,4 +1,5 @@
 import type { GameState } from '../../domain/models'
+import { projectActionAcknowledgement } from '../../domain/actionAcknowledgement'
 import {
   readDepartmentWorkshopState,
   sanitizeDepartmentWorkshopCompletionOutcomes,
@@ -27,6 +28,7 @@ import {
 import { getDepartmentWorkshopOperationalExplanations } from './departmentWorkshopExplanationAdapter'
 
 export interface DepartmentWorkshopMirrorWorkItemView {
+  acknowledgement: string
   workOrderId: string
   caseId: string
   taskTypeLabel: string
@@ -53,6 +55,7 @@ export interface DepartmentWorkshopMirrorDepartmentView {
 }
 
 export interface DepartmentWorkshopMirrorOutcomeView {
+  acknowledgement: string
   workOrderId: string
   departmentId: string
   caseId: string
@@ -115,10 +118,9 @@ function toWorkItemView(
   return Object.freeze({
     workOrderId,
     caseId: workOrder?.caseId ?? '—',
-    taskTypeLabel: workOrder
-      ? formatDepartmentWorkshopTaskTypeLabel(workOrder.taskType)
-      : '—',
+    taskTypeLabel: workOrder ? formatDepartmentWorkshopTaskTypeLabel(workOrder.taskType) : '—',
     laneLabel: formatDepartmentWorkshopLaneLabel(lane),
+    acknowledgement: projectActionAcknowledgement({ kind: 'workshop', id: workOrderId }).summary,
     progressLabel: `${completedWork}/${requiredWork}`,
     completedWork,
     requiredWork,
@@ -137,15 +139,31 @@ function listLaneItems(
 
 function toDepartmentView(
   snapshot: DepartmentWorkshopSnapshot,
-  workOrders: Readonly<Record<string, DepartmentWorkshopWorkOrder>>
+  workOrders: Readonly<Record<string, DepartmentWorkshopWorkOrder>>,
+  outcomes: Readonly<Record<string, DepartmentWorkshopCompletionOutcome>>
 ): DepartmentWorkshopMirrorDepartmentView {
   const freeSlots = countDepartmentWorkshopFreeSlots(snapshot)
   const blockerCodes = resolveDepartmentWorkshopBlockers(snapshot)
-  const workItems = Object.freeze([
-    ...listLaneItems('active', snapshot.active, workOrders),
-    ...listLaneItems('queued', snapshot.queued, workOrders),
-    ...listLaneItems('paused', snapshot.paused, workOrders),
-  ])
+  const workItems = Object.freeze(
+    [
+      ...listLaneItems('active', snapshot.active, workOrders),
+      ...listLaneItems('queued', snapshot.queued, workOrders),
+      ...listLaneItems('paused', snapshot.paused, workOrders),
+    ].map((item) => {
+      const receipt = outcomes[item.workOrderId]
+      const order = workOrders[item.workOrderId]
+      return receipt &&
+        order &&
+        receipt.caseId === order.caseId &&
+        receipt.departmentId === order.departmentId &&
+        receipt.taskType === order.taskType
+        ? Object.freeze({
+            ...item,
+            acknowledgement: 'completion recorded; lane awaiting reconciliation',
+          })
+        : item
+    })
+  )
 
   return Object.freeze({
     departmentId: snapshot.departmentId,
@@ -166,7 +184,9 @@ function toDepartmentView(
   })
 }
 
-function toOutcomeView(outcome: DepartmentWorkshopCompletionOutcome): DepartmentWorkshopMirrorOutcomeView {
+function toOutcomeView(
+  outcome: DepartmentWorkshopCompletionOutcome
+): DepartmentWorkshopMirrorOutcomeView {
   return Object.freeze({
     workOrderId: outcome.workOrderId,
     departmentId: outcome.departmentId,
@@ -177,6 +197,11 @@ function toOutcomeView(outcome: DepartmentWorkshopCompletionOutcome): Department
         ? `W${outcome.completedWeek}`
         : '—',
     qualityLabel: formatDepartmentWorkshopQualityLabel(outcome.quality),
+    acknowledgement: projectActionAcknowledgement({
+      kind: 'workshop',
+      id: outcome.workOrderId,
+      receipt: outcome,
+    }).summary,
     qualityReasonLabel:
       outcome.qualityReason !== undefined
         ? formatDepartmentWorkshopQualityReasonLabel(outcome.qualityReason)
@@ -192,8 +217,18 @@ function toOutcomeView(outcome: DepartmentWorkshopCompletionOutcome): Department
 /** Read-only mirror over hydrated workshop registries; does not re-grade or invent truth. */
 export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWorkshopMirrorView {
   const { workOrders, snapshots } = readDepartmentWorkshopState(game)
-  const outcomes = sanitizeDepartmentWorkshopCompletionOutcomes(
-    game.departmentWorkshopCompletionOutcomes
+  const outcomes = Object.fromEntries(
+    Object.entries(
+      sanitizeDepartmentWorkshopCompletionOutcomes(game.departmentWorkshopCompletionOutcomes)
+    ).filter(([id, receipt]) => {
+      const order = workOrders[id]
+      return (
+        !order ||
+        (receipt.caseId === order.caseId &&
+          receipt.departmentId === order.departmentId &&
+          receipt.taskType === order.taskType)
+      )
+    })
   )
   const incidentMarkers = sanitizeDepartmentWorkshopUnsafeSecondaryIncidents(
     game.departmentWorkshopUnsafeSecondaryIncidents
@@ -201,7 +236,7 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
 
   const departments = Object.keys(snapshots)
     .sort(compareCodeUnits)
-    .map((departmentId) => toDepartmentView(snapshots[departmentId]!, workOrders))
+    .map((departmentId) => toDepartmentView(snapshots[departmentId]!, workOrders, outcomes))
 
   const outcomeViews = Object.keys(outcomes)
     .sort(compareCodeUnits)
@@ -217,16 +252,15 @@ export function getDepartmentWorkshopMirrorView(game: GameState): DepartmentWork
         departmentId: outcome?.departmentId ?? workOrder?.departmentId ?? '—',
         caseId: outcome?.caseId ?? workOrder?.caseId ?? '—',
         spawnedCaseId: incidentMarkers[workOrderId]!,
-        qualityLabel: outcome
-          ? formatDepartmentWorkshopQualityLabel(outcome.quality)
-          : '—',
-        safetyLabel: outcome
-          ? formatDepartmentWorkshopSafetyLabel(outcome.safety)
-          : '—',
+        qualityLabel: outcome ? formatDepartmentWorkshopQualityLabel(outcome.quality) : '—',
+        safetyLabel: outcome ? formatDepartmentWorkshopSafetyLabel(outcome.safety) : '—',
       })
     })
 
-  const explanations = getDepartmentWorkshopOperationalExplanations(game).map((record) =>
+  const explanations = getDepartmentWorkshopOperationalExplanations({
+    ...game,
+    departmentWorkshopCompletionOutcomes: outcomes,
+  }).map((record) =>
     Object.freeze({
       summary: projectOperationalExplanation(record, 'summary'),
       detail: projectOperationalExplanation(record, 'detail'),

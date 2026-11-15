@@ -5,11 +5,14 @@ import type {
   DepartmentWorkshopSnapshotRegistry,
   DepartmentWorkshopWorkOrderRegistry,
 } from '../../domain/departmentWorkshopQueue'
+import { registerDepartmentWorkshopCompletionOutcomes } from '../../domain/departmentWorkshopQueue'
 import {
   formatDepartmentWorkshopBlockerLabel,
   resolveDepartmentWorkshopBlockers,
 } from '../../domain/departmentWorkshopSurfacing'
 import { getDepartmentWorkshopMirrorView } from './departmentWorkshopMirrorView'
+import { projectActionAcknowledgement } from '../../domain/actionAcknowledgement'
+import { validateOperationalExplanationRecord } from '../../domain/operationalExplanation'
 
 const WORK_ORDERS: DepartmentWorkshopWorkOrderRegistry = {
   'work:zulu': {
@@ -85,6 +88,81 @@ const OUTCOMES: DepartmentWorkshopCompletionOutcomeRegistry = {
 }
 
 describe('departmentWorkshopSurfacing blockers (SPE-2773)', () => {
+  it('projects the owner-registered receipt after serialization and replay', () => {
+    const game = {
+      ...createStartingState(),
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+    }
+    expect(
+      getDepartmentWorkshopMirrorView(game).departments[0]?.workItems[0]?.acknowledgement
+    ).toBe('pending')
+    const receipt = registerDepartmentWorkshopCompletionOutcomes(game, ['work:alpha'], 2)
+    const loaded = JSON.parse(
+      JSON.stringify({ ...game, departmentWorkshopCompletionOutcomes: receipt.outcomes })
+    )
+    const replay = registerDepartmentWorkshopCompletionOutcomes(loaded, ['work:alpha'], 2)
+    expect(replay.registeredWorkOrderIds).toEqual([])
+    const view = getDepartmentWorkshopMirrorView(loaded)
+    expect(view.outcomes[0]?.acknowledgement).toBe('completed')
+    expect(
+      view.departments[0]?.workItems.find((item) => item.workOrderId === 'work:alpha')
+        ?.acknowledgement
+    ).toBe('completion recorded; lane awaiting reconciliation')
+  })
+  it('replaces pending with a receipt under a stable explanation identity', () => {
+    const pending = projectActionAcknowledgement({ kind: 'workshop', id: 'work:done-safe' })
+    const completed = projectActionAcknowledgement({
+      kind: 'workshop',
+      id: 'work:done-safe',
+      receipt: OUTCOMES['work:done-safe'],
+    })
+    expect(pending.id).toBe(completed.id)
+    expect(pending.summary).toBe('pending')
+    expect(completed.summary).toBe('degraded')
+    expect(validateOperationalExplanationRecord(completed).valid).toBe(true)
+    expect(
+      projectActionAcknowledgement({
+        kind: 'workshop',
+        id: 'work:done-safe',
+        receipt: JSON.parse(JSON.stringify(OUTCOMES['work:done-safe'])),
+      })
+    ).toEqual(completed)
+  })
+
+  it('suppresses a stale pending row only for a matching completion receipt', () => {
+    const receipt = {
+      ...OUTCOMES['work:done-safe']!,
+      workOrderId: 'work:alpha',
+      caseId: 'case-alpha',
+      departmentId: 'department:biohazard-response',
+      taskType: 'containment_response' as const,
+    }
+    const base = {
+      ...createStartingState(),
+      departmentWorkshopWorkOrders: WORK_ORDERS,
+      departmentWorkshopSnapshots: SNAPSHOTS,
+    }
+    const view = getDepartmentWorkshopMirrorView({
+      ...base,
+      departmentWorkshopCompletionOutcomes: { 'work:alpha': receipt },
+    })
+    expect(
+      view.departments[0]?.workItems.find((item) => item.workOrderId === 'work:alpha')
+        ?.acknowledgement
+    ).toBe('completion recorded; lane awaiting reconciliation')
+    expect(view.departments[0]?.activeCount).toBe(1)
+    expect(view.departments[0]?.freeSlots).toBe(0)
+    expect(view.outcomes[0]?.acknowledgement).toBe('degraded')
+    const mismatch = getDepartmentWorkshopMirrorView({
+      ...base,
+      departmentWorkshopCompletionOutcomes: { 'work:alpha': { ...receipt, caseId: 'other' } },
+    })
+    expect(
+      mismatch.departments[0]?.workItems.some((item) => item.workOrderId === 'work:alpha')
+    ).toBe(true)
+    expect(mismatch.outcomes).toHaveLength(0)
+  })
   it('resolves zero_slot_capacity when capacity is zero and work is waiting', () => {
     expect(
       resolveDepartmentWorkshopBlockers({
@@ -151,6 +229,7 @@ describe('departmentWorkshopMirrorView (SPE-2773)', () => {
     ])
     expect(bio.workItems[0]?.progressLabel).toBe('1/2')
     expect(bio.workItems[0]?.laneLabel).toBe('Active')
+    expect(bio.workItems[0]?.acknowledgement).toBe('pending')
     expect(bio.blockers.map((blocker) => blocker.code)).toEqual([
       'slots_full',
       'waiting_resume_slot',
@@ -171,6 +250,7 @@ describe('departmentWorkshopMirrorView (SPE-2773)', () => {
       'work:done-unsafe',
     ])
     expect(view.outcomes[0]?.qualityLabel).toBe('Degraded')
+    expect(view.outcomes[0]?.acknowledgement).toBe('degraded')
     expect(view.outcomes[0]?.qualityReasonLabel).toBe('Poor input quality')
     expect(view.outcomes[0]?.safetyLabel).toBe('Safe')
     expect(view.outcomes[1]?.safetyLabel).toBe('Unsafe')

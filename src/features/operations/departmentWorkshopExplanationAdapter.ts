@@ -35,6 +35,14 @@ export function getDepartmentWorkshopOperationalExplanations(
   for (const workOrderId of listOngoingWorkOrderIds(game)) {
     const workOrder = workOrders[workOrderId]
     if (!workOrder) continue
+    const receipt = outcomes[workOrderId]
+    if (
+      receipt &&
+      receipt.caseId === workOrder.caseId &&
+      receipt.departmentId === workOrder.departmentId &&
+      receipt.taskType === workOrder.taskType
+    )
+      continue
 
     const roomCondition = deriveDepartmentWorkshopRoomContaminationFromFacilities(
       game,
@@ -55,7 +63,8 @@ export function getDepartmentWorkshopOperationalExplanations(
         lifecycle: 'active',
         summary: 'Room contamination conditions are poor.',
         cause: `The authored facility supporting ${workOrder.departmentId} is absent or not active.`,
-        currentEffect: 'Completion quality is at risk of degradation while this condition persists.',
+        currentEffect:
+          'Completion quality is at risk of degradation while this condition persists.',
         projectedConsequence:
           'Completion may register degraded quality with poor room contamination taking its established precedence.',
         correctionCondition: 'Restore the mapped workshop facility to active status.',
@@ -86,7 +95,8 @@ export function getDepartmentWorkshopOperationalExplanations(
         summary: 'Completion quality was degraded by poor room contamination.',
         cause: `The recorded completion receipt for ${outcome.departmentId} identifies poor room contamination.`,
         currentEffect: 'The durable completion outcome records degraded quality.',
-        projectedConsequence: 'The recorded outcome remains authoritative across reload and replay.',
+        projectedConsequence:
+          'The recorded outcome remains authoritative across reload and replay.',
         confidence: 'confirmed',
         provenance: [
           `completion_outcome:${outcome.workOrderId}`,

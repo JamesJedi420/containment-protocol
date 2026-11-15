@@ -22,15 +22,18 @@ describe('parent world node membership', () => {
   })
 
   it('produces a stable immutable snapshot regardless of caller ordering', () => {
-    const result = parseParentWorldNodes(input)
-    const reversed = parseParentWorldNodes({ ...input, nodes: [...input.nodes].reverse() })
+    const local = {
+      ...input,
+      nodes: input.nodes.map((node) => ({ ...node, localState: { ...node.localState } })),
+    }
+    const result = parseParentWorldNodes(local)
+    const reversed = parseParentWorldNodes({ ...local, nodes: [...local.nodes].reverse() })
     expect(result).toEqual(reversed)
     if (!result.ok) throw new Error(result.reason)
     expect(Object.isFrozen(result.world.nodes[0].localState)).toBe(true)
-    const original = input.nodes[0].localState.access
-    input.nodes[0].localState.access = 'changed'
+    const original = local.nodes[0].localState.access
+    local.nodes[0].localState.access = 'changed'
     expect(findParentWorldNode(result.world, 'node:west')?.localState.access).toBe(original)
-    input.nodes[0].localState.access = original
   })
 
   it('rejects malformed state, duplicate nodes, and sparse nodes', () => {

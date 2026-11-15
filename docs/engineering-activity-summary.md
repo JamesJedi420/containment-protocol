@@ -1,6 +1,6 @@
 # Engineering activity summary contract — SPE-3512
 
-This tooling implements deterministic summaries of **supplied snapshots** and pure adapters for captured GitHub PR/check-run responses. It performs no live reads, source authentication, credential setup, writes, scheduling or deployment. A fixture pass does not prove live connectivity, a usable queue or a working external dashboard. SPE-3512 remains partially implemented; its parent and other owners retain their scope.
+This tooling implements deterministic summaries of **supplied snapshots**, pure adapters for captured GitHub PR/check-run responses, and a manually invoked read-only GitHub collector. It does not provision credentials, schedule, deploy or write to providers. A fixture pass does not prove live connectivity, a usable queue or a working external dashboard. SPE-3512 remains partially implemented; its parent and other owners retain their scope.
 
 ## Consumer API
 
@@ -27,7 +27,29 @@ const machineText = serializeEngineeringSummary(snapshot)
 const humanText = renderEngineeringSummary(snapshot)
 ```
 
-No live collector or downstream delivery consumer is connected. SPE-3513 may consume the output under its own boundary. External repository, hosting, authentication, audience and cache placement remain undecided. Keep credentials and private provider bodies outside the game client and output. Do not diagnose the prototype's reported GitHub 403 from a different connector's successful read.
+The manual collector below covers a bounded GitHub subset; no downstream delivery consumer is connected. SPE-3513 may consume the output under its own boundary. External repository, hosting, authentication, audience and cache placement remain undecided. Keep credentials and private provider bodies outside the game client and output. Do not diagnose the prototype's reported GitHub 403 from a different connector's successful read.
+
+### Manual GitHub collector
+
+Run `npm run --silent engineering-summary:github` with a JSON configuration on standard input. It uses the existing `gh` session against `github.com`, never reads or prints credentials, and returns minimized JSON on standard output. Do not publish its output; even minimized private identifiers need an approved audience. The CP repository and its numeric identity, `main` base, API version and workspace are fixed. The 40-character lowercase `headSha`, window, workstream, freshness threshold and bounds must be explicit. For example, replace the SHA and timestamps with actual values:
+
+```json
+{
+  "headSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "window": { "start": "2026-11-14T00:00:00Z", "end": "2026-11-15T00:00:00Z" },
+  "workstream": "CP-core",
+  "maxAgeSeconds": 3600,
+  "perPage": 10,
+  "maxPages": 2,
+  "maxRecords": 20,
+  "prLastSuccess": null,
+  "checkLastSuccess": null
+}
+```
+
+Prior successes, if known, use the existing `{checkedAt,revision,sourceRef}` contract. They are never advanced by this command. It makes at most 20 requests per subset, with 15-second and 5 MB per-request limits, and a maximum 2,000 rows per subset. PRs are sorted by update, not merge time; reaching a bound with another page retains observed records with incomplete pagination, never a complete total. The check endpoint covers its provider-returned latest-filter subset only. HTTP and transport failures return sanitized unavailable states; malformed or inconsistent provider responses fail the command without exposing raw data. No raw pages or credentials are persisted by the collector.
+
+Both adapters receive actual captured pages independently, with unknown workstream mappings and unpinned expected source revisions. The output has separate PR and check objects with minimized provenance and their own Markdown summaries; it never joins their incompatible digests. Even successful captures remain partial, with unknown qualified counts. Observation times are actual capture times, not atomic snapshots; no verified source/workstream mapping, canonical queue eligibility, complete CI coverage or live dashboard is claimed. Other summary sources remain unavailable.
 
 ## Version 1 input
 

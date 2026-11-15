@@ -1,0 +1,3 @@
+# SPE-3512 — bounded manual GitHub collector
+
+Base: `b9ccd5b2b6ce026c775a4a2651a930bc3e75b216`. This partial slice uses existing permitted GitHub CLI access to read bounded closed PR pages and check runs for one literal SHA, passes each capture through its existing adapter, and renders separate partial summaries. It records actual capture times and sanitized errors; unknown mappings remain unknown. No live service, credential provisioning, output store, scheduler, classifier, queue, Linear collection or deployment is included. Full issue and parent acceptance remain open. The independently owned open PRs are outside this slice.

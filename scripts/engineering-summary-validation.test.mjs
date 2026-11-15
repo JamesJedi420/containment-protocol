@@ -193,3 +193,22 @@ test('rejects invalid references, future last success, inconsistent missing chec
   input.currentError = { code: 'not-collected' }
   assert.throws(() => adaptValidationReport(input), /report\/error conflict/)
 })
+
+test('extra workstream evidence is rejected without echoing it for present and missing reports', () => {
+  for (const missing of [false, true]) {
+    const input = make()
+    input.workstreamEvidence.secret = 'private evidence value'
+    if (missing) {
+      input.report = null
+      input.currentError = { code: 'not-collected' }
+    }
+    assert.throws(
+      () => adaptValidationReport(input),
+      (error) => {
+        assert.match(error.message, /workstream evidence/)
+        assert.doesNotMatch(error.message, /private evidence value/)
+        return true
+      }
+    )
+  }
+})

@@ -57,6 +57,10 @@ describe('planned and live staff record split', () => {
 
   it('rejects malformed, duplicate, and absent policy evidence', () => {
     expect(validate(ready, [])).toMatchObject({ ok: false })
+    expect(validate(ready, new Array(1))).toMatchObject({ ok: false })
+    const sparse = new Array(2)
+    sparse[0] = 'training'
+    expect(validate(ready, sparse)).toMatchObject({ ok: false })
     expect(validate(ready, ['training', 'training'])).toMatchObject({ ok: false })
     expect(validate({ ...ready, plannedBuildRef: ' ' }, ['training'])).toMatchObject({ ok: false })
     expect(

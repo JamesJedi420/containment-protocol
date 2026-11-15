@@ -54,7 +54,7 @@ export function validatePlannedBuildLiveRecordSplit(
   if (
     !Array.isArray(requiredKinds) ||
     requiredKinds.length === 0 ||
-    !requiredKinds.every(isKind) ||
+    !Array.from(requiredKinds).every(isKind) ||
     new Set(requiredKinds).size !== requiredKinds.length
   ) {
     return { ok: false, issues: ['invalid-required-gate-policy'] }

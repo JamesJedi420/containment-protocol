@@ -30,4 +30,4 @@ Apply when I ask for backlog hygiene, Linear grooming, issue reconciliation, or 
 
 **Mandatory final report:** inspected | legal lifecycle/evidence changes | unchanged | candidate scope + current phase | owner decisions | mirror changes | PR traceability | docs changed | risks | whether scope was exhaustive (disclose tool limits).
 
-**Pointers:** `planning/backlog.md`, `AGENTS.md`, SPE-1705 design-doc routing, and the canonical candidate workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf
+**Pointers:** `AGENTS.md`, `planning/backlog.md`, SPE-1705 design-doc routing, and the canonical candidate workflow: https://linear.app/spectranoir/document/candidate-extraction-and-reconciliation-ledger-canonical-workflow-6b56ad41aebf

@@ -128,7 +128,7 @@ modules account for the rest.
 
 ### 1.3 `content-catalog` — 898.40 kB raw / 233.12 kB gzip
 
-The rule captures exactly two things: `/src/domain/templates/` and `src/data/copy.ts`. Actual
+The rule captures exactly two normalized module-ID patterns: `/src/domain/templates/` and `/src/data/copy.ts`. Actual
 catalog content is a small fraction of the emitted chunk:
 
 | Category                                        | kB (minified) | Share |

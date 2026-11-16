@@ -127,10 +127,15 @@ These are exempt by pattern, not by baseline entry, because they are structural 
 
 ### R4 — heading scope restriction
 
-C2 applies only to **selection-scope** files: `AGENTS.md`, `README.md`, `docs/agent-*.md`,
-`docs/cursor-*.md`, `docs/contribution-*.md`, `docs/repository-*.md`,
-`planning/documentation-curation.md`, `planning/milestones.md`,
-`planning/deferred-design-documents.md`, `.cursor/rules/**`, `.cursor/skills/**`.
+C2 applies only to **selection-scope** files: `AGENTS.md`, `README.md`, `CLAUDE.md`,
+`docs/agent-*.md`, `docs/cursor-*.md` (which includes the pasteable snippets),
+`docs/contribution-*.md`, `docs/repository-*.md`, `planning/documentation-curation.md`,
+`planning/milestones.md`, `planning/deferred-design-documents.md`, `.cursor/rules/**`,
+`.cursor/skills/**`, `.amazonq/rules/**`, `.greptile/rules.md`.
+
+The new additions are agent-facing instruction text of the same class as the rules and skills: a
+heading like "## The work queue" in a User Rules snippet would be a claim, and it would be pasted
+into an editor where no later check could find it.
 
 It deliberately does **not** apply to `docs/*audit*.md` or `architecture/**`. Those have legitimate
 queue headings about the simulation: `docs/event-queue-audit.md:1`, `docs/stability-audit.md:51`,
@@ -154,13 +159,20 @@ does not invalidate an entry but editing its wording does.
 
 ### In scope (living entry points)
 
-- `AGENTS.md`, `README.md`
+- `AGENTS.md`, `README.md`, `CLAUDE.md`
 - `docs/**/*.md` (including the guard's own spec — see self-exemption below)
 - `architecture/**/*.md`
 - `.cursor/rules/**/*.mdc`, `.cursor/skills/**/SKILL.md`
+- `.amazonq/rules/**/*.md`, `.greptile/rules.md` — reviewer-facing instruction files for the PR bots
+- `docs/cursor-*-user-rules-snippet.md` — pasteable entry points; see the distribution note below
 - `planning/backlog.md`, `planning/documentation-curation.md`, `planning/milestones.md`,
   `planning/deferred-design-documents.md`, `planning/scope-discipline-grooming-pass.md`,
   `planning/hidden-modality-matrix-post-matrix-queue.md` (living handoff doc, not a `-slice.md`)
+
+At the time of writing the six snippets, `CLAUDE.md`, the three `.amazonq/rules/*.md` files and
+`.greptile/rules.md` contribute **zero** C1 hits: they mention `backlog` only as "feature/backlog
+scope" and "backlog-shape writes", with no vocabulary term. Adding them to scope changes no count in
+the tables below — it closes a blind spot before it produces one.
 
 ### Out of scope
 
@@ -170,6 +182,27 @@ does not invalidate an entry but editing its wording does.
 - `planning/pattern-source-series-registry-*.md`: "queue projection" there is an unrelated concept.
 - `docs/*audit*.md` and `architecture/**` for C2 only (see R4).
 - `src/**`, `test/**`: no prose authority claims.
+
+### Distribution channel — the pasted copies
+
+`docs/cursor-*-user-rules-snippet.md` exist to be copied by hand into **Cursor → Settings → Rules →
+User Rules**. The copy that actually governs a session lives in the user's editor settings, outside the
+repository, and **no check can see it**. Three consequences the guard has to live with:
+
+1. The repo file is the only enforceable artefact. Linting it is necessary and not sufficient — a
+   snippet that reads correctly here can still be wrong in the editor, and a correct paste can rot
+   as the docs move on.
+2. A fix reaches the agent only when the user re-pastes. Editing the snippet does not update any
+   existing User Rules block, so a snippet change is a request to the human, not a deployment.
+3. Snippet text therefore has to be written as if it were the only copy, because for a given session
+   it may be. The current live example is
+   `docs/cursor-backlog-hygiene-user-rules-snippet.md:33`, whose "**Pointers:** `planning/backlog.md`,
+   `AGENTS.md`…" line names the shortlist first in a block pasted into every hygiene session. It
+   passes C1 (no vocabulary term), and it teaches the file as the operating target anyway.
+
+`CLAUDE.md`, `.amazonq/rules/**` and `.greptile/rules.md` are a weaker version of the same problem:
+those files reach review bots on `github.com` rather than a user's editor, so an edit there takes
+effect on the next PR review without anyone re-pasting — but nothing in CI reads their prose either.
 
 ### Self-exemption
 

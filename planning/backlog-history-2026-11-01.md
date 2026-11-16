@@ -4,7 +4,7 @@
 >
 > Linear is the only authority for issue scope, priority, lifecycle, relationships and blockers. The approved-work projection mechanism is [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) and currently produces no output. Status and priority claims below are historical, and some are known stale.
 >
-> `npm run verify:backlog-handoff` still reads this file, but only to check that its handoff section agrees with `planning/backlog-handoff-manifest.json`. A passing run certifies internal consistency, never authority or freshness.
+> `npm run verify:backlog-handoff` still reads this file, but only for internal consistency: the first 12 `**Recently shipped:**` lines in its handoff section must cover the set `planning/backlog-handoff-manifest.json` archives, each slice doc listed in the manifest's `sliceDocStatus` must have a matching `**Status**` row, and `planning/backlog.md` must stay inside its queue-shape limits. A passing run certifies internal consistency, never authority or freshness.
 
 ## Governance guardrail (as recorded 2026-11-01 — historical, superseded)
 

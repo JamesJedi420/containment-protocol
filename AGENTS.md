@@ -54,7 +54,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 ### Documentation hygiene
 
-- **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists). Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI). Any stale backlog text that says to create a child/issue is non-authoritative unless the required governance approvals already authorize Phase 4.
+- **Near-term priorities:** Linear alone owns them; `planning/backlog.md` is a non-authoritative shortlist, not a queue. Keep **`planning/backlog-handoff-manifest.json`** in sync; **`npm run verify:backlog-handoff`** (CI). Any stale backlog text that says to create a child/issue is non-authoritative unless the required governance approvals already authorize Phase 4.
 - **Deferred deep design:** `planning/deferred-design-documents.md` (SPE-186+ mirror checklist, knowledge child issues SPE-529 / 587 / 588 / 589).
 - **New design audits:** when adding `docs/*audit*.md`, insert a dated status-table row in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).

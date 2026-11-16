@@ -16,6 +16,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
 - [SPE-104](https://linear.app/spectranoir/issue/SPE-104) — Capture & restraint weapon interactions (In Progress; capture-secure outcome seam shipped; full weapon AC deferred).
 - [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Authoritative approved-work queue projection (In Progress; live-source verification blocked — not the coding slice).
+- [SPE-1107](https://linear.app/spectranoir/issue/SPE-1107) — Responder energy (In Review; PR #5042 weekly-loop repair and complete normal-play recovery evidence; broader acceptance open).
 - [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) — Unified creature actor and capability taxonomy (In Progress; umbrella-scale — not the active coding slice).
 - [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) — Facility institution integration (In Progress parent; select bounded child work).
 - [SPE-1051](https://linear.app/spectranoir/issue/SPE-1051) — Recoverable failure and campaign scars (Backlog; review remaining acceptance).
@@ -23,10 +24,10 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** (none) — merge closeout complete; no next coding slice selected.
-**In progress:** SPE-3055 / SPE-1095 / SPE-104 (producer remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
-**Coding slice:** (none).
-**Next boundary:** verify live Linear scope, ownership, blockers and session preflight before selecting another approved slice; parent SPE-1052 remains open.
+**Current handoff (primary):** (none) — SPE-1107 is a standalone coding slice.
+**In progress:** SPE-3055 / SPE-1095 / SPE-104 (producer remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding); SPE-1107 (In Review; PR #5042 weekly-loop repair, broader acceptance open).
+**Coding slice:** SPE-1107 weekly responder-energy integration.
+**Next boundary:** reconcile PR #5042 final review/CI/merge evidence and repeat the open-PR gate before any next slice. Broader SPE-1107 acceptance and SPE-1052 remain open.
 
 ## Maintenance and history
 

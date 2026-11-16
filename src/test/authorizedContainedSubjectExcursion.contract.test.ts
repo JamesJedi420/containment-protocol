@@ -140,6 +140,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       gates: { ...openGates, purposeAuthorized: false },
     })
     expect(blocked.ok).toBe(false)
+    if (blocked.ok) throw new Error('Expected unsuccessful result')
     expect(blocked.excursion?.stage).toBe('blocked')
     expect(blocked.reasonCodes).toContain('unauthorized_purpose')
     expect(blocked.excursion?.physicalEffectsOccurred).toBe(false)
@@ -154,6 +155,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       outboundScreen: excursionOutboundScreen('hold'),
     })
     expect(blocked.ok).toBe(false)
+    if (blocked.ok) throw new Error('Expected unsuccessful result')
     expect(blocked.reasonCodes).toContain('outbound_screen_blocked')
     expect(blocked.evidence?.outboundScreen?.decision).toBe('hold')
   })
@@ -188,6 +190,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       },
     })
     expect(notReady.ok).toBe(false)
+    if (notReady.ok) throw new Error('Expected unsuccessful result')
     expect(notReady.code).toBe('procedure_not_ready')
     expect(arrived.excursion?.stage).toBe('recontainment_verification')
   })
@@ -297,6 +300,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       },
     })
     expect(failed.ok).toBe(false)
+    if (failed.ok) throw new Error('Expected unsuccessful result')
     expect(failed.excursion?.stage).toBe('failed_return')
     expect(failed.reasonCodes).toContain('recontainment_not_verified')
     expect(failed.code).toBe('recontainment_not_verified')
@@ -362,6 +366,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       operationKey: 'op-bad',
     })
     expect(created.ok).toBe(false)
+    if (created.ok) throw new Error('Expected unsuccessful result')
     expect(created.code).toBe('malformed_input')
   })
 
@@ -404,6 +409,7 @@ describe('SPE-3500 authorized contained-subject excursion', () => {
       first.state
     )
     expect(stale.ok).toBe(false)
+    if (stale.ok) throw new Error('Expected unsuccessful result')
     expect(stale.code).toBe('stale_operation')
   })
 

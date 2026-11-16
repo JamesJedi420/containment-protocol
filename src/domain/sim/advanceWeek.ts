@@ -83,6 +83,11 @@ function applyEquipmentRecoveryBottleneck(
   }
 }
 import { clamp, createSeededRng } from '../math'
+import { createDefaultFatigueChannels } from '../agentFatigueChannels'
+import {
+  applyResponderEnergyExertion,
+  applyResponderEnergyRecovery,
+} from '../responderEnergyBudget'
 import {
   applyCombatStimRecoveryDebtAtWeekClose,
   expireCombatStimOverdrivesAtWeekClose,
@@ -1024,6 +1029,12 @@ function applyAgentFatigue(
       return memberIds
     })
   )
+  const energyActiveAgentIds = new Set(
+    activeTeamIds.flatMap((teamId) => {
+      const team = (deployedRecoveryLookup?.teams ?? teams)[teamId]
+      return team ? getTeamMemberIds(team) : []
+    })
+  )
   const trainingAgentIds = new Set(
     Object.entries(agents)
       .filter(([, agent]) => agent.assignment?.state === 'training')
@@ -1055,11 +1066,31 @@ function applyAgentFatigue(
         delta = -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
       }
 
+      if (agent.status === 'dead' || agent.status === 'resigned') {
+        return [id, { ...agent, fatigue: clamp(agent.fatigue + delta, 0, 100) }]
+      }
+      const active = energyActiveAgentIds.has(id)
+      const training = trainingAgentIds.has(id)
+      const channels = agent.fatigueChannels ?? createDefaultFatigueChannels()
+      const exertion = applyResponderEnergyExertion(
+        agent,
+        active ? 'prolonged_field_operation' : training ? 'patrol' : 'idle_upkeep',
+        channels
+      )
+      const energyBudget =
+        active || training
+          ? exertion.energyBudget
+          : applyResponderEnergyRecovery(exertion.energyBudget)
+
       return [
         id,
         {
           ...agent,
           fatigue: clamp(agent.fatigue + delta, 0, 100),
+          energyBudget,
+          ...(exertion.fatigueChannels !== channels
+            ? { fatigueChannels: exertion.fatigueChannels }
+            : {}),
         },
       ]
     })
@@ -2811,7 +2842,9 @@ function resolveAssignments(
     const resolutionReasons = [
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
-      ...(majorIncidentSettlement ? [formatMajorIncidentSettlementReason(majorIncidentSettlement)] : []),
+      ...(majorIncidentSettlement
+        ? [formatMajorIncidentSettlementReason(majorIncidentSettlement)]
+        : []),
     ]
     appendDetectionScanResolutionReason(
       resolutionReasons,
@@ -3331,7 +3364,9 @@ function downgradeResolvedCaseToPartial(
         const previousReason = formatMajorIncidentSettlementReason(previousReceipt)
         // Refresh only this receipt's explanation before the immutable report snapshot.
         resolutionReasons = resolutionReasons?.map((reason) =>
-          reason === previousReason ? formatMajorIncidentSettlementReason(settlement.receipt) : reason
+          reason === previousReason
+            ? formatMajorIncidentSettlementReason(settlement.receipt)
+            : reason
         )
       }
     }

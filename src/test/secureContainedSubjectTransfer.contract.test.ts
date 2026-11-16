@@ -195,6 +195,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       coLocation: rejectedCoLocation(),
     })
     expect(blocked.ok).toBe(false)
+    if (blocked.ok) throw new Error('Expected unsuccessful result')
     expect(blocked.transfer?.stage).toBe('blocked')
     expect(blocked.reasonCodes).toContain('incompatible_destination')
     expect(blocked.transfer?.physicalEffectsOccurred).toBe(false)
@@ -210,6 +211,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       outboundScreen: holdOutboundScreen(),
     })
     expect(blocked.ok).toBe(false)
+    if (blocked.ok) throw new Error('Expected unsuccessful result')
     expect(blocked.reasonCodes).toContain('outbound_screen_blocked')
     expect(blocked.evidence?.outboundScreen?.decision).toBe('hold')
 
@@ -245,6 +247,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       incidentOwnerHint: 'SPE-1023',
     })
     expect(failed.ok).toBe(false)
+    if (failed.ok) throw new Error('Expected unsuccessful result')
     expect(failed.transfer?.stage).toBe('failed')
     expect(failed.transfer?.physicalEffectsOccurred).toBe(true)
     expect(failed.transfer?.incidentOwnerHint).toBe('SPE-1023')
@@ -270,6 +273,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       operationKey: 'op-unresolved',
     })
     expect(unresolved.ok).toBe(false)
+    if (unresolved.ok) throw new Error('Expected unsuccessful result')
     expect(unresolved.code).toBe('custody_unresolved')
 
     const person = createSecureContainedSubjectTransfer({
@@ -303,6 +307,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       operationKey: 'op-smuggle',
     })
     expect(smuggled.ok).toBe(false)
+    if (smuggled.ok) throw new Error('Expected unsuccessful result')
     expect(smuggled.code).toBe('malformed_input')
   })
 
@@ -347,6 +352,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       withState.state
     )
     expect(stale.ok).toBe(false)
+    if (stale.ok) throw new Error('Expected unsuccessful result')
     expect(stale.code).toBe('stale_operation')
   })
 
@@ -455,6 +461,7 @@ describe('SPE-3439 secure contained-subject transfer', () => {
       releaseCommitted: false,
     })
     expect(uncommitted.ok).toBe(false)
+    if (uncommitted.ok) throw new Error('Expected unsuccessful result')
     expect(uncommitted.code).toBe('release_not_committed')
     expect(releasing.transfer?.stage).toBe('release_in_progress')
   })

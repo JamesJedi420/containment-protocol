@@ -80,7 +80,7 @@ from the configured ingest endpoint for event `b18638281cf240af9f700c3eb9a370b8`
 `bd85c1c2`, before the DSN/release configuration review fixes, not a published release.
 The connected browser profile was not signed
 into the dashboard, so event visibility there was not verified. Raw acknowledgment
-is retained in the session's `betterstack-evidence/live-ingest.json` artifact.
+is retained in the session's `betterstack-evidence/live-ingest.json` artifact (session-local capture, not committed).
 
 Production stack locations refer to the emitted JavaScript bundle. This boundary
 does not upload source maps or enable replay. Use the recorded release and matching

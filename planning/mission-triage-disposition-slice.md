@@ -212,7 +212,7 @@ const triageIgnored = dispositionActive && existing.playerDisposition === 'ignor
 **Files:**
 
 - Modify: `src/app/store/gameStore.ts`
-- Modify: `src/app/store/gameStore.types.ts` (if actions typed separately)
+- Modify: `src/app/store/gameStore.types.ts` (conditional; no such file exists — actions are typed inside `gameStore.ts`)
 
 - [x] **Step 1: Add store actions**
 

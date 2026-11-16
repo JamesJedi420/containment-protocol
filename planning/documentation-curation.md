@@ -41,6 +41,17 @@ Rules for any sweep that extracts paths, anchors, or claims from issue descripti
 - **Anchor to a revision.** Name the commit or SHA the paths were checked against, and say plainly when a citation is *planned* rather than missing-by-error.
 - **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Independent calls may run concurrently, but keep their responses separate and check each for completeness; concurrency does not remove response-size limits.
 
+## Citations that resolve to nothing in this repository
+
+A documentation path that does not exist in the clone is only acceptable when the citation says why. Triage of the 40 dangling full-path citations found on 2026-11-16 at `b1a41a20` produced these classes; each citation now carries its class inline, and a future citation checker should read this list as its allowlist seed rather than re-deriving it.
+
+- **Local, gitignored:** `.cursor/mcp.json`, `.vscode/launch.json`, `.vscode/settings.json` (`.gitignore` keeps only `.vscode/extensions.json`), `.trigger/experiment-request.json`.
+- **Outside the repository:** `codex/SKILL.md` and `hermes-agent/SKILL.md` sit under the installed Hermes skills root, not in git.
+- **Dependency-internal:** `src/middleware/persist.ts` (the zustand package), `lib/util.js` and `lib/utilsBundle.js` (Playwright), `node_modules/zod/...`.
+- **Generated, untracked:** `.tmp/typecheck-census-node22/census.json`, `planning/approved-work-projection.json`, `docs/typecheck/green-build-2026-11-04/before/*` (relative to that directory).
+- **Never created:** proposed or rejected artifacts cited by planning slices — `e2e/a11y-smoke.spec.ts`, `src/domain/weeklyFatigue.ts` (rejected), `test/importBoundary*.ts` (patch lost), `src/test/recoveryFatigue.contract.test.ts`, `test/fatigue-consolidation.test.ts`, `src/test/helpers/runWeeklyPrepAndAdvance.ts`, `src/app/store/gameStore.types.ts`.
+- **Another project:** `academy/content/courses.json` belongs to the Academy repository; this repo has no `academy/` directory.
+
 ## Anti-patterns
 
 - Same tactical item listed in **README**, **backlog**, and a **Linear** description with conflicting priority—use Linear authority and a single short near-term view (`planning/backlog.md`).
@@ -50,6 +61,7 @@ Rules for any sweep that extracts paths, anchors, or claims from issue descripti
 - Mirror / theme **SPE** mismatch—**CI will fail** if `verify:theme-contracts` is not run after editing the mirror or theme clusters.
 - Promoting a design into **`architecture/`** without linking it from **`game-state-and-core-loop.md`**—the map stops being complete.
 - Reporting an evidence-sweep population from a **truncated batch response**—the total and the "skipped" count are artefacts of output size, not facts about the backlog. See **Linear evidence sweeps (response-size limits)** above.
+- Citing a path without saying whether it is local, generated, dependency-internal, or never created—the reader cannot tell a broken link from a deliberate one. See **Citations that resolve to nothing in this repository**.
 
 ## See also
 

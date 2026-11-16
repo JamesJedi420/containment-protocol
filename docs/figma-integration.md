@@ -30,7 +30,7 @@ Client-only SPA rule still applies: **never** add a Figma SDK, API key, or netwo
 4. Always `create_session` with the registry `fileKey` before read/write tools on that file.
 5. Load `/figma-use` (and library/design skills when building components) before `use_figma`.
 
-Do not put Figma personal access tokens in committed `.cursor/mcp.json`. Prefer plugin auth.
+Do not put Figma personal access tokens in committed `.cursor/mcp.json` (local, gitignored). Prefer plugin auth.
 
 The registry `fileKey` is the same identifier that appears in a normal Figma share URL. It is **not** an API secret. Restrict who can open the file with Figma sharing settings. Do **not** commit `planKey` / team IDs — resolve those via `whoami` when creating files.
 

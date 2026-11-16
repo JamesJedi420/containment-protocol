@@ -50,5 +50,5 @@ Tighten cross-links between the event feed, case detail, and weekly reports for 
 ## See also
 
 - `src/features/dashboard/eventFeedView.ts`
-- `src/features/operations/operationsRouteDrillDown.ts`
+- `src/features/shared/operationsRouteDrillDown.ts`
 - Linear SPE-2248 / GitHub issue #2330

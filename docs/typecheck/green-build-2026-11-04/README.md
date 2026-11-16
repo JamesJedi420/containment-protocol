@@ -9,7 +9,9 @@ in the PR and live Linear closeout, rather than being represented as already run
 
 ## Evidence
 
-- `before/build.txt` and `before/census.json`: fresh literal baseline, exit 2;
+All paths on this page are relative to this directory.
+
+- `before/build.txt` and `before/census.json` (paths relative to this directory): fresh literal baseline, exit 2;
   the identity multiset equals the previous mechanical-contracts after-capture.
 - `compiler-1.txt`, `compiler-2.txt`, `census.json`: paired forced after-compiles,
   exit 0. The empty compiler transcripts are intentional. The census records

@@ -51,7 +51,7 @@ The following dispositions concern only this repository's existing test usage:
 | ip-address 10.7.2       | [GHSA-rxp7-6hxx-x8q5](https://github.com/advisories/GHSA-rxp7-6hxx-x8q5) | Observed SOCKS Address6 calls guarded by Node net.isIPv6; no proxy configured.                            |
 | minimatch 10.2.5        | [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) | Affected optimizationLevel ≥2/attacker-pattern prerequisites absent; default 1, repo-controlled patterns. |
 
-In exact `playwright-core` 1.65.1 tarball `lib/utilsBundle.js`, IPv6 guards are at
+In the exact `playwright-core` 1.65.1 tarball (package-internal path) `lib/utilsBundle.js`, IPv6 guards are at
 10142/10361/10736, optimization defaults at 51433/51692, request adapter at 90775
 and SDK HTTP transport at 91768. Only Hono's websocket helper is included, not the
 five affected APIs. `utilsBundle.js` and `serverRegistry.js` are byte-identical to

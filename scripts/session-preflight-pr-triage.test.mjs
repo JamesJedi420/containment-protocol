@@ -96,7 +96,7 @@ test('the complete documented caller packet matches the executable triage contra
   const doc = readFileSync(new URL('../docs/session-preflight.md', import.meta.url), 'utf8')
   const section = doc.split('### Caller checklist and template')[1]
   assert.ok(section)
-  const example = /```json\n([\s\S]*?)\n```/.exec(section)
+  const example = /```json\r?\n([\s\S]*?)\r?\n```/.exec(section)
   assert.ok(example)
   const packet = JSON.parse(example[1])
   assert.deepEqual(Object.keys(packet), ['openPrTriage'])

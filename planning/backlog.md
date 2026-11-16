@@ -12,7 +12,6 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 
 ## Active queue
 
-- [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Breach-origin recovery and verified recontainment handoff (In Progress; Agency gameplay remainders; not the active coding slice).
 - [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055) — Operational personnel claim arbitration (In Progress; operation claim seam shipped; full arbitration AC deferred).
 - [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095) — Movement channels, thoroughfare flow, and route control (In Progress; recovery-movement outcome seam shipped; full thoroughfare AC deferred).
 - [SPE-104](https://linear.app/spectranoir/issue/SPE-104) — Capture & restraint weapon interactions (In Progress; capture-secure outcome seam shipped; full weapon AC deferred).
@@ -25,7 +24,7 @@ Parent entries coordinate child work, not whole-umbrella implementation.
 ## Recommended next step (agent handoff)
 
 **Current handoff (primary):** (none) — merge closeout complete; no next coding slice selected.
-**In progress:** SPE-3735 / SPE-3055 / SPE-1095 / SPE-104 (remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
+**In progress:** SPE-3055 / SPE-1095 / SPE-104 (producer remainders deferred; not coding); SPE-3338 (live-source verification blocked; not coding).
 **Coding slice:** (none).
 **Next boundary:** verify live Linear scope, ownership, blockers and session preflight before selecting another approved slice; parent SPE-1052 remains open.
 

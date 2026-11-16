@@ -4,7 +4,7 @@
 | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
 | **Status**        | **In Progress** (producer seam; full claim arbitration AC deferred)                                                 |
 | **Issue**         | [SPE-3055](https://linear.app/spectranoir/issue/SPE-3055/operational-personnel-claim-arbitration)                   |
-| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — keeps In Progress until full path evidenced             |
+| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Done (gameplay reachability shipped in PR #4964) |
 | **Parent**        | [SPE-1023](https://linear.app/spectranoir/issue/SPE-1023) — remains open                                            |
 | **Branch**        | `jamesdyedbq/spe-3055-operation-claim-seam`                                                                         |
 | **Base main SHA** | `f3284445f38e5550941fa7c128c6490268f74241`                                                                          |

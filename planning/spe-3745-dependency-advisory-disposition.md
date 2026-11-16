@@ -129,12 +129,17 @@ it into `node_modules/.spe3745/minimatch10` (not over the installed package). Ru
 with Node 22 from the repository root:
 
 ```text
-node scripts/spe3745-minimatch-assessment.mjs node_modules/.spe3745/minimatch10/dist/commonjs/index.js
+node scripts/spe3745-minimatch-assessment.mjs
 ```
 
 This is an on-demand dated assessment, not a registered CI gate or dependency
 policy. No script downloads, installs, rewrites dependencies or modifies the
 bundle on disk. Its temporary instrumentation is restored in `finally`.
+The reference location is fixed under that ignored directory; the tool accepts
+no path argument. JSON uses aggregate counts and numeric probe case identifiers,
+rather than logging repository path or configuration-pattern inventories. Git
+enumeration uses the existing fixed-path process helper. Successful assertions
+remain mandatory, and output results are derived from observed counters.
 
 ### Validation and remaining closeout
 

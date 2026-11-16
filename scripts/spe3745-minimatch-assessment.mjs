@@ -1,22 +1,21 @@
 // Dated SPE-3745 assessment, not a CI policy or a general compatibility guarantee.
-// Supply the inspected upstream minimatch 10.2.6 CJS entry; no downloads or installs.
+// Prepare the inspected 10.2.6 reference in node_modules/.spe3745/minimatch10.
 import assert from 'node:assert/strict'
-import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { spawnSafe } from './validation/spawn-safe.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const require = createRequire(import.meta.url)
-const referenceEntry = process.argv[2]
-assert.ok(referenceEntry, 'Pass the inspected minimatch 10.2.6 dist/commonjs/index.js')
-const reference = require(path.resolve(referenceEntry))
+const referenceEntry = path.join(root, 'node_modules/.spe3745/minimatch10/dist/commonjs/index.js')
 const referenceManifest = JSON.parse(
   readFileSync(path.resolve(path.dirname(referenceEntry), '../../package.json'), 'utf8')
 )
 assert.equal(referenceManifest.name, 'minimatch')
 assert.equal(referenceManifest.version, '10.2.6')
+const reference = require(referenceEntry)
 const current = require('minimatch')
 const esm = await import('minimatch')
 assert.equal(require('minimatch/package.json').version, '11.0.5')
@@ -32,9 +31,9 @@ for (const consumer of consumers) {
   assert.equal(consumerRequire.resolve('minimatch'), require.resolve('minimatch'), consumer)
 }
 
-const trackedPaths = execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
-  .split('\0')
-  .filter(Boolean)
+const trackedFilesResult = spawnSafe('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
+assert.equal(trackedFilesResult.status, 0, 'git ls-files failed')
+const trackedPaths = trackedFilesResult.stdout.split('\0').filter(Boolean)
 const directories = new Set([''])
 for (const file of trackedPaths) {
   const segments = file.split('/')
@@ -110,17 +109,26 @@ const optionSets = [
 ]
 let comparisons = 0
 let actualComparisons = 0
+let actualDifferenceCount = 0
 let probeDifferenceCount = 0
 const probeDifferences = []
 function compare(actual, expected, context) {
   comparisons++
   if (actualPaths.has(context.file) && actualPatterns.has(context.pattern)) {
     actualComparisons++
-    assert.equal(actual, expected, JSON.stringify(context))
+    if (actual !== expected) actualDifferenceCount++
+    assert.equal(actual, expected, 'Actual repository pattern/path comparison differs')
   } else if (actual !== expected) {
     probeDifferenceCount++
     if (probeDifferences.length < 20)
-      probeDifferences.push({ ...context, before: expected, after: actual })
+      probeDifferences.push({
+        fileIndex: paths.indexOf(context.file),
+        patternIndex: patterns.indexOf(context.pattern),
+        partial: context.partial ?? false,
+        dotDotProbe: context.file === 'src/a/../b.ts' && context.pattern === 'src/**/../*.ts',
+        before: expected,
+        after: actual,
+      })
   }
 }
 for (const options of optionSets) {
@@ -170,11 +178,8 @@ const preprocess = (source) => {
   assert.match(match[0], /if \(optimizationLevel >= 2\)/)
   return match[0].replace(/\s/g, '')
 }
-assert.equal(
-  preprocess(bundleSource),
-  preprocess(loaderSource),
-  'Bundled preprocessing copies differ'
-)
+const bundledPreprocessCopiesIdentical = preprocess(bundleSource) === preprocess(loaderSource)
+assert.ok(bundledPreprocessCopiesIdentical, 'Bundled preprocessing copies differ')
 const bundled = require(bundlePath).minimatch
 const { createFileMatcher } = require(path.join(root, 'node_modules/playwright/lib/util.js'))
 const prototype = bundled.Minimatch.prototype
@@ -182,6 +187,8 @@ const original = prototype.firstPhasePreProcess
 const originalPreprocess = prototype.preprocess
 assert.equal(typeof original, 'function')
 let vulnerableBranchCalls = 0
+let bundledDefaultAffectedBranchCalls
+let bundledPositiveControlObserved
 const defaultLevels = []
 prototype.preprocess = function (...args) {
   defaultLevels.push(this.options.optimizationLevel ?? 1)
@@ -202,9 +209,15 @@ try {
   }
   assert.equal(defaultLevels.length, 3, 'Real matcher did not compile the expected patterns')
   assert.deepEqual(defaultLevels, [1, 1, 1])
-  assert.equal(vulnerableBranchCalls, 0, 'Default Playwright options entered the affected branch')
+  bundledDefaultAffectedBranchCalls = vulnerableBranchCalls
+  assert.equal(
+    bundledDefaultAffectedBranchCalls,
+    0,
+    'Default Playwright options entered the affected branch'
+  )
   new bundled.Minimatch('a/**/../b', { optimizationLevel: 2 })
-  assert.ok(vulnerableBranchCalls > 0, 'Positive control did not observe the affected branch')
+  bundledPositiveControlObserved = vulnerableBranchCalls > bundledDefaultAffectedBranchCalls
+  assert.ok(bundledPositiveControlObserved, 'Positive control did not observe the affected branch')
 } finally {
   prototype.firstPhasePreProcess = original
   prototype.preprocess = originalPreprocess
@@ -214,24 +227,24 @@ console.log(
     {
       reference: referenceManifest.version,
       overridden: require('minimatch/package.json').version,
-      consumers,
+      consumerCount: consumers.length,
       trackedPaths: trackedPaths.length,
       directories: directories.size,
       testedPaths: paths.length,
-      configPatterns,
+      configPatternCount: configPatterns.length,
       totalPatterns: patterns.length,
       optionSets,
       comparisons,
       actualComparisons,
-      actualDifferences: 0,
+      actualDifferences: actualDifferenceCount,
       probeDifferenceCount,
       probeDifferences,
       bundledVersion: '10.2.5',
       otherNoticeIdentities: ['playwright-core: zod@4.6.7', 'prettier: minimatch@11.0.6'],
-      bundledDefaultAffectedBranchCalls: 0,
+      bundledDefaultAffectedBranchCalls,
       bundledRealMatcherLevels: defaultLevels.slice(0, 3),
-      bundledPositiveControlObserved: true,
-      bundledPreprocessCopiesIdentical: true,
+      bundledPositiveControlObserved,
+      bundledPreprocessCopiesIdentical,
       limitation:
         'Finite corpus and inspected consumers only; bundled vendor code remains affected at optimizationLevel >= 2.',
     },

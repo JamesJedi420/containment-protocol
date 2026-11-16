@@ -171,3 +171,29 @@ The provider check-run ID, suite ID and app ID remain separate. Different check-
 Summary references use the canonical configured commit URL, with the precise check-run ID and provider identities retained in provenance. No workflow-run URL is fabricated from a check-run ID, and the summary's existing reference allowlist is unchanged. Raw names, output, details URLs, external IDs, auth/errors and request URLs are omitted. The deterministic digest binds only sanitized provider/scope/time/page/mapping facts and is used consistently by that source/its records. It is not authentication or an atomic source revision; the adapter never fills `policy.expectedRevisions`.
 
 **PR and check-run outputs are not an automatic complete GitHub source.** Each has its own capture/digest and partial coverage. This slice adds no composer, cohort authority, required-validator inference or proof that missing provider dimensions were collected. Blindly concatenating independent source records produces revision conflicts under the existing summary contract; changing coverage flags cannot establish missing evidence. A future independently qualified composition boundary must preserve both provenance and explicit target/provider coverage. Constructed tests exercise both renderers, stale page observations, failed/empty/pending/unmapped data, mutable/retried IDs, bounds and rejected mixed revisions. The single scoped source-shape read establishes neither live connectivity nor production qualification.
+
+## Private manual HTML operator view
+
+`npm run --silent engineering-summary:html < private-snapshot.json > private-report.html`
+accepts the existing version-1 input envelope and renders a self-contained, script-free
+local HTML report. `renderEngineeringSummaryHtml` in `scripts/engineering-summary-html.mjs`
+uses `summarizeEngineeringActivity` as its only qualification authority. The command
+reads at most 5 MB from stdin and writes only stdout; the operator chooses whether and
+where to save an output. Invalid input produces a fixed error and no report.
+
+The existing GitHub collector additionally returns independent `pr.html` and
+`checks.html` views alongside its existing Markdown. These remain separate partial
+captures, not a combined source or complete project dashboard. Real connector-observed
+facts may be manually minimized into the existing envelope; record actual observation
+time, preserve unknown expected revisions and incomplete coverage, and never invent
+classification or a provider version. Constructed tests are not live evidence.
+
+The view is a **manual snapshot, not live monitoring**. Source health and freshness
+are evaluated at the supplied timestamp, not when the file is opened. Unknown counts
+remain unknown; observation counts are not totals. Missing queue, decision, drift or
+recommendation evidence stays unavailable. Obtain and evaluate a new authorized
+snapshot before acting on old observations. Do not commit private captures or generated
+reports. The view has no server, remote resources, JavaScript, persistence, refresh,
+credentials or provider writes. Links navigate only to references accepted by the
+existing summary contract. It does not settle deployment, audience or live-access
+architecture and does not complete SPE-3512 or the production dashboard.

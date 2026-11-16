@@ -90,6 +90,7 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run session:preflight`               | Evaluate a versioned SPE-3337 evidence envelope from stdin and return `ready`/`blocked`/`unknown`; see [`docs/session-preflight.md`](docs/session-preflight.md). |
 | `npm run verify:session-preflight`        | Run the focused read-only preflight test suite.                                                                                                                  |
 | `npm run verify:engineering-summary`      | Verify the pure SPE-3512 summary contract and GitHub capture adapters; see [operator documentation](docs/engineering-activity-summary.md).                       |
+| `npm run engineering-summary:html`        | Render a private snapshot from stdin to HTML on stdout; see [operator documentation](docs/engineering-activity-summary.md#private-manual-html-operator-view).    |
 | `npm run build`                           | Run the TypeScript project build and Vite production bundle. See the note below.                                                                                 |
 
 [SPE-3375](https://linear.app/spectranoir/issue/SPE-3375) recovers the strict TypeScript and Vite production build; [the recovery evidence](docs/typecheck/green-build-2026-11-04/README.md) records zero compiler diagnostics and a literal `npm run build` exit 0. Run that command for current acceptance. It is **not yet a blocking pull-request or release gate**; shared validation-enforcement activation remains separately owned below.

@@ -10,6 +10,8 @@ test('summary implementation, canonical queue dependency and operator contract s
   assert.equal(validator.whenUnavailable, 'fail')
   for (const file of [
     'scripts/engineering-summary.mjs',
+    'scripts/engineering-summary-html.mjs',
+    'scripts/engineering-summary-html.test.mjs',
     'scripts/engineering-summary.test.mjs',
     'scripts/engineering-summary-github.mjs',
     'scripts/engineering-summary-github.test.mjs',

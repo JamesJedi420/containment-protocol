@@ -159,7 +159,8 @@ does not invalidate an entry but editing its wording does.
 - `architecture/**/*.md`
 - `.cursor/rules/**/*.mdc`, `.cursor/skills/**/SKILL.md`
 - `planning/backlog.md`, `planning/documentation-curation.md`, `planning/milestones.md`,
-  `planning/deferred-design-documents.md`, `planning/scope-discipline-grooming-pass.md`
+  `planning/deferred-design-documents.md`, `planning/scope-discipline-grooming-pass.md`,
+  `planning/hidden-modality-matrix-post-matrix-queue.md` (living handoff doc, not a `-slice.md`)
 
 ### Out of scope
 
@@ -175,39 +176,74 @@ does not invalidate an entry but editing its wording does.
 `docs/backlog-authority-wording-guard.md` must contain every term it bans. It is exempt from both
 checks by exact path. Without that exemption the guard fails on its own specification.
 
-## Current hits at `main` + #5025 (2026-11-16)
+## Current hits at `main` (2026-11-16)
 
-Classified by hand, to seed the baseline. `main` is at `f4454719`; `#5025` moves the last row.
+Re-derived from a scan of the `f4454719` tree, not recalled. `main` is at `f4454719`; #5025 is open and
+would remove one row below when it merges.
 
-| File:line | Text | Disposition |
-| --------- | ---- | ----------- |
-| `docs/cursor-delegated-backlog-approval.md:30` | "the authoritative queue (`planning/backlog.md` …)" | **Violation** — needs the selection-order decision |
-| `docs/cursor-delegated-backlog-approval.md:57` | "the active queue of `planning/backlog.md`" | **Violation** — same decision |
-| `architecture/game-state-and-core-loop.md:317` | "canonical near-term priority queue" | **Violation** — not yet filed |
-| `planning/milestones.md:11` | "(canonical queue; …)" | **Violation** — not yet filed |
-| `planning/documentation-curation.md:64` | "— near-term queue" | **Violation** — not yet filed |
-| `planning/deferred-design-documents.md:38` | "— near-term engineering queue" | **Violation** — not yet filed |
-| `planning/hidden-modality-matrix-post-matrix-queue.md:51` | "— canonical active queue" | **Violation** — not yet filed |
-| `planning/scope-discipline-grooming-pass.md:10` | "**Queue authority** \| `planning/backlog.md`" | **Violation** — not yet filed |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | "Other eligible backlog children named in the active queue" | **Violation** (C1 via R1(b)) — subject of the collapse proposal |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` | "Recommended next concrete SPE in `planning/backlog.md`" | **Escape — not caught.** No queue word, so no vocabulary term matches; a selection claim the guard misses |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:21` | heading "## Confirm the queue is empty" | **Violation** (C2) |
-| `docs/contribution-and-release-operations.md:107` | "near-term priority queue" | **Fixed in #5025** — remove from baseline on merge |
-| `planning/backlog.md:5` | "not evidence that this list is the queue" | Exempt (R2) |
-| `planning/backlog.md:13` | heading "## Active queue" | Exempt (R3.1) |
-| `planning/backlog.md:19` | quoted SPE-3338 title | Exempt (R3.3) |
-| `planning/backlog.md:23` | "Department workshop and processing queues" | Exempt (R3.4) |
-| `planning/backlog.md:35` | "never in this queue" | Exempt (R2) |
-| `planning/scope-discipline-grooming-pass.md:116,126,137` | "`planning/backlog.md` § Active queue" | Exempt (R3.2) |
-| `README.md:166` | "not a queue projection … **not an input**" | Exempt (R2) |
-| `docs/agent-operating-manual.md:42` | corrected in #5022 | Exempt (R2), shrinks baseline |
-| `AGENTS.md:57` | corrected in #5022 | Passes |
+### Flaggable today — 12 lines, 12 rows
 
-At the time of writing: **10 live violations (9 by C1, 1 by C2), 8 exempt rows, 1 escape, 1 row
-pending a merge (#5025), 1 pass.** The guard would fail on `main` today for all ten violations; the
-baseline seeds only the exempt rows, so the failing set is the work list rather than a rubber stamp.
-The escape row is caught by nothing, and is counted here so this document's coverage claim stays
-honest rather than reading as if every listed line falls to a rule.
+| File:line | Text | Rule |
+| --------- | ---- | ---- |
+| `docs/cursor-delegated-backlog-approval.md:30` | "the authoritative queue (`planning/backlog.md` …)" | C1 — needs the selection-order decision |
+| `docs/cursor-delegated-backlog-approval.md:57` | "the active queue of `planning/backlog.md`" | C1 — same decision |
+| `architecture/game-state-and-core-loop.md:317` | "canonical near-term priority queue" | C1 — not yet filed |
+| `planning/milestones.md:11` | "(canonical queue; …)" | C1 — not yet filed |
+| `planning/documentation-curation.md:64` | "— near-term queue" | C1 — not yet filed |
+| `planning/deferred-design-documents.md:38` | "— near-term engineering queue" | C1 — not yet filed |
+| `planning/hidden-modality-matrix-post-matrix-queue.md:51` | "— canonical active queue" | C1 — not yet filed |
+| `planning/scope-discipline-grooming-pass.md:10` | "**Queue authority** \| `planning/backlog.md`" | C1 — not yet filed |
+| `planning/scope-discipline-grooming-pass.md:156` | "— active queue after merge" | C1 — not yet filed |
+| `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | "Other eligible backlog children named in the active queue" | C1 via R1(b) — collapse proposal |
+| `.cursor/skills/cp-next-implementation-slice/SKILL.md:21` | heading "## Confirm the queue is empty" | C2 |
+| `docs/contribution-and-release-operations.md:107` | "near-term priority queue" | C1 — **fixed by open #5025**; leaves this table on merge |
+
+Eleven of these twelve survive #5025. The guard would fail on `main` for all twelve today, and the
+baseline seeds none of them, so the failing set is the work list rather than a rubber stamp.
+
+### Exempt by rule — 4 lines, 2 rows
+
+| File:line | Text | Rule |
+| --------- | ---- | ---- |
+| `planning/backlog.md:13` | heading "## Active queue" | R3.1 |
+| `planning/scope-discipline-grooming-pass.md:116,126,137` | "`planning/backlog.md` § Active queue" | R3.2 |
+
+These are real hits that a rule suppresses on purpose. `planning/backlog.md:13` matters most: it is
+the split marker `scripts/verify-backlog-handoff.mjs` reads.
+
+### Escapes — 1 line, 1 row
+
+| File:line | Text | Why nothing catches it |
+| --------- | ---- | --------------------- |
+| `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` | "Recommended next concrete SPE in `planning/backlog.md`" | Contains the path but no queue word, so no vocabulary term matches. A selection claim the guard misses |
+
+### Not hits — 7 lines, 7 rows
+
+Recorded because a reader would otherwise expect the guard to react. No rule fires: the vocabulary
+term or the co-occurrence reference is absent, or the text was already corrected.
+
+| File:line | Text | Why it is not a hit |
+| --------- | ---- | ------------------ |
+| `planning/backlog.md:5` | "not evidence that this list is the queue" | No backlog reference on the line; R2 would also skip it |
+| `planning/backlog.md:19` | quoted SPE-3338 title "Authoritative approved-work queue projection" | Issue title, and the phrase is "authoritative approved-work queue", not a vocabulary term |
+| `planning/backlog.md:23` | "Department workshop and processing queues" | Feature scope; no vocabulary term |
+| `planning/backlog.md:35` | "never in this queue" | "this queue", not "the queue"; no vocabulary term |
+| `README.md:166` | "not a queue projection … **not an input**" | `queue projection` is retired from the vocabulary; R2 would skip it anyway |
+| `docs/agent-operating-manual.md:42` | corrected in #5022 | Vocabulary no longer matches |
+| `AGENTS.md:57` | corrected in #5022 | Vocabulary no longer matches |
+
+### Totals
+
+**16 lines match a rule on `main`: 12 flaggable (11 by C1, 1 by C2) and 4 exempt by rule (R3.1 ×1,
+R3.2 ×3).** One escape catches nothing, and there are seven recorded non-hits. After #5025 merges the
+flaggable count is 11.
+
+A previous revision of this table said "11 live violations, 9 exempt rows" and then "10 and 8": both
+were wrong in different ways. The first counted only the flaggable set and then inflated the exempt
+set with lines no rule fires on; the second recounted rows without adding
+`planning/scope-discipline-grooming-pass.md:156`, which the scan does hit. The agreement now is
+line-for-line against the scan recorded above, and the three groups exist so a row can no longer move
+between "violation" and "exempt" without changing a number.
 
 ## Interface (when implemented)
 

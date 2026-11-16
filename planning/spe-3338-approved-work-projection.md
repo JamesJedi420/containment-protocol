@@ -36,6 +36,8 @@ A separate approval inventory is not required. For compatibility, the legacy pos
 
 Linear relation type `blocks` is positional. The current issue's outgoing `relations` identifies issues it blocks, whereas incoming `inverseRelations` of type `blocks` identifies the issues blocking this one. Both assembled connections are required and must have `hasNextPage: false`; absent, truncated, or unknown relation records fail closed. Other relation types are not executable prerequisites.
 
+The incoming `blocks` source supplies the same canonical prerequisite IDs to `blockedBy` and `dependsOn`; they are two fields of the existing projection contract, not independently invented relation types. Outgoing `blocks` never makes its owner depend on the target.
+
 ## Bounded pagination correction and qualification — 2026-11-03
 
 The former issue page of 100 with three nested pages of 100 was rejected by authenticated Linear with HTTP 400: query complexity 66,691.2 exceeded the 10,000 limit. Issue pages now contain 10 records. Labels and both relationship directions retain 100-record pages and are exhausted with separate fixed continuation queries against the canonical issue UUID. This includes large historical routing records; reducing only the outer page would leave their relationships truncated.

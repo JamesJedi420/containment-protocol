@@ -13,7 +13,7 @@ The four named `workstream:*` labels exist in the current Linear workspace, and 
 
 Focused tests cover deterministic output, missing/extra/duplicate/stale findings, SPE-175 conflict, child-only parent evidence, SPE-1013 number coincidence, source-comment revision/owner verification, pagination, consumer rejection, and output preservation. The live SPE-3276 issue currently has no per-issue JSON finding comments, so no complete feed or runnable projection is claimed. The previously observed 3,032-issue retrieval had missing workstream labels and an unresolved freshness retry; a fresh complete read is still required.
 
-Local checks at this branch: `npm run test:approved-work` passed 39/39; `npm run lint` passed; Prettier passed on the eight changed files. The workspace-wide Windows `format:check` reported formatting warnings across unrelated baseline files and was stopped. Local `npm run build` with Node 24 and a linked existing `node_modules` failed on 27 TypeScript errors in unrelated `src/test/*.contract.test.ts` files; this is not a Node 22 clean-install result. CI remains the required clean-environment gate.
+Local checks at this branch: `npm run test:approved-work` passed 41/41; the combined approved-work and engineering-summary regression run passed 60/60; `npm run lint` passed; Prettier passed on the eight changed files. The workspace-wide Windows `format:check` reported formatting warnings across unrelated baseline files and was stopped. Local `npm run build` with Node 24 and a linked existing `node_modules` failed on 27 TypeScript errors in unrelated `src/test/*.contract.test.ts` files; this is not a Node 22 clean-install result. CI remains the required clean-environment gate.
 
 ## Next verification
 

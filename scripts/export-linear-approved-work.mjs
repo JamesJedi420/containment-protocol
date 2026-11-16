@@ -13,6 +13,7 @@ import {
   readMainRevision,
   validateEvidenceFeed,
   verifyEvidenceFeedSource,
+  writeAtomically,
 } from './implementation-evidence-feed.mjs'
 const error = (message) => {
   throw new Error('Linear authority unavailable: ' + message)
@@ -196,7 +197,10 @@ export function normalizeLinearIssues(
         !/^[A-Z]+-\d+$/.test(rel.issue?.identifier ?? '')
       )
         error(row.identifier + ' invalid incoming relationship')
-      if (rel.type === 'blocks') blockedBy.push(rel.issue.identifier)
+      if (rel.type === 'blocks') {
+        blockedBy.push(rel.issue.identifier)
+        dependsOn.push(rel.issue.identifier)
+      }
     }
     issues.push({
       id: row.identifier,
@@ -304,7 +308,7 @@ export async function exportApprovedWork({
   }
   if (revision() !== githubRevision) error('GitHub main changed during source validation')
   const projection = projectApprovedWork(snapshot)
-  fs.writeFileSync(outputPath, serializeProjection(projection))
+  writeAtomically(outputPath, serializeProjection(projection))
   return projection
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -326,8 +326,10 @@ test('export writes only after full validation and preserves prior output on fai
       projection.runnable.map((r) => r.id),
       ['SPE-1']
     )
+    const acceptedBytes = fs.readFileSync(output, 'utf8')
     sourceError = true
     await assert.rejects(run(evidence(['SPE-1'])), /source changed/)
+    assert.equal(fs.readFileSync(output, 'utf8'), acceptedBytes)
     sourceError = false
     staleInventory = true
     await assert.rejects(run(evidence(['SPE-1'])), /Linear issue revisions changed/)
@@ -389,6 +391,7 @@ test('incoming blocks prevents runnable output; outgoing blocks does not block i
     )
   )
   assert.deepEqual(projection.active.find((x) => x.id === 'SPE-1').blockedBy, ['SPE-2'])
+  assert.deepEqual(projection.active.find((x) => x.id === 'SPE-1').dependsOn, ['SPE-2'])
   assert.ok(
     projection.active
       .find((x) => x.id === 'SPE-1')

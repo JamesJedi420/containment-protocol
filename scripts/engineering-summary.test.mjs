@@ -6,6 +6,7 @@ import {
   renderEngineeringSummary as render,
 } from './engineering-summary.mjs'
 import { normalizeLinearIssues } from './export-linear-approved-work.mjs'
+import { linearInventory, produceEvidenceFeed } from './implementation-evidence-feed.mjs'
 
 // Constructed snapshots, never live connectivity or authoritative classifications.
 const NOW = '2026-11-14T20:00:00.000Z'
@@ -332,20 +333,53 @@ test('constructed exporter normalization flows through canonical projection into
     relations: connection,
     inverseRelations: connection,
   }
-  const feed = {
-    source: 'SPE-3276',
-    complete: true,
-    issues: {
-      'SPE-1': {
+  const projects = ['fixture-project']
+  const pages = [[row]]
+  const feed = produceEvidenceFeed({
+    projectIds: projects,
+    pages,
+    verifiedInventory: linearInventory(projects, pages),
+    retrievedAt: NOW,
+    revisionVerifiedAt: NOW,
+    githubRevision: SHA,
+    githubVerifiedAt: NOW,
+    findings: [
+      {
+        authority: 'SPE-3276',
         verified: true,
-        evidenceDrift: false,
+        canonicalIssueId: 'SPE-1',
+        linearUuid: row.id,
+        linearUpdatedAt: NOW,
+        githubRevision: SHA,
+        sourceCommentId: 'fixture-comment',
+        sourceUpdatedAt: NOW,
+        findingRef: 'https://linear.app/spectranoir/issue/SPE-3276',
+        assessedAt: NOW,
+        materialDrift: 'non-conflict',
         implementationEvidence: { state: 'merged' },
+        basis: {
+          kind: 'references',
+          issueId: 'SPE-1',
+          issueRef: 'https://linear.app/spectranoir/issue/SPE-1',
+          refs: [
+            {
+              url: 'https://github.com/JamesJedi420/containment-protocol/commit/' + SHA,
+              revision: SHA,
+              checkedAt: NOW,
+            },
+          ],
+        },
       },
-    },
-  }
-  value.sources.queue.snapshot = normalizeLinearIssues([[row]], feed, NOW, undefined, [
-    'fixture-project',
-  ])
+    ],
+  })
+  value.sources.queue.snapshot = normalizeLinearIssues(
+    [[row]],
+    feed,
+    NOW,
+    undefined,
+    ['fixture-project'],
+    SHA
+  )
   const machine = JSON.parse(serialize(value))
   assert.deepEqual(machine.sources.queue.approvedWork.activeIds, ['SPE-1'])
   assert.deepEqual(machine.sources.queue.approvedWork.historyIds, [])

@@ -3,6 +3,8 @@
  * This module does not classify GitHub evidence or grant planning authority.
  */
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
 import { isDeepStrictEqual } from 'node:util'
 
 const ISSUE_ID = /^[A-Z]+-\d+$/
@@ -67,7 +69,13 @@ const githubRef = (value) => {
 }
 
 export function readMainRevision() {
-  const output = execFileSync('git', ['ls-remote', 'origin', 'refs/heads/main'], {
+  const candidates =
+    process.platform === 'win32'
+      ? ['C:\\Program Files\\Git\\cmd\\git.exe']
+      : ['/usr/bin/git', '/bin/git', '/opt/homebrew/bin/git', '/usr/local/bin/git']
+  const git = candidates.find((candidate) => fs.existsSync(candidate))
+  if (!git) fail('Git executable unavailable at a fixed system path')
+  const output = execFileSync(git, ['ls-remote', 'origin', 'refs/heads/main'], {
     encoding: 'utf8',
     windowsHide: true,
   }).trim()
@@ -252,6 +260,24 @@ export function produceEvidenceFeed({
 
 export const serializeEvidenceFeed = (feed) => JSON.stringify(feed, null, 2) + '\n'
 
+export function writeAtomically(outputPath, bytes) {
+  const pending = outputPath + '.pending-' + randomUUID()
+  const descriptor = fs.openSync(pending, 'wx')
+  try {
+    fs.writeFileSync(descriptor, bytes)
+    fs.closeSync(descriptor)
+    fs.renameSync(pending, outputPath)
+  } catch (error) {
+    try {
+      fs.closeSync(descriptor)
+    } catch {
+      /* already closed */
+    }
+    if (fs.existsSync(pending)) fs.unlinkSync(pending)
+    throw error
+  }
+}
+
 const REVISION_QUERY = `query EvidenceRevisionIssues($project: String!, $after: String) {
   project(id:$project) { id issues(first:50, after:$after, includeArchived:true) {
     pageInfo {hasNextPage endCursor}
@@ -397,6 +423,14 @@ function findingFromRecord(issue, record) {
 }
 
 export async function verifyEvidenceFeedSource({ feed, apiKey, request = fetch }) {
+  if (
+    !Array.isArray(feed?.retrieval?.issues) ||
+    !feed.issues ||
+    typeof feed.issues !== 'object' ||
+    Array.isArray(feed.issues)
+  ) {
+    fail('SPE-3276 source record coverage missing')
+  }
   const findings = feed.retrieval.issues.map((issue) =>
     findingFromRecord(issue, feed.issues[issue.id])
   )
@@ -414,7 +448,8 @@ export function validateEvidenceFeed(feed, { projectIds, pages, githubRevision }
     !Array.isArray(feed.diagnostics) ||
     feed.diagnostics.length ||
     feed.retrieval?.source !== 'Linear' ||
-    !same(feed.retrieval.projectIds, projectIds) ||
+    !Array.isArray(feed.retrieval.projectIds) ||
+    !same([...feed.retrieval.projectIds].sort(order), [...projectIds].sort(order)) ||
     !same(feed.retrieval.issues, expected) ||
     !timestamp(feed.retrieval.retrievedAt) ||
     !timestamp(feed.retrieval.revisionVerifiedAt) ||

@@ -14,6 +14,7 @@ import {
   readMainRevision,
   serializeEvidenceFeed,
   verifyAuthorityFindings,
+  writeAtomically,
 } from './implementation-evidence-feed.mjs'
 
 function writeDiagnostics(file, diagnostics, qualifying = false) {
@@ -97,9 +98,7 @@ export async function runProducer({
       writeDiagnostics(diagnosticsPath, feed.diagnostics)
       return { complete: false, diagnostics: feed.diagnostics }
     }
-    const pending = outputPath + '.pending'
-    fs.writeFileSync(pending, serializeEvidenceFeed(feed))
-    fs.renameSync(pending, outputPath)
+    writeAtomically(outputPath, serializeEvidenceFeed(feed))
     writeDiagnostics(diagnosticsPath, [], true)
     return { complete: true, count: feed.retrieval.issues.length }
   } catch (error) {

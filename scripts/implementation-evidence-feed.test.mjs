@@ -114,6 +114,30 @@ test('empty configured project inventory cannot assert complete authority', () =
   assert.throws(() => feed([[]], []), /empty project issue inventory/)
 })
 
+test('configured project order does not change exact feed coverage', () => {
+  const ids = ['project-1', 'project-2']
+  const pages = [[row('SPE-1')], [row('SPE-2')]]
+  const value = produceEvidenceFeed({
+    projectIds: ids,
+    pages,
+    verifiedInventory: linearInventory(ids, pages),
+    retrievedAt: time,
+    revisionVerifiedAt: time,
+    githubRevision: sha,
+    githubVerifiedAt: time,
+    findings: [finding('SPE-1'), finding('SPE-2')],
+  })
+  assert.equal(value.complete, true)
+  assert.deepEqual(
+    validateEvidenceFeed(value, {
+      projectIds: [...ids].reverse(),
+      pages: [...pages].reverse(),
+      githubRevision: sha,
+    }),
+    value.issues
+  )
+})
+
 test('SPE-175 conflict and child-only parent evidence remain explicit', () => {
   const pages = [[row('SPE-175'), row('SPE-42')]]
   const conflict = finding('SPE-175', {
@@ -180,6 +204,13 @@ test('consumer rejects forged completeness, mismatched revisions, and unsupporte
     mutation(value)
     assert.throws(() => validateEvidenceFeed(value, { projectIds, pages, githubRevision: sha }))
   }
+})
+
+test('source verification rejects malformed feed with a controlled diagnostic', async () => {
+  await assert.rejects(
+    verifyEvidenceFeedSource({ feed: {}, apiKey: 'test' }),
+    /source record coverage missing/
+  )
 })
 
 test('second Linear revision read exhausts pages and rejects unstable identities', async () => {
@@ -396,6 +427,22 @@ test('incomplete producer run writes diagnostics without replacing a qualified f
     assert.equal(complete.complete, true)
     const acceptedBytes = fs.readFileSync(outputPath, 'utf8')
     assert.equal(JSON.parse(acceptedBytes).retrieval.issues[0].id, 'SPE-1')
+    const stagingNamedInput = outputPath + '.pending'
+    const stagingInputBytes = fs.readFileSync(findingsPath, 'utf8')
+    fs.writeFileSync(stagingNamedInput, stagingInputBytes)
+    const collision = await runProducer({
+      findingsPath: stagingNamedInput,
+      outputPath,
+      diagnosticsPath,
+      apiKey: 'test',
+      projectIds,
+      request,
+      revision: () => sha,
+      clock: () => time,
+      verifyFindings: async ({ findings }) => findings,
+    })
+    assert.equal(collision.complete, true)
+    assert.equal(fs.readFileSync(stagingNamedInput, 'utf8'), stagingInputBytes)
     let revisions = 0
     const changed = await runProducer({
       findingsPath,
@@ -412,7 +459,7 @@ test('incomplete producer run writes diagnostics without replacing a qualified f
     assert.equal(fs.readFileSync(outputPath, 'utf8'), acceptedBytes)
     assert.ok(changed.diagnostics.some((item) => item.code === 'github-revision-changed'))
   } finally {
-    for (const file of [findingsPath, outputPath, diagnosticsPath]) {
+    for (const file of [findingsPath, outputPath, diagnosticsPath, outputPath + '.pending']) {
       if (fs.existsSync(file)) fs.unlinkSync(file)
     }
     fs.rmdirSync(dir)

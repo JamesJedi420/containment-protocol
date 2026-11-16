@@ -20,7 +20,7 @@ The same wording keeps coming back, each round found later than the last:
 | ----- | ------------------- | ------------------- |
 | #4999 | README "backlog shortlist" framing, frozen-history heading, a line-770 clause | Human sweep |
 | #5022 | `AGENTS.md:57` "single queue", manual "queue projection" / "compact live queue", backlog banner "re-scoped" | Human sweep after #4999 merged |
-| #5025 (open) | `docs/contribution-and-release-operations.md:107` "near-term priority queue" | Six-file sweep |
+| #5025 (merged) | `docs/contribution-and-release-operations.md:107` "near-term priority queue" | Six-file sweep |
 | Not yet filed | `architecture/game-state-and-core-loop.md:317`, `planning/milestones.md:11`, `planning/documentation-curation.md:64`, `planning/deferred-design-documents.md:38`, `planning/hidden-modality-matrix-post-matrix-queue.md:51`, `planning/scope-discipline-grooming-pass.md:10` | This sweep |
 
 No automated check reads this prose. `scripts/governance/authority-contract.mjs` validates its own
@@ -178,10 +178,9 @@ checks by exact path. Without that exemption the guard fails on its own specific
 
 ## Current hits at `main` (2026-11-16)
 
-Re-derived from a scan of the `f4454719` tree, not recalled. `main` is at `f4454719`; #5025 is open and
-would remove one row below when it merges.
+Re-derived from a scan of the `main` tree at `9bf6b4ce` (after #5025 merged), not recalled.
 
-### Flaggable today — 12 lines, 12 rows
+### Flaggable today — 11 lines, 11 rows
 
 | File:line | Text | Rule |
 | --------- | ---- | ---- |
@@ -196,10 +195,9 @@ would remove one row below when it merges.
 | `planning/scope-discipline-grooming-pass.md:156` | "— active queue after merge" | C1 — not yet filed |
 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | "Other eligible backlog children named in the active queue" | C1 via R1(b) — collapse proposal |
 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:21` | heading "## Confirm the queue is empty" | C2 |
-| `docs/contribution-and-release-operations.md:107` | "near-term priority queue" | C1 — **fixed by open #5025**; leaves this table on merge |
 
-Eleven of these twelve survive #5025. The guard would fail on `main` for all twelve today, and the
-baseline seeds none of them, so the failing set is the work list rather than a rubber stamp.
+The guard fails on `main` for all eleven, and the baseline seeds none of them, so the failing set is
+the work list rather than a rubber stamp.
 
 ### Exempt by rule — 4 lines, 2 rows
 
@@ -217,7 +215,7 @@ the split marker `scripts/verify-backlog-handoff.mjs` reads.
 | --------- | ---- | --------------------- |
 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` | "Recommended next concrete SPE in `planning/backlog.md`" | Contains the path but no queue word, so no vocabulary term matches. A selection claim the guard misses |
 
-### Not hits — 7 lines, 7 rows
+### Not hits — 8 lines, 8 rows
 
 Recorded because a reader would otherwise expect the guard to react. No rule fires: the vocabulary
 term or the co-occurrence reference is absent, or the text was already corrected.
@@ -230,13 +228,15 @@ term or the co-occurrence reference is absent, or the text was already corrected
 | `planning/backlog.md:35` | "never in this queue" | "this queue", not "the queue"; no vocabulary term |
 | `README.md:166` | "not a queue projection … **not an input**" | `queue projection` is retired from the vocabulary; R2 would skip it anyway |
 | `docs/agent-operating-manual.md:42` | corrected in #5022 | Vocabulary no longer matches |
+| `docs/contribution-and-release-operations.md:107` | corrected in #5025 (merged `9bf6b4ce`) | Vocabulary no longer matches |
 | `AGENTS.md:57` | corrected in #5022 | Vocabulary no longer matches |
 
 ### Totals
 
-**16 lines match a rule on `main`: 12 flaggable (11 by C1, 1 by C2) and 4 exempt by rule (R3.1 ×1,
-R3.2 ×3).** One escape catches nothing, and there are seven recorded non-hits. After #5025 merges the
-flaggable count is 11.
+**15 lines match a rule on `main` at `9bf6b4ce`: 11 flaggable (10 by C1, 1 by C2) and 4 exempt by
+rule (R3.1 ×1, R3.2 ×3).** One escape catches nothing, and there are eight recorded non-hits.
+`docs/contribution-and-release-operations.md:107` moved from the flaggable group to the non-hits
+when #5025 merged.
 
 A previous revision of this table said "11 live violations, 9 exempt rows" and then "10 and 8": both
 were wrong in different ways. The first counted only the flaggable set and then inflated the exempt

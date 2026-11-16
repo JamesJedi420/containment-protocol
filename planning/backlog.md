@@ -4,7 +4,7 @@
 >
 > `npm run verify:backlog-handoff` is **unchanged**; what it checks is internal consistency only. It does not assert authority, priority or freshness, and a green run is not evidence that this list is the queue. The authoritative projection mechanism is SPE-3338; it currently produces no output because its inputs are incomplete.
 >
-> The verifier also enforces shape limits: 1–12 active entries, at most 350 characters per entry, at most 6,000 bytes for this file, no shipped records, distinct owning issue IDs, and inclusion of each manifest handoff issue. It also requires the first 12 archived shipped-record lines in the frozen history file to cover the set the manifest archives, and every slice doc's `**Status**` row to match the manifest. These limits do not establish work readiness.
+> The verifier also enforces shape limits: 1–12 active entries, at most 350 characters per entry, at most 6,000 bytes for this file, no shipped records, distinct owning issue IDs, and inclusion of each manifest handoff issue. It also requires the first 12 archived shipped-record lines in the frozen history file to cover the set the manifest archives, and each slice doc listed in the manifest's `sliceDocStatus` to have a matching `**Status**` row. These limits do not establish work readiness.
 
 Shortlist checked on 2026-11-01; it is not an automated readiness projection.
 Continue existing work first; confirm blockers and an approved bounded slice in Linear before starting a Backlog item.

@@ -1,0 +1,311 @@
+{
+  "assessment": "incomplete",
+  "blockers": [],
+  "exceptions": [],
+  "limitation": "Reviewed evidence snapshot only; does not execute fixtures, verify external sources, approve exceptions, close Linear issues or establish whole-release readiness.",
+  "owner": "SPE-3352",
+  "registrySource": "git:b68859c9e2950b55ed5f3e52d1bbff5f88bb7a61:scripts/validation/validators.v1.json",
+  "rows": [
+    {
+      "evidence": [],
+      "id": "ac-01",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Named golden fixtures and stable assertions"
+    },
+    {
+      "evidence": [],
+      "id": "ac-02",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Canonical outcome repeatability"
+    },
+    {
+      "evidence": [],
+      "id": "ac-03",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Fresh entry, multiple weeks and reload"
+    },
+    {
+      "evidence": [],
+      "id": "ac-04",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Degraded operation and recoverable consequences"
+    },
+    {
+      "evidence": [],
+      "id": "ac-05",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Consume the existing weekly-loop baseline"
+    },
+    {
+      "evidence": [],
+      "id": "ac-06",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Aggregate authoritative owner evidence"
+    },
+    {
+      "evidence": [],
+      "id": "ac-07",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Classify every criterion with rationale and evidence"
+    },
+    {
+      "evidence": [],
+      "id": "ac-08",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Identify remediation owners"
+    },
+    {
+      "evidence": [],
+      "id": "ac-09",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Explicit fixture runtime and state-growth thresholds"
+    },
+    {
+      "evidence": [],
+      "id": "ac-10",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Explicit, reviewable exceptions"
+    },
+    {
+      "evidence": [],
+      "id": "ac-11",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "CP-core scope and supported lifecycle only"
+    },
+    {
+      "evidence": [],
+      "id": "ac-12",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Reproducible acceptance summary"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-continuity",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Reproducibility and continuity"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-delayed",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Delayed consequences"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-divergence",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Controlled divergence and convergence"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-incidents",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Incident interaction"
+    },
+    {
+      "evidence": [
+        {
+          "revision": "b68859c9e2950b55ed5f3e52d1bbff5f88bb7a61",
+          "scope": "Clean-subject execution passed 463 tests in eight existing files with Node 22.23.5, Vitest 5.1.0, CI=true and STRICT_TEST_CONSOLE=1. Source assessment maps actual assertions, five evidence conditions, exact commands and original artifact hashes; distinguishes seeded fixtures, isolated tests, source inspection and unavailable gameplay evidence. This complementary packet is not an integrated release census.",
+          "source": "repo:planning/release-evidence/b68859c9/information-assessment.md"
+        }
+      ],
+      "id": "comparison-information",
+      "observedResult": "warning",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "Existing tests and source establish bounded separation of factual truth, witness interpretation, institutional judgment, crowd consensus and agency-known state, constructed-state persistence/output, and real week-close progression of explicitly seeded intake reports. They do not establish one controlled normal-play information-acquisition trajectory across all five layers. Synthetic corroboration and fixture history are not new observed world events; certainty hydration is not acquisition. Broader information visibility, provenance and release acceptance remain incomplete.",
+      "status": "warning",
+      "title": "History and information"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-intervention",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Intervention and inaction"
+    },
+    {
+      "evidence": [],
+      "id": "comparison-quiet",
+      "owner": "SPE-3352",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3352",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Quiet-period viability"
+    },
+    {
+      "evidence": [],
+      "id": "full-build",
+      "owner": "SPE-3375",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3375",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Full production build (separate from bundle gate)"
+    },
+    {
+      "evidence": [],
+      "id": "owner-accessibility",
+      "owner": "SPE-1080",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-1080",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Accessibility and explainability evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-calibration",
+      "owner": "SPE-25",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-25",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Calibration evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-continuity",
+      "owner": "SPE-1464",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-1464",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Continuity-validation evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-persistence",
+      "owner": "SPE-2607",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-2607",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Persistence and migration evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-replay",
+      "owner": "SPE-3162",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3162",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Canonical stochastic identity and replay evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-simulation",
+      "owner": "SPE-26",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-26",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Simulation-validation evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-telemetry",
+      "owner": "SPE-1119",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-1119",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Telemetry and diagnostic evidence"
+    },
+    {
+      "evidence": [],
+      "id": "owner-ux",
+      "owner": "SPE-1245",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-1245",
+      "rationale": "No assessment supplied.",
+      "status": "unavailable-evidence",
+      "title": "Observed-player and UX evidence"
+    },
+    {
+      "evidence": [],
+      "id": "repository-validation",
+      "owner": "SPE-3348",
+      "ownerSource": "https://linear.app/spectranoir/issue/SPE-3348",
+      "rationale": "No SPE-3348 execution report supplied.",
+      "status": "unavailable-evidence",
+      "title": "Repository validation evidence"
+    }
+  ],
+  "schemaVersion": 1,
+  "subjectRevision": "b68859c9e2950b55ed5f3e52d1bbff5f88bb7a61",
+  "unavailable": [
+    "ac-01",
+    "ac-02",
+    "ac-03",
+    "ac-04",
+    "ac-05",
+    "ac-06",
+    "ac-07",
+    "ac-08",
+    "ac-09",
+    "ac-10",
+    "ac-11",
+    "ac-12",
+    "comparison-continuity",
+    "comparison-delayed",
+    "comparison-divergence",
+    "comparison-incidents",
+    "comparison-intervention",
+    "comparison-quiet",
+    "full-build",
+    "owner-accessibility",
+    "owner-calibration",
+    "owner-continuity",
+    "owner-persistence",
+    "owner-replay",
+    "owner-simulation",
+    "owner-telemetry",
+    "owner-ux",
+    "repository-validation"
+  ],
+  "warnings": ["comparison-information"]
+}

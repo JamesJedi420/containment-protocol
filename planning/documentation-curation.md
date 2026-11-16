@@ -43,7 +43,7 @@ Rules for any sweep that extracts paths, anchors, or claims from issue descripti
 
 ## Citations that resolve to nothing in this repository
 
-A documentation path that does not exist in the clone is only acceptable when the citation says why. Triage of the 40 dangling full-path citations found on 2026-11-16 at `b1a41a20` produced these classes; each citation now carries its class inline, and a future citation checker should read this list as its allowlist seed rather than re-deriving it.
+A documentation path that does not exist in the clone is only acceptable when the citation says why. Triage of the 40 dangling full-path citations found on 2026-11-16 at `b1a41a20` produced these classes; each citation now carries its class inline, and the checker that will consume this list is SPE-3756, which must read these classes as its allowlist rather than re-deriving them.
 
 - **Local, gitignored:** `.cursor/mcp.json`, `.vscode/launch.json`, `.vscode/settings.json` (`.gitignore` keeps only `.vscode/extensions.json`), `.trigger/experiment-request.json`.
 - **Outside the repository:** `codex/SKILL.md` and `hermes-agent/SKILL.md` sit under the installed Hermes skills root, not in git.

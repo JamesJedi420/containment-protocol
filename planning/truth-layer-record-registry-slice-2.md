@@ -12,7 +12,7 @@ One-page implementation plan. Linear: [SPE-2448](https://linear.app/spectranoir/
 
 ## Goal
 
-Persist validated `TruthLayerRecord` entries on `GameState` with sanitize/hydration and save round-trip tests. Reuse `AuthoritySourceConfidence` (SPE-677) and `KnowledgeTier` (SPE-58) at runtime where records reference them.
+Persist validated `TruthLayerRecord` entries on `GameState` with sanitize/hydration and save round-trip tests. Reuse `AuthoritySourceConfidence` (SPE-788) and `KnowledgeTier` (SPE-58) at runtime where records reference them.
 
 ## Prerequisite (on `main` @ `9e050dd0`)
 
@@ -21,7 +21,7 @@ Persist validated `TruthLayerRecord` entries on `GameState` with sanitize/hydrat
 | Registry schema      | `src/domain/truthLayerRecordRegistry.ts` (SPE-2447 / PR #2772)         |
 | Fixtures             | `COMPETING_TRUTH_LAYERS_FIXTURE`, `ACTOR_TRUTH_LAYER_FIXTURE`          |
 | Sibling persistence  | `publicDisclosureRecords` (SPE-2325 / PR #2517)                        |
-| Source-confidence vocabulary | `AuthoritySourceConfidence` in `src/domain/authorityGraph.ts` (SPE-677) |
+| Source-confidence vocabulary | `AuthoritySourceConfidence` in `src/domain/authorityGraph.ts` (SPE-788) |
 | Knowledge-state vocabulary | `KnowledgeTier` in `src/domain/knowledge.ts` (SPE-58)                  |
 
 ## Scope (this slice)

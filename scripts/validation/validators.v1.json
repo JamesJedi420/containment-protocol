@@ -327,6 +327,18 @@
         "pathGlobs": ["scripts/validation/**"]
       },
       "whenUnavailable": "fail"
+    },
+    {
+      "id": "doc-links",
+      "ownerIssue": "SPE-3757",
+      "ownerNote": "Advisory Markdown link, anchor and line-anchored citation checker. Independent of doc-citations. Anchor findings are warnings.",
+      "command": "node scripts/verify-doc-links.mjs",
+      "enforcement": "advisory",
+      "activation": {
+        "changeClasses": ["docs", "planning", "architecture", "shared-config", "tooling"],
+        "pathGlobs": ["scripts/verify-doc-links.mjs", "scripts/validation/validators.v1.json"]
+      },
+      "whenUnavailable": "report-unavailable"
     }
   ]
 }

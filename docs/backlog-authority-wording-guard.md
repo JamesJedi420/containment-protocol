@@ -39,7 +39,8 @@ Each in-scope file is checked twice, because the two ways of making the claim ar
 A line is a hit when **all** hold:
 
 1. It contains a vocabulary term from the table below.
-2. It also names `planning/backlog.md` on the same line (co-occurrence rule, see R1).
+2. It also carries a **backlog reference** on the same line — the path `planning/backlog.md`, or a
+   backlog-reference token such as `backlog children` (co-occurrence rule, see R1).
 3. No negation marker appears on the line (R2).
 4. It is not a structural exemption (R3).
 5. Its `file:line` + normalised-text hash is not already in the ratchet baseline (R5).
@@ -64,7 +65,7 @@ C1 would never see it.
 | `canonical queue`, `canonical active queue`, `canonical near-term queue` | `planning/milestones.md:11`, `planning/hidden-modality-matrix-post-matrix-queue.md:51` | Pattern form; `canonical near-term queue` had 0 hits alone |
 | `queue authority` | `planning/scope-discipline-grooming-pass.md:10` | Added after the sweep |
 | `compact live queue` | none (retired in #5022) | Kept as a tombstone |
-| `the queue`, `active queue` (unqualified) | `.cursor/skills/cp-next-implementation-slice/SKILL.md:33,35`, `planning/scope-discipline-grooming-pass.md:116,126,137,156` | Added in this revision. **Only safe because of R1** — without co-occurrence these two terms match hundreds of game-subsystem lines |
+| `the queue`, `active queue` (unqualified) | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35`, `planning/scope-discipline-grooming-pass.md:116,126,137,156` | Added in this revision. **Only safe because of R1** — without co-occurrence these two terms match hundreds of game-subsystem lines. `SKILL.md:33` uses no queue word at all and is not caught; see the escape row below |
 
 **Retired from the vocabulary: `queue projection`.** It has 8 occurrences and none is this defect:
 `README.md:166` uses it in a corrected negation, and the rest are the SPE-3338 projection concept or
@@ -75,10 +76,28 @@ catches.
 
 ### R1 — co-occurrence is load-bearing
 
-An unqualified `the queue` or `active queue` hit only counts when the same line also names
-`planning/backlog.md`. This is what makes the unqualified terms usable: the repository has hundreds of
-`queue` mentions that describe the game's own subsystems (`publishQueue*`, workshop queues, event
-queues, mission triage "blocked queue") and none of them names the file. Dropping R1 would make the
+A vocabulary hit only counts when the same line also carries a **backlog reference**, of either kind:
+
+- **R1(a) — the path:** `planning/backlog.md`.
+- **R1(b) — a backlog-reference token:** `backlog child`, `backlog children`, `backlog item`,
+  `backlog items`, `backlog entry`, `backlog entries`, `backlog shortlist`.
+
+R1(b) exists because of a defect in the first draft of this document. The violation table claimed
+`.cursor/skills/cp-next-implementation-slice/SKILL.md:33,35` were both caught, but line 35 reads
+"Other eligible **backlog children** named in the active queue" — an unqualified `active queue` with
+no path on the line, so R1(a) alone would never have flagged it. Caught on review, not by the guard.
+
+**Bare `backlog` was rejected as a token, on measurement.** Six lines in scope pair a queue word with
+bare `backlog`, and none is this defect: `docs/funding-procurement-budget-pressure-audit.md:49`
+(`procurementBacklog`, game code), `docs/harvest-candidate-triage-agent.md:29,106` (a "pending apply
+queue" over the candidate mirror), `docs/cursor-delegated-backlog-approval.md:81` ("**Queue
+state**"), `architecture/persistence-model.md:587` (a heading warning that the backlog is
+non-canonical — the correct claim, inside an R4-excluded file). With R1(b) as written, exactly one
+line in scope matches today: the skill's step 3.
+
+Co-occurrence is also what makes the unqualified terms usable: the repository has hundreds of `queue`
+mentions describing the game's own subsystems (`publishQueue*`, workshop queues, event queues, mission
+triage "blocked queue") and none of them carries a backlog reference. Dropping R1 would make the
 guard unusable and would also flag its own status table above.
 
 ### R2 — negation skip
@@ -170,7 +189,8 @@ Classified by hand, to seed the baseline. `main` is at `f4454719`; `#5025` moves
 | `planning/deferred-design-documents.md:38` | "— near-term engineering queue" | **Violation** — not yet filed |
 | `planning/hidden-modality-matrix-post-matrix-queue.md:51` | "— canonical active queue" | **Violation** — not yet filed |
 | `planning/scope-discipline-grooming-pass.md:10` | "**Queue authority** \| `planning/backlog.md`" | **Violation** — not yet filed |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:33,35` | "Recommended next concrete SPE in `planning/backlog.md`", "active queue" | **Violation** — subject of the collapse proposal |
+| `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | "Other eligible backlog children named in the active queue" | **Violation** (C1 via R1(b)) — subject of the collapse proposal |
+| `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` | "Recommended next concrete SPE in `planning/backlog.md`" | **Escape — not caught.** No queue word, so no vocabulary term matches; a selection claim the guard misses |
 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:21` | heading "## Confirm the queue is empty" | **Violation** (C2) |
 | `docs/contribution-and-release-operations.md:107` | "near-term priority queue" | **Fixed in #5025** — remove from baseline on merge |
 | `planning/backlog.md:5` | "not evidence that this list is the queue" | Exempt (R2) |
@@ -183,9 +203,11 @@ Classified by hand, to seed the baseline. `main` is at `f4454719`; `#5025` moves
 | `docs/agent-operating-manual.md:42` | corrected in #5022 | Exempt (R2), shrinks baseline |
 | `AGENTS.md:57` | corrected in #5022 | Passes |
 
-At the time of writing: **11 rows of live violations, 9 exempt rows.** The guard would fail on `main`
-today for every violation above; the baseline seeds only the exempt rows, so the failing set is the
-work list rather than a rubber stamp.
+At the time of writing: **10 live violations (9 by C1, 1 by C2), 8 exempt rows, 1 escape, 1 row
+pending a merge (#5025), 1 pass.** The guard would fail on `main` today for all ten violations; the
+baseline seeds only the exempt rows, so the failing set is the work list rather than a rubber stamp.
+The escape row is caught by nothing, and is counted here so this document's coverage claim stays
+honest rather than reading as if every listed line falls to a rule.
 
 ## Interface (when implemented)
 
@@ -230,6 +252,11 @@ Steps 1–5 are the reason this is a proposal: all five are outside a docs-only 
 These make the same claim and pass the guard:
 
 - "the place we track what to do next" (`README.md` phrasing style).
+- A selection claim that names the file but uses no queue word, e.g.
+  `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` ("Recommended next concrete SPE in
+  `planning/backlog.md`"). Adding `recommended next` as a term was rejected: it would also fire on
+  four bookkeeping rows in `planning/scope-discipline-grooming-pass.md` that record a base-SHA bump
+  in that section rather than ordering work from it.
 - A table titled "Next up" or "Up next" with no queue word.
 - "ordered by what matters" / "highest value first".
 - Any non-English text.

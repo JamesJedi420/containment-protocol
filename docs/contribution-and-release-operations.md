@@ -104,6 +104,6 @@ Publish-queue execution-receipt mirror surfacing (SPE-2496) extends the `/publis
 - `README.md` — scripts, validation, repository layout
 - `docs/dependency-boundaries.md`
 - `docs/design-audits-index.md` — audit catalog maintenance
-- `planning/backlog.md` — near-term priority queue
+- `planning/backlog.md` — non-authoritative backlog shortlist; Linear owns priority
 - `planning/documentation-curation.md` — ongoing doc and planning curation playbook
 - `AGENTS.md` — agent-facing operational notes

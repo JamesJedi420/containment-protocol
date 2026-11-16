@@ -53,7 +53,7 @@ Do **not** exercise this path inside a merge Phase B closeout session. Phase B s
 Apply in order; stop at the first eligible issue:
 
 1. Concrete SPE named in `planning/backlog.md` **Recommended next step** that is not the `primary` parent and not recently shipped.
-2. Eligible child of manifest `primary` (prefer higher Linear priority, then lowest SPE number; prefer issues with an existing slice doc).
+2. Eligible child of manifest `primary` — **only when `primary` is non-null** (prefer higher Linear priority, then lowest SPE number; prefer issues with an existing slice doc). When `primary` is `null`, skip this rule and record `primary: none` in the decision criteria; do not report the skip as "no eligible children".
 3. Next other eligible child named in the active queue of `planning/backlog.md`.
 4. If still none: highest-value eligible existing owner required by recent shipped contradiction/authority folds (document why primary children were skipped).
 

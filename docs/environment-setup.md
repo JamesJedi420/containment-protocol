@@ -263,7 +263,7 @@ npx husky add .husky/pre-push "npm run test:run"
 For more details, see:
 
 - [README.md](../README.md) - Project overview
-- [Contributing Guide](../CONTRIBUTING.md) - Development standards
+- [Contributing Guide](../README.md#contributing) - Development standards
 - [Architecture](../README.md#architecture) - Code organization
 
 ## Support

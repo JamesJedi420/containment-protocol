@@ -74,7 +74,7 @@ export function buildCanonicalProcedureAdapterFixture(input: {
       reagents: [],
       requiresDiagram: false,
       deviceTags: [],
-      ...(input.includeEnvironmentalConditions === true ? { environmentalConditions: [] } : {}),
+      environmentalConditions: [],
     },
     restrictions: {
       forbiddenRoles: [],

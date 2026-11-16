@@ -219,30 +219,80 @@ The optional root `openPrTriage` uses `schemaVersion: 1` within the existing ver
 - For `disposition: 'active-owner'`, require `activity`: accepted `executor`, `acceptedAt`, `acceptanceSourceRef`, `status: 'active'`, `checkedAt`, `sourceRef` to actual current progress/session evidence. An executor identical to this boundary's executor blocks a second active boundary. Acceptance alone does not prove current activity.
 - `actionable` blocks a fresh `start`. For `resume`, the selected authorized matching PR may advance beside other independently actionable PRs after all dispositions and path/dependency checks pass; two actionable drafts must not mutually deadlock continuation. No fabricated blocker or owner is needed for the unselected PR. `unknown` fails closed for either operation. Supplying activity or blocker fields with the wrong disposition is contradictory and invalid. Unsupported packet fields and duplicate PR numbers are invalid.
 
-Example row (illustrative values, not evidence of a real hold):
+### Caller checklist and template
+
+The direct CLI and Codex environment action consume the same caller-supplied envelope.
+Neither constructs dispositions or infers permission from PR authorship. If an open PR
+causes `open_pr_blocks_start`, or extra PRs cause `multiple_open_prs`, first check whether
+`openPrTriage` was omitted. Those legacy reasons are not an instruction to merge or close
+all PRs. Recover by collecting the evidence below, not by adding a bypass flag.
+
+1. Inspect the complete current open/draft inventory, exact heads and full changed paths,
+   reviews/checks, current owners and actual blockers. Prioritize actionable PR work.
+2. Refresh the named Linear scope, lifecycle and dependencies; describe the complete
+   intended boundary paths and the actual accepted executor. Do not substitute an
+   assignment or a model name for current activity evidence.
+3. Add the root `openPrTriage` packet to the existing version-1 input before invoking
+   `npm run session:preflight -- --collect-local` or the Codex environment preflight action.
+   Include every other PR exactly once. For `resume`, omit the selected matching PR from
+   `items`; the collector/evaluator still checks its verified identity and actual head.
+4. Supply fresh current-head dispositions, dependencies and required blocker/activity
+   evidence. If any evidence is unknown, leave it unknown and remain stopped. Never copy
+   the illustrative hold below as a real disposition or change timestamps without rereading
+   their sources. Collection refreshes Git/GitHub, not caller-supplied triage provenance.
+5. Inspect the resulting status and every reason. Start/resume only when `ready`; local
+   dirt, stale main, overlap, dependent work and authorization/lifecycle gates still apply.
+   A missing packet is not the only possible blocker, and a packet never grants approval.
+
+This applies equally to a PR previously authored by Codex or another agent. A genuinely
+blocked owned PR can remain explicitly paused with truthful incomplete lifecycle, actor
+and next action while one separately authorized independent boundary proceeds. An
+**active** owned PR cannot be relabeled blocked merely to start another boundary. A
+selected authorized PR can resume beside independently actionable PRs under the same
+contract. Authorship alone never permits or forbids either operation.
+
+Illustrative complete root packet, to merge into the required version-1 envelope above.
+These fictional values are a schema example, not current evidence or permission:
 
 ```json
 {
-  "number": 42,
-  "headSha": "2222222222222222222222222222222222222222",
-  "updatedAt": "2026-11-03T03:29:00Z",
-  "isDraft": true,
-  "disposition": "blocked",
-  "reason": "The current instruction reserves this repair to its author",
-  "nextAction": "Author corrects the identified finding and requests fresh review",
-  "checkedAt": "2026-11-03T03:29:30Z",
-  "sourceRef": "user:current-explicit-author-only-hold",
-  "dependency": {
-    "status": "independent",
-    "checkedAt": "2026-11-03T03:29:30Z",
-    "sourceRef": "linear:current-scope-and-relationship-check"
-  },
-  "blocker": {
-    "kind": "explicit-hold",
-    "actor": "author-session:42",
-    "detail": "Taking over the repair is explicitly excluded",
-    "checkedAt": "2026-11-03T03:29:30Z",
-    "sourceRef": "user:current-explicit-author-only-hold"
+  "openPrTriage": {
+    "schemaVersion": 1,
+    "boundary": {
+      "issueId": "SPE-3337",
+      "workstream": "shared-system",
+      "branch": "codex/spe-3337-session-preflight",
+      "baseMainSha": "1111111111111111111111111111111111111111",
+      "executor": "codex-session:this",
+      "paths": ["scripts/session-preflight-core.mjs"],
+      "checkedAt": "2026-11-03T03:29:30Z",
+      "sourceRef": "example:verified-approved-boundary"
+    },
+    "items": [
+      {
+        "number": 42,
+        "headSha": "2222222222222222222222222222222222222222",
+        "updatedAt": "2026-11-03T03:29:00Z",
+        "isDraft": true,
+        "disposition": "blocked",
+        "reason": "The current instruction reserves this repair to its author",
+        "nextAction": "Author corrects the identified finding and requests fresh review",
+        "checkedAt": "2026-11-03T03:29:30Z",
+        "sourceRef": "example:current-explicit-author-only-hold",
+        "dependency": {
+          "status": "independent",
+          "checkedAt": "2026-11-03T03:29:30Z",
+          "sourceRef": "example:current-scope-and-relationship-check"
+        },
+        "blocker": {
+          "kind": "explicit-hold",
+          "actor": "author-session:42",
+          "detail": "Taking over the repair is explicitly excluded",
+          "checkedAt": "2026-11-03T03:29:30Z",
+          "sourceRef": "example:current-explicit-author-only-hold"
+        }
+      }
+    ]
   }
 }
 ```

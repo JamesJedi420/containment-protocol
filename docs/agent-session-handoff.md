@@ -34,7 +34,14 @@ Select Node.js 22 in the shell used by the app before setup or actions run. The 
 | Required validation   | `node scripts/codex-environment.mjs validate`  | `npm run verify:requirements -- --base origin/main` |
 | Named-task preflight  | `node scripts/codex-environment.mjs preflight` | `npm run session:preflight -- --collect-local`      |
 
-Preflight still requires fresh, source-attributed evidence for an explicitly named approved task on standard input. For example, in PowerShell, pipe a verified external evidence file into the action:
+Preflight still requires fresh, source-attributed evidence for an explicitly named approved task on standard input. When PRs are open, prepare the complete root
+`openPrTriage` packet using the [caller checklist and template](session-preflight.md#caller-checklist-and-template)
+before invoking either the direct CLI or this action. The adapter preserves that packet;
+it does not construct dispositions. A missing packet intentionally retains the conservative
+legacy blocker, not a requirement to merge or close every PR. The same head-bound,
+non-overlap checks apply to Codex's own genuinely blocked paused PR and another author's
+PR; authorship alone is never an exemption. Preserve unknown evidence and all other gates.
+For example, in PowerShell, pipe a verified external evidence file into the action:
 
 ```powershell
 $OutputEncoding = [System.Text.UTF8Encoding]::new($false)

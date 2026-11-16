@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { evaluateSessionPreflight } from './session-preflight-core.mjs'
 import { collectGitHubEvidence, collectLocalSessionEvidence } from './session-preflight.mjs'
@@ -91,6 +92,19 @@ function input(pullRequests = [pr()], items = pullRequests.map((p) => item(p)), 
   })
 }
 
+test('the complete documented caller packet matches the executable triage contract', () => {
+  const doc = readFileSync(new URL('../docs/session-preflight.md', import.meta.url), 'utf8')
+  const section = doc.split('### Caller checklist and template')[1]
+  assert.ok(section)
+  const example = /```json\n([\s\S]*?)\n```/.exec(section)
+  assert.ok(example)
+  const packet = JSON.parse(example[1])
+  assert.deepEqual(Object.keys(packet), ['openPrTriage'])
+  const result = evaluateSessionPreflight(input([pr()], undefined, packet))
+  assert.equal(result.status, 'ready', JSON.stringify(result.reasons))
+  assert.match(doc, /fictional values are a schema example, not current evidence or permission/)
+})
+
 test('actionable drafts block new work; draft/assignee/author labels alone do not exempt them', () => {
   const result = evaluateSessionPreflight(input([pr()], [item(pr(), 'actionable')]))
   assert.equal(result.status, 'blocked')
@@ -155,6 +169,19 @@ test('a genuinely blocked owned PR can remain paused while one independent autho
   assert.equal(paused.github.openPullRequests[0].state, 'open')
   assert.equal(paused.github.openPullRequests[0].merged, false)
   assert.equal(result.evidence.openPrTriage.items[0].disposition, 'blocked')
+
+  const stale = structuredClone(paused)
+  stale.openPrTriage.items[0].blocker.checkedAt = '2026-11-03T03:20:00Z'
+  assert.notEqual(evaluateSessionPreflight(stale).status, 'ready')
+
+  const overlap = structuredClone(paused)
+  overlap.github.openPullRequests[0].changedPaths = overlap.openPrTriage.boundary.paths
+  assert.notEqual(evaluateSessionPreflight(overlap).status, 'ready')
+
+  const actionable = structuredClone(paused)
+  actionable.openPrTriage.items[0].disposition = 'actionable'
+  delete actionable.openPrTriage.items[0].blocker
+  assert.ok(reasonCodes(evaluateSessionPreflight(actionable)).includes('pr_actionable'))
 })
 
 test('unknown, incomplete, duplicate and contradictory dispositions fail closed', () => {

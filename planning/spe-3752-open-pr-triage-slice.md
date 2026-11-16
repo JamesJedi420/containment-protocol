@@ -37,3 +37,37 @@ The code anchors for this branch are `scripts/session-preflight-pr-triage.mjs` (
 Pre-implementation Hermes acceptance mapping was attempted once with configured local Qwen3.5 9B (`pr-triage-design-checkpoint.log`, session evidence outside the repository). It returned unsupported source anchors; those claims were rejected and bounded direct inspection used. No measured savings claimed. Short validator checks stay direct; no external research, frontend guidance or dependency security lookup is applicable to this tooling-only boundary. Post-review and post-merge checkpoints assess actual evidence volume and use the documented direct fallback where needed.
 
 Current execution results belong in the PR and SPE-3752 comments. Do not label this slice Done until the full shipping acceptance is verified. No in-boundary deferrals or new candidate scope have been identified.
+
+## November 16 corrective continuation
+
+James explicitly requested fixing preflight caller friction and confirmed that eligible
+work must also be possible when Codex has its own open PR. Reuse SPE-3752 for this
+bounded correction; its lifecycle was restored to In Progress without changing James,
+its scope or relationships. SPE-3337's completed historical delivery is unchanged.
+
+At base `b1a41a20fbbba26e4224eb4f9f26ea63c051e2cb`, the existing evaluator and regression
+already permit a genuinely blocked owned PR to remain paused. The adapter inherits
+stdin unchanged. The caller gap was missing `openPrTriage` recovery guidance and a
+complete boundary-plus-items example, not an absent author-specific exemption.
+
+Only missing-packet reason details, caller documentation and focused regressions change.
+Stable reason codes/statuses/exit behavior and all readiness predicates remain unchanged.
+No automatic packet, owner, blocker or timestamp is invented. No governance, lifecycle
+policy, credential, runtime, dependency, collector or CI enforcement changes.
+
+A fresh complete GitHub inventory and six-file diff showed #5016 at
+`d1e67749b07c6d9ea7566acf81814e36db9cdfd2`, paused under publication-only/no-merge approval.
+Its paths and current Linear dependencies are independent. An isolated clean-main
+structured start evaluation returned ready before the corrective branch was created.
+The dashboard's separate nine-file worktree is preserved and is not modified here.
+Historical #4993 closeout remains evidence of its actual delivery, not current readiness.
+
+Acceptance: missing-triage start and multi-PR resume diagnostics point to the complete
+caller contract without waiving blockers; real inherited-stdin transport preserves
+caller bytes; the documented packet validates against constructed fixtures; stale,
+overlapping and actionable owned-PR variants remain non-ready. Run focused preflight,
+adapter, governance and required selected checks, then independent full-diff review and
+normal draft PR/CI/merge closeout. Do not call fixture evidence a live start observation.
+Hermes checkpoint: direct, bounded evidence volume does not justify delegation. No
+external research or dependency-security review applies to this dependency-free change.
+Current results and unresolved shipping gates are recorded in the PR/Linear closeout.

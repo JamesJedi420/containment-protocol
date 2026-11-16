@@ -5,6 +5,10 @@ Protocol. An ADR states **why** a durable, cross-cutting technical decision was 
 was rejected. It does not restate how a subsystem works: `architecture/` owns the current
 per-system description, and an ADR links to it instead of copying it.
 
+**Maintenance owner:** [SPE-2914](https://linear.app/spectranoir/issue/SPE-2914/architecture-decision-records-and-maintenance-workflow).
+This Git guide and the records are documentation; their presence does not establish completion
+of that issue's validator or lifecycle acceptance. Documentation-only routing uses SPE-1705.
+
 ## What belongs here
 
 Record a decision when it is durable, cross-cutting, and expensive to reverse, for example:
@@ -98,6 +102,10 @@ current code win, and the record is corrected or superseded through the normal r
 - When a documented decision changes, supersede rather than edit.
 - When implementation evidence moves (a test is replaced, a guard is removed), update the
   evidence field in the same change.
+- During PR review, follow the [documentation-reference search and semantic review](../../planning/documentation-curation.md#documentation-reference-search-and-semantic-review).
+  Use **Affected systems**, **Linear owner**, and **Implementation evidence** to identify source
+  paths/symbols and the revision checked; verify what those sources actually say. Preserve the
+  original decision and supersession links when only evidence paths need correction.
 - Review the status fields when the owning Linear issues close; a record whose owner is done and
   whose evidence is gone is a candidate for supersession or deprecation.
 

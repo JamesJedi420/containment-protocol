@@ -1,3 +1,7 @@
+import {
+  observeSettlementReport,
+  reloadSettlementReport,
+} from './helpers/majorIncidentSettlementReportFixture'
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
@@ -304,4 +308,72 @@ describe('SPE-3076 major-incident terminal settlement', () => {
     expect(['success', 'partial', 'fail']).toContain(receipt.finalOutcome)
     expect(runtime?.settlementReceiptId).toBe(receipt.receiptId)
   })
+})
+
+describe('SPE-3076 final settlement report handoff', () => {
+  it.each([
+    { activeCount: 4, outcome: 'success', rewards: 'Funding +30, containment +5, reputation +18.' },
+    { activeCount: 5, outcome: 'partial', rewards: 'Funding +14, containment +2, reputation +7.' },
+  ] as const)(
+    'reports the final $outcome receipt with $activeCount concurrent operations',
+    ({ activeCount, outcome, rewards }) => {
+      const { after, report, mission, receipt } = observeSettlementReport(activeCount)
+      expect(after.coordinationFrictionActive).toBe(activeCount === 5)
+      expect(receipt.finalOutcome).toBe(outcome)
+      expect(receipt.reportableOutcome.outcome).toBe(outcome)
+      expect(mission.outcome).toBe(outcome)
+      expect(outcome === 'partial' ? report.partialCases : report.resolvedCases).toContain('c0')
+      expect(outcome === 'partial' ? report.resolvedCases : report.partialCases).not.toContain('c0')
+      expect(
+        mission.explanationNotes.filter((note) =>
+          note.startsWith('Major-incident terminal settlement: ')
+        )
+      ).toEqual([
+        `Major-incident terminal settlement: ${receipt.reportableOutcome.summary} (${receipt.receiptId})`,
+      ])
+      expect(mission.explanationNotes).toContain('Weakest-link outcome: clean_success')
+      expect(mission.explanationNotes.some((note) => note.startsWith('Aggregate battle: '))).toBe(
+        true
+      )
+      expect(
+        mission.explanationNotes.some((note) => note.startsWith('Durable contacts marked: '))
+      ).toBe(true)
+      expect(mission.explanationNotes.filter((note) => note.startsWith('Funding '))).toEqual([
+        rewards,
+      ])
+      expect(
+        mission.explanationNotes.some((note) => note.includes('Command-coordination friction'))
+      ).toBe(activeCount === 5)
+    }
+  )
+
+  it.each([4, 5])(
+    'preserves the final report through replay, save/load and valid relaunch with %i operations',
+    (activeCount) => {
+      const observation = observeSettlementReport(activeCount)
+      const { source, mission, receipt } = observation
+      const replay = advanceWeek(source, 0)
+      expect(replay.reports.at(-1)!.caseSnapshots!.c0.missionResult).toEqual(mission)
+      expect(replay.cases.c0.majorIncident!.settlementReceipt).toEqual(receipt)
+      const { loaded, current, savedReport, historical } = reloadSettlementReport(
+        observation,
+        activeCount === 5
+      )
+      expect(savedReport.caseSnapshots!.c0.missionResult).toMatchObject({
+        caseId: mission.caseId,
+        outcome: mission.outcome,
+        explanationNotes: mission.explanationNotes,
+      })
+      expect(loaded.cases.c0.majorIncident!.settlementReceipt).toEqual(receipt)
+      if (activeCount === 5) {
+        expect(current.cases.c0.status).toBe('in_progress')
+        expect(current.cases.c0.majorIncident!.settlementReceipt).toBeUndefined()
+      }
+      expect(historical.caseSnapshots!.c0.missionResult).toMatchObject({
+        caseId: mission.caseId,
+        outcome: mission.outcome,
+        explanationNotes: mission.explanationNotes,
+      })
+    }
+  )
 })

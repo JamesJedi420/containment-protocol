@@ -2811,11 +2811,7 @@ function resolveAssignments(
     const resolutionReasons = [
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
-      ...(majorIncidentSettlement
-        ? [
-            `Major-incident terminal settlement: ${majorIncidentSettlement.reportableOutcome.summary} (${majorIncidentSettlement.receiptId})`,
-          ]
-        : []),
+      ...(majorIncidentSettlement ? [formatMajorIncidentSettlementReason(majorIncidentSettlement)] : []),
     ]
     appendDetectionScanResolutionReason(
       resolutionReasons,
@@ -3288,6 +3284,10 @@ function resolveAssignments(
   context.nextState.agency = canonicalizeAgencyState(context.nextState.agency)
 }
 
+function formatMajorIncidentSettlementReason(receipt: MajorIncidentTerminalSettlementReceipt) {
+  return `Major-incident terminal settlement: ${receipt.reportableOutcome.summary} (${receipt.receiptId})`
+}
+
 function downgradeResolvedCaseToPartial(
   context: WeeklyExecutionContext,
   caseId: string,
@@ -3312,6 +3312,7 @@ function downgradeResolvedCaseToPartial(
     weeksRemaining: undefined,
     supportShortfall: context.nextState.cases[caseId]?.supportShortfall ?? false,
   }
+  let resolutionReasons = mission.resolutionReasons
   // SPE-3076: coordination/mission degrade after success — resettle MI as partial.
   if (downgradedCase.majorIncident && isOperationalMajorIncidentCase(sourceCase)) {
     const clearedRuntime = stripMajorIncidentSettlementReceipt(downgradedCase.majorIncident)
@@ -3324,6 +3325,14 @@ function downgradeResolvedCaseToPartial(
       downgradedCase = {
         ...downgradedCase,
         majorIncident: attachMajorIncidentSettlementReceipt(clearedRuntime, settlement.receipt),
+      }
+      const previousReceipt = resolvedCase.majorIncident?.settlementReceipt
+      if (isValidMajorIncidentSettlementReceipt(previousReceipt)) {
+        const previousReason = formatMajorIncidentSettlementReason(previousReceipt)
+        // Refresh only this receipt's explanation before the immutable report snapshot.
+        resolutionReasons = resolutionReasons?.map((reason) =>
+          reason === previousReason ? formatMajorIncidentSettlementReason(settlement.receipt) : reason
+        )
       }
     }
   }
@@ -3380,7 +3389,7 @@ function downgradeResolvedCaseToPartial(
           : []),
         ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
-      resolutionReasons: mission.resolutionReasons,
+      resolutionReasons,
     }),
     explanationNotes: [...(mission.explanationNotes ?? []), note],
   }

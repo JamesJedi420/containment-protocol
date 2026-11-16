@@ -42,10 +42,10 @@ The original five-file patch was lost. It comprised:
 - `test/importBoundaryClassifier.ts` (never landed)
 - `test/importBoundaryFixtures.ts` (never landed)
 - `test/boundary-enforcement.test.ts` (replacement)
-
-None of the three paths above exists in the repository; the patch was lost, so no `test/importBoundary*.ts` file ever landed.
 - `docs/dependency-boundaries.md` (bounded update)
 - `planning/spe-3437-dependency-boundary-regression-slice.md` (this document)
+
+The proposed classifier and fixture files never landed. The legacy `test/boundary-enforcement.test.ts` remains in the repository; the replacement version from the lost patch is absent.
 
 Recovery sweep on 2026-11-09 from the Freebuff Cloud VM:
 
@@ -75,9 +75,9 @@ Allowed files for the implementation slice:
 2. `test/importBoundaryFixtures.ts` (new; never created)
 3. `test/boundary-enforcement.test.ts` (replace the regex test)
 4. `docs/dependency-boundaries.md` (bounded enforcement-limit update)
+5. `planning/spe-3437-dependency-boundary-regression-slice.md` (this document)
 
 Items 1 and 2 are new files that were never created.
-5. `planning/spe-3437-dependency-boundary-regression-slice.md` (this document)
 
 Excluded: production source, other tests, dependencies or lockfile, CI, ESLint,
 enforcement hookup, new issues or relationships, assignee or status changes,

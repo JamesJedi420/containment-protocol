@@ -9,7 +9,7 @@ in the PR and live Linear closeout, rather than being represented as already run
 
 ## Evidence
 
-All paths on this page are relative to this directory.
+Evidence artifact paths below are relative to this directory; `scripts/typecheck-census.test.mjs` is relative to the repository root.
 
 - `before/build.txt` and `before/census.json` (paths relative to this directory): fresh literal baseline, exit 2;
   the identity multiset equals the previous mechanical-contracts after-capture.

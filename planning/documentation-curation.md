@@ -48,7 +48,7 @@ A documentation path that does not exist in the clone is only acceptable when th
 - **Local, gitignored:** `.cursor/mcp.json`, `.vscode/launch.json`, `.vscode/settings.json` (`.gitignore` keeps only `.vscode/extensions.json`), `.trigger/experiment-request.json`.
 - **Outside the repository:** `codex/SKILL.md` and `hermes-agent/SKILL.md` sit under the installed Hermes skills root, not in git.
 - **Dependency-internal:** `src/middleware/persist.ts` (the zustand package), `lib/util.js` and `lib/utilsBundle.js` (Playwright), `node_modules/zod/...`.
-- **Generated, untracked:** `.tmp/typecheck-census-node22/census.json`, `planning/approved-work-projection.json`, `docs/typecheck/green-build-2026-11-04/before/*` (relative to that directory).
+- **Generated, untracked:** `.tmp/typecheck-census-node22/census.json`, `planning/approved-work-projection.json`.
 - **Never created:** proposed or rejected artifacts cited by planning slices — `e2e/a11y-smoke.spec.ts`, `src/domain/weeklyFatigue.ts` (rejected), `test/importBoundary*.ts` (patch lost), `src/test/recoveryFatigue.contract.test.ts`, `test/fatigue-consolidation.test.ts`, `src/test/helpers/runWeeklyPrepAndAdvance.ts`, `src/app/store/gameStore.types.ts`.
 - **Another project:** `academy/content/courses.json` belongs to the Academy repository; this repo has no `academy/` directory.
 

@@ -96,14 +96,7 @@ async function collectConnection(issue, field, read) {
     page = validatePage(next[field], context)
   }
 }
-export function normalizeLinearIssues(
-  projectPages,
-  evidence,
-  asOf,
-  coverage,
-  fetchedProjectIds = coverage?.projectIds,
-  githubRevision
-) {
+function requireProjectCoverage(projectPages, fetchedProjectIds, coverage) {
   if (
     !Array.isArray(projectPages) ||
     !projectPages.every(Array.isArray) ||
@@ -133,6 +126,68 @@ export function normalizeLinearIssues(
     )
       error('project IDs differ from Linear coverage inventory')
   }
+}
+
+function collectRows(projectPages) {
+  const byId = new Map()
+  for (const page of projectPages)
+    for (const row of page) {
+      if (
+        !row ||
+        !/^[A-Z]+-\d+$/.test(row.identifier) ||
+        !row.state?.type ||
+        !Array.isArray(row.labels?.nodes) ||
+        !Array.isArray(row.relations?.nodes) ||
+        row.relations?.pageInfo?.hasNextPage !== false ||
+        !Array.isArray(row.inverseRelations?.nodes) ||
+        row.inverseRelations?.pageInfo?.hasNextPage !== false
+      )
+        error('incomplete issue or relation pagination')
+      if (row.labels.pageInfo?.hasNextPage !== false)
+        error(row.identifier + ' incomplete label pagination')
+      const labels = new Set(row.labels.nodes.map((x) => x.name))
+      const ws = WORKSTREAMS.filter((w) => labels.has('workstream:' + w))
+      if (ws.length !== 1) error(row.identifier + ' missing explicit workstream metadata')
+      if (
+        byId.has(row.identifier) &&
+        JSON.stringify(byId.get(row.identifier)) !== JSON.stringify(row)
+      )
+        error(row.identifier + ' inconsistent duplicate')
+      byId.set(row.identifier, row)
+    }
+  return byId
+}
+
+function blockingRelations(row) {
+  const blockedBy = []
+  for (const rel of row.relations.nodes) {
+    if (
+      !['blocks', 'related', 'duplicate', 'similar'].includes(rel.type) ||
+      !/^[A-Z]+-\d+$/.test(rel.relatedIssue?.identifier ?? '')
+    )
+      error(row.identifier + ' invalid outgoing relationship')
+  }
+  for (const rel of row.inverseRelations.nodes) {
+    if (
+      !['blocks', 'related', 'duplicate', 'similar'].includes(rel.type) ||
+      !/^[A-Z]+-\d+$/.test(rel.issue?.identifier ?? '')
+    )
+      error(row.identifier + ' invalid incoming relationship')
+    if (rel.type === 'blocks') blockedBy.push(rel.issue.identifier)
+  }
+  return blockedBy
+}
+
+export function normalizeLinearIssues(
+  projectPages,
+  evidence,
+  asOf,
+  coverage,
+  fetchedProjectIds,
+  githubRevision
+) {
+  fetchedProjectIds ??= coverage?.projectIds
+  requireProjectCoverage(projectPages, fetchedProjectIds, coverage)
   let verifiedEvidence
   try {
     verifiedEvidence = validateEvidenceFeed(evidence, {
@@ -143,35 +198,7 @@ export function normalizeLinearIssues(
   } catch (cause) {
     error('SPE-3276 classification coverage not attested: ' + cause.message)
   }
-  const byId = new Map()
-  for (const page of projectPages)
-    for (const row of page) {
-      if (
-        !row ||
-        !/^[A-Z]+-\d+$/.test(row.identifier) ||
-        !row.state?.type ||
-        !Array.isArray(row.labels?.nodes) ||
-        !Array.isArray(row.relations?.nodes) ||
-        !row.relations?.pageInfo ||
-        row.relations.pageInfo.hasNextPage !== false ||
-        !Array.isArray(row.inverseRelations?.nodes) ||
-        !row.inverseRelations?.pageInfo ||
-        row.inverseRelations.pageInfo.hasNextPage !== false
-      )
-        error('incomplete issue or relation pagination')
-      if (row.labels.pageInfo?.hasNextPage !== false)
-        error(row.identifier + ' incomplete label pagination')
-      const labels = row.labels.nodes.map((x) => x.name)
-      const ws = WORKSTREAMS.filter((w) => labels.includes('workstream:' + w))
-      // Linear issue presence establishes approval; ownership remains explicit.
-      if (ws.length !== 1) error(row.identifier + ' missing explicit workstream metadata')
-      if (
-        byId.has(row.identifier) &&
-        JSON.stringify(byId.get(row.identifier)) !== JSON.stringify(row)
-      )
-        error(row.identifier + ' inconsistent duplicate')
-      byId.set(row.identifier, row)
-    }
+  const byId = collectRows(projectPages)
   if (
     coverage &&
     (byId.size !== coverage.issueIds.length || coverage.issueIds.some((id) => !byId.has(id)))
@@ -180,28 +207,8 @@ export function normalizeLinearIssues(
   const issues = []
   for (const row of byId.values()) {
     const record = verifiedEvidence[row.identifier]
-    const blockedBy = [],
-      dependsOn = []
-    // Linear uses positional direction: outgoing blocks points to a blocked target;
-    // incoming blocks is owned by the actual prerequisite issue.
-    for (const rel of row.relations.nodes) {
-      if (
-        !['blocks', 'related', 'duplicate', 'similar'].includes(rel.type) ||
-        !/^[A-Z]+-\d+$/.test(rel.relatedIssue?.identifier ?? '')
-      )
-        error(row.identifier + ' invalid outgoing relationship')
-    }
-    for (const rel of row.inverseRelations.nodes) {
-      if (
-        !['blocks', 'related', 'duplicate', 'similar'].includes(rel.type) ||
-        !/^[A-Z]+-\d+$/.test(rel.issue?.identifier ?? '')
-      )
-        error(row.identifier + ' invalid incoming relationship')
-      if (rel.type === 'blocks') {
-        blockedBy.push(rel.issue.identifier)
-        dependsOn.push(rel.issue.identifier)
-      }
-    }
+    // Incoming Linear blocks edges identify the actual prerequisite issue.
+    const blockedBy = blockingRelations(row)
     issues.push({
       id: row.identifier,
       approved: true,
@@ -211,7 +218,7 @@ export function normalizeLinearIssues(
       statusType: row.state.type,
       priority: row.priority,
       blockedBy,
-      dependsOn,
+      dependsOn: [...blockedBy],
       implementationEvidence: record.implementationEvidence,
       evidenceDrift: record.evidenceDrift,
     })
@@ -225,6 +232,33 @@ export function normalizeLinearIssues(
     issues,
   }
 }
+async function fetchProjectIssues(project, read) {
+  const all = []
+  let after = null
+  const cursors = new Set(),
+    issueIds = new Set()
+  for (;;) {
+    const data = await read(QUERY, { project, after })
+    if (data.project?.id !== project) error('project identity mismatch ' + project)
+    const connection = validatePage(data.project.issues, project)
+    for (const row of connection.nodes) {
+      validateIssue(row)
+      if (issueIds.has(row.id)) error('overlapping issue pagination for ' + project)
+      issueIds.add(row.id)
+      const complete = { ...row }
+      for (const field of Object.keys(CONNECTION_QUERIES))
+        complete[field] = await collectConnection(row, field, read)
+      all.push(complete)
+    }
+    if (!connection.pageInfo.hasNextPage) break
+    const next = connection.pageInfo.endCursor
+    if (!next || cursors.has(next)) error('incomplete/cyclic pagination for ' + project)
+    cursors.add(next)
+    after = next
+  }
+  return all
+}
+
 export async function fetchLinearAuthority({
   apiKey,
   projectIds,
@@ -251,32 +285,7 @@ export async function fetchLinearAuthority({
       error('GraphQL partial result')
     return body.data
   }
-  for (const project of projectIds) {
-    const all = []
-    let after = null
-    const cursors = new Set(),
-      issueIds = new Set()
-    for (;;) {
-      const data = await read(QUERY, { project, after })
-      if (data.project?.id !== project) error('project identity mismatch ' + project)
-      const connection = validatePage(data.project.issues, project)
-      for (const row of connection.nodes) {
-        validateIssue(row)
-        if (issueIds.has(row.id)) error('overlapping issue pagination for ' + project)
-        issueIds.add(row.id)
-        const complete = { ...row }
-        for (const field of Object.keys(CONNECTION_QUERIES))
-          complete[field] = await collectConnection(row, field, read)
-        all.push(complete)
-      }
-      if (!connection.pageInfo.hasNextPage) break
-      const next = connection.pageInfo.endCursor
-      if (!next || cursors.has(next)) error('incomplete/cyclic pagination for ' + project)
-      cursors.add(next)
-      after = next
-    }
-    pages.push(all)
-  }
+  for (const project of projectIds) pages.push(await fetchProjectIssues(project, read))
   return { pages, asOf: clock() }
 }
 export async function exportApprovedWork({

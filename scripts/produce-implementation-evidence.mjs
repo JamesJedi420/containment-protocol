@@ -110,19 +110,18 @@ export async function runProducer({
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [findingsPath, outputPath, diagnosticsPath] = process.argv.slice(2)
-  runProducer({ findingsPath, outputPath, diagnosticsPath })
-    .then((result) => {
-      if (result.complete) {
-        console.log('SPE-3276 feed verified for ' + result.count + ' issues')
-      } else {
-        console.error(
-          'SPE-3276 feed non-qualifying: ' + result.diagnostics.map((item) => item.code).join(', ')
-        )
-        process.exitCode = 1
-      }
-    })
-    .catch((error) => {
-      console.error(error.message)
+  try {
+    const result = await runProducer({ findingsPath, outputPath, diagnosticsPath })
+    if (result.complete) {
+      console.log('SPE-3276 feed verified for ' + result.count + ' issues')
+    } else {
+      console.error(
+        'SPE-3276 feed non-qualifying: ' + result.diagnostics.map((item) => item.code).join(', ')
+      )
       process.exitCode = 1
-    })
+    }
+  } catch (error) {
+    console.error(error.message)
+    process.exitCode = 1
+  }
 }

@@ -32,7 +32,7 @@ const FINDING_KEYS = [
   'sourceCommentId',
   'sourceUpdatedAt',
   'verified',
-].sort()
+].sort((a, b) => a.localeCompare(b, 'en'))
 const order = (a, b) => a.localeCompare(b, 'en')
 const timestamp = (value) => typeof value === 'string' && Number.isFinite(Date.parse(value))
 const nonempty = (value) => typeof value === 'string' && value.trim().length > 0
@@ -48,7 +48,7 @@ const linearRef = (value, issueId) => {
       url.protocol === 'https:' &&
       url.hostname === 'linear.app' &&
       url.pathname.split('/').includes('issue') &&
-      url.pathname.split('/').some((part) => part === issueId)
+      url.pathname.split('/').includes(issueId)
     )
   } catch {
     return false
@@ -71,7 +71,7 @@ const githubRef = (value) => {
 export function readMainRevision() {
   const candidates =
     process.platform === 'win32'
-      ? ['C:\\Program Files\\Git\\cmd\\git.exe']
+      ? [String.raw`C:\Program Files\Git\cmd\git.exe`]
       : ['/usr/bin/git', '/bin/git', '/opt/homebrew/bin/git', '/usr/local/bin/git']
   const git = candidates.find((candidate) => fs.existsSync(candidate))
   if (!git) fail('Git executable unavailable at a fixed system path')
@@ -147,7 +147,7 @@ function validBasis(basis, issueId) {
 
 function validFinding(finding, issue, githubRevision) {
   return (
-    same(Object.keys(finding ?? {}).sort(), FINDING_KEYS) &&
+    same(Object.keys(finding ?? {}).sort(order), FINDING_KEYS) &&
     same(Object.keys(finding.implementationEvidence ?? {}), ['state']) &&
     finding?.authority === 'SPE-3276' &&
     finding.verified === true &&
@@ -171,6 +171,47 @@ function validFinding(finding, issue, githubRevision) {
 
 function sameInventory(left, right) {
   return same(left, right)
+}
+
+function indexFindings(findings, diagnostics) {
+  if (!Array.isArray(findings)) fail('findings must be a list')
+  const byId = new Map()
+  for (const finding of findings) {
+    if (!ISSUE_ID.test(finding?.canonicalIssueId ?? '') || byId.has(finding.canonicalIssueId)) {
+      diagnostics.push({
+        code: 'duplicate-or-invalid-finding',
+        id: finding?.canonicalIssueId ?? null,
+      })
+    } else byId.set(finding.canonicalIssueId, finding)
+  }
+  return byId
+}
+
+function evidenceRecord(issue, finding, githubRevision, diagnostics) {
+  if (!validFinding(finding, issue, githubRevision)) {
+    diagnostics.push({ code: finding ? 'unverified-finding' : 'missing-finding', id: issue.id })
+    return {
+      linearUpdatedAt: issue.updatedAt,
+      verified: false,
+      implementationEvidence: { state: 'unknown' },
+      evidenceDrift: null,
+    }
+  }
+  return {
+    linearUpdatedAt: issue.updatedAt,
+    verified: true,
+    implementationEvidence: { state: finding.implementationEvidence.state },
+    evidenceDrift: finding.materialDrift === 'conflict',
+    provenance: {
+      authority: 'SPE-3276',
+      findingRef: finding.findingRef,
+      sourceCommentId: finding.sourceCommentId,
+      sourceUpdatedAt: finding.sourceUpdatedAt,
+      assessedAt: finding.assessedAt,
+      githubRevision,
+      basis: finding.basis,
+    },
+  }
 }
 
 export function produceEvidenceFeed({
@@ -197,44 +238,10 @@ export function produceEvidenceFeed({
   if (!sameInventory(issues, verifiedInventory)) {
     diagnostics.push({ code: 'linear-revision-mismatch' })
   }
-  if (!Array.isArray(findings)) fail('findings must be a list')
-  const byId = new Map()
-  for (const finding of findings) {
-    if (!ISSUE_ID.test(finding?.canonicalIssueId ?? '') || byId.has(finding.canonicalIssueId)) {
-      diagnostics.push({
-        code: 'duplicate-or-invalid-finding',
-        id: finding?.canonicalIssueId ?? null,
-      })
-    } else byId.set(finding.canonicalIssueId, finding)
-  }
+  const byId = indexFindings(findings, diagnostics)
   const records = {}
   for (const issue of issues) {
-    const finding = byId.get(issue.id)
-    if (!validFinding(finding, issue, githubRevision)) {
-      diagnostics.push({ code: finding ? 'unverified-finding' : 'missing-finding', id: issue.id })
-      records[issue.id] = {
-        linearUpdatedAt: issue.updatedAt,
-        verified: false,
-        implementationEvidence: { state: 'unknown' },
-        evidenceDrift: null,
-      }
-      continue
-    }
-    records[issue.id] = {
-      linearUpdatedAt: issue.updatedAt,
-      verified: true,
-      implementationEvidence: { state: finding.implementationEvidence.state },
-      evidenceDrift: finding.materialDrift === 'conflict',
-      provenance: {
-        authority: 'SPE-3276',
-        findingRef: finding.findingRef,
-        sourceCommentId: finding.sourceCommentId,
-        sourceUpdatedAt: finding.sourceUpdatedAt,
-        assessedAt: finding.assessedAt,
-        githubRevision,
-        basis: finding.basis,
-      },
-    }
+    records[issue.id] = evidenceRecord(issue, byId.get(issue.id), githubRevision, diagnostics)
   }
   for (const id of byId.keys()) {
     if (!records[id]) diagnostics.push({ code: 'extra-finding', id })
@@ -294,8 +301,7 @@ const FINDING_QUERY = `query EvidenceAuthorityComments($after: String) {
   }
 }`
 
-export async function verifyAuthorityFindings({ apiKey, findings, request = fetch }) {
-  if (!nonempty(apiKey) || !Array.isArray(findings)) fail('SPE-3276 source configuration')
+function requireSourceReferences(findings) {
   for (const finding of findings) {
     if (!nonempty(finding?.sourceCommentId) || finding.verified !== true) {
       fail(
@@ -304,7 +310,9 @@ export async function verifyAuthorityFindings({ apiKey, findings, request = fetc
       )
     }
   }
-  if (!findings.length) return []
+}
+
+async function fetchAuthorityComments(apiKey, findings, request) {
   const needed = new Set(findings.map((finding) => finding.sourceCommentId))
   const comments = new Map()
   const cursors = new Set()
@@ -341,6 +349,10 @@ export async function verifyAuthorityFindings({ apiKey, findings, request = fetc
     cursors.add(cursor)
     after = cursor
   }
+  return { comments, ownerId }
+}
+
+function matchAuthorityComments(findings, comments, ownerId) {
   const verified = []
   for (const finding of findings) {
     const comment = comments.get(finding.sourceCommentId)
@@ -366,6 +378,31 @@ export async function verifyAuthorityFindings({ apiKey, findings, request = fetc
   return verified
 }
 
+export async function verifyAuthorityFindings({ apiKey, findings, request = fetch }) {
+  if (!nonempty(apiKey) || !Array.isArray(findings)) fail('SPE-3276 source configuration')
+  requireSourceReferences(findings)
+  if (!findings.length) return []
+  const { comments, ownerId } = await fetchAuthorityComments(apiKey, findings, request)
+  return matchAuthorityComments(findings, comments, ownerId)
+}
+
+async function fetchRevisionPage(apiKey, projectId, after, request) {
+  const response = await request('https://api.linear.app/graphql', {
+    method: 'POST',
+    headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: REVISION_QUERY, variables: { project: projectId, after } }),
+  })
+  if (!response.ok) fail('Linear revision HTTP ' + response.status)
+  const body = await response.json()
+  if (body.errors?.length || !body.data?.project || body.data.project.id !== projectId)
+    fail('Linear revision partial result')
+  const connection = body.data.project.issues
+  if (!Array.isArray(connection?.nodes) || typeof connection.pageInfo?.hasNextPage !== 'boolean') {
+    fail('Linear revision incomplete pagination')
+  }
+  return connection
+}
+
 export async function fetchLinearRevisionInventory({ apiKey, projectIds, request = fetch }) {
   if (!nonempty(apiKey) || !Array.isArray(projectIds) || !projectIds.length) {
     fail('Linear revision read configuration')
@@ -376,22 +413,7 @@ export async function fetchLinearRevisionInventory({ apiKey, projectIds, request
     const cursors = new Set()
     let after = null
     for (;;) {
-      const response = await request('https://api.linear.app/graphql', {
-        method: 'POST',
-        headers: { Authorization: apiKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: REVISION_QUERY, variables: { project: projectId, after } }),
-      })
-      if (!response.ok) fail('Linear revision HTTP ' + response.status)
-      const body = await response.json()
-      if (body.errors?.length || !body.data?.project || body.data.project.id !== projectId)
-        fail('Linear revision partial result')
-      const connection = body.data.project.issues
-      if (
-        !Array.isArray(connection?.nodes) ||
-        typeof connection.pageInfo?.hasNextPage !== 'boolean'
-      ) {
-        fail('Linear revision incomplete pagination')
-      }
+      const connection = await fetchRevisionPage(apiKey, projectId, after, request)
       issues.push(...connection.nodes)
       if (!connection.pageInfo.hasNextPage) break
       const cursor = connection.pageInfo.endCursor

@@ -29,7 +29,7 @@ Client-only SPA rule still applies: **never** add a Google Drive SDK, OAuth clie
 3. Read `docs/google-drive/file-registry.json` before creating files.
 4. Prefer marketplace skill `google-drive` + repo skill `cp-google-drive-bridge`.
 
-Do not put Google OAuth tokens in committed `.cursor/mcp.json`. Prefer plugin auth.
+Do not put Google OAuth tokens in committed `.cursor/mcp.json` (local, gitignored). Prefer plugin auth.
 
 ### Auth blocker (mandatory)
 

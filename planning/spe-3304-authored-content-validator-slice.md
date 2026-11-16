@@ -25,7 +25,7 @@ That state is deliberate, not broken:
 | `scripts/validation/requirement-model.mjs:247-251`, `268-284` | Missing npm script → `unavailable`; `fail` policy → missing required       |
 | `.github/workflows/test.yml:34-44`                            | CI runs the resolver, so the gate becomes real the moment a path activates |
 | `scripts/validation/validators.v1.json:22-27`                 | The `academy` change class activates only through its four path globs      |
-| `scripts/validation/requirement-model.check.mjs:143-152`      | The selection fixture assumes `academy/content/courses.json`               |
+| `scripts/validation/requirement-model.check.mjs:143-152`      | The selection fixture uses `academy/content/courses.json` (an example path under the intended local discovery root; the file is not tracked)   |
 | SPE-3348 shipped comment `5817bf22`                           | Recorded the entry as an "Academy SPE-3304 selection stub (fail-closed)"   |
 | `git ls-tree -r origin/main`                                  | No path matches the `academy` class today, so the gate cannot trigger      |
 
@@ -60,7 +60,7 @@ The narrowing is supported by an existing approved Phase 4 comment on SPE-3304 (
 
 The slice uses **`academy/content/**`**.
 
-This is not cosmetic. The `academy` change class activates on `academy/**` (`scripts/validation/validators.v1.json:23`), and the resolver's own selection fixture already uses `academy/content/courses.json`. Placing content anywhere else — for example `content/academy/**`, matching the existing `content/incidents/**` convention — would fail to activate the gate, producing a green CI that never validates anything.
+This is not cosmetic. The `academy` change class activates on `academy/**` (`scripts/validation/validators.v1.json:23`), and the resolver's own selection fixture already uses `academy/content/courses.json` (an example under the intended local root, not a tracked content file). Placing content anywhere else — for example `content/academy/**`, matching the existing `content/incidents/**` convention — would fail to activate the gate, producing a green CI that never validates anything.
 
 Choosing `content/academy/**` instead is **outside this boundary**: it needs an added activation glob in `validators.v1.json` plus a matching activation case in `requirement-model.check.mjs`, which is SPE-3348 policy work rather than SPE-3304 semantics. If a reviewer prefers that location, the slice must be re-approved with that amendment named explicitly.
 

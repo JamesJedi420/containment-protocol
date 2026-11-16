@@ -23,7 +23,7 @@
 - Vitest discovery semantics (SPE-3427)
 - Full TS build census (SPE-3375/SPE-3376)
 - New GameState / debug commands / Academy-specific campaign assertions
-- Committing `.cursor/mcp.json` or secrets
+- Committing `.cursor/mcp.json` (local, gitignored) or secrets
 
 ## Deferred
 

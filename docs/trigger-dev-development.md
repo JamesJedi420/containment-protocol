@@ -103,7 +103,7 @@ editing/committing instead of allowing changed code to retain clean provenance.
 1. Run `node --experimental-strip-types scripts/prepare-simulation-experiment.mjs`.
    This prints a bounded example payload and its canonical idempotency key;
    it does not submit anything or read credentials.
-2. Save the printed `payload` object to an ignored file such as
+2. Save the printed `payload` object to a gitignored file such as
    `.trigger/experiment-request.json`. Keep the printed `idempotencyKey`.
 3. Start `npx trigger.dev@4.8.3 dev --branch spe-3521-experiments` in that checkout.
    The separate Development branch preserves any existing default worker.

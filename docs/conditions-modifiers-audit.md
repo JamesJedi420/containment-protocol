@@ -202,7 +202,7 @@ Context passed to trait/gear modifier evaluations:
 | Caller / Consumer | Role |
 | --- | --- |
 | `src/domain/agent/` | Reads `ConditionKey`, trait modifier keys, and `RuntimeModifierContext` |
-| `sim/aggregateBattle.ts` | Reads resistance profiles and runtime modifier aggregation for combat resolution |
+| `src/domain/aggregateBattle.ts` | Reads resistance profiles and runtime modifier aggregation for combat resolution |
 | `missionResults.ts` | Applies effectiveness and stress multipliers from runtime modifiers |
 | `src/domain/shared/distortion.ts` | References `ConditionKey` for distortion effects |
 | `src/features/` | Reads `CONDITIONS`, `TAGS`, `RESISTANCE_PROFILES` for display |

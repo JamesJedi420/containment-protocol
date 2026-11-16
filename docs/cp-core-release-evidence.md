@@ -14,6 +14,17 @@ node --test scripts/release-acceptance/report.test.mjs
 
 Output goes to stdout; redirect each format to a separate artifact when needed. Default format is JSON. `--help` prints usage. Exit 0 means a valid report was generated, including an **incomplete** or **blocked** report. Exit 2 means invalid input, unreadable input, or an unavailable/invalid registry. This CLI is a reporting tool, not a new release or CI gate.
 
+## Information-model assessment at `b68859c9`
+
+The complementary [manifest](../planning/spe-3352-information-evidence.b68859c9.v1.json), [source assessment](../planning/release-evidence/b68859c9/information-assessment.md) and generated [JSON](../planning/release-evidence/b68859c9/information-report.json)/[Markdown](../planning/release-evidence/b68859c9/information-report.md) assess `b68859c9e2950b55ed5f3e52d1bbff5f88bb7a61`. Eight existing test files pass 463 tests in the clean-subject run with Node22.23.5/Vitest5.1.0 and strict console enabled. The evidence distinguishes factual truth, witness interpretation, institutional judgment, crowd consensus and agency-known state, without promoting seeded fixtures or certainty hydration into normal gameplay acquisition.
+
+```text
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-information-evidence.b68859c9.v1.json --format json
+node scripts/release-acceptance/report.mjs --manifest planning/spe-3352-information-evidence.b68859c9.v1.json --format markdown
+```
+
+Only `comparison-information` is assessed as **warning**; 28 other rows remain unavailable and the report **incomplete**. The full controlled gameplay information comparison remains unverified. Separate literal build execution failed with 27 diagnostics in six unchanged files; this packet does not replace integrated validation or repair that baseline. Exact commands, original hashes, source anchors and five gameplay evidence conditions are in the assessment. See the [bounded slice](../planning/spe-3352-information-evidence-slice.md). Historical snapshots below retain their original results, including their unavailable information coverage; none is rewritten or silently advanced to this revision.
+
 ## Provenance and contract telemetry assessment at `a5a537b8`
 
 The [telemetry manifest](../planning/spe-3352-telemetry-evidence.a5a537b8.v1.json) and [source assessment](../planning/release-evidence/a5a537b8/telemetry-assessment.md) assess `a5a537b8a39e2e38e6e888b2a523eb466df5b1e9`. Clean-subject execution passed 65 tests across eleven existing files. Evidence now includes supplied-state continuation, actual profile/contract fixtures, same-week result attribution and information-report provenance across week-close. Constructed fixture inputs and actual harness observations remain explicitly distinguished.

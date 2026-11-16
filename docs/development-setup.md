@@ -128,7 +128,7 @@ npm run build  # Includes full type checking
 
 **For React Components:**
 
-1. Open `.vscode/launch.json`
+1. Open `.vscode/launch.json` (local editor file, gitignored; only `.vscode/extensions.json` is tracked)
 2. Select "Launch Chrome via Dev Server" and press `F5`
 3. Set breakpoints in TypeScript files
 4. Changes will auto-reload
@@ -171,7 +171,7 @@ npm run test -- --inspect-brk
    ```
 
 2. **Use React Router for navigation:**
-   - Check `src/features/routes.tsx` for existing routes
+   - Check `src/app/routes.ts` for existing routes
    - Follow established patterns
 
 3. **State management with Zustand:**

@@ -41,6 +41,20 @@ Rules for any sweep that extracts paths, anchors, or claims from issue descripti
 - **Anchor to a revision.** Name the commit or SHA the paths were checked against, and say plainly when a citation is *planned* rather than missing-by-error.
 - **Fetch shape.** `query($id: String!) { issue(id: $id) { identifier title description } }`, one issue per call, passing the shorthand identifier (`SPE-1234`) rather than a UUID so a report stays readable without a second lookup. Independent calls may run concurrently, but keep their responses separate and check each for completeness; concurrency does not remove response-size limits.
 
+## Citations that resolve to nothing in this repository
+
+A documentation path that does not exist in the clone is only acceptable when the citation says why. Triage of the 40 dangling full-path citations found on 2026-11-16 at `b1a41a20` produced these classes; each citation now carries its class inline, and the checker that will consume this list is SPE-3756, which must read these classes as its allowlist rather than re-deriving them.
+
+- **Local, gitignored:** `.cursor/mcp.json`, `.vscode/launch.json`, `.vscode/settings.json` (`.gitignore` keeps only `.vscode/extensions.json`), `.trigger/experiment-request.json`.
+- **Outside the repository:** `codex/SKILL.md` and `hermes-agent/SKILL.md` sit under the installed Hermes skills root, not in git.
+- **Dependency-internal:** `src/middleware/persist.ts` (the zustand package), `lib/util.js` and `lib/utilsBundle.js` (Playwright), `node_modules/zod/...`.
+- **Build matcher literals:** `/src/domain/templates/` and `/src/data/copy.ts` are slash-prefixed substrings matched against normalized Vite module IDs, not absolute repository paths.
+- **Generated, untracked:** `.tmp/typecheck-census-node22/census.json`, `planning/approved-work-projection.json`.
+- **Never created:** proposed or rejected artifacts cited by planning slices — `e2e/a11y-smoke.spec.ts`, `src/domain/weeklyFatigue.ts` (rejected), `test/importBoundary*.ts` (patch lost), `src/test/recoveryFatigue.contract.test.ts`, `test/fatigue-consolidation.test.ts`, `src/test/helpers/runWeeklyPrepAndAdvance.ts`, `src/app/store/gameStore.types.ts`.
+- **Fixture/example path:** `academy/content/courses.json` is an example used by this repository's validator-selection fixture. The `academy/content/**` discovery root is intended here, but the example file is not tracked.
+
+**What this does not cover.** A green `doc-citations` run means that non-exempt backticked full-path citations inside `docs/`, `architecture/` and `planning/` resolve; reviewed exemptions may still name absent paths. It says nothing about Markdown link targets or their `#fragment` anchors (380 relative links, 70 with anchors, 12 damaged targets found on 2026-11-16); `path:line` citations (284, invisible because the census skipped every citation containing `:`); basename-only citations (2,321 in the censused tree, 145 outside it); or the 70 files outside those three directories — `AGENTS.md`, `CLAUDE.md`, `README.md`, `SCHEMA_REGISTRY.md`, `SECURITY.md` and the eight `.cursor/rules/*.mdc` files among them (316 full-path citations, 2 dangling). Those surfaces are unmeasured, not passing, and the census has no opinion on whether a citation is *correct*, only whether its target exists.
+
 ## Anti-patterns
 
 - Same tactical item listed in **README**, **backlog**, and a **Linear** description with conflicting priority—use Linear authority and a single short near-term view (`planning/backlog.md`).
@@ -50,6 +64,7 @@ Rules for any sweep that extracts paths, anchors, or claims from issue descripti
 - Mirror / theme **SPE** mismatch—**CI will fail** if `verify:theme-contracts` is not run after editing the mirror or theme clusters.
 - Promoting a design into **`architecture/`** without linking it from **`game-state-and-core-loop.md`**—the map stops being complete.
 - Reporting an evidence-sweep population from a **truncated batch response**—the total and the "skipped" count are artefacts of output size, not facts about the backlog. See **Linear evidence sweeps (response-size limits)** above.
+- Citing a path without saying whether it is local, generated, dependency-internal, or never created—the reader cannot tell a broken link from a deliberate one. See **Citations that resolve to nothing in this repository**.
 
 ## See also
 

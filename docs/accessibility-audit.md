@@ -578,7 +578,7 @@ rules: {
 
 **Shipped so far:** the no-dependency part of this layer runs in `e2e/a11y-keyboard-landmarks.spec.ts` (SPE-1080) — keyboard bypass, the single `main` landmark, the week-close live region, and the agent dossier region. The axe pass below is still the proposed next step; `@axe-core/playwright` is not installed, so nothing in this document is an axe result.
 
-Add one Playwright spec (`e2e/a11y-smoke.spec.ts`) using `@axe-core/playwright`, run in the existing `playwright-e2e` job. Six routes, one run each, with a deterministic seed (fresh `startingState` plus one `advanceWeek`) so `/report/2` and a populated `/cases` exist. The sample is phase 1: `region` is disabled as noise and `color-contrast` is routed to a separate non-blocking report until the 1.4.3 debt is paid; phase 2 removes the contrast exclusion.
+Add one Playwright spec (`e2e/a11y-smoke.spec.ts` — proposed, not yet created) using `@axe-core/playwright`, run in the existing `playwright-e2e` job. Six routes, one run each, with a deterministic seed (fresh `startingState` plus one `advanceWeek`) so `/report/2` and a populated `/cases` exist. The sample is phase 1: `region` is disabled as noise and `color-contrast` is routed to a separate non-blocking report until the 1.4.3 debt is paid; phase 2 removes the contrast exclusion.
 
 | Route              | Why it is in the smoke set                              |
 | ------------------ | ------------------------------------------------------- |

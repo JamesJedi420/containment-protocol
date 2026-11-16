@@ -36,7 +36,7 @@ before crossing into open conflict.
 
 ## See also
 
-- `architecture/patron-obligations-social-debt.md` — SPE-51
+- `architecture/patron-obligations-social-debt.md` — SPE-51; not in the repo; no document exists yet, so SPE-51 remains the design owner
 - `architecture/civic-jurisdiction-detention-unrest.md` — SPE-87 (public-order escalation before and alongside violence)
 - `architecture/polity-driven-settlement-generation.md` — SPE-144 (insider or outsider baselines tied to polity and settlement profile)
 - `systems/factions-legitimacy.md`

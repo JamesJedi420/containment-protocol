@@ -27,7 +27,7 @@
 
 ## Interface Extraction Guidance
 
-- If multiple features need shared logic, extract to a projection or selector in a stable shared location (e.g., `src/features/sharedView.ts` or `src/app/store/selectors/`).
+- If multiple features need shared logic, extract to a projection or selector in a stable shared location (e.g. `src/features/shared/` — `src/features/shared/teamView.ts` is an existing example — or `src/app/store/selectors/`).
 - If the shared logic is itself canonical simulation interpretation, keep it in domain and expose a narrow deterministic helper rather than duplicating the interpretation in multiple UI surfaces.
 - Do not move large blocks of code; prefer narrow, stable interfaces.
 

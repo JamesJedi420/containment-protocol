@@ -125,7 +125,7 @@ code --install-extension GitHub.copilot-chat
 
 ### 2. Workspace Settings (Auto-applied)
 
-The workspace automatically applies these settings from `.vscode/settings.json`:
+The workspace automatically applies these settings from `.vscode/settings.json` (local editor file, gitignored; only `.vscode/extensions.json` is tracked):
 
 - **Prettier** as default formatter with format-on-save
 - **ESLint** configured to auto-fix on save
@@ -135,7 +135,7 @@ The workspace automatically applies these settings from `.vscode/settings.json`:
 
 ### 3. Debugging Configuration
 
-VS Code launch configurations are pre-configured in `.vscode/launch.json`:
+VS Code launch configurations are pre-configured in `.vscode/launch.json` (local editor file, gitignored):
 
 - **Debug Dev Server** - Attach to running browser
 - **Launch Chrome via Dev Server** - Start fresh browser session

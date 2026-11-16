@@ -104,7 +104,7 @@ Reuse helpers from:
 
 ### 2. Thin harness helper (optional)
 
-`src/test/helpers/runWeeklyPrepAndAdvance.ts` — only if duplication across tests exceeds ~40 lines; otherwise inline in the integration file to avoid over-abstraction.
+`src/test/helpers/runWeeklyPrepAndAdvance.ts` (not created; optional) — only if duplication across tests exceeds ~40 lines; otherwise inline in the integration file to avoid over-abstraction.
 
 ### 3. Documentation
 

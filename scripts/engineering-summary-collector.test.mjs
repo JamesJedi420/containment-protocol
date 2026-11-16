@@ -49,6 +49,8 @@ test('live-shaped responses pass both adapters and render separately with unknow
     assert.equal(result[kind].source.status, 'partial')
     assert.equal(result[kind].source.coverage.complete, false)
     assert.equal(result[kind].source.records[0].workstream, null)
+    assert.match(result[kind].html, /Manual snapshot, not live monitoring/)
+    assert.match(result[kind].html, /Qualified count<\/dt><dd>unknown/)
     assert.match(result[kind].markdown, /GitHub/i)
     assert.match(result[kind].markdown, /unknown/i)
   }

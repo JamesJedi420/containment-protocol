@@ -158,6 +158,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-3512-manual-operator-view-slice.md": "See Linear",
     "planning/spe-3512-summary-contract-slice.md": "See Linear",
     "planning/spe-3512-github-capture-slice.md": "See Linear",
     "planning/spe-3512-ci-capture-slice.md": "See Linear",

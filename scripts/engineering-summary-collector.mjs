@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url'
 import { adaptGitHubMergedPrCapture } from './engineering-summary-github.mjs'
 import { adaptGitHubCheckRunCapture } from './engineering-summary-checks.mjs'
 import { renderEngineeringSummary } from './engineering-summary.mjs'
+import { renderEngineeringSummaryHtml } from './engineering-summary-html.mjs'
 import { captureValidation } from './engineering-summary-capture.mjs'
 
 const exec = promisify(execFile)
@@ -197,8 +198,8 @@ export async function collectGitHubSummary(config, transport, clock) {
   }
   const evaluatedAt = timestamp(clock())
   const names = ['github', 'linear', 'handoff', 'validation', 'drift', 'queue', 'recommendations']
-  const report = (source) =>
-    renderEngineeringSummary({
+  const report = (source, render) =>
+    render({
       schemaVersion: 1,
       repository: REPO,
       linearWorkspace: 'spectranoir',
@@ -214,8 +215,16 @@ export async function collectGitHubSummary(config, transport, clock) {
       sources: { github: source },
     })
   return {
-    pr: { ...results.pr, markdown: report(results.pr.source) },
-    checks: { ...results.checks, markdown: report(results.checks.source) },
+    pr: {
+      ...results.pr,
+      markdown: report(results.pr.source, renderEngineeringSummary),
+      html: report(results.pr.source, renderEngineeringSummaryHtml),
+    },
+    checks: {
+      ...results.checks,
+      markdown: report(results.checks.source, renderEngineeringSummary),
+      html: report(results.checks.source, renderEngineeringSummaryHtml),
+    },
   }
 }
 

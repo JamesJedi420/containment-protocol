@@ -38,7 +38,7 @@ Reuse existing domain math; no new persistence shapes.
 ## Non-goals
 
 - New question catalogs or SPE-2159 fuzzy-clue registry
-- Full SPE-867 `CustodyChain` pipeline
+- Full SPE-867 evidence-custody pipeline
 - Infiltration probe **player** action picker (`probe_access` / `probe_route` / `cleanup`) — separate slice under SPE-521 deferred UX
 - Granting budget from UI (keep `applySuccessfulInvestigation` / `advanceWeek` as grant sources)
 

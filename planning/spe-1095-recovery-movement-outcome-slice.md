@@ -4,7 +4,7 @@
 | ----------------- | --------------------------------------------------------------------------------------------------------------- |
 | **Status**        | **In Progress** (producer seam; full thoroughfare AC deferred)                                                  |
 | **Issue**         | [SPE-1095](https://linear.app/spectranoir/issue/SPE-1095/movement-channels-thoroughfare-flow-and-route-control) |
-| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — keeps In Progress until full path evidenced         |
+| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Done (gameplay reachability shipped in PR #4964) |
 | **Branch**        | `jamesdyedbq/spe-1095-recovery-movement-outcome-seam`                                                           |
 | **Base main SHA** | `c56297f1b2a8e925eab70036cbffd09e72731e89`                                                                      |
 

@@ -4,7 +4,7 @@
 | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
 | **Status**        | **In Progress** (producer seam; full weapon AC deferred)                                                         |
 | **Issue**         | [SPE-104](https://linear.app/spectranoir/issue/SPE-104/capture-and-restraint-weapon-interactions)                |
-| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — keeps In Progress; movement still blockedBy SPE-1095 |
+| **Consumer**      | [SPE-3735](https://linear.app/spectranoir/issue/SPE-3735) — Done; movement still blockedBy SPE-1095 |
 | **Branch**        | `jamesdyedbq/spe-104-capture-secure-outcome-seam`                                                                |
 | **Base main SHA** | `b69e71b4b78901a891b306c4e49145a1af0b3f4a`                                                                       |
 

@@ -351,7 +351,7 @@ Examples:
 
 - [README.md](../README.md) - Project overview
 - [Architecture](../README.md#architecture) - Code organization
-- [Contributing](../CONTRIBUTING.md) - Contributing guidelines
+- [Contributing](../README.md#contributing) - Contributing guidelines
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 - [React Docs](https://react.dev)
 - [Zustand Docs](https://github.com/pmndrs/zustand)

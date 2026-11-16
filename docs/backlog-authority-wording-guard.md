@@ -1,344 +1,150 @@
 # Backlog-authority wording guard (proposal)
 
-**Status: proposal — not implemented, not registered, no script exists.** This document specifies a
-linter that would fail CI when a living document calls `planning/backlog.md` the work queue. Shipping
-it requires changes to `scripts/**`, `package.json` and `scripts/validation/validators.v1.json`,
-which are outside the docs-only surface this proposal was written in. Nothing here changes
-enforcement until those land.
-
-Background: [SPE-3338](https://linear.app/spectranoir/issue/SPE-3338) — Linear is the only authority
-for issue scope, priority, lifecycle, relationships and blockers. `planning/backlog.md` and
-`planning/backlog-handoff-manifest.json` are a retained human-readable shortlist. Their verifier
-(`npm run verify:backlog-handoff`) checks internal consistency only; a green run is not evidence of
-authority, priority or freshness.
-
-## Why a guard
-
-The same wording keeps coming back, each round found later than the last:
-
-| Round | What had regressed | Where it was caught |
-| ----- | ------------------- | ------------------- |
-| #4999 | README "backlog shortlist" framing, frozen-history heading, a line-770 clause | Human sweep |
-| #5022 | `AGENTS.md:57` "single queue", manual "queue projection" / "compact live queue", backlog banner "re-scoped" | Human sweep after #4999 merged |
-| #5025 (merged) | `docs/contribution-and-release-operations.md:107` "near-term priority queue" | Six-file sweep |
-| Not yet filed | `architecture/game-state-and-core-loop.md:317`, `planning/milestones.md:11`, `planning/documentation-curation.md:64`, `planning/deferred-design-documents.md:38`, `planning/hidden-modality-matrix-post-matrix-queue.md:51`, `planning/scope-discipline-grooming-pass.md:10` | This sweep |
-
-No automated check reads this prose. `scripts/governance/authority-contract.mjs` validates its own
-JSON policy data; `CP-GOV-009` cites `docs/cursor-autonomous-authority.md` only as a string in a
-`sourceRef`, with no content assertion. There is no `mdc` or `skills` assertion anywhere in
-`scripts/` or `test/`. Every regression above therefore survived CI.
-
-This guard is a **lint**, not a proof of authority. It catches a closed vocabulary, nothing more.
-
-## Two checks
-
-Each in-scope file is checked twice, because the two ways of making the claim are shaped differently.
-
-### C1 — line claim (needs co-occurrence)
-
-A line is a hit when **all** hold:
-
-1. It contains a vocabulary term from the table below.
-2. It also carries a **backlog reference** on the same line — the path `planning/backlog.md`, or a
-   backlog-reference token such as `backlog children` (co-occurrence rule, see R1).
-3. No negation marker appears on the line (R2).
-4. It is not a structural exemption (R3).
-5. Its `file:line` + normalised-text hash is not already in the ratchet baseline (R5).
-
-### C2 — heading claim (no co-occurrence)
-
-A heading is a hit when the heading text matches `/queue/i` and the file is in the
-**selection-scope** subset (R4). Headings carry claim weight without naming the file, which is why
-they need their own check: `.cursor/skills/cp-next-implementation-slice/SKILL.md:21`
-("## Confirm the queue is empty") is currently the most load-bearing instance in the repository and
-C1 would never see it.
-
-## Vocabulary
-
-| Term | Current occurrence | Note |
-| ---- | ------------------ | ---- |
-| `authoritative queue` | `docs/cursor-delegated-backlog-approval.md:30` | Added after the six-file sweep; the first draft's list missed it |
-| `near-term priority queue` | `architecture/game-state-and-core-loop.md:317`, `docs/contribution-and-release-operations.md:107` (fixed in #5025) | Added after the sweep |
-| `near-term engineering queue` | `planning/deferred-design-documents.md:38` | Added after the sweep |
-| `near-term queue` | `planning/documentation-curation.md:64` | Added after the sweep |
-| `single queue` | `AGENTS.md:57` (fixed in #5022) | Kept so it cannot return |
-| `canonical queue`, `canonical active queue`, `canonical near-term queue` | `planning/milestones.md:11`, `planning/hidden-modality-matrix-post-matrix-queue.md:51` | Pattern form; `canonical near-term queue` had 0 hits alone |
-| `queue authority` | `planning/scope-discipline-grooming-pass.md:10` | Added after the sweep |
-| `compact live queue` | none (retired in #5022) | Kept as a tombstone |
-| `the queue`, `active queue` (unqualified) | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35`, `planning/scope-discipline-grooming-pass.md:116,126,137,156` | Added in this revision. **Only safe because of R1** — without co-occurrence these two terms match hundreds of game-subsystem lines. `SKILL.md:33` uses no queue word at all and is not caught; see the escape row below |
-
-**Retired from the vocabulary: `queue projection`.** It has 8 occurrences and none is this defect:
-`README.md:166` uses it in a corrected negation, and the rest are the SPE-3338 projection concept or
-slice filenames such as `publish-queue-executor-slice-1.md`. It would cost more in noise than it
-catches.
-
-## Rules
-
-### R1 — co-occurrence is load-bearing
-
-A vocabulary hit only counts when the same line also carries a **backlog reference**, of either kind:
-
-- **R1(a) — the path:** `planning/backlog.md`.
-- **R1(b) — a backlog-reference token:** `backlog child`, `backlog children`, `backlog item`,
-  `backlog items`, `backlog entry`, `backlog entries`, `backlog shortlist`.
-
-R1(b) exists because of a defect in the first draft of this document. The violation table claimed
-`.cursor/skills/cp-next-implementation-slice/SKILL.md:33,35` were both caught, but line 35 reads
-"Other eligible **backlog children** named in the active queue" — an unqualified `active queue` with
-no path on the line, so R1(a) alone would never have flagged it. Caught on review, not by the guard.
-
-**Bare `backlog` was rejected as a token, on measurement.** Six lines in scope pair a queue word with
-bare `backlog`, and none is this defect: `docs/funding-procurement-budget-pressure-audit.md:49`
-(`procurementBacklog`, game code), `docs/harvest-candidate-triage-agent.md:29,106` (a "pending apply
-queue" over the candidate mirror), `docs/cursor-delegated-backlog-approval.md:81` ("**Queue
-state**"), `architecture/persistence-model.md:587` (a heading warning that the backlog is
-non-canonical — the correct claim, inside an R4-excluded file). With R1(b) as written, exactly one
-line in scope matches today: the skill's step 3.
-
-Co-occurrence is also what makes the unqualified terms usable: the repository has hundreds of `queue`
-mentions describing the game's own subsystems (`publishQueue*`, workshop queues, event queues, mission
-triage "blocked queue") and none of them carries a backlog reference. Dropping R1 would make the
-guard unusable and would also flag its own status table above.
-
-### R2 — negation skip
-
-Skip a line when it contains, case-insensitively, any of: `non-authoritative`, `not a queue`,
-`not the queue`, `no longer`, `not authoritative`, `not evidence that`, `carries no priority`.
-
-The last two were added after the first draft: `planning/backlog.md:5` says "a green run is not
-evidence that this list is the queue", which is the corrected claim and must not be flagged.
-
-### R3 — structural exemptions
-
-These are exempt by pattern, not by baseline entry, because they are structural rather than claims:
-
-1. **The `## Active queue` heading in `planning/backlog.md`.** `scripts/verify-backlog-handoff.mjs`
-   splits the file on that exact heading. Renaming it is a script change, not a docs fix, so the
-   guard must not demand it.
-2. **Section references** of the form `§ Active queue` that point at that heading
-   (`planning/scope-discipline-grooming-pass.md:116,126,137`). A pointer to a heading is not a claim
-   about the file.
-3. **Quoted Linear issue titles** — `planning/backlog.md:19` ("Authoritative approved-work queue
-   projection") is the title of SPE-3338, which describes the projection mechanism. Rewriting a
-   quoted issue title would falsify the record.
-4. **Game subsystem mentions** on the same line as a Linear issue title, e.g.
-   `planning/backlog.md:23` ("Department workshop and processing queues"). These are feature scope,
-   not work ordering.
-
-### R4 — heading scope restriction
-
-C2 applies only to **selection-scope** files: `AGENTS.md`, `README.md`, `CLAUDE.md`,
-`docs/agent-*.md`, `docs/cursor-*.md` (which includes the pasteable snippets),
-`docs/contribution-*.md`, `docs/repository-*.md`, `planning/documentation-curation.md`,
-`planning/milestones.md`, `planning/deferred-design-documents.md`, `.cursor/rules/**`,
-`.cursor/skills/**`, `.amazonq/rules/**`, `.greptile/rules.md`.
-
-The new additions are agent-facing instruction text of the same class as the rules and skills: a
-heading like "## The work queue" in a User Rules snippet would be a claim, and it would be pasted
-into an editor where no later check could find it.
-
-It deliberately does **not** apply to `docs/*audit*.md` or `architecture/**`. Those have legitimate
-queue headings about the simulation: `docs/event-queue-audit.md:1`, `docs/stability-audit.md:51`,
-`docs/combat-resolver-audit.md:132`, `architecture/persistence-model.md:587`. A heading rule applied
-repo-wide would produce 16 hits and 16 would be wrong.
-
-### R5 — ratchet baseline
-
-A baseline file `scripts/governance/backlog-authority-wording.allow.json` holds
-`{ file, lineHash, reason, reviewedOn }` entries for reviewed-benign hits. The guard then:
-
-- **Fails** on any hit not in the baseline.
-- **Reports** baseline entries that no longer match (line edited or removed) as `stale`, and exits
-  non-zero with "shrink the baseline", so the allowlist can only get smaller. An allowlist that
-  silently retains dead entries is how this kind of guard rots.
-
-`lineHash` is `sha256` of the line text with runs of whitespace collapsed, so reindenting a bullet
-does not invalidate an entry but editing its wording does.
-
-## Scope
-
-### In scope (living entry points)
-
-- `AGENTS.md`, `README.md`, `CLAUDE.md`
-- `docs/**/*.md` (including the guard's own spec — see self-exemption below)
-- `architecture/**/*.md`
-- `.cursor/rules/**/*.mdc`, `.cursor/skills/**/SKILL.md`
-- `.amazonq/rules/**/*.md`, `.greptile/rules.md` — reviewer-facing instruction files for the PR bots
-- `docs/cursor-*-user-rules-snippet.md` — pasteable entry points; see the distribution note below
-- `planning/backlog.md`, `planning/documentation-curation.md`, `planning/milestones.md`,
-  `planning/deferred-design-documents.md`, `planning/scope-discipline-grooming-pass.md`,
-  `planning/hidden-modality-matrix-post-matrix-queue.md` (living handoff doc, not a `-slice.md`)
-
-At the time of writing the six snippets, `CLAUDE.md`, the three `.amazonq/rules/*.md` files and
-`.greptile/rules.md` contribute **zero** C1 hits: they mention `backlog` only as "feature/backlog
-scope" and "backlog-shape writes", with no vocabulary term. Adding them to scope changes no count in
-the tables below — it closes a blind spot before it produces one.
-
-### Out of scope
-
-- `planning/*-slice.md` and `planning/backlog-history-*.md`: frozen records of what was true when
-  they were written. Rewriting them falsifies evidence, and 80 slice docs pin the delegated-approval
-  doc by blob SHA precisely so their provenance does not drift.
-- `planning/pattern-source-series-registry-*.md`: "queue projection" there is an unrelated concept.
-- `docs/*audit*.md` and `architecture/**` for C2 only (see R4).
-- `src/**`, `test/**`: no prose authority claims.
-
-### Distribution channel — the pasted copies
-
-`docs/cursor-*-user-rules-snippet.md` exist to be copied by hand into **Cursor → Settings → Rules →
-User Rules**. The copy that actually governs a session lives in the user's editor settings, outside the
-repository, and **no check can see it**. Three consequences the guard has to live with:
-
-1. The repo file is the only enforceable artefact. Linting it is necessary and not sufficient — a
-   snippet that reads correctly here can still be wrong in the editor, and a correct paste can rot
-   as the docs move on.
-2. A fix reaches the agent only when the user re-pastes. Editing the snippet does not update any
-   existing User Rules block, so a snippet change is a request to the human, not a deployment.
-3. Snippet text therefore has to be written as if it were the only copy, because for a given session
-   it may be. The current live example is
-   `docs/cursor-backlog-hygiene-user-rules-snippet.md:33`, whose "**Pointers:** `planning/backlog.md`,
-   `AGENTS.md`…" line names the shortlist first in a block pasted into every hygiene session. It
-   passes C1 (no vocabulary term), and it teaches the file as the operating target anyway.
-
-`CLAUDE.md`, `.amazonq/rules/**` and `.greptile/rules.md` are a weaker version of the same problem:
-those files reach review bots on `github.com` rather than a user's editor, so an edit there takes
-effect on the next PR review without anyone re-pasting — but nothing in CI reads their prose either.
-
-### Self-exemption
-
-`docs/backlog-authority-wording-guard.md` must contain every term it bans. It is exempt from both
-checks by exact path. Without that exemption the guard fails on its own specification.
-
-## Current hits at `main` (2026-11-16)
-
-Re-derived from a scan of the `main` tree at `9bf6b4ce` (after #5025 merged), not recalled.
-
-### Flaggable today — 11 lines, 11 rows
-
-| File:line | Text | Rule |
-| --------- | ---- | ---- |
-| `docs/cursor-delegated-backlog-approval.md:30` | "the authoritative queue (`planning/backlog.md` …)" | C1 — needs the selection-order decision |
-| `docs/cursor-delegated-backlog-approval.md:57` | "the active queue of `planning/backlog.md`" | C1 — same decision |
-| `architecture/game-state-and-core-loop.md:317` | "canonical near-term priority queue" | C1 — not yet filed |
-| `planning/milestones.md:11` | "(canonical queue; …)" | C1 — not yet filed |
-| `planning/documentation-curation.md:64` | "— near-term queue" | C1 — not yet filed |
-| `planning/deferred-design-documents.md:38` | "— near-term engineering queue" | C1 — not yet filed |
-| `planning/hidden-modality-matrix-post-matrix-queue.md:51` | "— canonical active queue" | C1 — not yet filed |
-| `planning/scope-discipline-grooming-pass.md:10` | "**Queue authority** \| `planning/backlog.md`" | C1 — not yet filed |
-| `planning/scope-discipline-grooming-pass.md:156` | "— active queue after merge" | C1 — not yet filed |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | "Other eligible backlog children named in the active queue" | C1 via R1(b) — collapse proposal |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:21` | heading "## Confirm the queue is empty" | C2 |
-
-The guard fails on `main` for all eleven, and the baseline seeds none of them, so the failing set is
-the work list rather than a rubber stamp.
-
-### Exempt by rule — 4 lines, 2 rows
-
-| File:line | Text | Rule |
-| --------- | ---- | ---- |
-| `planning/backlog.md:13` | heading "## Active queue" | R3.1 |
-| `planning/scope-discipline-grooming-pass.md:116,126,137` | "`planning/backlog.md` § Active queue" | R3.2 |
-
-These are real hits that a rule suppresses on purpose. `planning/backlog.md:13` matters most: it is
-the split marker `scripts/verify-backlog-handoff.mjs` reads.
-
-### Escapes — 1 line, 1 row
-
-| File:line | Text | Why nothing catches it |
-| --------- | ---- | --------------------- |
-| `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` | "Recommended next concrete SPE in `planning/backlog.md`" | Contains the path but no queue word, so no vocabulary term matches. A selection claim the guard misses |
-
-### Not hits — 8 lines, 8 rows
-
-Recorded because a reader would otherwise expect the guard to react. No rule fires: the vocabulary
-term or the co-occurrence reference is absent, or the text was already corrected.
-
-| File:line | Text | Why it is not a hit |
-| --------- | ---- | ------------------ |
-| `planning/backlog.md:5` | "not evidence that this list is the queue" | No backlog reference on the line; R2 would also skip it |
-| `planning/backlog.md:19` | quoted SPE-3338 title "Authoritative approved-work queue projection" | Issue title, and the phrase is "authoritative approved-work queue", not a vocabulary term |
-| `planning/backlog.md:23` | "Department workshop and processing queues" | Feature scope; no vocabulary term |
-| `planning/backlog.md:35` | "never in this queue" | "this queue", not "the queue"; no vocabulary term |
-| `README.md:166` | "not a queue projection … **not an input**" | `queue projection` is retired from the vocabulary; R2 would skip it anyway |
-| `docs/agent-operating-manual.md:42` | corrected in #5022 | Vocabulary no longer matches |
-| `docs/contribution-and-release-operations.md:107` | corrected in #5025 (merged `9bf6b4ce`) | Vocabulary no longer matches |
-| `AGENTS.md:57` | corrected in #5022 | Vocabulary no longer matches |
-
-### Totals
-
-**15 lines match a rule on `main` at `9bf6b4ce`: 11 flaggable (10 by C1, 1 by C2) and 4 exempt by
-rule (R3.1 ×1, R3.2 ×3).** One escape catches nothing, and there are eight recorded non-hits.
-`docs/contribution-and-release-operations.md:107` moved from the flaggable group to the non-hits
-when #5025 merged.
-
-A previous revision of this table said "11 live violations, 9 exempt rows" and then "10 and 8": both
-were wrong in different ways. The first counted only the flaggable set and then inflated the exempt
-set with lines no rule fires on; the second recounted rows without adding
-`planning/scope-discipline-grooming-pass.md:156`, which the scan does hit. The agreement now is
-line-for-line against the scan recorded above, and the three groups exist so a row can no longer move
-between "violation" and "exempt" without changing a number.
-
-## Interface (when implemented)
-
-```text
-npm run verify:backlog-authority-wording           # check, used by CI
-npm run verify:backlog-authority-wording -- --all  # ignore changed-file selection
-```
-
-Behaviour:
-
-- Exit `0` when no unbaselined hit and the baseline is fully consumed.
-- Exit `1` on any new hit; print `file:line: term "<term>" — <why it is a claim>`.
-- Exit `1` when a baseline entry is stale; print the shrink instruction and the entry.
-- Never rewrite files. Never auto-update the baseline without `--update`, which must be a manual,
-  reviewed invocation.
-
-## Registration (when implemented)
-
-1. `scripts/governance/backlog-authority-wording.mjs` — scanner and rules.
-2. `scripts/governance/backlog-authority-wording.check.mjs` — `node --test` wrapper plus fixtures
-   under `scripts/governance/__fixtures__/`: one clean file, one hit per vocabulary term, one
-   negation, one structural exemption, one stale baseline entry.
-3. `package.json` — `verify:backlog-authority-wording` script.
-4. `scripts/validation/validators.v1.json` — id `backlog-authority-wording`,
-   `activation.changeClasses: ["docs", "planning", "governance"]`, plus path globs for
-   `.cursor/**`; **required**.
-5. `docs/repository-validation-requirements.md` — a row in the registered-validators table and in
-   the per-class mapping.
-
-Steps 1–5 are the reason this is a proposal: all five are outside a docs-only boundary.
-
-## Non-goals
-
-- It does not prove authority, priority or freshness. Only `planning/backlog.md`'s verifier and
-  Linear state do that, and neither does the other's job.
-- It does not scan frozen records, and it is not a licence to edit them.
-- It does not touch `src/**`, tests, schemas or dependencies.
-- It does not detect synonyms. See below.
-
-## Known false negatives
-
-These make the same claim and pass the guard:
-
-- "the place we track what to do next" (`README.md` phrasing style).
-- A selection claim that names the file but uses no queue word, e.g.
-  `.cursor/skills/cp-next-implementation-slice/SKILL.md:33` ("Recommended next concrete SPE in
-  `planning/backlog.md`"). Adding `recommended next` as a term was rejected: it would also fire on
-  four bookkeeping rows in `planning/scope-discipline-grooming-pass.md` that record a base-SHA bump
-  in that section rather than ordering work from it.
-- A table titled "Next up" or "Up next" with no queue word.
-- "ordered by what matters" / "highest value first".
-- Any non-English text.
-- A claim split across two lines, so no single line has term + file name.
-
-The last one is the most likely in practice: markdown wrapping at 100 columns routinely separates
-`planning/backlog.md` from the noun. If the guard proves noisy in the other direction (too many
-false negatives), the cheapest fix is a paragraph-level co-occurrence window rather than a line one —
-recorded here so the choice is deliberate rather than discovered later.
-
-## Verification plan when implemented
-
-- Fixtures pass individually, then the full check passes on the repository with the seeded baseline.
-- Deliberately reintroduce `single queue` into `AGENTS.md` locally and confirm exit `1`.
-- Delete one baseline entry's line and confirm the stale-entry failure.
-- Confirm `planning/*-slice.md` and `backlog-history` are not scanned.
+**Status: proposal only.** No scanner, npm script, validator registration, or CI gate is
+implemented by this document. A later approved implementation must reconcile the
+current prose before enabling a required check.
+
+Linear owns issue scope, priority, lifecycle, relationships, and blockers.
+`planning/backlog.md` and its handoff manifest are a retained shortlist.
+`npm run verify:backlog-handoff` checks their internal consistency; it does not
+establish authority, priority, or freshness. This proposal would catch a narrow
+class of wording that presents that shortlist as the work queue. It cannot prove
+that every agent selects work from Linear.
+
+## Proposed checks
+
+### C1: line claim
+
+Match vocabulary **case-insensitively** as complete words or phrases. The closed
+vocabulary is:
+
+- `authoritative queue`, `near-term priority queue`,
+  `near-term engineering queue`, `near-term queue`, `single queue`,
+  `compact live queue`, and `queue authority`;
+- `canonical queue`, `canonical active queue`, and
+  `canonical near-term queue`;
+- `the queue` and `active queue`, subject to the same reference rule below.
+
+`queue projection` is excluded: it names the SPE-3338 projection and appears in
+unrelated technical contexts.
+
+A vocabulary match is a C1 candidate only when its clause also contains
+`planning/backlog.md` or one of `backlog child(ren)`, `backlog item(s)`,
+`backlog entry/entries`, or `backlog shortlist`. For a line inside
+`planning/backlog.md`, the file identity is an implicit backlog reference.
+This catches both a path-based claim and a skill instruction such as “backlog
+children named in the active queue.” A bare `backlog` is too broad for this
+closed rule.
+
+Split prose into clauses at sentence boundaries and semicolons outside Markdown
+code spans and links. An explicit negation exempts only the candidate claim in
+its own clause. Examples of negated claims are “not the queue” and
+“non-authoritative queue.” A separate clause saying “no longer maintained”
+does **not** exempt “`planning/backlog.md` is the authoritative queue.”
+If the parser cannot establish that the matched claim is negated, report the
+candidate for review. Do not skip a whole line because it contains a negation
+word elsewhere.
+
+### C2: selection heading
+
+In the selection-scope files below, flag a Markdown ATX heading containing
+`queue` as a **complete word**, case-insensitively. Thus
+`## Confirm the queue is empty` is a candidate; `## Enqueue validation`
+is not. C2 does not need a backlog reference because the selection document
+itself gives the heading work-selection meaning. Reviewed benign headings can
+be allowlisted with the same baseline contract as C1.
+
+## Scan scope and exemptions
+
+C1 scans tracked `AGENTS.md`, `README.md`, `CLAUDE.md`,
+`docs/**/*.md`, `architecture/**/*.md`, `planning/**/*.md`,
+`.cursor/rules/**/*.mdc`, `.cursor/skills/**/SKILL.md`,
+`.amazonq/rules/**/*.md`, and `.greptile/rules.md`.
+This includes **active slice documents**; a blanket `planning/*-slice.md`
+exclusion would hide instructions used by implementation agents. Frozen slices
+remain read-only historical records. If they contain a candidate, review and
+allowlist that occurrence with its historical reason rather than rewriting it.
+`planning/backlog-history-*.md` is excluded as an explicit frozen-history
+family. The scanner excludes this specification by exact path because it must
+quote its own vocabulary.
+
+C2 is limited to work-selection entry points:
+`AGENTS.md`, `README.md`, `CLAUDE.md`, `docs/agent-*.md`,
+`docs/cursor-*.md`, `docs/contribution-*.md`,
+`docs/repository-*.md`, `planning/documentation-curation.md`,
+`planning/milestones.md`, `planning/deferred-design-documents.md`,
+`.cursor/rules/**`, `.cursor/skills/**`, `.amazonq/rules/**`,
+and `.greptile/rules.md`. A queue heading in a gameplay audit or
+`architecture/**` is outside C2.
+
+Two structural forms are exempt before baseline matching:
+
+1. The exact `## Active queue` heading in `planning/backlog.md`. The
+   existing handoff verifier uses this heading as a split marker.
+2. A `§ Active queue` reference that points to that heading rather than
+   asserting selection authority.
+
+Quoted Linear issue titles and game-subsystem queue names are not blanket
+exemptions. Apply C1/C2 first; if a real candidate is benign, review and
+allowlist its exact occurrence. This prevents a broad exemption from hiding
+a nearby positive claim.
+
+## Baseline and execution
+
+The proposed `scripts/governance/backlog-authority-wording.allow.json` contains
+only reviewed benign candidates that survive the structural and negation rules.
+Each entry has `{ file, line, lineHash, reason, reviewedOn }`. The key is the
+file and one-based line together with the hash; identical text copied elsewhere
+is a new candidate. `lineHash` is SHA-256 of the line after trimming and
+collapsing whitespace runs, so reindentation alone does not stale an entry.
+An edited or moved line requires review again.
+
+The registered check always scans the **full scoped tree**. It compares each
+baseline entry with one candidate occurrence, fails on new candidates, and
+fails on stale or duplicate baseline entries with a shrink/review instruction.
+It has no changed-file mode. This avoids a mismatch with
+`verify:requirements -- --files ...`, whose runner selects validators but
+does not forward the selected file set to their commands. No command
+automatically updates the baseline.
+
+The check exits zero only after live authority claims have been corrected and
+every remaining candidate has a reviewed benign disposition. The historical
+examples that motivated this proposal include “authoritative queue” in
+`docs/cursor-delegated-backlog-approval.md`, “canonical active queue” in
+`planning/hidden-modality-matrix-post-matrix-queue.md`, and “Confirm the
+queue is empty” in `.cursor/skills/cp-next-implementation-slice/SKILL.md`.
+These are investigation leads, not a frozen count or line-number inventory;
+the implementation must rederive the complete set at its base revision.
+
+## Implementation boundary and acceptance
+
+An authorized follow-up would:
+
+1. Implement the full-tree C1/C2 scanner and reviewed baseline contract under
+   `scripts/governance/`.
+2. Re-scan the chosen base revision, correct live authority claims in living
+   documents, and review any benign or frozen-history candidates. Seed only
+   the latter in the baseline. Preserve the backlog split heading.
+3. Add `verify:backlog-authority-wording` to `package.json` and register a
+   required validator in `scripts/validation/validators.v1.json`.
+   Activation must cover `docs`, `planning`, `architecture`,
+   `shared-config`, and `tooling` change classes, plus explicit paths for
+   `.amazonq/rules/**` and `.greptile/rules.md`. This includes root
+   `AGENTS.md`, `README.md`, and `CLAUDE.md` through
+   `shared-config`.
+4. Update `docs/repository-validation-requirements.md` for the new check.
+5. Verify a clean full-tree pass, then verify failures for a new C1 claim,
+   a token-only C1 claim, a capitalized claim, a C2 heading, a positive claim
+   followed by an unrelated negation, a duplicate occurrence, and a stale
+   baseline entry. Verify the structural and true-negation exemptions.
+
+Steps 1–5 require their own approved boundary. This docs-only PR does not
+implement or register them.
+
+## Limits
+
+The guard misses synonyms such as “the place we track what to do next,”
+cross-line claims, non-English claims, and selection advice that names
+`planning/backlog.md` without a queue term. It cannot inspect a snippet
+already pasted into a user's editor settings. It also does not establish the
+current Linear state; that remains a separate live-source check.

@@ -1,6 +1,6 @@
 {
   "primary": null,
-  "inProgress": ["SPE-3055", "SPE-1095", "SPE-104", "SPE-3338"],
+  "inProgress": ["SPE-3055", "SPE-1095", "SPE-104", "SPE-3338", "SPE-1107"],
   "recentlyShipped": [
     "SPE-3500",
     "SPE-3439",
@@ -158,6 +158,7 @@
     "SPE-3140"
   ],
   "sliceDocStatus": {
+    "planning/spe-1107-weekly-energy-slice.md": "In Progress",
     "planning/spe-3512-manual-operator-view-slice.md": "See Linear",
     "planning/spe-3512-summary-contract-slice.md": "See Linear",
     "planning/spe-3512-github-capture-slice.md": "See Linear",

@@ -692,6 +692,27 @@ describe('SPE-2829 Combat Stim emergency overdrive', () => {
     })
   })
 
+  it('advances Combat Stim debt once per live week without the energy tick consuming it', () => {
+    const equipped = equipAndAssignCriticalStim()
+    equipped.config.maxActiveCases = 50
+    const instance = getEquipmentInstanceAtAgentSlot(equipped, 'a_ava', 'utility1')!
+    const activation = activateCombatStim(equipped, instance.instanceId)
+    if (!activation.ok) throw new Error(activation.code)
+
+    const expired = advanceWeek(activation.state, 1000)
+    expect(expired.gameOver).toBe(false)
+    expect(expired.agents.a_ava.overdrive).toMatchObject({ active: false, recoveryDebt: 2 })
+    const resumed = loadGameSave(serializeGameSave(expired))
+    const first = advanceWeek(resumed, 1000)
+    expect(first.gameOver).toBe(false)
+    expect(first.agents.a_ava.overdrive).toMatchObject({ active: false, recoveryDebt: 1 })
+    const second = advanceWeek(loadGameSave(serializeGameSave(first)), 1000)
+    expect(second.agents.a_ava.overdrive).toBeUndefined()
+    expect(second.agents.a_ava.fatigueChannels!.mentalExhaustion).toBe(
+      first.agents.a_ava.fatigueChannels!.mentalExhaustion + 6
+    )
+  })
+
   it('atomically swaps a stored Combat Stim into an occupied instance-backed slot', () => {
     const state = createStartingState()
     state.inventory.combat_stims = 2

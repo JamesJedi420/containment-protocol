@@ -561,13 +561,7 @@ function evaluateResumePullRequests(pullRequests, handoff, reasons, triageSuppli
     return
   }
   if (pullRequests.length > 1 && !triageSupplied) {
-    reasons.push(
-      makeReason(
-        'multiple_open_prs',
-        'github',
-        `open pull requests: ${formatPullRequestNumbers(pullRequests)}`
-      )
-    )
+    reasons.push(makeReason('multiple_open_prs', 'github', missingOpenPrTriageDetail(pullRequests)))
     return
   }
   if (pullRequests.length === 1) {
@@ -589,6 +583,16 @@ function evaluateResumePullRequests(pullRequests, handoff, reasons, triageSuppli
   }
   evaluateMatchingResumePullRequest(matching[0], handoff, reasons)
   return matching[0]
+}
+
+function missingOpenPrTriageDetail(pullRequests) {
+  return (
+    `open pull requests: ${formatPullRequestNumbers(pullRequests)}; openPrTriage was not supplied. ` +
+    'Inspect every open PR, including drafts, and supply fresh head-bound dispositions, ' +
+    'next actions and path/dependency independence under docs/session-preflight.md#caller-checklist-and-template. ' +
+    'This conservative result is not an instruction to merge or close every PR. ' +
+    'Keep blocked or unknown work paused; authorship alone grants no exemption.'
+  )
 }
 
 function evaluateGitHub(input, reasons) {
@@ -613,11 +617,7 @@ function evaluateGitHub(input, reasons) {
       input.openPrTriage === undefined
     ) {
       reasons.push(
-        makeReason(
-          'open_pr_blocks_start',
-          'github',
-          `open pull requests: ${formatPullRequestNumbers(pullRequests)}`
-        )
+        makeReason('open_pr_blocks_start', 'github', missingOpenPrTriageDetail(pullRequests))
       )
     } else if (requestedOperation === 'resume') {
       resumed = evaluateResumePullRequests(

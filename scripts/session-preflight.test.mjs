@@ -77,6 +77,10 @@ test('an open pull request blocks start, including the same issue', () => {
   )
   assert.equal(result.status, 'blocked')
   assert.ok(reasonCodes(result).includes('open_pr_blocks_start'))
+  const reason = result.reasons.find((entry) => entry.code === 'open_pr_blocks_start')
+  assert.match(reason.detail, /#42; openPrTriage was not supplied/)
+  assert.match(reason.detail, /docs\/session-preflight\.md#caller-checklist-and-template/)
+  assert.match(reason.detail, /not an instruction to merge or close every PR/)
 })
 
 test('unrelated and multiple pull requests block execution', () => {
@@ -98,6 +102,10 @@ test('unrelated and multiple pull requests block execution', () => {
   )
   assert.equal(multiple.status, 'blocked')
   assert.ok(reasonCodes(multiple).includes('multiple_open_prs'))
+  assert.match(
+    multiple.reasons.find((entry) => entry.code === 'multiple_open_prs').detail,
+    /openPrTriage was not supplied/
+  )
 })
 
 test('unverifiable pull request ownership is unknown', () => {

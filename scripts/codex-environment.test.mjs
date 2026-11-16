@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
@@ -152,4 +153,29 @@ test('invoking preflight retains standard input and delegates readiness to the e
   assert.equal(runEnvironmentAction(['preflight'], h.options), 0)
   assert.deepEqual(h.calls[0][1].slice(1), ['run', 'session:preflight', '--', '--collect-local'])
   assert.equal(h.calls[0][2].stdio, 'inherit')
+})
+
+test('preflight adapter passes caller triage bytes through inherited stdin unchanged', () => {
+  // This transport sentinel is not a valid readiness envelope or authority evidence.
+  const input = JSON.stringify({ openPrTriage: { marker: 'caller-owned evidence, not a default' } })
+  const adapterUrl = new URL('./codex-environment.mjs', import.meta.url).href
+  const child = spawnSync(
+    process.execPath,
+    [
+      '--input-type=module',
+      '-e',
+      `import { spawnSync } from 'node:child_process';
+       import { runEnvironmentAction } from ${JSON.stringify(adapterUrl)};
+       process.exitCode = runEnvironmentAction(['preflight'], {
+         nodeVersion: '22.23.4', fileExists: () => true,
+         spawn: (command, args, options) => spawnSync(command,
+           ['--input-type=module', '-e',
+            "import { readFileSync } from 'node:fs'; process.stdout.write(readFileSync(0))"],
+           options),
+       });`,
+    ],
+    { input, encoding: 'utf8' }
+  )
+  assert.equal(child.status, 0, child.stderr)
+  assert.equal(child.stdout, input)
 })

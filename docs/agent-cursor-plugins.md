@@ -159,9 +159,9 @@ Use Snyk MCP on demand for dependency or code concerns. Do **not** add `SNYK_TOK
 
 MCP servers must show `ready` (or equivalent) before agents rely on them. If `needsAuth`, ask the human to complete Cursor Connect / `mcp_auth`; do not invent tokens in the SPA.
 
-For Sonatype, record missing access and use the required dependency-review
 For optional Tavily/Nimble web retrieval, the [research fallback procedure](#nimble-procedure) permits an equivalent authorized read-only route after reporting the limitation. A specifically required provider or governed bridge still needs its own access; a fallback does not waive the Figma, Drive or Scenario handoffs below.
 
+For Sonatype, record missing access and use the required dependency-review
 fallback instead of requiring authentication or a subscription. Other services'
 explicit auth/subscription handoff rules below remain unchanged.
 

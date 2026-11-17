@@ -327,6 +327,26 @@
         "pathGlobs": ["scripts/validation/**"]
       },
       "whenUnavailable": "fail"
+    },
+    {
+      "id": "dependency-policy",
+      "ownerIssue": "SPE-3761",
+      "npmScript": "verify:dependency-policy",
+      "enforcement": "required",
+      "activation": {
+        "always": true
+      },
+      "whenUnavailable": "fail"
+    },
+    {
+      "id": "dependency-audit",
+      "ownerIssue": "SPE-3761",
+      "npmScript": "verify:dependency-audit",
+      "enforcement": "required",
+      "activation": {
+        "always": true
+      },
+      "whenUnavailable": "fail"
     }
   ]
 }

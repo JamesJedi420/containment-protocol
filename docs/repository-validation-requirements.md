@@ -27,7 +27,17 @@ This orchestrator does **not** redefine what lint, Vitest, Playwright, governanc
 
 ## Change classes
 
-Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `governance`, `academy`, `tooling`, `shared-config`, `architecture`). Validators activate when a changed file matches their `activation.pathGlobs` and/or `activation.changeClasses`.
+Paths map to one or more classes (`application`, `e2e`, `docs`, `planning`, `governance`, `academy`, `tooling`, `shared-config`, `architecture`). Validators activate when a changed file matches their `activation.pathGlobs` and/or `activation.changeClasses`. Optional boolean `activation.always: true` also activates a validator for every run, including empty or documentation-only change sets. Omission or `false` preserves class/path matching; `false` does not disable matching paths. Non-boolean values and malformed activation arrays are rejected.
+
+SPE-3761 registers `dependency-policy` and `dependency-audit` as required,
+always-active validators with `whenUnavailable: fail`. Local and CI use the same
+commands through this resolver. `verify:dependency-policy` checks exact direct
+production/development/optional SemVer specifications against lock root metadata
+and resolved records. `verify:dependency-audit` runs native lockfile-only npm audit
+with explicit production/development/optional/peer inclusion; moderate-or-higher
+findings, unavailable tools, registry errors and unusable results fail. The
+fixtures run in `verify:requirements:test`. See
+[dependency review policy](dependency-review-policy.md#automated-dependency-gates).
 
 Repository-local `.codex/**` environment configuration is tooling. Changes to it, the Copilot specialist profile, or the Codex adapter select the existing named-task preflight tests and the focused SPE-3337 adapter/profile contract checks.
 

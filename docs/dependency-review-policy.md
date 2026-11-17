@@ -55,3 +55,30 @@ time. It does not establish absence of malware, license clearance or safety.
 Prefer source inspection and least privilege over broad unsupported clean claims.
 This procedure adds no runtime SDK, required secret, dependency, or CI gate.
 Existing CI automation remains governed by its own scope and configuration.
+
+## Automated dependency gates
+
+Owner: SPE-3761. These required gates run through SPE-3348's shared requirement
+resolver locally and in the existing Test workflow on PRs and main pushes. They
+remain active with an empty change set and for documentation-only changes.
+
+- `npm run verify:dependency-policy` requires exact SemVer for direct production,
+  development and optional dependencies, including prereleases and build metadata.
+  Ranges, tags, Git/file/URL/workspace specifications, malformed input, missing
+  direct lock records and disagreement with lock root/resolved versions fail.
+- `npm run verify:dependency-audit` invokes native npm audit against the lockfile,
+  explicitly including production, development, optional and peer dependencies.
+  Command-line online settings override npmrc/environment offline preferences so
+  npm cannot silently skip advisory retrieval and return an empty success report.
+  Moderate, high and critical findings fail. Low/info findings alone may pass;
+  the command does not filter or waive moderate findings. Registry failures,
+  process errors, unsupported/malformed audit reports and timeouts also fail.
+  It uses neither `audit fix` nor automatic dependency changes.
+
+`.npmrc` uses `save-exact=true` for subsequent npm saves. Dependency updates still
+need the review above; these automated checks do not authorize upgrades or replace
+Sonatype/fallback provenance, license or bundled-source assessment. Native npm
+advisory coverage does not prove malware absence or completeness for bundled code.
+Existing Dependabot configuration remains in use with no new schedules. There are
+no standing exceptions for these gates. Existing explicit operator-exception
+mechanics retain their original limited purpose in the requirement resolver.

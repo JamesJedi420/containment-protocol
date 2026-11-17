@@ -487,8 +487,53 @@ test('posix npm launch preserves the existing resolved command', () => {
     npmExecPath: '/usr/lib/node_modules/npm/bin/npm-cli.js',
     nodeExecPath: '/usr/bin/node',
     fallbackCommand: '/usr/bin/npm',
+    fileExists: () => false,
   })
   assert.deepEqual(launch, { ok: true, command: '/usr/bin/npm', args: [] })
+})
+
+test('POSIX npm launch uses the active npm entrypoint with the current Node', () => {
+  for (const platform of ['linux', 'darwin']) {
+    const npmCli = '/opt/npm-custom/bin/npm-cli.js'
+    assert.deepEqual(
+      resolveNpmLaunch({
+        platform,
+        npmExecPath: npmCli,
+        nodeExecPath: '/opt/node/bin/node',
+        fallbackCommand: 'npm',
+        fileExists: (candidate) => candidate === npmCli,
+      }),
+      { ok: true, command: '/opt/node/bin/node', args: [npmCli] }
+    )
+  }
+})
+
+test('POSIX npm launch finds the global npm layout beside version-managed Node', () => {
+  for (const platform of ['linux', 'darwin']) {
+    const npmCli = '/opt/node/lib/node_modules/npm/bin/npm-cli.js'
+    assert.deepEqual(
+      resolveNpmLaunch({
+        platform,
+        npmExecPath: '/absent/npm-cli.js',
+        nodeExecPath: '/opt/node/bin/node',
+        fallbackCommand: 'npm',
+        fileExists: (candidate) => candidate === npmCli,
+      }),
+      { ok: true, command: '/opt/node/bin/node', args: [npmCli] }
+    )
+  }
+})
+
+test('POSIX missing Node retains the existing fallback without spawning a script', () => {
+  assert.deepEqual(
+    resolveNpmLaunch({
+      platform: 'linux',
+      npmExecPath: '/opt/npm-cli.js',
+      fallbackCommand: '/usr/bin/npm',
+      fileExists: () => true,
+    }),
+    { ok: true, command: '/usr/bin/npm', args: [] }
+  )
 })
 
 test('win32 without a resolvable npm CLI is unavailable, not a spawn error', () => {

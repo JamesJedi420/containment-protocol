@@ -89,6 +89,12 @@ Done requires all of that evidence on the Linear owner.
   inherited config. A controlled unavailable local registry with offline
   preferences set fails with visible `ECONNREFUSED`; the forced-online live audit
   passes with zero findings. Fixtures assert these explicit invocation flags.
+- CodeRabbit identified POSIX version-manager layouts outside the trusted npm
+  lookup directories. The existing shared launcher now prefers the active npm JS
+  entrypoint, then the platform-correct global layout beside the current Node,
+  before its existing POSIX fallback. Windows behavior remains covered. Final
+  tooling fixtures: 72 passed, including Linux/macOS entrypoint/layout/fallback
+  cases; tooling lint passed. No unrelated original-checkout edits were imported.
 
 ## Preservation
 

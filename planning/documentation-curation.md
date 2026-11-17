@@ -72,14 +72,17 @@ PR boundary while reviewing the full diff against `main`.
 
 1. Identify changed code/configuration paths, including deletions and both sides of renames.
    Search tracked documentation for each affected path, old/new symbol, and configuration key.
-   The examples below are discovery commands; replace the example term and repeat as needed.
+   Treat changed paths, symbols, and configuration keys as untrusted data. The examples below
+   read literal search terms from standard input; never paste PR-controlled text into shell
+   command source, even inside quotes. Do not use `eval`, `Invoke-Expression`, or command-string
+   construction for these searches.
 
    Bash / Git Bash:
 
    ```sh
    base=$(git merge-base HEAD origin/main)
    git diff --name-status -M "$base"...HEAD -- src scripts test .github
-   git grep -nF -e 'src/path/or/symbol' -- '*.md' '*.mdc'
+   git grep -nF -f - -- '*.md' '*.mdc'
    ```
 
    PowerShell:
@@ -87,8 +90,13 @@ PR boundary while reviewing the full diff against `main`.
    ```powershell
    $reviewBase = git merge-base HEAD origin/main
    git diff --name-status -M "${reviewBase}...HEAD" -- src scripts test .github
-   git grep -nF -e 'src/path/or/symbol' -- '*.md' '*.mdc'
+   git grep -nF -f - -- '*.md' '*.mdc'
    ```
+
+   Run the block first, then enter one literal search term per line into `git grep`'s standard
+   input. Finish input with EOF (Ctrl+D in Bash; Ctrl+Z then Enter in a Windows console).
+   Quotes, backticks, dollar signs, and semicolons in that input remain data. Repeat the search
+   for old/new paths, symbols, and keys; an empty pattern matches every line, so omit blank lines.
 
    The path list is a starting point; include other affected roots and root configuration files
    from the full PR diff. `git grep` exit 1 means no literal matches, not a semantic pass. These

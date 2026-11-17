@@ -82,3 +82,8 @@ Original checkout `C:/Projects/containment-protocol` and other worktrees are
 preserved. Implementation is isolated at `C:/Projects/cp-ci-baseline-20261116`.
 No in-boundary deferral or new candidate scope is presently identified.
 Anchors describe the base revision and must be refreshed for later reuse.
+
+PR review correction: CodeRabbit identified duplicated validator semantics in
+the orchestration guide. That guide now retains registration/command information
+and links to SPE-3762 and the validator for its suite/report rules. No execution
+behavior changed; affected documentation checks passed before the review commit.

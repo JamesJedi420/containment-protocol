@@ -25,15 +25,15 @@ Previously this policy required presence on `origin/main`, matching revision, an
 
 ## Bounded approval authority (after gate)
 
-When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` lists no coding slice in `inProgress`, the handoff's **Coding slice** line reads `(none)`, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
+When continuation is authorized and the user has not named an issue, Cursor follows the current work-selection rules in `docs/cursor-autonomous-authority.md`. Check Linear for the current coding slice and eligibility; the manifest and handoff are historical projections and do not gate selection or establish lifecycle state. Subject to those rules, Cursor may:
 
-1. **Assess** the authoritative queue (`planning/backlog.md` Recommended next step and active queue, Linear primary/children, `recentlyShipped`). Do not treat manifest JSON key order as a ranking.
+1. **Assess** current Linear scope, status, priority, relationships and blockers. The backlog and manifest are non-authoritative records; do not use their ordering to select or rank executable work.
 2. **Select** exactly one **existing** Linear issue that passes eligibility below.
 3. **Create** the feature branch from current `main` (slice-doc branch name or Linear `gitBranchName`) **before** writing repository audit files.
 4. **Record** a delegated approval decision (audit evidence) before feature coding.
 5. Set that issue **In Progress**, create/update `planning/*-slice.md` when missing, update handoff/manifest for the pick, then implement in the same session under `.cursor/rules/implementation-lite.mdc`.
 
-If a sole In Progress slice already exists in the manifest or Linear, **resume it** — do not select another. This gate turns on whether a coding slice is In Progress, not on whether `inProgress` is an empty array: an entry that `planning/backlog.md` records as a deferred producer remainder, an umbrella-scale parent, or blocked live-source work is not a coding slice and does not hold the gate shut.
+If a sole Linear In Progress coding slice exists, **resume it** under the current work-selection rules. A manifest entry without a matching current Linear In Progress coding slice is not a resume target. Deferred producer remainders, umbrella-scale parents, and blocked live-source work are not coding slices merely because a projection lists them.
 
 Do **not** exercise this path inside a merge Phase B closeout session. Phase B stays plan/remind-only; the required **new** agent chat may invoke delegated selection when continuation is requested.
 
@@ -41,7 +41,7 @@ Do **not** exercise this path inside a merge Phase B closeout session. Phase B s
 
 - Issue already exists in Linear (and GitHub mirror when present).
 - Status is Backlog or Todo (not Done, Canceled, Duplicate).
-- Not listed in manifest `recentlyShipped`.
+- Verify that the issue is not already completed using current Linear and GitHub evidence; a manifest entry alone is not lifecycle authority.
 - Not a parent umbrella: reject when Linear shows child issues under the candidate (`list_issues` with `parentId`), or when the body requires child-only implementation (SPE-1052 and similar are never eligible as the coding slice).
 - `get_issue` acceptance criteria fit one coherent coding slice. A slice doc may document the boundary but does not replace usable acceptance criteria unless the approved issue body and slice doc both state the same satisfiable bar (or the delegated record explicitly narrows to a documented sub-boundary still inside that body — no silent scope expansion).
 - No open `blockedBy` blockers (Done/Canceled blockers do not block).
@@ -50,12 +50,7 @@ Do **not** exercise this path inside a merge Phase B closeout session. Phase B s
 
 ### Selection order
 
-Apply in order; stop at the first eligible issue:
-
-1. Concrete SPE named in `planning/backlog.md` **Recommended next step** that is not the `primary` parent and not recently shipped.
-2. Eligible child of manifest `primary` — **only when `primary` is non-null** (prefer higher Linear priority, then lowest SPE number; prefer issues with an existing slice doc). When `primary` is `null`, skip this rule and record `primary: none` in the decision criteria; do not report the skip as "no eligible children".
-3. Next other eligible child named in the active queue of `planning/backlog.md`.
-4. If still none: highest-value eligible existing owner required by recent shipped contradiction/authority folds (document why primary children were skipped).
+Use current Linear priority, dependencies, scope, and readiness to compare eligible issues under `docs/cursor-autonomous-authority.md`. Neither the backlog shortlist nor manifest `primary`, `recentlyShipped`, or JSON ordering establishes selection order. Verify any potentially relevant shipped evidence and relationships against its authoritative source.
 
 If two issues still tie, stop and ask. Do not invent a pick.
 

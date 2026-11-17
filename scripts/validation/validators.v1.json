@@ -329,6 +329,18 @@
       "whenUnavailable": "fail"
     },
     {
+      "id": "cp-contracts",
+      "ownerIssue": "SPE-3762",
+      "ownerNote": "Existing CP event/save contract suites; scoped execution attestation does not replace full-suite completeness.",
+      "npmScript": "verify:cp-contracts",
+      "ciNpmScript": "verify:cp-contracts:ci",
+      "enforcement": "required",
+      "activation": {
+        "always": true
+      },
+      "whenUnavailable": "fail"
+    },
+    {
       "id": "dependency-policy",
       "ownerIssue": "SPE-3761",
       "npmScript": "verify:dependency-policy",

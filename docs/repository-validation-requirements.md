@@ -39,6 +39,33 @@ findings, unavailable tools, registry errors and unusable results fail. The
 fixtures run in `verify:requirements:test`. See
 [dependency review policy](dependency-review-policy.md#automated-dependency-gates).
 
+SPE-3762 adds required, always-active `cp-contracts` with `whenUnavailable: fail`.
+Local uses `verify:cp-contracts` (`vmThreads`); CI uses `verify:cp-contracts:ci`
+(`forks`). Both use `app.vite.config.ts`, native config loading, jsdom and globals,
+and inherit the existing strict-console environment. The Node adapter
+`scripts/validation/cp-contracts.mjs` explicitly runs:
+
+- `src/test/events.validation.test.ts`
+- `src/test/events.coverage.test.ts`
+- `src/test/events.producerValidation.test.ts`
+- `src/test/events.recoveredValidation.test.ts`
+- `src/domain/events/eventMigration.test.ts`
+- `src/app/store/saveSystem.test.ts`
+- `src/app/store/runTransfer.test.ts`
+- `src/app/store/gameStore.test.ts`
+
+It checks each required file before execution and attests the exact reported
+eight-suite set using a fresh temporary JSON report and an in-memory scoped
+inventory. Failed tools/tests, missing/malformed reports, missing/extra/duplicate
+suites and suites with no executed passing tests fail. Arguments other than
+`--ci` are rejected, so filters cannot silently narrow the gate. The full-suite
+CI runner and its committed completeness inventory remain independent and
+unchanged; this focused gate does not replace full-suite or release/gameplay
+acceptance. Canonical runtime schemas, save versions, migrations, normalization
+and fixtures retain their existing owners and semantics (including SPE-3403's
+separate compatibility-policy boundary). No workflow-specific step is needed:
+the existing Test workflow invokes this registry on PRs and main pushes.
+
 Repository-local `.codex/**` environment configuration is tooling. Changes to it, the Copilot specialist profile, or the Codex adapter select the existing named-task preflight tests and the focused SPE-3337 adapter/profile contract checks.
 
 ## Registered validators (summary)

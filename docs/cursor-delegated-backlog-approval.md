@@ -25,7 +25,7 @@ Previously this policy required presence on `origin/main`, matching revision, an
 
 ## Bounded approval authority (after gate)
 
-When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` `inProgress` is empty, backlog handoff shows **In progress: (none)**, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
+When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` lists no coding slice in `inProgress`, the handoff's **Coding slice** line reads `(none)`, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
 
 1. **Assess** the authoritative queue (`planning/backlog.md` Recommended next step and active queue, Linear primary/children, `recentlyShipped`). Do not treat manifest JSON key order as a ranking.
 2. **Select** exactly one **existing** Linear issue that passes eligibility below.
@@ -33,7 +33,7 @@ When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` `inP
 4. **Record** a delegated approval decision (audit evidence) before feature coding.
 5. Set that issue **In Progress**, create/update `planning/*-slice.md` when missing, update handoff/manifest for the pick, then implement in the same session under `.cursor/rules/implementation-lite.mdc`.
 
-If a sole In Progress slice already exists in the manifest or Linear, **resume it** — do not select another.
+If a sole In Progress slice already exists in the manifest or Linear, **resume it** — do not select another. This gate turns on whether a coding slice is In Progress, not on whether `inProgress` is an empty array: an entry that `planning/backlog.md` records as a deferred producer remainder, an umbrella-scale parent, or blocked live-source work is not a coding slice and does not hold the gate shut.
 
 Do **not** exercise this path inside a merge Phase B closeout session. Phase B stays plan/remind-only; the required **new** agent chat may invoke delegated selection when continuation is requested.
 

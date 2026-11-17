@@ -56,7 +56,7 @@ When no slice is named and continuation is expected:
 
 1. Obey clean-main (`clean-main-before-next-slice.mdc`).
 2. Resume a sole Linear **In Progress** slice if one exists.
-3. Otherwise select the next eligible existing issue (Linear `Todo`/`Backlog` state / priority / `primary` children) **or** create a bounded issue when durable scope is justified under the safeguards above.
+3. Otherwise select the next eligible existing issue (Linear `Todo`/`Backlog` state / priority; `primary` children only when the manifest `primary` is non-null) **or** create a bounded issue when durable scope is justified under the safeguards above.
 4. Set the chosen issue **In Progress** before substantive edits.
 5. Implement under `implementation-lite.mdc` ship loop (pre-ship audit → commit → push → PR → babysit → merge → sync `main`).
 

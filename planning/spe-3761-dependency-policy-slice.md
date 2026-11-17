@@ -80,6 +80,15 @@ Done requires all of that evidence on the Linear owner.
   direct; no large-log or multi-owner curation needed. Unsupported Hermes mapping
   was not reused as approval or a passing review. Independent review and required
   CI are still publication-to-merge gates, recorded on the PR/Linear owner.
+- Review fixes: split activation validation to meet the existing complexity gate;
+  use explicit build-component length checks, an explicit locale comparator and
+  the required digit-class spelling. No validator semantics or gates were weakened.
+- Devin's offline-audit bypass finding was reproduced against npm 10.9.9: offline
+  mode skips advisory retrieval and returns an empty successful report. Explicit
+  `--offline=false --prefer-offline=false --prefer-online=true` now overrides
+  inherited config. A controlled unavailable local registry with offline
+  preferences set fails with visible `ECONNREFUSED`; the forced-online live audit
+  passes with zero findings. Fixtures assert these explicit invocation flags.
 
 ## Preservation
 

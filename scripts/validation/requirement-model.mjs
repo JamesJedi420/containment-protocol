@@ -86,26 +86,7 @@ function assertRegistryShape(registry) {
   }
 }
 
-function assertValidatorEntry(v, registry, ids) {
-  if (!v?.id || typeof v.id !== 'string') {
-    throw new Error('validation-requirements: each validator needs a string id')
-  }
-  if (ids.has(v.id)) {
-    throw new Error(`validation-requirements: duplicate validator id ${v.id}`)
-  }
-  ids.add(v.id)
-  if (!v.ownerIssue || typeof v.ownerIssue !== 'string') {
-    throw new Error(`validation-requirements: ${v.id} needs ownerIssue`)
-  }
-  if (!ENFORCEMENT.has(v.enforcement)) {
-    throw new Error(`validation-requirements: ${v.id} invalid enforcement`)
-  }
-  if (!WHEN_UNAVAILABLE.has(v.whenUnavailable)) {
-    throw new Error(`validation-requirements: ${v.id} invalid whenUnavailable`)
-  }
-  if (!v.npmScript && !v.command) {
-    throw new Error(`validation-requirements: ${v.id} needs npmScript or command`)
-  }
+function assertActivation(v, registry) {
   if (!v.activation || typeof v.activation !== 'object' || Array.isArray(v.activation)) {
     throw new Error(`validation-requirements: ${v.id} needs activation`)
   }
@@ -126,6 +107,29 @@ function assertValidatorEntry(v, registry, ids) {
       throw new Error(`validation-requirements: ${v.id} unknown changeClass ${c}`)
     }
   }
+}
+
+function assertValidatorEntry(v, registry, ids) {
+  if (!v?.id || typeof v.id !== 'string') {
+    throw new Error('validation-requirements: each validator needs a string id')
+  }
+  if (ids.has(v.id)) {
+    throw new Error(`validation-requirements: duplicate validator id ${v.id}`)
+  }
+  ids.add(v.id)
+  if (!v.ownerIssue || typeof v.ownerIssue !== 'string') {
+    throw new Error(`validation-requirements: ${v.id} needs ownerIssue`)
+  }
+  if (!ENFORCEMENT.has(v.enforcement)) {
+    throw new Error(`validation-requirements: ${v.id} invalid enforcement`)
+  }
+  if (!WHEN_UNAVAILABLE.has(v.whenUnavailable)) {
+    throw new Error(`validation-requirements: ${v.id} invalid whenUnavailable`)
+  }
+  if (!v.npmScript && !v.command) {
+    throw new Error(`validation-requirements: ${v.id} needs npmScript or command`)
+  }
+  assertActivation(v, registry)
 }
 
 export function validateRequirementRegistry(registry) {

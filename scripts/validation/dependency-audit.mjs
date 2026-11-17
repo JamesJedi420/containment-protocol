@@ -12,6 +12,9 @@ export const AUDIT_ARGS = [
   '--include=optional',
   '--include=peer',
   '--audit-level=moderate',
+  '--offline=false',
+  '--prefer-offline=false',
+  '--prefer-online=true',
   '--ignore-scripts',
   '--json',
 ]

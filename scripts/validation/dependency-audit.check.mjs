@@ -82,6 +82,9 @@ test('uses the safe npm launch with lockfile, all dependency classes, threshold 
   for (const flag of [
     '--package-lock-only',
     '--audit-level=moderate',
+    '--offline=false',
+    '--prefer-offline=false',
+    '--prefer-online=true',
     '--ignore-scripts',
     '--json',
   ])

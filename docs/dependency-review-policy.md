@@ -68,6 +68,8 @@ remain active with an empty change set and for documentation-only changes.
   direct lock records and disagreement with lock root/resolved versions fail.
 - `npm run verify:dependency-audit` invokes native npm audit against the lockfile,
   explicitly including production, development, optional and peer dependencies.
+  Command-line online settings override npmrc/environment offline preferences so
+  npm cannot silently skip advisory retrieval and return an empty success report.
   Moderate, high and critical findings fail. Low/info findings alone may pass;
   the command does not filter or waive moderate findings. Registry failures,
   process errors, unsupported/malformed audit reports and timeouts also fail.

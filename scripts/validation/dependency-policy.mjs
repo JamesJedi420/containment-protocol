@@ -6,14 +6,16 @@ import { fileURLToPath } from 'node:url'
 
 const SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies']
 const isRecord = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
-const isNumeric = (value) => /^[0-9]+$/.test(value)
+const isNumeric = (value) => /^\d+$/.test(value)
 const isIdentifier = (value) => /^[0-9A-Za-z-]+$/.test(value)
 const isNumberIdentifier = (value) => isNumeric(value) && (value === '0' || !value.startsWith('0'))
 
 export function isExactVersion(value) {
   if (typeof value !== 'string' || value.trim() !== value) return false
-  const [release, build, ...extra] = value.split('+')
-  if (extra.length || (build !== undefined && !build.split('.').every(isIdentifier))) return false
+  const components = value.split('+')
+  if (components.length > 2) return false
+  if (components.length === 2 && !components[1].split('.').every(isIdentifier)) return false
+  const release = components[0]
   const dash = release.indexOf('-')
   const core = dash < 0 ? release : release.slice(0, dash)
   const parts = core.split('.')
@@ -53,7 +55,7 @@ function checkSection(section, direct, locked, packages) {
   }
   const names = new Set([...Object.keys(direct ?? {}), ...Object.keys(locked ?? {})])
   return [...names]
-    .sort()
+    .sort((a, b) => a.localeCompare(b, 'en'))
     .flatMap((name) => checkDirectVersion(section, name, direct, locked, packages))
 }
 

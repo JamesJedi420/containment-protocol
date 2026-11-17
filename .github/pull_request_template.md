@@ -33,6 +33,15 @@
 - [ ] Targeted tests: <!-- command(s) run, or N/A for docs-only -->
 - [ ] Lint / verify scripts (if touched): <!-- e.g. npm run lint, npm run verify:audits-index -->
 
+## PR review checklist
+
+<!-- Review the full diff against main. Record searched terms, affected documentation sections, actual check results, and exclusions under Docs updated / Validation. Procedure and shell examples: planning/documentation-curation.md#documentation-reference-search-and-semantic-review. -->
+
+- [ ] Search version-controlled documentation for changed paths (including old/new names), symbols, and configuration keys; inspect relevant READMEs, ADRs, and agent/skill guides even when literal searches return no matches.
+- [ ] Check behavioral descriptions, commands, examples, and assumptions against the implementation; update invalidated sections in this PR and preserve ADR supersession/history. A matching path or green reference check does not establish semantic accuracy.
+- [ ] Identify useful source paths/symbols, existing Linear owners, and document status; record external/private/restricted exclusions and unresolved ownership or rights decisions without copying or migrating their content.
+- [ ] Tests, fixtures, contracts, and consumers remain consistent with the changed behavior; record actual validation selected by the existing requirements workflow. Reuse SPE-3756/SPE-3757 reference checks when available and report missing coverage rather than adding another checker.
+
 ## Screenshots (UI only)
 
 <!-- Omit for domain-only / docs-only changes -->

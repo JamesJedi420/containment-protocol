@@ -221,6 +221,12 @@ After a PR merges, sync local `main` before starting the next approved slice.
 - Cross-scale handoff contracts: `docs/cross-scale-integration.md`
 - Dependency boundaries: `docs/dependency-boundaries.md`
 
+Canonical engineering READMEs, ADRs, and project-owned agent/skill guides stay in Git alongside
+the code they describe. The [documentation ownership and rights map](planning/documentation-curation.md#canonical-documentation-ownership-and-rights)
+identifies source surfaces and external exclusions; the [PR review procedure](planning/documentation-curation.md#documentation-reference-search-and-semantic-review)
+covers reference discovery and semantic drift. External documents require an ownership, access,
+and reuse-rights inventory before any separately authorized migration.
+
 When adding a new top-level `docs/*audit*.md`, update `docs/design-audits-index.md` in strict alphabetical order and run `npm run verify:audits-index`.
 
 ## License and Copyright

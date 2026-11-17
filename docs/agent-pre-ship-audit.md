@@ -12,7 +12,7 @@ Apply manual §2: inspect issue/evidence/files and report current vs expected be
 2. **Edge cases:** empty/malformed data, absent fields, duplicates, stale records, failed lookups, ordering and permissions.
 3. **Determinism and state:** seeded/reproducible outcomes, no silent mutation or hidden-information leaks.
 4. **Regression:** real integration paths and nearby consumers; change expectations only within the approved boundary.
-5. **Documentation and authoring:** in-boundary docs, schemas, fixtures; synchronize live backlog/manifest/slice status when changed, preserving frozen history.
+5. **Documentation and authoring:** in-boundary docs, schemas, fixtures; run the [documentation-reference search and semantic review](../planning/documentation-curation.md#documentation-reference-search-and-semantic-review) for changed paths, symbols, and configuration. Update invalidated sections in the same PR; reference checks alone do not establish accuracy. Synchronize live backlog/manifest/slice status when changed, preserving frozen history.
 6. **Cleanup:** dead code, unused imports, debugging noise, speculative TODOs and overbroad abstractions.
 
 ## Validation

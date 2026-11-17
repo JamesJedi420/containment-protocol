@@ -27,7 +27,7 @@ Previously this policy required presence on `origin/main`, matching revision, an
 
 When all effectiveness gates pass, `planning/backlog-handoff-manifest.json` lists no coding slice in `inProgress`, the handoff's **Coding slice** line reads `(none)`, Linear has no In Progress SPE slice, and the user did not name an issue, Cursor may:
 
-1. **Assess** the authoritative queue (`planning/backlog.md` Recommended next step and active queue, Linear primary/children, `recentlyShipped`). Do not treat manifest JSON key order as a ranking.
+1. **Assess** Linear state and the retained shortlist (`planning/backlog.md` handoff lines, Linear primary/children, `recentlyShipped`). Do not treat manifest JSON key order as a ranking.
 2. **Select** exactly one **existing** Linear issue that passes eligibility below.
 3. **Create** the feature branch from current `main` (slice-doc branch name or Linear `gitBranchName`) **before** writing repository audit files.
 4. **Record** a delegated approval decision (audit evidence) before feature coding.
@@ -54,7 +54,7 @@ Apply in order; stop at the first eligible issue:
 
 1. Concrete SPE named in `planning/backlog.md` **Recommended next step** that is not the `primary` parent and not recently shipped.
 2. Eligible child of manifest `primary` — **only when `primary` is non-null** (prefer higher Linear priority, then lowest SPE number; prefer issues with an existing slice doc). When `primary` is `null`, skip this rule and record `primary: none` in the decision criteria; do not report the skip as "no eligible children".
-3. Next other eligible child named in the active queue of `planning/backlog.md`.
+3. Next other eligible child listed in `planning/backlog.md`.
 4. If still none: highest-value eligible existing owner required by recent shipped contradiction/authority folds (document why primary children were skipped).
 
 If two issues still tie, stop and ask. Do not invent a pick.

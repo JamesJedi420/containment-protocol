@@ -165,6 +165,13 @@ checklist and table rows in frozen slice records
 not direct selection, and belong in the allowlist with their historical reason
 rather than being rewritten.
 
+The ten live claims above were corrected in one follow-up docs change, and the
+single C2 heading (`## Confirm the queue is empty`) was renamed at the same
+time. Re-scanning that revision with the same implementation leaves no live C1
+claim and no C2 heading: what remains is the four structural exemptions, the one
+true negation, the three frozen-slice lines recorded here as the allowlist seed,
+and the unreferenced runtime-queue prose that is never a candidate.
+
 ### Snippet files and the distribution channel
 
 Six living entry points are prose pasted into an editor, not just tracked files:

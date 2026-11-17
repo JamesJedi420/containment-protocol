@@ -39,6 +39,14 @@ findings, unavailable tools, registry errors and unusable results fail. The
 fixtures run in `verify:requirements:test`. See
 [dependency review policy](dependency-review-policy.md#automated-dependency-gates).
 
+[SPE-3762](https://linear.app/spectranoir/issue/SPE-3762) adds required,
+always-active `cp-contracts` with `whenUnavailable: fail`. Local uses
+`verify:cp-contracts` (`vmThreads`); CI uses `verify:cp-contracts:ci` (`forks`).
+Suite selection and execution/report rules remain owned by that issue and
+[its validator](../scripts/validation/cp-contracts.mjs). The existing Test workflow
+invokes this registry on PRs and main pushes; no workflow-specific step is needed.
+The focused gate does not replace full-suite completeness or release acceptance.
+
 Repository-local `.codex/**` environment configuration is tooling. Changes to it, the Copilot specialist profile, or the Codex adapter select the existing named-task preflight tests and the focused SPE-3337 adapter/profile contract checks.
 
 ## Registered validators (summary)

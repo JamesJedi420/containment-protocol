@@ -64,7 +64,7 @@ test('always activation is optional boolean OR matching and preserves existing s
   }
   const previous = {
     ...registry,
-    validators: registry.validators.filter((v) => !v.activation.always),
+    validators: registry.validators.filter((v) => !v.id.startsWith('dependency-')),
   }
   for (const files of [
     [],
@@ -251,7 +251,12 @@ test('application, shared-config, academy, and Vite entry changes require the bu
 
 test('index.html-only change requires the bundle gate without widening other validators', () => {
   const resolution = resolveValidationRequirements(['index.html'], registry)
-  assert.deepEqual(resolution.requiredIds, ['dependency-audit', 'dependency-policy', 'vite-build'])
+  assert.deepEqual(resolution.requiredIds, [
+    'cp-contracts',
+    'dependency-audit',
+    'dependency-policy',
+    'vite-build',
+  ])
   assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
 })
 

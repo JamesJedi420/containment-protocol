@@ -1,0 +1,1396 @@
+{
+  "fixturePack": "spe-3303.instruction-resolution",
+  "fixtureVersion": "1.0.0",
+  "owner": "SPE-3303",
+  "status": "synthetic_fixtures_only",
+  "authority": {
+    "attendance": "caller_supplied_authoritative_result",
+    "enrollment": "not_implemented_out_of_scope",
+    "progression": "reference_only_existing_agent_progression",
+    "numericEffectMagnitudes": "unapproved",
+    "gradingFormula": "unapproved"
+  },
+  "canonicalSpaces": {
+    "stableId": {
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "source": "scripts/validation/academy-authored-content.mjs (SHARED_ID_SPACE = academy-stable-id)"
+    },
+    "statKey": {
+      "allowed": ["combat", "investigation", "utility", "social"],
+      "source": "src/domain/sim/instructorAssignment.ts (INSTRUCTOR_SPECIALTY_KEYS)"
+    },
+    "efficiencyBand": {
+      "allowed": [0, 1, 2],
+      "source": "src/domain/sim/instructorAssignment.ts (getInstructorBonus: >=90 -> 2, >=70 -> 1, else 0)",
+      "note": "Band identity is grounded in existing code; the band's effect on lesson credit is unapproved."
+    },
+    "trainingProgram": {
+      "allowed": [
+        "combat-drills",
+        "threat-assessment",
+        "analysis-lab",
+        "field-improv",
+        "logistics-cycle",
+        "endurance-protocol",
+        "anomaly-conditioning",
+        "liaison-briefing"
+      ],
+      "source": "src/data/training.ts (trainingCatalog trainingId values)"
+    },
+    "progressionRef": {
+      "grammar": "moduleRef#session-<n>",
+      "note": "Composed from the SPE-3304 shared stable-id space plus a session ordinal. Session-level stable IDs are NOT registered by SPE-3304 slice 1; see CONTRACT-AMBIGUITIES.md A1."
+    }
+  },
+  "atoms": [
+    {
+      "atom": "E_base",
+      "meaning": "credit effect of one evaluated present session under ordinary teaching",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_base > 0"]
+    },
+    {
+      "atom": "E_prep",
+      "meaning": "additional effect attributable to caller-supplied preparation evidence",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_prep >= 0"]
+    },
+    {
+      "atom": "E_instructor_band_0",
+      "meaning": "instructor-context effect at efficiency band 0",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_instructor_band_0 >= 0"]
+    },
+    {
+      "atom": "E_instructor_band_1",
+      "meaning": "instructor-context effect at efficiency band 1",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_instructor_band_1 >= E_instructor_band_0"]
+    },
+    {
+      "atom": "E_instructor_band_2",
+      "meaning": "instructor-context effect at efficiency band 2",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_instructor_band_2 >= E_instructor_band_1"]
+    },
+    {
+      "atom": "E_peer_assist",
+      "meaning": "peer assistance effect",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_peer_assist >= 0"]
+    },
+    {
+      "atom": "E_peer_interfere",
+      "meaning": "peer interference effect, subtracted from the session effect",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_peer_interfere >= 0"]
+    },
+    {
+      "atom": "E_makeup",
+      "meaning": "effect of an authorized make-up session credited to the original session reference",
+      "approval": "unapproved_magnitude",
+      "relations": ["E_makeup >= 0", "E_makeup <= E_base"]
+    }
+  ],
+  "classes": [
+    "ordinary_teaching",
+    "no_change_lesson",
+    "skipped_attendance",
+    "excused_attendance",
+    "authorized_makeup",
+    "unauthorized_makeup",
+    "attendance_authority_missing",
+    "preparation_effect",
+    "instructor_context_effect",
+    "peer_assistance",
+    "peer_interference",
+    "capped_progression",
+    "repeated_evaluation",
+    "replay"
+  ],
+  "dispositions": [
+    "credit_granted",
+    "no_progression_change",
+    "credit_capped",
+    "deferred",
+    "not_evaluated",
+    "duplicate_suppressed",
+    "rejected_unauthorized_makeup"
+  ],
+  "attendanceStatuses": ["present", "skipped", "excused", "unknown"],
+  "attendanceAuthorities": ["caller", "none"],
+  "lessonEffects": ["advances", "no_change"],
+  "disallowedEmissions": [
+    "enrollment_record",
+    "learning_state_snapshot",
+    "faculty_quality_score",
+    "disciplinary_case",
+    "xp_or_level_change",
+    "stat_cap_change",
+    "game_engine_effect"
+  ],
+  "requiredClasses": [
+    "ordinary_teaching",
+    "no_change_lesson",
+    "skipped_attendance",
+    "excused_attendance",
+    "authorized_makeup",
+    "preparation_effect",
+    "instructor_context_effect",
+    "peer_assistance",
+    "peer_interference",
+    "capped_progression",
+    "repeated_evaluation",
+    "replay"
+  ],
+  "invariants": [
+    {
+      "id": "credit_within_capacity",
+      "statement": "creditedSessionsBefore + deltaSessions <= moduleCapacity",
+      "checkedAs": "arithmetic"
+    },
+    {
+      "id": "no_double_credit",
+      "statement": "a (learnerRef, sessionRef) pair may receive at most one session of credit across the pack",
+      "checkedAs": "pack_grouping"
+    },
+    {
+      "id": "no_credit_without_authoritative_presence",
+      "statement": "deltaSessions is 0 whenever attendance.status is not an authoritative present result",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "excused_differs_from_skipped",
+      "statement": "excused attendance defers to a pending make-up reference; skipped attendance resolves without a progression reference",
+      "checkedAs": "pack_pairing"
+    },
+    {
+      "id": "makeup_credits_original_session",
+      "statement": "an authorized make-up credits lesson.makeup.forSessionRef, not a new session ordinal",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "authorized_makeup_requires_authority_ref",
+      "statement": "an authorized make-up requires a non-empty authorizationRef",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "unauthorized_makeup_grants_no_credit",
+      "statement": "an unauthorized make-up grants no credit and no progression reference",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "no_change_lesson_emits_no_delta",
+      "statement": "a lesson authored as no_change produces no progression delta and no progression reference",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "cap_not_exceeded",
+      "statement": "no case may expect creditedSessionsAfter greater than its moduleCapacity",
+      "checkedAs": "arithmetic"
+    },
+    {
+      "id": "credited_sessions_never_negative",
+      "statement": "creditedSessionsAfter and deltaSessions are never negative",
+      "checkedAs": "arithmetic"
+    },
+    {
+      "id": "idempotent_by_outcome_ref",
+      "statement": "re-delivering an already-evaluated caller outcomeRef suppresses credit",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "no_enrollment_inference",
+      "statement": "resolution does not require, infer, or write an enrollment record",
+      "checkedAs": "emission"
+    },
+    {
+      "id": "attendance_authority_required",
+      "statement": "without caller attendance authority the session is not evaluated",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "no_disciplinary_output",
+      "statement": "skipped attendance produces no disciplinary resolution output",
+      "checkedAs": "emission"
+    },
+    {
+      "id": "instructor_effect_nonnegative",
+      "statement": "an assigned matching instructor may not reduce the session effect",
+      "checkedAs": "order_property"
+    },
+    {
+      "id": "instructor_specialty_must_match_target_stat",
+      "statement": "instructor context applies only when instructorContext.specialty equals progressionState.targetStat",
+      "checkedAs": "cross_field"
+    },
+    {
+      "id": "peer_effect_sign_matches_declared_effect",
+      "statement": "assistance enters the effect expression positively; interference enters negatively",
+      "checkedAs": "expression"
+    }
+  ],
+  "lessons": [
+    {
+      "courseRef": "course-foundations",
+      "moduleRef": "module-foundations-core",
+      "moduleSessionCapacity": 3,
+      "sessions": [
+        {
+          "sessionRef": "module-foundations-core#session-1",
+          "index": 1,
+          "lessonEffect": "advances"
+        },
+        {
+          "sessionRef": "module-foundations-core#session-2",
+          "index": 2,
+          "lessonEffect": "advances"
+        },
+        {
+          "sessionRef": "module-foundations-core#session-3",
+          "index": 3,
+          "lessonEffect": "advances"
+        }
+      ]
+    },
+    {
+      "courseRef": "course-foundations",
+      "moduleRef": "module-reinforcement-drill",
+      "moduleSessionCapacity": 1,
+      "sessions": [
+        {
+          "sessionRef": "module-reinforcement-drill#session-1",
+          "index": 1,
+          "lessonEffect": "no_change"
+        }
+      ]
+    },
+    {
+      "courseRef": "course-field-protocols",
+      "moduleRef": "module-contained-response",
+      "moduleSessionCapacity": 2,
+      "sessions": [
+        {
+          "sessionRef": "module-contained-response#session-1",
+          "index": 1,
+          "lessonEffect": "advances"
+        },
+        {
+          "sessionRef": "module-contained-response#session-2",
+          "index": 2,
+          "lessonEffect": "advances"
+        }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "caseId": "ir-01-ordinary-teaching",
+      "class": "ordinary_teaching",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-1",
+        "index": 1,
+        "scheduledWeek": 12,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_base" },
+        "properties": [],
+        "invariants": ["credit_within_capacity", "no_double_credit"],
+        "mustNotEmit": [
+          "enrollment_record",
+          "learning_state_snapshot",
+          "xp_or_level_change",
+          "disciplinary_case"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-02-preparation-effect",
+      "class": "preparation_effect",
+      "identity": { "learnerRef": "learner-b2" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-1",
+        "index": 1,
+        "scheduledWeek": 12,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": {
+        "prepared": true,
+        "evidenceRef": "preparation:caller:learner-b2:module-foundations-core:s1"
+      },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": {
+          "symbolic": true,
+          "approval": "unapproved",
+          "expression": "E_base + E_prep"
+        },
+        "properties": [
+          {
+            "id": "preparation-non-regression",
+            "kind": "order",
+            "op": ">=",
+            "lhs": { "case": "ir-02-preparation-effect", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_prep"],
+            "statement": "preparation may not reduce the session effect; its magnitude is unapproved"
+          }
+        ],
+        "invariants": ["credit_within_capacity", "no_double_credit"],
+        "mustNotEmit": ["enrollment_record", "learning_state_snapshot", "xp_or_level_change"]
+      }
+    },
+    {
+      "caseId": "ir-03-no-change-lesson",
+      "class": "no_change_lesson",
+      "identity": { "learnerRef": "learner-c3" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-reinforcement-drill",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-reinforcement-drill#session-1",
+        "index": 1,
+        "scheduledWeek": 13,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-c3:module-reinforcement-drill:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-c3:module-reinforcement-drill"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 1,
+        "priorAttempts": 0,
+        "targetStat": "social",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "no_progression_change",
+        "progression": null,
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "no-change-lesson-is-structural",
+            "kind": "structural",
+            "assert": "session.lessonEffect == 'no_change'",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["no_change_lesson_emits_no_delta", "credit_within_capacity"],
+        "mustNotEmit": [
+          "enrollment_record",
+          "learning_state_snapshot",
+          "xp_or_level_change",
+          "stat_cap_change",
+          "disciplinary_case"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-04-skipped-attendance",
+      "class": "skipped_attendance",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-2",
+        "index": 2,
+        "scheduledWeek": 13,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "skipped",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "not_evaluated",
+        "progression": null,
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "skipped-is-not-a-discipline-outcome",
+            "kind": "structural",
+            "assert": "expect.mustNotEmit excludes disciplinary_case",
+            "basis": "contract"
+          }
+        ],
+        "invariants": [
+          "no_credit_without_authoritative_presence",
+          "excused_differs_from_skipped",
+          "no_disciplinary_output"
+        ],
+        "mustNotEmit": ["disciplinary_case", "learning_state_snapshot", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-05-excused-attendance",
+      "class": "excused_attendance",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-2",
+        "index": 2,
+        "scheduledWeek": 13,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "excused",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-excused",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "deferred",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-2",
+          "status": "pending_makeup",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "excused-retains-session-reference",
+            "kind": "structural",
+            "assert": "expect.progression.sessionRef != null and expect.deltaSessions == 0",
+            "basis": "contract"
+          }
+        ],
+        "invariants": [
+          "no_credit_without_authoritative_presence",
+          "excused_differs_from_skipped"
+        ],
+        "mustNotEmit": ["disciplinary_case", "learning_state_snapshot", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-06-authorized-makeup",
+      "class": "authorized_makeup",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": {
+          "authorized": true,
+          "authorizationRef": "authorization:caller:instructor-01:learner-a1:module-foundations-core:s2",
+          "forSessionRef": "module-foundations-core#session-2"
+        }
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-2",
+        "index": 2,
+        "scheduledWeek": 14,
+        "evaluationOrdinal": 2
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-makeup",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 1,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-2",
+          "status": "credited",
+          "creditedSessionsAfter": 2
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_makeup" },
+        "properties": [
+          {
+            "id": "makeup-not-above-ordinary",
+            "kind": "order",
+            "op": "<=",
+            "lhs": { "case": "ir-06-authorized-makeup", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_makeup", "E_base"],
+            "statement": "an authorized make-up credits the original session but may not exceed the ordinary session effect"
+          }
+        ],
+        "invariants": [
+          "makeup_credits_original_session",
+          "authorized_makeup_requires_authority_ref",
+          "credit_within_capacity"
+        ],
+        "mustNotEmit": ["enrollment_record", "learning_state_snapshot", "xp_or_level_change"]
+      }
+    },
+    {
+      "caseId": "ir-07-unauthorized-makeup",
+      "class": "unauthorized_makeup",
+      "identity": { "learnerRef": "learner-b2" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": {
+          "authorized": false,
+          "authorizationRef": null,
+          "forSessionRef": "module-foundations-core#session-2"
+        }
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-2",
+        "index": 2,
+        "scheduledWeek": 14,
+        "evaluationOrdinal": 2
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s2-unsanctioned",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 1,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "rejected_unauthorized_makeup",
+        "progression": null,
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "unauthorized-makeup-has-no-progression-ref",
+            "kind": "structural",
+            "assert": "expect.progression == null",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["unauthorized_makeup_grants_no_credit", "authorized_makeup_requires_authority_ref"],
+        "mustNotEmit": ["disciplinary_case", "learning_state_snapshot", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-08-instructor-context-effect",
+      "class": "instructor_context_effect",
+      "identity": { "learnerRef": "learner-c3" },
+      "lesson": {
+        "courseRef": "course-field-protocols",
+        "moduleRef": "module-contained-response",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-contained-response#session-1",
+        "index": 1,
+        "scheduledWeek": 15,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-c3:module-contained-response:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 2 },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-c3:module-contained-response"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 2,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-contained-response#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": {
+          "symbolic": true,
+          "approval": "unapproved",
+          "expression": "E_base + E_instructor_band_2"
+        },
+        "properties": [
+          {
+            "id": "instructor-context-non-regression",
+            "kind": "order",
+            "op": ">=",
+            "lhs": { "case": "ir-08-instructor-context-effect", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_instructor_band_2"],
+            "statement": "a matching instructor may not reduce the session effect; band magnitude is unapproved"
+          }
+        ],
+        "invariants": [
+          "instructor_effect_nonnegative",
+          "instructor_specialty_must_match_target_stat",
+          "credit_within_capacity"
+        ],
+        "mustNotEmit": [
+          "faculty_quality_score",
+          "learning_state_snapshot",
+          "xp_or_level_change",
+          "enrollment_record"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-09-instructor-specialty-mismatch",
+      "class": "instructor_context_effect",
+      "identity": { "learnerRef": "learner-b2" },
+      "lesson": {
+        "courseRef": "course-field-protocols",
+        "moduleRef": "module-contained-response",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-contained-response#session-1",
+        "index": 1,
+        "scheduledWeek": 15,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": true, "specialty": "social", "efficiencyBand": 2 },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-b2:module-contained-response"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 2,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-contained-response#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_base" },
+        "properties": [
+          {
+            "id": "mismatched-instructor-contributes-nothing",
+            "kind": "order",
+            "op": "==",
+            "lhs": { "case": "ir-09-instructor-specialty-mismatch", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": [],
+            "statement": "a non-matching instructor specialty contributes no effect, matching getAgentInstructorBonus's specialty equality gate"
+          }
+        ],
+        "invariants": ["instructor_specialty_must_match_target_stat", "credit_within_capacity"],
+        "mustNotEmit": [
+          "enrollment_record",
+          "faculty_quality_score",
+          "learning_state_snapshot",
+          "xp_or_level_change"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-10-peer-assistance",
+      "class": "peer_assistance",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-field-protocols",
+        "moduleRef": "module-contained-response",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-contained-response#session-1",
+        "index": 1,
+        "scheduledWeek": 15,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [
+        { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" }
+      ],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-contained-response"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 2,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-contained-response#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": {
+          "symbolic": true,
+          "approval": "unapproved",
+          "expression": "E_base + E_peer_assist"
+        },
+        "properties": [
+          {
+            "id": "peer-assistance-non-regression",
+            "kind": "order",
+            "op": ">=",
+            "lhs": { "case": "ir-10-peer-assistance", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_peer_assist"],
+            "statement": "assistance may not reduce the session effect; magnitude is unapproved"
+          }
+        ],
+        "invariants": ["peer_effect_sign_matches_declared_effect", "credit_within_capacity"],
+        "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-11-peer-interference",
+      "class": "peer_interference",
+      "identity": { "learnerRef": "learner-b2" },
+      "lesson": {
+        "courseRef": "course-field-protocols",
+        "moduleRef": "module-contained-response",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-contained-response#session-2",
+        "index": 2,
+        "scheduledWeek": 16,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s2",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [
+        { "peerRef": "learner-d4", "effect": "interference", "magnitudeAtom": "E_peer_interfere" }
+      ],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-b2:module-contained-response"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 2,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-contained-response#session-2",
+          "status": "credited",
+          "creditedSessionsAfter": 2
+        },
+        "deltaSessions": 1,
+        "effectStrength": {
+          "symbolic": true,
+          "approval": "unapproved",
+          "expression": "E_base - E_peer_interfere"
+        },
+        "properties": [
+          {
+            "id": "peer-interference-non-improvement",
+            "kind": "order",
+            "op": "<=",
+            "lhs": { "case": "ir-11-peer-interference", "field": "effectStrength" },
+            "rhs": { "case": "ir-01-ordinary-teaching", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_peer_interfere"],
+            "statement": "interference may not improve the session effect; it does not by itself zero the session count"
+          }
+        ],
+        "invariants": [
+          "peer_effect_sign_matches_declared_effect",
+          "credited_sessions_never_negative"
+        ],
+        "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-12-capped-progression",
+      "class": "capped_progression",
+      "identity": { "learnerRef": "learner-c3" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-3",
+        "index": 3,
+        "scheduledWeek": 17,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s3",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 2 },
+      "preparation": { "prepared": true, "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s3" },
+      "peers": [
+        { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" }
+      ],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-c3:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 3,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_capped",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-3",
+          "status": "already_credited",
+          "creditedSessionsAfter": 3
+        },
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "cap-dominates-effect",
+            "kind": "structural",
+            "assert": "expect.deltaSessions == 0 even though preparation, matching instructor and peer assistance are present",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["cap_not_exceeded", "credit_within_capacity"],
+        "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-13-near-cap-final-session",
+      "class": "capped_progression",
+      "identity": { "learnerRef": "learner-b2" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-3",
+        "index": 3,
+        "scheduledWeek": 17,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s3",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 2,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-3",
+          "status": "credited",
+          "creditedSessionsAfter": 3
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_base" },
+        "properties": [
+          {
+            "id": "cap-reached-exactly",
+            "kind": "structural",
+            "assert": "expect.progression.creditedSessionsAfter == moduleCapacity",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["credit_within_capacity", "cap_not_exceeded"],
+        "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-14-repeated-evaluation",
+      "class": "repeated_evaluation",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-1",
+        "index": 1,
+        "scheduledWeek": 12,
+        "evaluationOrdinal": 2
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "duplicate_suppressed",
+        "progression": null,
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "same-outcome-ref-is-idempotent",
+            "kind": "structural",
+            "assert": "attendance.outcomeRef equals ir-01's outcomeRef while evaluationOrdinal differs",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["idempotent_by_outcome_ref", "no_double_credit"],
+        "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
+      }
+    },
+    {
+      "caseId": "ir-15-replay-of-ordinary-teaching",
+      "class": "replay",
+      "identity": { "learnerRef": "learner-a1" },
+      "replay": { "of": "ir-01-ordinary-teaching", "ordinal": 1 },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-1",
+        "index": 1,
+        "scheduledWeek": 12,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-1",
+          "status": "credited",
+          "creditedSessionsAfter": 1
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_base" },
+        "properties": [],
+        "invariants": ["credit_within_capacity", "no_double_credit"],
+        "mustNotEmit": [
+          "enrollment_record",
+          "learning_state_snapshot",
+          "xp_or_level_change",
+          "disciplinary_case"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-16-attendance-authority-missing",
+      "class": "attendance_authority_missing",
+      "identity": { "learnerRef": "learner-c3" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-1",
+        "index": 1,
+        "scheduledWeek": 18,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "none",
+        "status": "unknown",
+        "outcomeRef": null,
+        "evaluated": false
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": true, "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s1" },
+      "peers": [],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-c3:module-foundations-core"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 0,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "not_evaluated",
+        "progression": null,
+        "deltaSessions": 0,
+        "effectStrength": null,
+        "properties": [
+          {
+            "id": "no-attendance-is-not-an-absence",
+            "kind": "structural",
+            "assert": "expect.disposition == 'not_evaluated' rather than any skipped/absent disposition",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["attendance_authority_required", "no_credit_without_authoritative_presence"],
+        "mustNotEmit": [
+          "disciplinary_case",
+          "enrollment_record",
+          "learning_state_snapshot",
+          "xp_or_level_change"
+        ]
+      }
+    },
+    {
+      "caseId": "ir-17-no-enrollment-inference",
+      "class": "ordinary_teaching",
+      "identity": { "learnerRef": "learner-c3" },
+      "lesson": {
+        "courseRef": "course-foundations",
+        "moduleRef": "module-foundations-core",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-foundations-core#session-2",
+        "index": 2,
+        "scheduledWeek": 19,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s2",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
+      "preparation": { "prepared": false, "evidenceRef": null },
+      "peers": [],
+      "enrollment": { "supplied": false, "recordRef": null },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 3,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-foundations-core#session-2",
+          "status": "credited",
+          "creditedSessionsAfter": 2
+        },
+        "deltaSessions": 1,
+        "effectStrength": { "symbolic": true, "approval": "unapproved", "expression": "E_base" },
+        "properties": [
+          {
+            "id": "caller-result-is-sufficient",
+            "kind": "structural",
+            "assert": "resolution proceeds with enrollment.supplied == false and emits no enrollment record",
+            "basis": "contract"
+          }
+        ],
+        "invariants": ["no_enrollment_inference", "credit_within_capacity"],
+        "mustNotEmit": ["enrollment_record", "learning_state_snapshot", "xp_or_level_change"]
+      }
+    },
+    {
+      "caseId": "ir-18-combined-context-effects",
+      "class": "instructor_context_effect",
+      "identity": { "learnerRef": "learner-a1" },
+      "lesson": {
+        "courseRef": "course-field-protocols",
+        "moduleRef": "module-contained-response",
+        "makeup": null
+      },
+      "session": {
+        "sessionRef": "module-contained-response#session-2",
+        "index": 2,
+        "scheduledWeek": 20,
+        "evaluationOrdinal": 1
+      },
+      "attendance": {
+        "authority": "caller",
+        "status": "present",
+        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s2",
+        "evaluated": true
+      },
+      "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 1 },
+      "preparation": {
+        "prepared": true,
+        "evidenceRef": "preparation:caller:learner-a1:module-contained-response:s2"
+      },
+      "peers": [
+        { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" },
+        { "peerRef": "learner-e5", "effect": "interference", "magnitudeAtom": "E_peer_interfere" }
+      ],
+      "enrollment": {
+        "supplied": true,
+        "recordRef": "enrollment:caller:learner-a1:module-contained-response"
+      },
+      "progressionState": {
+        "creditedSessionsBefore": 1,
+        "moduleCapacity": 2,
+        "priorAttempts": 0,
+        "targetStat": "investigation",
+        "targetStatAtCap": false
+      },
+      "expect": {
+        "disposition": "credit_granted",
+        "progression": {
+          "sessionRef": "module-contained-response#session-2",
+          "status": "credited",
+          "creditedSessionsAfter": 2
+        },
+        "deltaSessions": 1,
+        "effectStrength": {
+          "symbolic": true,
+          "approval": "unapproved",
+          "expression": "E_base + E_prep + E_instructor_band_1 + E_peer_assist - E_peer_interfere"
+        },
+        "properties": [
+          {
+            "id": "combined-context-dominates-interference-only",
+            "kind": "order",
+            "op": ">=",
+            "lhs": { "case": "ir-18-combined-context-effects", "field": "effectStrength" },
+            "rhs": { "case": "ir-11-peer-interference", "field": "effectStrength" },
+            "basis": "symbolic",
+            "atoms": ["E_prep", "E_instructor_band_1", "E_peer_assist"],
+            "statement": "preparation, a matching instructor and assistance together cannot fall below the interference-only case"
+          },
+          {
+            "id": "combined-effects-do-not-change-count",
+            "kind": "structural",
+            "assert": "expect.deltaSessions == 1 regardless of effect magnitude",
+            "basis": "contract"
+          }
+        ],
+        "invariants": [
+          "cap_not_exceeded",
+          "credit_within_capacity",
+          "peer_effect_sign_matches_declared_effect",
+          "instructor_effect_nonnegative"
+        ],
+        "mustNotEmit": [
+          "learning_state_snapshot",
+          "faculty_quality_score",
+          "xp_or_level_change",
+          "enrollment_record"
+        ]
+      }
+    }
+  ]
+}

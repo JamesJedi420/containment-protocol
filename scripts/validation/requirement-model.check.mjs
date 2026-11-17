@@ -17,6 +17,93 @@ import { describeSpawnError, resolveNpmLaunch, spawnSafe } from './spawn-safe.mj
 
 const registry = readRequirementRegistry()
 
+test('dependency gates are required even for empty and documentation-only changes', () => {
+  for (const files of [[], ['docs/example.md'], ['src/domain/example.ts']]) {
+    const resolution = resolveValidationRequirements(files, registry)
+    for (const id of ['dependency-policy', 'dependency-audit']) {
+      const entry = resolution.selected.find((validator) => validator.id === id)
+      assert.equal(entry.ownerIssue, 'SPE-3761')
+      assert.equal(entry.enforcement, 'required')
+      assert.equal(entry.whenUnavailable, 'fail')
+      assert.equal(probeValidatorAvailability(entry, {}), 'unavailable')
+      assert.ok(
+        detectMissingRequiredValidation(resolution, []).some((missing) => missing.id === id)
+      )
+    }
+  }
+})
+
+test('always activation is optional boolean OR matching and preserves existing selection', () => {
+  const make = (activation) => ({
+    ...registry,
+    validators: [
+      {
+        id: 'fixture',
+        ownerIssue: 'SPE-3761',
+        npmScript: 'fixture',
+        enforcement: 'required',
+        whenUnavailable: 'fail',
+        activation,
+      },
+    ],
+  })
+  for (const always of [undefined, false, true]) {
+    const activation = { changeClasses: ['docs'], pathGlobs: ['test/**'] }
+    if (always !== undefined) activation.always = always
+    const model = make(activation)
+    assert.equal(validateRequirementRegistry(model), true)
+    for (const files of [['docs/example.md'], ['test/example.ts']]) {
+      assert.deepEqual(resolveValidationRequirements(files, model).requiredIds, ['fixture'])
+    }
+    for (const files of [[], ['src/domain/example.ts']]) {
+      assert.deepEqual(
+        resolveValidationRequirements(files, model).requiredIds,
+        always ? ['fixture'] : []
+      )
+    }
+  }
+  const previous = {
+    ...registry,
+    validators: registry.validators.filter((v) => !v.activation.always),
+  }
+  for (const files of [
+    [],
+    ['docs/example.md'],
+    ['src/app/store/gameStore.ts'],
+    ['planning/a.md'],
+    ['e2e/a.ts'],
+  ]) {
+    assert.deepEqual(
+      resolveValidationRequirements(files, registry).selected.filter(
+        (v) => !v.id.startsWith('dependency-')
+      ),
+      resolveValidationRequirements(files, previous).selected
+    )
+  }
+})
+
+test('invalid activation shapes and non-boolean always settings fail registry validation', () => {
+  const validator = registry.validators.find((v) => v.id === 'dependency-policy')
+  for (const activation of [
+    null,
+    [],
+    'always',
+    { always: 'true' },
+    { always: 1 },
+    { always: null },
+    { changeClasses: 'docs' },
+    { pathGlobs: 'src/**' },
+    { changeClasses: [1] },
+    { pathGlobs: [null] },
+  ]) {
+    assert.throws(
+      () =>
+        validateRequirementRegistry({ ...registry, validators: [{ ...validator, activation }] }),
+      /activation/
+    )
+  }
+})
+
 test('missing trusted executables fail closed before child PATH fallback', () => {
   const child = spawnSafe('__cp_missing_trusted_executable__', [])
   assert.equal(child.error.code, 'ENOENT')
@@ -164,7 +251,7 @@ test('application, shared-config, academy, and Vite entry changes require the bu
 
 test('index.html-only change requires the bundle gate without widening other validators', () => {
   const resolution = resolveValidationRequirements(['index.html'], registry)
-  assert.deepEqual(resolution.requiredIds, ['vite-build'])
+  assert.deepEqual(resolution.requiredIds, ['dependency-audit', 'dependency-policy', 'vite-build'])
   assert.ok(resolution.advisoryIds.includes('playwright-e2e'))
 })
 

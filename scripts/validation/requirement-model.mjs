@@ -106,8 +106,20 @@ function assertValidatorEntry(v, registry, ids) {
   if (!v.npmScript && !v.command) {
     throw new Error(`validation-requirements: ${v.id} needs npmScript or command`)
   }
-  if (!v.activation || typeof v.activation !== 'object') {
+  if (!v.activation || typeof v.activation !== 'object' || Array.isArray(v.activation)) {
     throw new Error(`validation-requirements: ${v.id} needs activation`)
+  }
+  if (Object.hasOwn(v.activation, 'always') && typeof v.activation.always !== 'boolean') {
+    throw new Error(`validation-requirements: ${v.id} activation.always must be boolean`)
+  }
+  for (const field of ['changeClasses', 'pathGlobs']) {
+    if (
+      v.activation[field] !== undefined &&
+      (!Array.isArray(v.activation[field]) ||
+        !v.activation[field].every((value) => typeof value === 'string'))
+    ) {
+      throw new Error(`validation-requirements: ${v.id} activation.${field} must be a string array`)
+    }
   }
   for (const c of v.activation.changeClasses ?? []) {
     if (!registry.changeClasses[c]) {
@@ -127,7 +139,7 @@ export function validateRequirementRegistry(registry) {
 
 export function classifyChangedFiles(files, registry) {
   const sortedFiles = [...new Set(files.map(normalizeRepoPath))].sort((a, b) =>
-    a.localeCompare(b, 'en'),
+    a.localeCompare(b, 'en')
   )
   const byClass = Object.create(null)
   for (const name of Object.keys(registry.changeClasses).sort((a, b) => a.localeCompare(b, 'en'))) {
@@ -156,11 +168,9 @@ export function classifyChangedFiles(files, registry) {
 
 function activationMatches(validator, classification) {
   const act = validator.activation
-  const classHit = (act.changeClasses ?? []).some((c) =>
-    classification.activeClasses.includes(c),
-  )
+  const classHit = (act.changeClasses ?? []).some((c) => classification.activeClasses.includes(c))
   const pathHit = classification.files.some((f) => anyGlobMatch(f, act.pathGlobs ?? []))
-  return classHit || pathHit
+  return act.always === true || classHit || pathHit
 }
 
 function requiredWhenMatches(validator, classification) {

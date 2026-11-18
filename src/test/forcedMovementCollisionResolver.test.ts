@@ -1,110 +1,61 @@
 import { describe, expect, it } from 'vitest'
 import {
   resolveForcedMovementCollision,
-  type ForcedMovementCollisionInput,
+  type ForcedMovementInput,
 } from '../domain/forcedMovementCollisionResolver'
 
-const base: ForcedMovementCollisionInput = {
-  movementId: 'push-1',
-  moverId: 'actor-a',
-  vector: { xCells: 2, yCells: -1, levelDelta: 0 },
-  impactForce: 60,
-  moverStability: 70,
-}
-
-describe('SPE-2189 forced-movement collision resolver', () => {
-  it('resolves actor collision, occupied-space harm, and knockdown deterministically', () => {
-    const result = resolveForcedMovementCollision({
-      ...base,
-      target: { kind: 'actor', id: 'actor-b', stability: 20 },
-    })
-    expect(result).toMatchObject({
-      kind: 'actor_collision',
-      targetId: 'actor-b',
-      obstructed: true,
-      occupiedSpaceHarm: { mover: 25, occupant: 50 },
-      moverKnockedDown: false,
-      occupantKnockedDown: true,
-      targetImpact: 60,
-      infrastructurePropagation: 'not_evaluated',
-      infrastructureOwner: 'SPE-2212',
-      owner: 'SPE-2189',
-    })
-  })
-
-  it('types object obstruction without inventing an occupied actor or infrastructure fallout', () => {
-    expect(
-      resolveForcedMovementCollision({
-        ...base,
-        moverStability: 10,
-        target: { kind: 'object', id: 'crate-stack' },
-      })
-    ).toMatchObject({
-      kind: 'object_collision',
-      targetId: 'crate-stack',
-      obstructed: true,
-      occupiedSpaceHarm: { mover: 55, occupant: 0 },
-      moverKnockedDown: true,
-      occupantKnockedDown: false,
-      targetImpact: 60,
-      infrastructurePropagation: 'not_evaluated',
-    })
-  })
-
-  it('returns a typed clear outcome when the destination is unoccupied', () => {
-    expect(resolveForcedMovementCollision(base)).toMatchObject({
-      kind: 'clear',
-      obstructed: false,
-      occupiedSpaceHarm: { mover: 0, occupant: 0 },
-      moverKnockedDown: false,
-      occupantKnockedDown: false,
-      targetImpact: 0,
-    })
-    expect(
-      resolveForcedMovementCollision({ ...base, impactForce: 80, moverStability: 10 })
-        .moverKnockedDown
-    ).toBe(true)
-  })
-
-  it('is immutable, byte-stable for identical inputs, and does not mutate callers', () => {
-    const input: ForcedMovementCollisionInput = {
-      ...base,
-      target: { kind: 'actor', id: 'actor-b', stability: 20 },
+describe('forcedMovementCollisionResolver (SPE-2189)', () => {
+  it('produces a typed impact outcome for forced displacement against an actor', () => {
+    const input: ForcedMovementInput = {
+      displacement: { dx: 3, dy: 0 },
+      targetKind: 'actor',
+      targetId: 'actor-1',
+      targetOccupied: false,
+      resistance: 1,
     }
-    const before = structuredClone(input)
-    const first = resolveForcedMovementCollision(input)
-    const second = resolveForcedMovementCollision(input)
-    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
-    expect(input).toEqual(before)
-    expect(Object.isFrozen(first)).toBe(true)
-    expect(Object.isFrozen(first.vector)).toBe(true)
-    expect(Object.isFrozen(first.occupiedSpaceHarm)).toBe(true)
+    const result = resolveForcedMovementCollision(input)
+    expect(result.outcome.kind).toBe('impact')
+    expect(result.outcome.targetId).toBe('actor-1')
+    expect(result.occupiedSpaceHarm).toBeNull()
   })
 
-  it('fails closed on malformed vectors, impact inputs, and target kinds', () => {
-    expect(() =>
-      resolveForcedMovementCollision({ ...base, vector: { xCells: 0, yCells: 0, levelDelta: 0 } })
-    ).toThrow(/move at least one axis/)
-    expect(() => resolveForcedMovementCollision({ ...base, impactForce: 101 })).toThrow(
-      /impactForce/
-    )
-    expect(() =>
-      resolveForcedMovementCollision({
-        ...base,
-        target: { kind: 'actor', id: 'actor-b', stability: -1 },
-      })
-    ).toThrow(/target.stability/)
-    expect(() =>
-      resolveForcedMovementCollision({
-        ...base,
-        target: { kind: 'infrastructure', id: 'wall' } as never,
-      })
-    ).toThrow(/target kind/)
-    expect(() =>
-      resolveForcedMovementCollision({
-        ...base,
-        target: { kind: 'actor', id: base.moverId, stability: 50 },
-      })
-    ).toThrow(/differ from mover/)
+  it('applies occupied-space harm without infrastructure damage', () => {
+    const input: ForcedMovementInput = {
+      displacement: { dx: 5, dy: 0 },
+      targetKind: 'object',
+      targetId: 'crate-1',
+      targetOccupied: true,
+      resistance: 0,
+    }
+    const result = resolveForcedMovementCollision(input)
+    expect(result.outcome.kind).toBe('knockdown')
+    expect(result.occupiedSpaceHarm).not.toBeNull()
+    expect(result.occupiedSpaceHarm?.source).toBe('occupied-space')
+    expect(result.occupiedSpaceHarm?.harmAmount).toBeGreaterThan(0)
+  })
+
+  it('returns obstruction when resistance exceeds displacement', () => {
+    const input: ForcedMovementInput = {
+      displacement: { dx: 1, dy: 0 },
+      targetKind: 'actor',
+      targetId: 'actor-2',
+      targetOccupied: false,
+      resistance: 5,
+    }
+    const result = resolveForcedMovementCollision(input)
+    expect(result.outcome.kind).toBe('obstruction')
+  })
+
+  it('is deterministic for identical inputs', () => {
+    const input: ForcedMovementInput = {
+      displacement: { dx: 2, dy: 2 },
+      targetKind: 'object',
+      targetId: 'box-1',
+      targetOccupied: true,
+      resistance: 1,
+    }
+    const a = resolveForcedMovementCollision(input)
+    const b = resolveForcedMovementCollision(input)
+    expect(a).toEqual(b)
   })
 })

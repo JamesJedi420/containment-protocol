@@ -380,6 +380,7 @@
     "src/test/conceptStateTransformationRegistry.test.ts",
     "src/test/condition.semantics.test.ts",
     "src/test/confinedSpaceExplosion.test.ts",
+    "src/test/constructedEntityPurposeDrift.test.ts",
     "src/test/constructionStageAccessibility.contract.test.ts",
     "src/test/containedPersonCustodyStatusHealthBundleLinks.test.ts",
     "src/test/containedPersonCustodyStatusRegistry.test.ts",

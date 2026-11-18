@@ -9740,11 +9740,23 @@ function sanitizeOperationEvents(
           payload.containmentDelta,
           0
         )
-        const funding = reconcileBeforeAfterDelta(
-          payload.fundingBefore,
-          payload.fundingAfter,
-          payload.fundingDelta,
+        // SPE-3763: preserve historical fundingBefore/fundingAfter observations;
+        // do not rewrite them to event-local before+delta arithmetic.
+        // fundingDelta remains the local contribution and is not forced to equal after-before.
+        const fundingBefore = sanitizeInteger(
+          payload.fundingBefore as number | undefined,
+          0,
           0
+        )
+        const fundingAfter = sanitizeInteger(
+          payload.fundingAfter as number | undefined,
+          fundingBefore,
+          0
+        )
+        const fundingDelta = sanitizeInteger(
+          payload.fundingDelta as number | undefined,
+          0,
+          Number.MIN_SAFE_INTEGER
         )
         const clearanceBefore = sanitizeInteger(
           payload.clearanceLevelBefore as number | undefined,
@@ -9773,9 +9785,9 @@ function sanitizeOperationEvents(
               containmentDelta: containment.delta,
               clearanceLevelBefore: clearance.before,
               clearanceLevelAfter: clearance.after,
-              fundingBefore: funding.before,
-              fundingAfter: funding.after,
-              fundingDelta: funding.delta,
+              fundingBefore,
+              fundingAfter,
+              fundingDelta,
             },
           })
         )

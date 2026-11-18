@@ -11100,6 +11100,46 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(payload.clearanceLevelAfter! - payload.clearanceLevelBefore!).toBe(3)
     })
 
+    it('SPE-3763 preserves historical fundingBefore/fundingAfter when they do not equal before+delta', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-spe-3763-controlled',
+            type: 'agency.containment_updated',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              containmentRatingBefore: 50,
+              containmentRatingAfter: 50,
+              containmentDelta: 0,
+              clearanceLevelBefore: 1,
+              clearanceLevelAfter: 1,
+              // Controlled case: fundingBefore=110, fundingAfter=53, fundingDelta=-17
+              // (after != before + delta because of intervening costs)
+              fundingBefore: 110,
+              fundingAfter: 53,
+              fundingDelta: -17,
+            },
+          },
+        ],
+      })
+
+      const payload = hydrated.events[0]?.payload as {
+        fundingBefore?: number
+        fundingAfter?: number
+        fundingDelta?: number
+      }
+
+      expect(payload.fundingBefore).toBe(110)
+      expect(payload.fundingAfter).toBe(53)
+      expect(payload.fundingDelta).toBe(-17)
+      // Must not have been rewritten to 110 + (-17) = 93
+      expect(payload.fundingAfter).not.toBe(93)
+    })
+
     it('517 enforces non-decreasing agent.promoted levels and matching levelsGained', () => {
       const fallback = createStartingState()
 

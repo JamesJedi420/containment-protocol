@@ -20,20 +20,20 @@
 
 Four new artifact files plus this handoff report, committed on a dedicated branch. Nothing else in the repository was touched:
 
-| Artifact | Path |
-| --- | --- |
+| Artifact                                                 | Path                                                               |
+| -------------------------------------------------------- | ------------------------------------------------------------------ |
 | Fixture pack (18 cases, 8 symbolic atoms, 17 invariants) | `artifacts/spe-3303/fixtures/instruction-resolution.fixtures.json` |
-| Standalone checker (Node, no dependencies) | `artifacts/spe-3303/check-instruction-resolution-fixtures.mjs` |
-| Contract-ambiguity list (15 items) | `artifacts/spe-3303/CONTRACT-AMBIGUITIES.md` |
-| Pack README (contract, coverage, limits) | `artifacts/spe-3303/README.md` |
-| This report | `artifacts/spe-3303/HANDOFF-HERMES-II.md` |
+| Standalone checker (Node, no dependencies)               | `artifacts/spe-3303/check-instruction-resolution-fixtures.mjs`     |
+| Contract-ambiguity list (15 items)                       | `artifacts/spe-3303/CONTRACT-AMBIGUITIES.md`                       |
+| Pack README (contract, coverage, limits)                 | `artifacts/spe-3303/README.md`                                     |
+| This report                                              | `artifacts/spe-3303/HANDOFF-HERMES-II.md`                          |
 
 - **Branch:** `artifacts/spe-3303-instruction-resolution-fixtures`
 - **Base:** `main` at `6dc31ff9`
 - **History:** `a66d5367` added the first version of the four artifacts; `0ecd978e` added the first version of this report; the current branch head supersedes both (the pack and checker were trimmed, and every citation here refers to the head). **Use the branch head.**
 - **Reach it:** `git fetch origin artifacts/spe-3303-instruction-resolution-fixtures`
 - **Browse it:** `https://github.com/JamesJedi420/containment-protocol/tree/artifacts/spe-3303-instruction-resolution-fixtures/artifacts/spe-3303`
-- **No PR opened, no merge, `main` untouched.** Diff against `main` is 5 added files / 2502 insertions, all under `artifacts/spe-3303/`. No change under `src/`, `scripts/`, `test/`, `docs/`, CI, dependencies or `SCHEMA_REGISTRY.md`.
+- **No PR opened, no merge, `main` untouched.** Diff against `main` is 5 added files / 2825 insertions, all under `artifacts/spe-3303/`. No change under `src/`, `scripts/`, `test/`, `docs/`, CI, dependencies or `SCHEMA_REGISTRY.md`.
 
 ### Design summary
 
@@ -48,26 +48,26 @@ Grounding is cited per field, not assumed: stable-ID grammar and shared ID space
 
 ### Case coverage (18)
 
-| Case | Class | Disposition | Delta |
-| --- | --- | --- | --- |
-| `ir-01-ordinary-teaching` | ordinary_teaching | credit_granted | +1 |
-| `ir-02-preparation-effect` | preparation_effect | credit_granted | +1 |
-| `ir-03-no-change-lesson` | no_change_lesson | no_progression_change | 0 |
-| `ir-04-skipped-attendance` | skipped_attendance | not_evaluated | 0 |
-| `ir-05-excused-attendance` | excused_attendance | deferred (pending_makeup) | 0 |
-| `ir-06-authorized-makeup` | authorized_makeup | credit_granted (original session) | +1 |
-| `ir-07-unauthorized-makeup` | unauthorized_makeup | rejected_unauthorized_makeup | 0 |
-| `ir-08-instructor-context-effect` | instructor_context_effect | credit_granted | +1 |
-| `ir-09-instructor-specialty-mismatch` | instructor_context_effect | credit_granted (no instructor effect) | +1 |
-| `ir-10-peer-assistance` | peer_assistance | credit_granted | +1 |
-| `ir-11-peer-interference` | peer_interference | credit_granted | +1 |
-| `ir-12-capped-progression` | capped_progression | credit_capped | 0 |
-| `ir-13-near-cap-final-session` | capped_progression | credit_granted (reaches cap) | +1 |
-| `ir-14-repeated-evaluation` | repeated_evaluation | duplicate_suppressed | 0 |
-| `ir-15-replay-of-ordinary-teaching` | replay | identical to `ir-01` | +1 |
-| `ir-16-attendance-authority-missing` | attendance_authority_missing | not_evaluated | 0 |
-| `ir-17-no-enrollment-inference` | ordinary_teaching | credit_granted without enrollment | +1 |
-| `ir-18-combined-context-effects` | instructor_context_effect | credit_granted | +1 |
+| Case                                  | Class                        | Disposition                           | Delta |
+| ------------------------------------- | ---------------------------- | ------------------------------------- | ----- |
+| `ir-01-ordinary-teaching`             | ordinary_teaching            | credit_granted                        | +1    |
+| `ir-02-preparation-effect`            | preparation_effect           | credit_granted                        | +1    |
+| `ir-03-no-change-lesson`              | no_change_lesson             | no_progression_change                 | 0     |
+| `ir-04-skipped-attendance`            | skipped_attendance           | not_evaluated                         | 0     |
+| `ir-05-excused-attendance`            | excused_attendance           | deferred (pending_makeup)             | 0     |
+| `ir-06-authorized-makeup`             | authorized_makeup            | credit_granted (original session)     | +1    |
+| `ir-07-unauthorized-makeup`           | unauthorized_makeup          | rejected_unauthorized_makeup          | 0     |
+| `ir-08-instructor-context-effect`     | instructor_context_effect    | credit_granted                        | +1    |
+| `ir-09-instructor-specialty-mismatch` | instructor_context_effect    | credit_granted (no instructor effect) | +1    |
+| `ir-10-peer-assistance`               | peer_assistance              | credit_granted                        | +1    |
+| `ir-11-peer-interference`             | peer_interference            | credit_granted                        | +1    |
+| `ir-12-capped-progression`            | capped_progression           | credit_capped                         | 0     |
+| `ir-13-near-cap-final-session`        | capped_progression           | credit_granted (reaches cap)          | +1    |
+| `ir-14-repeated-evaluation`           | repeated_evaluation          | duplicate_suppressed                  | 0     |
+| `ir-15-replay-of-ordinary-teaching`   | replay                       | identical to `ir-01`                  | +1    |
+| `ir-16-attendance-authority-missing`  | attendance_authority_missing | not_evaluated                         | 0     |
+| `ir-17-no-enrollment-inference`       | ordinary_teaching            | credit_granted without enrollment     | +1    |
+| `ir-18-combined-context-effects`      | instructor_context_effect    | credit_granted                        | +1    |
 
 Every case excludes `enrollment_record` and `learning_state_snapshot` from its allowed emissions; no case asserts XP, level or stat-cap change.
 
@@ -75,13 +75,13 @@ Every case excludes `enrollment_record` and `learning_state_snapshot` from its a
 
 All run locally in this workspace against the committed tree.
 
-| Command | Result |
-| --- | --- |
-| `node artifacts/spe-3303/check-instruction-resolution-fixtures.mjs` | exit `0`, `OK` |
-| Two consecutive runs, `cmp` on captured output | byte-identical, exits `0 0` |
-| Pack content hash (canonical JSON, sha256) | `c211e914652b51e457f07a98c76dbf1d4ea3be3d096e9de2f98b8b99c5d3bc6f` |
-| Bad invocation (`--bogus`) | exit `2` |
-| `--quiet` on a valid pack | exit `0`, no output |
+| Command                                                             | Result                                                             |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `node artifacts/spe-3303/check-instruction-resolution-fixtures.mjs` | exit `0`, `OK`                                                     |
+| Two consecutive runs, `cmp` on captured output                      | byte-identical, exits `0 0`                                        |
+| Pack content hash (canonical JSON, sha256)                          | `c211e914652b51e457f07a98c76dbf1d4ea3be3d096e9de2f98b8b99c5d3bc6f` |
+| Bad invocation (`--bogus`)                                          | exit `2`                                                           |
+| `--quiet` on a valid pack                                           | exit `0`, no output                                                |
 
 Green-run summary, verbatim:
 
@@ -99,16 +99,16 @@ OK
 
 Eight negative controls, each mutating one field of a copy of the pack and each expected to fail. **All 8 exited `1`, and an unmutated copy exited `0`:**
 
-| Mutation | Checker caught it as |
-| --- | --- |
+| Mutation                                      | Checker caught it as                                                                                                 |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Numeric literal in a magnitude (`E_base + 2`) | `magnitude-expression`, plus `property-proof` and `replay-divergence` because the mutated case is an ordering anchor |
-| Invented `deltaSessions: 2` | `delta`, `progression-arithmetic`, `replay-divergence` |
-| Cap overshoot on the near-cap case | `invariant-credit_within_capacity`, `invariant-cap_not_exceeded` |
-| Replay expectation diverging from its base | `replay-divergence`, `progression-arithmetic` |
-| Double credit on a re-delivered outcome ref | `invariant-idempotent_by_outcome_ref`, `invariant-no_double_credit` |
-| Flipped an order property to unprovable | `property-unproven` |
-| Deleted the only replay case | `replay-coverage`, `class-coverage` |
-| Malformed `sessionRef` | `session-ref`, `lesson-reference` |
+| Invented `deltaSessions: 2`                   | `delta`, `progression-arithmetic`, `replay-divergence`                                                               |
+| Cap overshoot on the near-cap case            | `invariant-credit_within_capacity`, `invariant-cap_not_exceeded`                                                     |
+| Replay expectation diverging from its base    | `replay-divergence`, `progression-arithmetic`                                                                        |
+| Double credit on a re-delivered outcome ref   | `invariant-idempotent_by_outcome_ref`, `invariant-no_double_credit`                                                  |
+| Flipped an order property to unprovable       | `property-unproven`                                                                                                  |
+| Deleted the only replay case                  | `replay-coverage`, `class-coverage`                                                                                  |
+| Malformed `sessionRef`                        | `session-ref`, `lesson-reference`                                                                                    |
 
 **Not run, and not claimed:** `npm run lint`, `npm run format:check`, `npm run test:run`, any `verify:*` validator, `npm run build`, and CI. Dependencies are not installed in this workspace and the diff touches no path any of those gates select, so no gate was expected to exercise it. No PR exists to run CI against.
 

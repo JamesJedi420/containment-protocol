@@ -449,10 +449,7 @@
             "basis": "contract"
           }
         ],
-        "invariants": [
-          "no_credit_without_authoritative_presence",
-          "excused_differs_from_skipped"
-        ],
+        "invariants": ["no_credit_without_authoritative_presence", "excused_differs_from_skipped"],
         "mustNotEmit": ["disciplinary_case", "learning_state_snapshot", "enrollment_record"]
       }
     },
@@ -552,7 +549,10 @@
             "basis": "contract"
           }
         ],
-        "invariants": ["unauthorized_makeup_grants_no_credit", "authorized_makeup_requires_authority_ref"],
+        "invariants": [
+          "unauthorized_makeup_grants_no_credit",
+          "authorized_makeup_requires_authority_ref"
+        ],
         "mustNotEmit": ["disciplinary_case", "learning_state_snapshot", "enrollment_record"]
       }
     },
@@ -746,7 +746,10 @@
             "statement": "interference may not improve the session effect; it does not by itself zero the session count"
           }
         ],
-        "invariants": ["peer_effect_sign_matches_declared_effect", "credited_sessions_never_negative"],
+        "invariants": [
+          "peer_effect_sign_matches_declared_effect",
+          "credited_sessions_never_negative"
+        ],
         "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
       }
     },

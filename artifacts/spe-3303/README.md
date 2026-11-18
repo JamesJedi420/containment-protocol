@@ -10,7 +10,7 @@ Standalone fixture pack, optional checker, and contract-ambiguity list for the A
 
 An instruction resolver takes one lesson session and the caller's **authoritative** attendance/session result and returns a disposition plus a canonical progression reference. It does not enrol anyone, does not infer attendance, and does not own progression state.
 
-These fixtures pin the *observable contract* of that resolver before any of it exists, so the eventual implementation has something falsifiable to satisfy instead of an invented specification.
+These fixtures pin the _observable contract_ of that resolver before any of it exists, so the eventual implementation has something falsifiable to satisfy instead of an invented specification.
 
 ## Run
 
@@ -24,44 +24,44 @@ The checker validates the pack. **It does not resolve lessons and does not verif
 
 ## Case shape
 
-| Field | Meaning |
-| --- | --- |
-| `caseId` | `ir-<nn>-<slug>`, unique, sorted |
-| `class` | one of the declared scenario classes |
-| `identity.learnerRef` | canonical stable ID |
-| `lesson.courseRef` / `lesson.moduleRef` | must exist in `lessons[]` and belong together |
-| `lesson.makeup` | present only on make-up cases: `authorized`, `authorizationRef`, `forSessionRef` |
-| `session.sessionRef` | `moduleRef#session-<n>`, a declared session of that module |
-| `session.evaluationOrdinal` | how many times this session has been evaluated (a counter, not an identity) |
-| `attendance` | `authority` (`caller` or `none`), `status`, `outcomeRef` |
-| `instructorContext` | `assigned`, `specialty`, `efficiencyBand` |
-| `preparation` | `prepared`, `evidenceRef` |
-| `peers[]` | `peerRef`, `effect`, `magnitudeAtom` |
-| `enrollment` | `supplied` only — never required, never written |
-| `progressionState` | `creditedSessionsBefore`, `targetStat` |
-| `expect` | `disposition`, `progression`, `deltaSessions`, `effectStrength`, `properties`, `invariants`, `mustNotEmit` |
-| `replay` | `{ of, ordinal }` — inputs and expectation must equal the base case |
+| Field                                   | Meaning                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `caseId`                                | `ir-<nn>-<slug>`, unique, sorted                                                                           |
+| `class`                                 | one of the declared scenario classes                                                                       |
+| `identity.learnerRef`                   | canonical stable ID                                                                                        |
+| `lesson.courseRef` / `lesson.moduleRef` | must exist in `lessons[]` and belong together                                                              |
+| `lesson.makeup`                         | present only on make-up cases: `authorized`, `authorizationRef`, `forSessionRef`                           |
+| `session.sessionRef`                    | `moduleRef#session-<n>`, a declared session of that module                                                 |
+| `session.evaluationOrdinal`             | how many times this session has been evaluated (a counter, not an identity)                                |
+| `attendance`                            | `authority` (`caller` or `none`), `status`, `outcomeRef`                                                   |
+| `instructorContext`                     | `assigned`, `specialty`, `efficiencyBand`                                                                  |
+| `preparation`                           | `prepared`, `evidenceRef`                                                                                  |
+| `peers[]`                               | `peerRef`, `effect`, `magnitudeAtom`                                                                       |
+| `enrollment`                            | `supplied` only — never required, never written                                                            |
+| `progressionState`                      | `creditedSessionsBefore`, `targetStat`                                                                     |
+| `expect`                                | `disposition`, `progression`, `deltaSessions`, `effectStrength`, `properties`, `invariants`, `mustNotEmit` |
+| `replay`                                | `{ of, ordinal }` — inputs and expectation must equal the base case                                        |
 
 Capacity is a property of the module (`lessons[].moduleSessionCapacity`), so cases do not repeat it; session identity is carried by `sessionRef`, so cases do not repeat an ordinal; and caller attendance authority replaces a separate "evaluated" flag. Every remaining field is read by the checker or asserted by a case — there is no decorative state.
 
 ## Coverage
 
-| Required scenario | Case |
-| --- | --- |
-| Ordinary teaching | `ir-01`, `ir-17` |
-| No-change lesson | `ir-03` |
-| Skipped attendance | `ir-04` |
-| Excused attendance | `ir-05` |
-| Authorized make-up | `ir-06` (plus unauthorized control `ir-07`) |
-| Preparation effect | `ir-02` |
-| Instructor context | `ir-08` matching, `ir-09` mismatched, `ir-18` combined |
-| Peer assistance | `ir-10` |
-| Peer interference | `ir-11` |
-| Capped progression | `ir-12` at cap, `ir-13` reaching cap |
-| Repeated evaluation | `ir-14` |
-| Replay | `ir-15` |
-| Missing attendance authority | `ir-16` |
-| No enrollment inference | `ir-17` |
+| Required scenario            | Case                                                   |
+| ---------------------------- | ------------------------------------------------------ |
+| Ordinary teaching            | `ir-01`, `ir-17`                                       |
+| No-change lesson             | `ir-03`                                                |
+| Skipped attendance           | `ir-04`                                                |
+| Excused attendance           | `ir-05`                                                |
+| Authorized make-up           | `ir-06` (plus unauthorized control `ir-07`)            |
+| Preparation effect           | `ir-02`                                                |
+| Instructor context           | `ir-08` matching, `ir-09` mismatched, `ir-18` combined |
+| Peer assistance              | `ir-10`                                                |
+| Peer interference            | `ir-11`                                                |
+| Capped progression           | `ir-12` at cap, `ir-13` reaching cap                   |
+| Repeated evaluation          | `ir-14`                                                |
+| Replay                       | `ir-15`                                                |
+| Missing attendance authority | `ir-16`                                                |
+| No enrollment inference      | `ir-17`                                                |
 
 All 14 classes are listed in `requiredClasses`, so deleting any scenario fails the run.
 
@@ -73,13 +73,13 @@ All 14 classes are listed in `requiredClasses`, so deleting any scenario fails t
 
 ## Grounded versus unapproved
 
-| Grounded in existing code / docs | Unapproved, therefore symbolic |
-| --- | --- |
-| Stable-ID grammar and shared ID space (`scripts/validation/academy-authored-content.mjs`) | Lesson credit unit and conversion to XP/stat |
-| Stat-key allowlist and instructor efficiency bands (`src/domain/sim/instructorAssignment.ts`) | Instructor effect on lesson credit |
-| Academy tier bonus semantics (`src/domain/sim/academyUpgrade.ts`) as context only | Peer assistance/interference schema |
-| Specialty-equality gate (`getAgentInstructorBonus`) | Make-up authorization semantics |
-| | Dedupe key for repeated evaluation |
+| Grounded in existing code / docs                                                              | Unapproved, therefore symbolic               |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| Stable-ID grammar and shared ID space (`scripts/validation/academy-authored-content.mjs`)     | Lesson credit unit and conversion to XP/stat |
+| Stat-key allowlist and instructor efficiency bands (`src/domain/sim/instructorAssignment.ts`) | Instructor effect on lesson credit           |
+| Academy tier bonus semantics (`src/domain/sim/academyUpgrade.ts`) as context only             | Peer assistance/interference schema          |
+| Specialty-equality gate (`getAgentInstructorBonus`)                                           | Make-up authorization semantics              |
+|                                                                                               | Dedupe key for repeated evaluation           |
 
 ## Checker scope — what a green run does not prove
 

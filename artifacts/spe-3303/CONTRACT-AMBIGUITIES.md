@@ -28,7 +28,7 @@ Each item states what the fixtures assume, what the repository actually establis
 
 **Fixtures assume:** effect strength is a symbolic expression over declared atoms (`E_base`, `E_prep`, `E_instructor_band_{0,1,2}`, `E_peer_assist`, `E_peer_interfere`, `E_makeup`) with only ordering relations. No numeric value appears anywhere in a magnitude.
 
-**Repository state:** no code computes lesson effect strength. The nearest existing formula is training completion (`applyTrainingCompletionToAgent` in `src/domain/sim/training.ts`), whose `rawGain = statDelta + academyStatBonus + aptitude + instructorBonus` is a *training* formula with approved constants (e.g. `ACADEMY_UPGRADE_COSTS` in `src/domain/sim/academyUpgrade.ts`, `TRAINING_FATIGUE_CURVE_EXPONENT` in `src/domain/sim/training.ts`). Reusing those constants for lesson credit would be an invention, so fixtures assert orderings instead.
+**Repository state:** no code computes lesson effect strength. The nearest existing formula is training completion (`applyTrainingCompletionToAgent` in `src/domain/sim/training.ts`), whose `rawGain = statDelta + academyStatBonus + aptitude + instructorBonus` is a _training_ formula with approved constants (e.g. `ACADEMY_UPGRADE_COSTS` in `src/domain/sim/academyUpgrade.ts`, `TRAINING_FATIGUE_CURVE_EXPONENT` in `src/domain/sim/training.ts`). Reusing those constants for lesson credit would be an invention, so fixtures assert orderings instead.
 
 **Closes when:** a tuning decision records the formula, or the project formally adopts "ordering-only" as the acceptance bar for resolution.
 
@@ -36,9 +36,9 @@ Each item states what the fixtures assume, what the repository actually establis
 
 **Fixtures assume:** an assigned instructor whose `specialty` equals the learner's `targetStat` contributes a non-negative effect, monotone in the existing efficiency band; a mismatch contributes exactly nothing.
 
-**Repository state:** `INSTRUCTOR_SPECIALTY_KEYS = ['combat','investigation','utility','social']` and `getInstructorBonus(efficiency)` returning `2 / 1 / 0` at `>= 90 / >= 70 / else` are real (`src/domain/sim/instructorAssignment.ts`). The specialty-equality gate is also real (`getAgentInstructorBonus`). But both feed *training-completion* stat gain, XP and fatigue tick — not lesson credit. `buildAcademyOverview` (SPE-2669 slice) additionally surfaces `bonus`, and `features/training/trainingView.ts` gates the displayed bonus on `instructorSpecialty === entry.targetStat`.
+**Repository state:** `INSTRUCTOR_SPECIALTY_KEYS = ['combat','investigation','utility','social']` and `getInstructorBonus(efficiency)` returning `2 / 1 / 0` at `>= 90 / >= 70 / else` are real (`src/domain/sim/instructorAssignment.ts`). The specialty-equality gate is also real (`getAgentInstructorBonus`). But both feed _training-completion_ stat gain, XP and fatigue tick — not lesson credit. `buildAcademyOverview` (SPE-2669 slice) additionally surfaces `bonus`, and `features/training/trainingView.ts` gates the displayed bonus on `instructorSpecialty === entry.targetStat`.
 
-**Open:** whether lesson resolution reads instructor context at all, or whether that is training-path-only. The invariant `instructor_specialty_must_match_target_stat` encodes the *existing* equality rule; it does not claim a lesson-level bonus.
+**Open:** whether lesson resolution reads instructor context at all, or whether that is training-path-only. The invariant `instructor_specialty_must_match_target_stat` encodes the _existing_ equality rule; it does not claim a lesson-level bonus.
 
 ## A5 — Peer assistance/interference has no owner
 
@@ -58,7 +58,7 @@ Each item states what the fixtures assume, what the repository actually establis
 
 ## A7 — Make-up authorization has no authority
 
-**Fixtures assume:** a make-up carries `authorized: boolean` plus an opaque `authorizationRef`, credits the *original* session reference, and never exceeds an ordinary session.
+**Fixtures assume:** a make-up carries `authorized: boolean` plus an opaque `authorizationRef`, credits the _original_ session reference, and never exceeds an ordinary session.
 
 **Repository state:** there is no authorization or entitlement record for make-ups. Existing entitlement-shaped state is `progressionUnlockIds` and agency unlocks (`src/domain/agencyProgression.ts`), which is agency-level, not per-learner per-session.
 

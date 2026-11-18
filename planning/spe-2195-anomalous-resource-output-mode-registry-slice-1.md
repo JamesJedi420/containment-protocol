@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Status** | **Recently shipped** (draft PR pending) |
+| **Status** | **Recently shipped** |
 | **Linear** | [SPE-2195](https://linear.app/spectranoir/issue/SPE-2195) |
 | **Parent** | [SPE-177](https://linear.app/spectranoir/issue/SPE-177) |
 | **Branch** | `grok/spe-2195-anomalous-resource-output-mode-registry` |

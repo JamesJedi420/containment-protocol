@@ -18,7 +18,7 @@
 
 ### What changed
 
-Four new files, committed on a dedicated branch. Nothing else in the repository was touched:
+Four new artifact files plus this handoff report, committed on a dedicated branch. Nothing else in the repository was touched:
 
 | Artifact | Path |
 | --- | --- |
@@ -26,13 +26,14 @@ Four new files, committed on a dedicated branch. Nothing else in the repository 
 | Standalone checker (Node, no dependencies) | `artifacts/spe-3303/check-instruction-resolution-fixtures.mjs` |
 | Contract-ambiguity list (15 items) | `artifacts/spe-3303/CONTRACT-AMBIGUITIES.md` |
 | Pack README (contract, coverage, limits) | `artifacts/spe-3303/README.md` |
+| This report | `artifacts/spe-3303/HANDOFF-HERMES-II.md` |
 
 - **Branch:** `artifacts/spe-3303-instruction-resolution-fixtures`
-- **Commit:** `a66d5367311f8505f506ec2bdf8873ddc2a84130` carries the four artifacts; this handoff report is added in the commit immediately after it on the same branch. Use the branch head.
 - **Base:** `main` at `6dc31ff9`
+- **History:** `a66d5367` added the first version of the four artifacts; `0ecd978e` added the first version of this report; the current branch head supersedes both (the pack and checker were trimmed, and every citation here refers to the head). **Use the branch head.**
 - **Reach it:** `git fetch origin artifacts/spe-3303-instruction-resolution-fixtures`
 - **Browse it:** `https://github.com/JamesJedi420/containment-protocol/tree/artifacts/spe-3303-instruction-resolution-fixtures/artifacts/spe-3303`
-- **No PR opened, no merge, `main` untouched.** Diff against `main` is 4 added files / 2739 insertions, all under `artifacts/spe-3303/`. No change under `src/`, `scripts/`, `test/`, `docs/`, CI, dependencies or `SCHEMA_REGISTRY.md`.
+- **No PR opened, no merge, `main` untouched.** Diff against `main` is 5 added files / 2502 insertions, all under `artifacts/spe-3303/`. No change under `src/`, `scripts/`, `test/`, `docs/`, CI, dependencies or `SCHEMA_REGISTRY.md`.
 
 ### Design summary
 
@@ -41,9 +42,9 @@ The resolver contract is treated as an observable function: one lesson session p
 Two rules keep the pack from inventing physics:
 
 1. **Credit is counted, effect is symbolic.** `deltaSessions` is a discrete session-equivalent (`0` or `1`) so arithmetic is checkable. `effectStrength` is an expression over declared atoms (`E_base`, `E_prep`, `E_instructor_band_{0,1,2}`, `E_peer_assist`, `E_peer_interfere`, `E_makeup`) carrying orderings only — no numeric magnitude or grading constant appears anywhere in the pack.
-2. **Order properties must be provable.** Every `order` property is discharged by non-negative linear cancellation over the declared atom relations; an unprovable ordering is a failure, not a warning.
+2. **Order properties must be provable, and every declaration must be checked.** Each `order` property is discharged by non-negative linear cancellation over the declared atom relations; an unprovable ordering is a failure, not a warning. Each of the 17 declared invariants must be cited by at least one case, and each cited invariant must have a checker implementation, so the registry cannot grow entries nobody verifies.
 
-Grounding is cited per field, not assumed: stable-ID grammar and shared ID space from `scripts/validation/academy-authored-content.mjs`; stat keys and instructor efficiency bands from `src/domain/sim/instructorAssignment.ts`; program IDs from `src/data/training.ts`.
+Grounding is cited per field, not assumed: stable-ID grammar and shared ID space from `scripts/validation/academy-authored-content.mjs`; stat keys and instructor efficiency bands from `src/domain/sim/instructorAssignment.ts`.
 
 ### Case coverage (18)
 
@@ -78,7 +79,9 @@ All run locally in this workspace against the committed tree.
 | --- | --- |
 | `node artifacts/spe-3303/check-instruction-resolution-fixtures.mjs` | exit `0`, `OK` |
 | Two consecutive runs, `cmp` on captured output | byte-identical, exits `0 0` |
-| Pack content hash (canonical JSON, sha256) | `2b51eb0d82c0c2eb76e98bb917b962d30bdb0e19e18923f37bd4ebe667b917e0` |
+| Pack content hash (canonical JSON, sha256) | `c211e914652b51e457f07a98c76dbf1d4ea3be3d096e9de2f98b8b99c5d3bc6f` |
+| Bad invocation (`--bogus`) | exit `2` |
+| `--quiet` on a valid pack | exit `0`, no output |
 
 Green-run summary, verbatim:
 
@@ -90,22 +93,22 @@ order properties proven: 7
 structural properties (human-asserted): 10
 atoms: E_base, E_prep, E_instructor_band_0, E_instructor_band_1, E_instructor_band_2, E_peer_assist, E_peer_interfere, E_makeup
 effect magnitudes: symbolic, unapproved
-content hash: sha256:2b51eb0d82c0c2eb76e98bb917b962d30bdb0e19e18923f37bd4ebe667b917e0
+content hash: sha256:c211e914652b51e457f07a98c76dbf1d4ea3be3d096e9de2f98b8b99c5d3bc6f
 OK
 ```
 
-Eight negative controls, each mutating one field of the pack and each expected to fail. **All 8 exited `1`:**
+Eight negative controls, each mutating one field of a copy of the pack and each expected to fail. **All 8 exited `1`, and an unmutated copy exited `0`:**
 
 | Mutation | Checker caught it as |
 | --- | --- |
-| Numeric literal in a magnitude (`E_base + 2`) | `magnitude-expression` |
-| Invented `deltaSessions: 2` | `delta` + `progression-arithmetic` |
-| Cap overshoot on the capped case | `invariant-credit_within_capacity` |
-| Replay expectation diverging from its base | `replay-divergence` |
-| Double credit on a re-delivered outcome ref | `invariant-idempotent_by_outcome_ref` |
+| Numeric literal in a magnitude (`E_base + 2`) | `magnitude-expression`, plus `property-proof` and `replay-divergence` because the mutated case is an ordering anchor |
+| Invented `deltaSessions: 2` | `delta`, `progression-arithmetic`, `replay-divergence` |
+| Cap overshoot on the near-cap case | `invariant-credit_within_capacity`, `invariant-cap_not_exceeded` |
+| Replay expectation diverging from its base | `replay-divergence`, `progression-arithmetic` |
+| Double credit on a re-delivered outcome ref | `invariant-idempotent_by_outcome_ref`, `invariant-no_double_credit` |
 | Flipped an order property to unprovable | `property-unproven` |
-| Deleted the only replay case | `replay-coverage` + `class-coverage` |
-| Malformed `sessionRef` | `session-ref` + `lesson-reference` |
+| Deleted the only replay case | `replay-coverage`, `class-coverage` |
+| Malformed `sessionRef` | `session-ref`, `lesson-reference` |
 
 **Not run, and not claimed:** `npm run lint`, `npm run format:check`, `npm run test:run`, any `verify:*` validator, `npm run build`, and CI. Dependencies are not installed in this workspace and the diff touches no path any of those gates select, so no gate was expected to exercise it. No PR exists to run CI against.
 
@@ -119,7 +122,7 @@ Blocking a resolver contract:
 2. **A2 — No approved lesson-credit currency.** Existing progression currency is agent XP; existing academic completion is `applyTrainingCompletionToAgent`. There is no lesson-progress field.
 3. **A3 — Effect magnitude and grading formula unapproved.** Fixtures assert orderings only. Reusing approved training constants (`ACADEMY_UPGRADE_COSTS`, `TRAINING_FATIGUE_CURVE_EXPONENT`) for lesson credit would be an invention.
 4. **A9 — Replay has no ruleset anchor** (content hash vs ruleset version).
-5. **A10 — Cap source undecided** (authored module field vs session count vs caller).
+5. **A10 — Cap source undecided** (authored module field vs session count vs caller). Fixtures read it from the module.
 6. **A14 — Disposition vocabulary and persistence unowned** (persisting `deferred` would require the learning-state record this task forbids).
 7. **A15 — Highest-risk interaction: double counting.** `applyTrainingCompletionToAgent` already awards XP, mutates base and derived stats, and can trigger `applyPotentialBreakthrough`. A lesson resolver that also grants XP for the same instruction could credit the same learner-week twice through two owners.
 
@@ -163,7 +166,7 @@ No implementation, Linear mutation, PR or merge is requested by this report.
 
 ## Notes for review before sending
 
-- The message names Freebuff, the issue, the branch and commit, the exact test commands with results, the unverified items, and one decision block.
+- The message names Freebuff, the issue, the branch, the exact test commands with results, the unverified items, and one decision block. It cites only commits that cannot change (the base and the two ancestry commits) and tells the reader to use the branch head, so no citation can go stale when the branch gets another commit.
 - It deliberately does **not** address Cursor or Codex as recipients, does not propose a brief to a named implementer, and does not create or propose Linear issues, children or relationships. Pickup stays a Linear concern.
 - Once sent, this role waits for Hermes II's response before starting anything else.
 - If the browser session becomes available, post the body above verbatim; the only edit needed is deleting the "DRAFT — not sent" line at the top of this file.

@@ -54,7 +54,7 @@ Each item states what the fixtures assume, what the repository actually establis
 
 **Repository state:** neither status exists. `src/domain/models.ts:554` declares `AgentAssignmentStateKind = 'idle' | 'assigned' | 'recovery' | 'training'` and `:216` adds availability values `recovering | unavailable`; a case-insensitive search of `src/**` for `attendance` and `lessonProgress` returns no domain matches, so there is no attendance vocabulary and no absence handling. `systems/team-management.md:165` explicitly rejects attendance-only renewal for refreshers, which is adjacent but not this contract.
 
-**Open:** whether deferral consumes an attempt (`priorAttempts`), whether excused absence is time-bounded, and whether `deferred` may be persisted at all — persistence would require state, which this slice forbids.
+**Open:** whether deferral consumes an attempt (the fixtures do not model an attempt counter at all), whether excused absence is time-bounded, and whether `deferred` may be persisted at all — persistence would require state, which this slice forbids.
 
 ## A7 — Make-up authorization has no authority
 

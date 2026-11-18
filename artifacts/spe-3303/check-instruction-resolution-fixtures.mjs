@@ -51,7 +51,7 @@ const STAT_KEYS = new Set(['combat', 'investigation', 'utility', 'social'])
 const EFFICIENCY_BANDS = new Set([0, 1, 2])
 const CASE_ID_PATTERN = /^ir-[0-9]{2}-[a-z0-9-]+$/
 const SESSION_REF_PATTERN = /^([a-z0-9][a-z0-9-]*)#session-([0-9]+)$/
-const ALLOWED_EMISSIONS = new Set([
+const EMISSIONS = new Set([
   'enrollment_record',
   'learning_state_snapshot',
   'faculty_quality_score',
@@ -60,7 +60,8 @@ const ALLOWED_EMISSIONS = new Set([
   'stat_cap_change',
   'game_engine_effect',
 ])
-const FORBIDDEN_ALWAYS = new Set(['learning_state_snapshot'])
+// Every case must exclude these, whatever else it excludes.
+const REQUIRED_EXCLUSIONS = ['enrollment_record', 'learning_state_snapshot']
 
 /** @type {{ rule: string, where: string, detail: string }[]} */
 const violations = []
@@ -91,16 +92,15 @@ function stableStringify(value) {
 // ---------------------------------------------------------------------------
 
 /**
- * Parse "E_base + E_prep - E_peer_interfere" into { constant, coefficients }.
- * Returns null when a token is not a declared atom.
+ * Parse "E_base + E_prep - E_peer_interfere" into a Map of coefficients.
+ * Returns null when a token is not a declared atom. Numeric literals are
+ * rejected outright: magnitudes are unapproved, so no constant term can exist.
  */
 function parseExpression(expression, atomNames) {
   if (typeof expression !== 'string' || expression.trim() === '') return null
   const tokens = expression.replace(/([+-])/g, ' $1 ').trim().split(/\s+/)
-  if (tokens.length === 0) return null
 
   const coefficients = new Map()
-  let constant = 0
   let sign = 1
   let expectOperand = true
 
@@ -112,55 +112,52 @@ function parseExpression(expression, atomNames) {
       continue
     }
     if (!expectOperand) return null
-    if (/^-?[0-9]/.test(token)) {
-      // Numeric literals are not permitted: magnitudes are unapproved.
-      return null
-    }
+    if (/^[0-9]/.test(token)) return null
     if (!atomNames.has(token)) return null
     coefficients.set(token, (coefficients.get(token) ?? 0) + sign)
     expectOperand = false
   }
   if (expectOperand) return null
-  return { constant, coefficients }
+  return coefficients
+}
+
+function entryExpression(entry, atomNames) {
+  const magnitude = entry.expect?.effectStrength
+  return magnitude?.symbolic === true ? parseExpression(magnitude.expression, atomNames) : null
 }
 
 function subtract(a, b) {
-  const coefficients = new Map(a.coefficients)
-  for (const [atom, value] of b.coefficients) {
+  const coefficients = new Map(a)
+  for (const [atom, value] of b) {
     coefficients.set(atom, (coefficients.get(atom) ?? 0) - value)
   }
-  return { constant: a.constant - b.constant, coefficients }
-}
-
-function nonZero(coefficients) {
-  return [...coefficients.entries()].filter(([, v]) => v !== 0)
+  return coefficients
 }
 
 /**
  * Sufficient (not complete) non-negativity proof.
  *
- * - constant term must be >= 0
  * - every negative atom coefficient must be cancellable against a positive
  *   atom coefficient that is declared >= it
+ * - a leftover positive coefficient is sound only for an atom declared >= 0
  *
  * Reports "unproven" rather than "false" when it cannot discharge an obligation.
  */
-function proveNonNegative(expression, atLeast, nonNegative = new Set()) {
-  if (!expression) return { proven: false, reason: 'unparseable expression' }
-  if (expression.constant < 0) return { proven: false, reason: 'negative constant term' }
+function proveNonNegative(coefficients, atLeast, nonNegative) {
+  if (!coefficients) return { proven: false, reason: 'unparseable expression' }
 
-  const coeffs = new Map(nonZero(expression.coefficients))
+  const remaining = new Map([...coefficients].filter(([, value]) => value !== 0))
   let progressed = true
   while (progressed) {
     progressed = false
-    for (const [atom, value] of [...coeffs]) {
+    for (const [atom, value] of [...remaining]) {
       if (value >= 0) continue
-      for (const [donor, donorValue] of [...coeffs]) {
+      for (const [donor, donorValue] of [...remaining]) {
         if (donor === atom || donorValue <= 0) continue
         if (!(atLeast.get(donor)?.has(atom))) continue
         const cancelled = Math.min(donorValue, -value)
-        coeffs.set(donor, donorValue - cancelled)
-        coeffs.set(atom, value + cancelled)
+        remaining.set(donor, donorValue - cancelled)
+        remaining.set(atom, value + cancelled)
         progressed = true
         break
       }
@@ -168,12 +165,10 @@ function proveNonNegative(expression, atLeast, nonNegative = new Set()) {
     }
   }
 
-  const remaining = [...coeffs.entries()].filter(([, v]) => v !== 0)
-  if (remaining.length === 0) return { proven: true, reason: 'nonnegative after cancellation' }
+  const left = [...remaining].filter(([, value]) => value !== 0)
+  if (left.length === 0) return { proven: true, reason: 'nonnegative after cancellation' }
 
-  // A positive coefficient is sound only if the atom is declared non-negative;
-  // a negative coefficient can never be discharged without a relation.
-  const unjustified = remaining.filter(([atom, value]) => value < 0 || !nonNegative.has(atom))
+  const unjustified = left.filter(([atom, value]) => value < 0 || !nonNegative.has(atom))
   if (unjustified.length === 0) {
     return { proven: true, reason: 'all remaining terms are declared non-negative' }
   }
@@ -181,7 +176,7 @@ function proveNonNegative(expression, atLeast, nonNegative = new Set()) {
     proven: false,
     reason: `undischarged coefficients: ${unjustified
       .sort((x, y) => x[0].localeCompare(y[0]))
-      .map(([a, v]) => `${v}*${a}`)
+      .map(([atom, value]) => `${value}*${atom}`)
       .join(', ')}`,
   }
 }
@@ -272,61 +267,56 @@ function buildAtomModel(atoms) {
 }
 
 // ---------------------------------------------------------------------------
-// Invariant implementations
+// Invariants
 // ---------------------------------------------------------------------------
 
 function expressionCoefficient(parsed, atom) {
-  if (!parsed) return 0
-  return parsed.coefficients.get(atom) ?? 0
+  return parsed?.get(atom) ?? 0
 }
 
-function checkInvariant(name, pack, entry, models) {
-  const { expect, lesson, session, attendance, instructorContext, preparation, peers } = entry
+function checkInvariant(name, entry, declaredLesson, atomNames) {
+  const { expect, session, attendance, instructorContext, preparation, peers } = entry
   const progression = entry.progressionState ?? {}
-  const capacity = progression.moduleCapacity
+  const capacity = declaredLesson.moduleSessionCapacity
   const where = `cases.${entry.caseId}`
 
   switch (name) {
     case 'credit_within_capacity': {
-      if (typeof capacity !== 'number') break
       if (progression.creditedSessionsBefore + expect.deltaSessions > capacity) {
         fail('invariant-credit_within_capacity', where, 'before + delta exceeds module capacity')
       }
       break
     }
-    case 'no_double_credit': {
-      // Pack-level; handled in checkNoDoubleCredit.
+    case 'no_double_credit':
+    case 'excused_differs_from_skipped':
+    case 'idempotent_by_outcome_ref':
+      // Pack-level invariants, discharged by checkNoDoubleCredit,
+      // checkExcusedVsSkipped and checkIdempotency.
       break
-    }
     case 'no_credit_without_authoritative_presence': {
-      const authoritative = attendance.authority === 'caller' && attendance.evaluated === true
-      if (!authoritative && expect.deltaSessions !== 0) {
+      if (attendance.authority !== 'caller' && expect.deltaSessions !== 0) {
         fail('invariant-no_credit_without_authoritative_presence', where, 'credit without an authoritative present result')
       }
       break
     }
-    case 'excused_differs_from_skipped': {
-      // Pack-level; handled in checkExcusedVsSkipped.
-      break
-    }
     case 'makeup_credits_original_session': {
-      if (!lesson.makeup) {
+      if (!entry.lesson.makeup) {
         fail('invariant-makeup_credits_original_session', where, 'invariant cited without a makeup block')
         break
       }
-      if (expect.progression?.sessionRef !== lesson.makeup.forSessionRef) {
+      if (expect.progression?.sessionRef !== entry.lesson.makeup.forSessionRef) {
         fail('invariant-makeup_credits_original_session', where, 'expected progression does not credit the original session reference')
       }
       break
     }
     case 'authorized_makeup_requires_authority_ref': {
-      if (lesson.makeup?.authorized === true && !isNonEmptyString(lesson.makeup.authorizationRef)) {
+      if (entry.lesson.makeup?.authorized === true && !isNonEmptyString(entry.lesson.makeup.authorizationRef)) {
         fail('invariant-authorized_makeup_requires_authority_ref', where, 'authorized makeup without an authorizationRef')
       }
       break
     }
     case 'unauthorized_makeup_grants_no_credit': {
-      if (lesson.makeup && lesson.makeup.authorized === false) {
+      if (entry.lesson.makeup && entry.lesson.makeup.authorized === false) {
         if (expect.deltaSessions !== 0 || expect.progression !== null) {
           fail('invariant-unauthorized_makeup_grants_no_credit', where, 'unauthorized makeup grants credit')
         }
@@ -334,8 +324,7 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'no_change_lesson_emits_no_delta': {
-      const declared = models.sessionEffectLookup.get(session.sessionRef)
-      if (declared === 'no_change') {
+      if (declaredLesson.sessions.some((s) => s.sessionRef === session.sessionRef && s.lessonEffect === 'no_change')) {
         if (expect.deltaSessions !== 0 || expect.progression !== null) {
           fail('invariant-no_change_lesson_emits_no_delta', where, 'no_change lesson produced a progression delta')
         }
@@ -343,8 +332,8 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'cap_not_exceeded': {
-      if (expect.progression && typeof capacity === 'number' && expect.progression.creditedSessionsAfter > capacity) {
-        fail('invariant-cap_not_exceeded', where, 'creditedSessionsAfter exceeds moduleCapacity')
+      if (expect.progression && expect.progression.creditedSessionsAfter > capacity) {
+        fail('invariant-cap_not_exceeded', where, 'creditedSessionsAfter exceeds moduleSessionCapacity')
       }
       break
     }
@@ -353,10 +342,6 @@ function checkInvariant(name, pack, entry, models) {
       if (expect.progression && expect.progression.creditedSessionsAfter < 0) {
         fail('invariant-credited_sessions_never_negative', where, 'negative creditedSessionsAfter')
       }
-      break
-    }
-    case 'idempotent_by_outcome_ref': {
-      // Pack-level; handled in checkIdempotency.
       break
     }
     case 'no_enrollment_inference': {
@@ -368,8 +353,7 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'attendance_authority_required': {
-      const none = attendance.authority === 'none'
-      if (none && (expect.disposition !== 'not_evaluated' || attendance.evaluated !== false)) {
+      if (attendance.authority === 'none' && expect.disposition !== 'not_evaluated') {
         fail('invariant-attendance_authority_required', where, 'missing attendance authority did not resolve to not_evaluated')
       }
       break
@@ -381,9 +365,9 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'instructor_effect_nonnegative': {
-      const parsed = models.expressionOf(entry)
+      const parsed = entryExpression(entry, atomNames)
       if (!parsed) break
-      for (const atom of models.atomNames) {
+      for (const atom of atomNames) {
         if (atom.startsWith('E_instructor_') && expressionCoefficient(parsed, atom) < 0) {
           fail('invariant-instructor_effect_nonnegative', where, `expression subtracts ${atom}`)
         }
@@ -391,9 +375,9 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'instructor_specialty_must_match_target_stat': {
-      const parsed = models.expressionOf(entry)
+      const parsed = entryExpression(entry, atomNames)
       if (!parsed) break
-      const usesInstructor = [...models.atomNames].some(
+      const usesInstructor = [...atomNames].some(
         (atom) => atom.startsWith('E_instructor_') && expressionCoefficient(parsed, atom) !== 0
       )
       if (usesInstructor && instructorContext.specialty !== progression.targetStat) {
@@ -406,7 +390,7 @@ function checkInvariant(name, pack, entry, models) {
       break
     }
     case 'peer_effect_sign_matches_declared_effect': {
-      const parsed = models.expressionOf(entry)
+      const parsed = entryExpression(entry, atomNames)
       if (!parsed) break
       for (const peer of peers ?? []) {
         const coefficient = expressionCoefficient(parsed, peer.magnitudeAtom)
@@ -437,8 +421,7 @@ function checkInvariant(name, pack, entry, models) {
 function checkNoDoubleCredit(pack) {
   const seen = new Map()
   for (const entry of pack.cases) {
-    if (entry.replay) continue
-    if (entry.expect.deltaSessions <= 0) continue
+    if (entry.replay || entry.expect.deltaSessions <= 0) continue
     const sessionRef = entry.expect.progression?.sessionRef
     if (!sessionRef) continue
     const key = `${entry.identity.learnerRef}|${sessionRef}`
@@ -504,7 +487,7 @@ function checkIdempotency(pack) {
 function validatePack(pack) {
   if (!isPlainObject(pack)) {
     fail('pack-shape', 'pack', 'top level must be a JSON object')
-    return null
+    return
   }
   if (pack.fixtureVersion !== PACK_VERSION) {
     fail('pack-version', 'pack.fixtureVersion', `expected ${PACK_VERSION}, saw ${JSON.stringify(pack.fixtureVersion)}`)
@@ -529,14 +512,14 @@ function validatePack(pack) {
   const idPattern = pack.canonicalSpaces?.stableId?.pattern
   if (typeof idPattern !== 'string') {
     fail('canonical-space', 'canonicalSpaces.stableId', 'missing stable-id pattern')
-    return null
+    return
   }
   let idRegex
   try {
     idRegex = new RegExp(idPattern)
   } catch {
     fail('canonical-space', 'canonicalSpaces.stableId.pattern', 'pattern does not compile')
-    return null
+    return
   }
 
   const declaredStats = new Set(pack.canonicalSpaces?.statKey?.allowed ?? [])
@@ -582,20 +565,21 @@ function validatePack(pack) {
   for (const e of LESSON_EFFECTS) {
     if (!(pack.lessonEffects ?? []).includes(e)) fail('enum', 'lessonEffects', `missing ${e}`)
   }
-  for (const emitted of pack.disallowedEmissions ?? []) {
-    if (!ALLOWED_EMISSIONS.has(emitted)) {
-      fail('enum', 'disallowedEmissions', `unrecognised emission ${JSON.stringify(emitted)}`)
+  const declaredEmissions = new Set(pack.disallowedEmissions ?? [])
+  for (const emission of declaredEmissions) {
+    if (!EMISSIONS.has(emission)) {
+      fail('enum', 'disallowedEmissions', `unrecognised emission ${JSON.stringify(emission)}`)
     }
   }
+  for (const emission of REQUIRED_EXCLUSIONS) {
+    if (!declaredEmissions.has(emission)) fail('enum', 'disallowedEmissions', `missing ${emission}`)
+  }
 
-  const classList = pack.classes ?? []
-  if (!Array.isArray(classList) || classList.length === 0) {
-    fail('classes', 'classes', 'a declared class list is required')
+  const requiredClasses = pack.requiredClasses ?? []
+  if (!Array.isArray(requiredClasses) || requiredClasses.length === 0) {
+    fail('classes', 'requiredClasses', 'a declared class list is required')
   }
-  const classes = new Set(classList)
-  for (const required of pack.requiredClasses ?? []) {
-    if (!classes.has(required)) fail('classes', 'requiredClasses', `${required} is required but not declared in classes`)
-  }
+  const classes = new Set(requiredClasses)
 
   // Lessons
   const lessonByModule = new Map()
@@ -636,45 +620,13 @@ function validatePack(pack) {
     }
   }
 
-  // Invariants registry
+  // Invariant registry
   const invariantIds = new Set((pack.invariants ?? []).map((i) => i.id))
-  const implemented = new Set([
-    'credit_within_capacity',
-    'no_double_credit',
-    'no_credit_without_authoritative_presence',
-    'excused_differs_from_skipped',
-    'makeup_credits_original_session',
-    'authorized_makeup_requires_authority_ref',
-    'unauthorized_makeup_grants_no_credit',
-    'no_change_lesson_emits_no_delta',
-    'cap_not_exceeded',
-    'credited_sessions_never_negative',
-    'idempotent_by_outcome_ref',
-    'no_enrollment_inference',
-    'attendance_authority_required',
-    'no_disciplinary_output',
-    'instructor_effect_nonnegative',
-    'instructor_specialty_must_match_target_stat',
-    'peer_effect_sign_matches_declared_effect',
-  ])
-  for (const id of invariantIds) {
-    if (!implemented.has(id)) fail('invariant-registry', `invariants.${id}`, 'declared invariant has no checker implementation')
-  }
+  const citedInvariants = new Set()
 
   // Cases
   const cases = Array.isArray(pack.cases) ? pack.cases : []
   if (cases.length < 10) fail('case-count', 'cases', `at least 10 cases required, saw ${cases.length}`)
-  const caseIds = new Map()
-  const expressionCache = new Map()
-  const expressionOf = (entry) => {
-    if (expressionCache.has(entry.caseId)) return expressionCache.get(entry.caseId)
-    const magnitude = entry.expect?.effectStrength
-    const parsed = magnitude?.symbolic === true ? parseExpression(magnitude.expression, atomNames) : null
-    expressionCache.set(entry.caseId, parsed)
-    return parsed
-  }
-  const models = { atomNames, sessionEffectLookup, expressionOf }
-
   const caseById = new Map()
   let previousId = ''
   const seenClasses = new Set()
@@ -685,10 +637,9 @@ function validatePack(pack) {
       fail('case-id-grammar', where, 'caseId must match ir-<two digits>-<slug>')
       continue
     }
-    if (caseIds.has(entry.caseId)) fail('case-id-duplicate', where, 'duplicate caseId')
+    if (caseById.has(entry.caseId)) fail('case-id-duplicate', where, 'duplicate caseId')
     if (entry.caseId < previousId) fail('case-ordering', where, 'cases must be sorted by caseId')
     previousId = entry.caseId
-    caseIds.set(entry.caseId, entry)
     caseById.set(entry.caseId, entry)
     seenClasses.add(entry.class)
 
@@ -699,16 +650,21 @@ function validatePack(pack) {
     if (!courseRefs.has(entry.lesson?.courseRef)) {
       fail('lesson-reference', `${where}.lesson.courseRef`, 'courseRef is not declared in lessons')
     }
-    const lesson = lessonByModule.get(entry.lesson?.moduleRef)
-    if (!lesson) {
+    const declaredLesson = lessonByModule.get(entry.lesson?.moduleRef)
+    if (!declaredLesson) {
       fail('lesson-reference', `${where}.lesson.moduleRef`, 'moduleRef is not declared in lessons')
       continue
     }
-    if (lesson.courseRef !== entry.lesson.courseRef) {
+    if (declaredLesson.courseRef !== entry.lesson.courseRef) {
       fail('lesson-reference', `${where}.lesson.courseRef`, 'moduleRef belongs to a different courseRef')
     }
-    if (entry.session?.sessionRef !== `${entry.lesson.moduleRef}#session-${entry.session?.index}`) {
-      fail('session-ref', `${where}.session.sessionRef`, 'sessionRef must be moduleRef#session-<index>')
+
+    // Session reference
+    const sessionMatch = SESSION_REF_PATTERN.exec(entry.session?.sessionRef ?? '')
+    if (!sessionMatch) {
+      fail('session-ref', `${where}.session.sessionRef`, 'sessionRef must be moduleRef#session-<n>')
+    } else if (sessionMatch[1] !== entry.lesson.moduleRef) {
+      fail('session-ref', `${where}.session.sessionRef`, 'sessionRef must belong to the case moduleRef')
     }
     if (!sessionEffectLookup.has(entry.session?.sessionRef)) {
       fail('lesson-reference', `${where}.session.sessionRef`, 'sessionRef is not declared on the module')
@@ -728,9 +684,6 @@ function validatePack(pack) {
       if (entry.attendance.outcomeRef !== null) {
         fail('attendance-authority', `${where}.attendance.outcomeRef`, 'authority none must not carry an outcomeRef')
       }
-      if (entry.attendance.evaluated !== false) {
-        fail('attendance-authority', `${where}.attendance.evaluated`, 'authority none must record evaluated=false')
-      }
     } else if (!isNonEmptyString(entry.attendance?.outcomeRef)) {
       fail('attendance-authority', `${where}.attendance.outcomeRef`, 'caller authority requires an outcomeRef')
     }
@@ -738,8 +691,7 @@ function validatePack(pack) {
     // Makeup block
     if (entry.lesson.makeup) {
       const makeup = entry.lesson.makeup
-      const declared = sessionEffectLookup.has(makeup.forSessionRef)
-      if (!declared) {
+      if (!sessionEffectLookup.has(makeup.forSessionRef)) {
         fail('makeup-reference', `${where}.lesson.makeup.forSessionRef`, 'makeup target is not a declared session of this module')
       } else if (!makeup.forSessionRef.startsWith(`${entry.lesson.moduleRef}#`)) {
         fail('makeup-reference', `${where}.lesson.makeup.forSessionRef`, 'makeup target belongs to a different module')
@@ -762,9 +714,6 @@ function validatePack(pack) {
     }
     if (!STAT_KEYS.has(entry.progressionState?.targetStat)) {
       fail('target-stat', `${where}.progressionState.targetStat`, 'targetStat must be a canonical stat key')
-    }
-    if (entry.progressionState?.moduleCapacity !== lesson.moduleSessionCapacity) {
-      fail('module-capacity', `${where}.progressionState.moduleCapacity`, 'moduleCapacity must match the declared module capacity')
     }
     if (
       !Number.isInteger(entry.progressionState?.creditedSessionsBefore) ||
@@ -867,17 +816,14 @@ function validatePack(pack) {
       fail('emissions', `${where}.expect.mustNotEmit`, 'mustNotEmit must be an array')
     } else {
       for (const emission of expect.mustNotEmit) {
-        if (!ALLOWED_EMISSIONS.has(emission)) {
-          fail('emissions', `${where}.expect.mustNotEmit`, `unrecognised emission ${JSON.stringify(emission)}`)
+        if (!declaredEmissions.has(emission)) {
+          fail('emissions', `${where}.expect.mustNotEmit`, `emission ${JSON.stringify(emission)} is not in the pack's disallowedEmissions`)
         }
       }
-      for (const forbidden of FORBIDDEN_ALWAYS) {
-        if (!expect.mustNotEmit.includes(forbidden)) {
-          fail('emissions', `${where}.expect.mustNotEmit`, `every case must exclude ${forbidden}`)
+      for (const required of REQUIRED_EXCLUSIONS) {
+        if (!expect.mustNotEmit.includes(required)) {
+          fail('emissions', `${where}.expect.mustNotEmit`, `every case must exclude ${required}`)
         }
-      }
-      if (!expect.mustNotEmit.includes('enrollment_record')) {
-        fail('emissions', `${where}.expect.mustNotEmit`, 'every case must exclude enrollment_record')
       }
     }
 
@@ -887,19 +833,27 @@ function validatePack(pack) {
         fail('invariant-unknown', `${where}.expect.invariants`, `${name} is not declared in the pack registry`)
         continue
       }
-      checkInvariant(name, pack, entry, models)
+      citedInvariants.add(name)
+      checkInvariant(name, entry, declaredLesson, atomNames)
     }
 
     // Properties
     for (const property of expect.properties ?? []) {
-      validateProperty(property, where, entry, caseById, atomNames)
+      validateProperty(property, where, caseById, atomNames)
     }
   }
 
   // Required class coverage
-  for (const required of pack.requiredClasses ?? []) {
+  for (const required of requiredClasses) {
     if (!seenClasses.has(required)) {
       fail('class-coverage', 'requiredClasses', `no case covers ${required}`)
+    }
+  }
+
+  // Registry hygiene: a declared invariant that no case cites is unverifiable.
+  for (const id of invariantIds) {
+    if (!citedInvariants.has(id)) {
+      fail('invariant-uncited', `invariants.${id}`, 'declared invariant is not cited by any case')
     }
   }
 
@@ -908,12 +862,10 @@ function validatePack(pack) {
   checkExcusedVsSkipped(pack)
   checkIdempotency(pack)
   checkReplays(pack)
-  checkPropertyProofs(pack, atomNames, atLeast, nonNegative, parseExpression, caseById)
-
-  return { caseById, atomNames }
+  checkPropertyProofs(pack, atomNames, atLeast, nonNegative, caseById)
 }
 
-function validateProperty(property, where, entry, caseById, atomNames) {
+function validateProperty(property, where, caseById, atomNames) {
   const id = property.id ?? '<missing-id>'
   if (!isNonEmptyString(id)) fail('property-id', `${where}.expect.properties`, 'property requires an id')
   if (property.kind !== 'structural' && !isNonEmptyString(property.statement)) {
@@ -929,7 +881,7 @@ function validateProperty(property, where, entry, caseById, atomNames) {
     fail('property-kind', `${where}.expect.properties.${id}`, `unknown kind ${JSON.stringify(property.kind)}`)
     return
   }
-  if (![">=", "<=", "=="].includes(property.op)) {
+  if (!['>=', '<=', '=='].includes(property.op)) {
     fail('property-op', `${where}.expect.properties.${id}`, `unsupported op ${JSON.stringify(property.op)}`)
   }
   if (property.basis !== 'symbolic') {
@@ -952,13 +904,10 @@ function validateProperty(property, where, entry, caseById, atomNames) {
   }
 }
 
-function checkPropertyProofs(pack, atomNames, atLeast, nonNegative, parseExpression, caseById) {
+function checkPropertyProofs(pack, atomNames, atLeast, nonNegative, caseById) {
   const expressionFor = (caseId) => {
     const entry = caseById.get(caseId)
-    if (!entry) return null
-    const magnitude = entry.expect?.effectStrength
-    if (!magnitude || magnitude.symbolic !== true) return null
-    return parseExpression(magnitude.expression, atomNames)
+    return entry ? entryExpression(entry, atomNames) : null
   }
 
   for (const entry of pack.cases) {
@@ -987,7 +936,7 @@ function checkPropertyProofs(pack, atomNames, atLeast, nonNegative, parseExpress
           fail(
             'property-unproven',
             `cases.${entry.caseId}.${property.id}`,
-            `cannot prove ${property.op} from atom relations (${proof.reason}); mark the case allowUnproven with a rationale instead`
+            `cannot prove ${property.op} from atom relations (${proof.reason})`
           )
         }
       }
@@ -1021,9 +970,7 @@ function checkReplays(pack) {
       delete copy.class
       return copy
     }
-    const a = stableStringify(stripReplay(base))
-    const b = stableStringify(stripReplay(replay))
-    if (a !== b) {
+    if (stableStringify(stripReplay(base)) !== stableStringify(stripReplay(replay))) {
       fail('replay-divergence', where, 'replay inputs or expectation diverge from the base case')
     }
   }
@@ -1034,9 +981,7 @@ function checkReplays(pack) {
 // ---------------------------------------------------------------------------
 
 function printUsage() {
-  process.stderr.write(
-    'Usage: node check-instruction-resolution-fixtures.mjs [--pack <path>] [--quiet]\n'
-  )
+  process.stderr.write('Usage: node check-instruction-resolution-fixtures.mjs [--pack <path>] [--quiet]\n')
 }
 
 function main(argv) {
@@ -1095,12 +1040,8 @@ function main(argv) {
 
   if (!quiet) {
     const cases = pack.cases ?? []
-    const orderProperties = cases.flatMap((c) =>
-      (c.expect?.properties ?? []).filter((p) => p.kind === 'order')
-    )
-    const structuralProperties = cases.flatMap((c) =>
-      (c.expect?.properties ?? []).filter((p) => p.kind === 'structural')
-    )
+    const orderProperties = cases.flatMap((c) => (c.expect?.properties ?? []).filter((p) => p.kind === 'order'))
+    const structuralProperties = cases.flatMap((c) => (c.expect?.properties ?? []).filter((p) => p.kind === 'structural'))
     const hash = crypto.createHash('sha256').update(stableStringify(pack)).digest('hex')
     const classes = [...new Set(cases.map((c) => c.class))].sort()
 
@@ -1118,7 +1059,4 @@ function main(argv) {
   return 0
 }
 
-const isDirectRun = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-if (isDirectRun) {
-  process.exitCode = main(process.argv.slice(2))
-}
+process.exitCode = main(process.argv.slice(2))

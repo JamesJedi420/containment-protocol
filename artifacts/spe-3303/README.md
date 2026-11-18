@@ -30,15 +30,19 @@ The checker validates the pack. **It does not resolve lessons and does not verif
 | `class` | one of the declared scenario classes |
 | `identity.learnerRef` | canonical stable ID |
 | `lesson.courseRef` / `lesson.moduleRef` | must exist in `lessons[]` and belong together |
-| `session.sessionRef` | `moduleRef#session-<index>` |
-| `attendance` | `authority`, `status`, `outcomeRef`, `evaluated` |
+| `lesson.makeup` | present only on make-up cases: `authorized`, `authorizationRef`, `forSessionRef` |
+| `session.sessionRef` | `moduleRef#session-<n>`, a declared session of that module |
+| `session.evaluationOrdinal` | how many times this session has been evaluated (a counter, not an identity) |
+| `attendance` | `authority` (`caller` or `none`), `status`, `outcomeRef` |
 | `instructorContext` | `assigned`, `specialty`, `efficiencyBand` |
 | `preparation` | `prepared`, `evidenceRef` |
 | `peers[]` | `peerRef`, `effect`, `magnitudeAtom` |
-| `enrollment` | `supplied`, `recordRef` — never written |
-| `progressionState` | `creditedSessionsBefore`, `moduleCapacity`, `priorAttempts`, `targetStat`, `targetStatAtCap` |
+| `enrollment` | `supplied` only — never required, never written |
+| `progressionState` | `creditedSessionsBefore`, `targetStat` |
 | `expect` | `disposition`, `progression`, `deltaSessions`, `effectStrength`, `properties`, `invariants`, `mustNotEmit` |
 | `replay` | `{ of, ordinal }` — inputs and expectation must equal the base case |
+
+Capacity is a property of the module (`lessons[].moduleSessionCapacity`), so cases do not repeat it; session identity is carried by `sessionRef`, so cases do not repeat an ordinal; and caller attendance authority replaces a separate "evaluated" flag. Every remaining field is read by the checker or asserted by a case — there is no decorative state.
 
 ## Coverage
 
@@ -59,11 +63,13 @@ The checker validates the pack. **It does not resolve lessons and does not verif
 | Missing attendance authority | `ir-16` |
 | No enrollment inference | `ir-17` |
 
+All 14 classes are listed in `requiredClasses`, so deleting any scenario fails the run.
+
 ## Two rules that keep this honest
 
 **Credit is counted, effect is symbolic.** `deltaSessions` is a discrete session-equivalent count (`0` or `1`) so arithmetic is checkable. `effectStrength` is a symbolic expression over declared atoms and carries no number, because the grading formula is not approved.
 
-**Order properties must be provable.** Every `order` property is proved from the atom relations by non-negative linear cancellation; an unprovable ordering is a violation, not a warning. Structural properties are human-readable assertions the checker only checks for form — it cannot verify prose like "cap dominates effect".
+**Order properties must be provable.** Every `order` property is proved from the atom relations by non-negative linear cancellation; an unprovable ordering is a violation, not a warning. Structural properties are human-readable assertions the checker only checks for form — it cannot verify prose like "cap dominates effect". A declared invariant that no case cites is also a violation, so the registry cannot grow unverified entries.
 
 ## Grounded versus unapproved
 
@@ -71,9 +77,9 @@ The checker validates the pack. **It does not resolve lessons and does not verif
 | --- | --- |
 | Stable-ID grammar and shared ID space (`scripts/validation/academy-authored-content.mjs`) | Lesson credit unit and conversion to XP/stat |
 | Stat-key allowlist and instructor efficiency bands (`src/domain/sim/instructorAssignment.ts`) | Instructor effect on lesson credit |
-| Training program IDs (`src/data/training.ts`) used as optional references | Peer assistance/interference schema |
-| Academy tier bonus semantics (`src/domain/sim/academyUpgrade.ts`) as context only | Make-up authorization semantics |
-| Specialty-equality gate (`getAgentInstructorBonus`) | Dedupe key for repeated evaluation |
+| Academy tier bonus semantics (`src/domain/sim/academyUpgrade.ts`) as context only | Peer assistance/interference schema |
+| Specialty-equality gate (`getAgentInstructorBonus`) | Make-up authorization semantics |
+| | Dedupe key for repeated evaluation |
 
 ## Checker scope — what a green run does not prove
 

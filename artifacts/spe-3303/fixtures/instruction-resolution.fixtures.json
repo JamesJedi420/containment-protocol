@@ -24,19 +24,6 @@
       "source": "src/domain/sim/instructorAssignment.ts (getInstructorBonus: >=90 -> 2, >=70 -> 1, else 0)",
       "note": "Band identity is grounded in existing code; the band's effect on lesson credit is unapproved."
     },
-    "trainingProgram": {
-      "allowed": [
-        "combat-drills",
-        "threat-assessment",
-        "analysis-lab",
-        "field-improv",
-        "logistics-cycle",
-        "endurance-protocol",
-        "anomaly-conditioning",
-        "liaison-briefing"
-      ],
-      "source": "src/data/training.ts (trainingCatalog trainingId values)"
-    },
     "progressionRef": {
       "grammar": "moduleRef#session-<n>",
       "note": "Composed from the SPE-3304 shared stable-id space plus a session ordinal. Session-level stable IDs are NOT registered by SPE-3304 slice 1; see CONTRACT-AMBIGUITIES.md A1."
@@ -92,22 +79,6 @@
       "relations": ["E_makeup >= 0", "E_makeup <= E_base"]
     }
   ],
-  "classes": [
-    "ordinary_teaching",
-    "no_change_lesson",
-    "skipped_attendance",
-    "excused_attendance",
-    "authorized_makeup",
-    "unauthorized_makeup",
-    "attendance_authority_missing",
-    "preparation_effect",
-    "instructor_context_effect",
-    "peer_assistance",
-    "peer_interference",
-    "capped_progression",
-    "repeated_evaluation",
-    "replay"
-  ],
   "dispositions": [
     "credit_granted",
     "no_progression_change",
@@ -135,6 +106,8 @@
     "skipped_attendance",
     "excused_attendance",
     "authorized_makeup",
+    "unauthorized_makeup",
+    "attendance_authority_missing",
     "preparation_effect",
     "instructor_context_effect",
     "peer_assistance",
@@ -146,7 +119,7 @@
   "invariants": [
     {
       "id": "credit_within_capacity",
-      "statement": "creditedSessionsBefore + deltaSessions <= moduleCapacity",
+      "statement": "creditedSessionsBefore + deltaSessions <= moduleSessionCapacity",
       "checkedAs": "arithmetic"
     },
     {
@@ -156,7 +129,7 @@
     },
     {
       "id": "no_credit_without_authoritative_presence",
-      "statement": "deltaSessions is 0 whenever attendance.status is not an authoritative present result",
+      "statement": "deltaSessions is 0 whenever attendance.authority is not the caller",
       "checkedAs": "cross_field"
     },
     {
@@ -186,7 +159,7 @@
     },
     {
       "id": "cap_not_exceeded",
-      "statement": "no case may expect creditedSessionsAfter greater than its moduleCapacity",
+      "statement": "no case may expect creditedSessionsAfter greater than its moduleSessionCapacity",
       "checkedAs": "arithmetic"
     },
     {
@@ -288,37 +261,18 @@
       "caseId": "ir-01-ordinary-teaching",
       "class": "ordinary_teaching",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-1",
-        "index": 1,
-        "scheduledWeek": 12,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -342,22 +296,12 @@
       "caseId": "ir-02-preparation-effect",
       "class": "preparation_effect",
       "identity": { "learnerRef": "learner-b2" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-1",
-        "index": 1,
-        "scheduledWeek": 12,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": {
@@ -365,17 +309,8 @@
         "evidenceRef": "preparation:caller:learner-b2:module-foundations-core:s1"
       },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -409,37 +344,18 @@
       "caseId": "ir-03-no-change-lesson",
       "class": "no_change_lesson",
       "identity": { "learnerRef": "learner-c3" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-reinforcement-drill",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-reinforcement-drill#session-1",
-        "index": 1,
-        "scheduledWeek": 13,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-reinforcement-drill" },
+      "session": { "sessionRef": "module-reinforcement-drill#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-c3:module-reinforcement-drill:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-c3:module-reinforcement-drill:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-c3:module-reinforcement-drill"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 1,
-        "priorAttempts": 0,
-        "targetStat": "social",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "social" },
       "expect": {
         "disposition": "no_progression_change",
         "progression": null,
@@ -467,37 +383,18 @@
       "caseId": "ir-04-skipped-attendance",
       "class": "skipped_attendance",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-2",
-        "index": 2,
-        "scheduledWeek": 13,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-2", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "skipped",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "not_evaluated",
         "progression": null,
@@ -523,37 +420,18 @@
       "caseId": "ir-05-excused-attendance",
       "class": "excused_attendance",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-2",
-        "index": 2,
-        "scheduledWeek": 13,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-2", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "excused",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-excused",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-excused"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "deferred",
         "progression": {
@@ -593,30 +471,18 @@
       },
       "session": {
         "sessionRef": "module-foundations-core#session-2",
-        "index": 2,
-        "scheduledWeek": 14,
         "evaluationOrdinal": 2
       },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-makeup",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s2-makeup"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 1,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -661,30 +527,18 @@
       },
       "session": {
         "sessionRef": "module-foundations-core#session-2",
-        "index": 2,
-        "scheduledWeek": 14,
         "evaluationOrdinal": 2
       },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s2-unsanctioned",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s2-unsanctioned"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 1,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "rejected_unauthorized_makeup",
         "progression": null,
@@ -706,37 +560,18 @@
       "caseId": "ir-08-instructor-context-effect",
       "class": "instructor_context_effect",
       "identity": { "learnerRef": "learner-c3" },
-      "lesson": {
-        "courseRef": "course-field-protocols",
-        "moduleRef": "module-contained-response",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-contained-response#session-1",
-        "index": 1,
-        "scheduledWeek": 15,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-field-protocols", "moduleRef": "module-contained-response" },
+      "session": { "sessionRef": "module-contained-response#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-c3:module-contained-response:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-c3:module-contained-response:s1"
       },
       "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 2 },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-c3:module-contained-response"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 2,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -779,37 +614,18 @@
       "caseId": "ir-09-instructor-specialty-mismatch",
       "class": "instructor_context_effect",
       "identity": { "learnerRef": "learner-b2" },
-      "lesson": {
-        "courseRef": "course-field-protocols",
-        "moduleRef": "module-contained-response",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-contained-response#session-1",
-        "index": 1,
-        "scheduledWeek": 15,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-field-protocols", "moduleRef": "module-contained-response" },
+      "session": { "sessionRef": "module-contained-response#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s1"
       },
       "instructorContext": { "assigned": true, "specialty": "social", "efficiencyBand": 2 },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-b2:module-contained-response"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 2,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -844,39 +660,20 @@
       "caseId": "ir-10-peer-assistance",
       "class": "peer_assistance",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-field-protocols",
-        "moduleRef": "module-contained-response",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-contained-response#session-1",
-        "index": 1,
-        "scheduledWeek": 15,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-field-protocols", "moduleRef": "module-contained-response" },
+      "session": { "sessionRef": "module-contained-response#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [
         { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" }
       ],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-contained-response"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 2,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -910,39 +707,20 @@
       "caseId": "ir-11-peer-interference",
       "class": "peer_interference",
       "identity": { "learnerRef": "learner-b2" },
-      "lesson": {
-        "courseRef": "course-field-protocols",
-        "moduleRef": "module-contained-response",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-contained-response#session-2",
-        "index": 2,
-        "scheduledWeek": 16,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-field-protocols", "moduleRef": "module-contained-response" },
+      "session": { "sessionRef": "module-contained-response#session-2", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s2",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-b2:module-contained-response:s2"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [
         { "peerRef": "learner-d4", "effect": "interference", "magnitudeAtom": "E_peer_interfere" }
       ],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-b2:module-contained-response"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 2,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -968,10 +746,7 @@
             "statement": "interference may not improve the session effect; it does not by itself zero the session count"
           }
         ],
-        "invariants": [
-          "peer_effect_sign_matches_declared_effect",
-          "credited_sessions_never_negative"
-        ],
+        "invariants": ["peer_effect_sign_matches_declared_effect", "credited_sessions_never_negative"],
         "mustNotEmit": ["learning_state_snapshot", "xp_or_level_change", "enrollment_record"]
       }
     },
@@ -979,39 +754,23 @@
       "caseId": "ir-12-capped-progression",
       "class": "capped_progression",
       "identity": { "learnerRef": "learner-c3" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-3",
-        "index": 3,
-        "scheduledWeek": 17,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-3", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s3",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s3"
       },
       "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 2 },
-      "preparation": { "prepared": true, "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s3" },
+      "preparation": {
+        "prepared": true,
+        "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s3"
+      },
       "peers": [
         { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" }
       ],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-c3:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 3,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 3, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_capped",
         "progression": {
@@ -1037,37 +796,18 @@
       "caseId": "ir-13-near-cap-final-session",
       "class": "capped_progression",
       "identity": { "learnerRef": "learner-b2" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-3",
-        "index": 3,
-        "scheduledWeek": 17,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-3", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s3",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-b2:module-foundations-core:s3"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-b2:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 2,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 2, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -1081,7 +821,7 @@
           {
             "id": "cap-reached-exactly",
             "kind": "structural",
-            "assert": "expect.progression.creditedSessionsAfter == moduleCapacity",
+            "assert": "expect.progression.creditedSessionsAfter == moduleSessionCapacity",
             "basis": "contract"
           }
         ],
@@ -1093,37 +833,18 @@
       "caseId": "ir-14-repeated-evaluation",
       "class": "repeated_evaluation",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-1",
-        "index": 1,
-        "scheduledWeek": 12,
-        "evaluationOrdinal": 2
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-1", "evaluationOrdinal": 2 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "duplicate_suppressed",
         "progression": null,
@@ -1146,37 +867,18 @@
       "class": "replay",
       "identity": { "learnerRef": "learner-a1" },
       "replay": { "of": "ir-01-ordinary-teaching", "ordinal": 1 },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-1",
-        "index": 1,
-        "scheduledWeek": 12,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-1", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-foundations-core:s1"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -1200,37 +902,17 @@
       "caseId": "ir-16-attendance-authority-missing",
       "class": "attendance_authority_missing",
       "identity": { "learnerRef": "learner-c3" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-1",
-        "index": 1,
-        "scheduledWeek": 18,
-        "evaluationOrdinal": 1
-      },
-      "attendance": {
-        "authority": "none",
-        "status": "unknown",
-        "outcomeRef": null,
-        "evaluated": false
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-1", "evaluationOrdinal": 1 },
+      "attendance": { "authority": "none", "status": "unknown", "outcomeRef": null },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
-      "preparation": { "prepared": true, "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s1" },
+      "preparation": {
+        "prepared": true,
+        "evidenceRef": "preparation:caller:learner-c3:module-foundations-core:s1"
+      },
       "peers": [],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-c3:module-foundations-core"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 0,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 0, "targetStat": "investigation" },
       "expect": {
         "disposition": "not_evaluated",
         "progression": null,
@@ -1257,34 +939,18 @@
       "caseId": "ir-17-no-enrollment-inference",
       "class": "ordinary_teaching",
       "identity": { "learnerRef": "learner-c3" },
-      "lesson": {
-        "courseRef": "course-foundations",
-        "moduleRef": "module-foundations-core",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-foundations-core#session-2",
-        "index": 2,
-        "scheduledWeek": 19,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-foundations", "moduleRef": "module-foundations-core" },
+      "session": { "sessionRef": "module-foundations-core#session-2", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s2",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-c3:module-foundations-core:s2"
       },
       "instructorContext": { "assigned": false, "specialty": null, "efficiencyBand": null },
       "preparation": { "prepared": false, "evidenceRef": null },
       "peers": [],
-      "enrollment": { "supplied": false, "recordRef": null },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 3,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": false },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {
@@ -1310,22 +976,12 @@
       "caseId": "ir-18-combined-context-effects",
       "class": "instructor_context_effect",
       "identity": { "learnerRef": "learner-a1" },
-      "lesson": {
-        "courseRef": "course-field-protocols",
-        "moduleRef": "module-contained-response",
-        "makeup": null
-      },
-      "session": {
-        "sessionRef": "module-contained-response#session-2",
-        "index": 2,
-        "scheduledWeek": 20,
-        "evaluationOrdinal": 1
-      },
+      "lesson": { "courseRef": "course-field-protocols", "moduleRef": "module-contained-response" },
+      "session": { "sessionRef": "module-contained-response#session-2", "evaluationOrdinal": 1 },
       "attendance": {
         "authority": "caller",
         "status": "present",
-        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s2",
-        "evaluated": true
+        "outcomeRef": "attendance:caller:learner-a1:module-contained-response:s2"
       },
       "instructorContext": { "assigned": true, "specialty": "investigation", "efficiencyBand": 1 },
       "preparation": {
@@ -1336,17 +992,8 @@
         { "peerRef": "learner-d4", "effect": "assistance", "magnitudeAtom": "E_peer_assist" },
         { "peerRef": "learner-e5", "effect": "interference", "magnitudeAtom": "E_peer_interfere" }
       ],
-      "enrollment": {
-        "supplied": true,
-        "recordRef": "enrollment:caller:learner-a1:module-contained-response"
-      },
-      "progressionState": {
-        "creditedSessionsBefore": 1,
-        "moduleCapacity": 2,
-        "priorAttempts": 0,
-        "targetStat": "investigation",
-        "targetStatAtCap": false
-      },
+      "enrollment": { "supplied": true },
+      "progressionState": { "creditedSessionsBefore": 1, "targetStat": "investigation" },
       "expect": {
         "disposition": "credit_granted",
         "progression": {

@@ -9740,24 +9740,20 @@ function sanitizeOperationEvents(
           payload.containmentDelta,
           0
         )
-        // SPE-3763: preserve historical fundingBefore/fundingAfter observations;
-        // do not rewrite them to event-local before+delta arithmetic.
-        // fundingDelta remains the local contribution and is not forced to equal after-before.
-        const fundingBefore = sanitizeInteger(
-          payload.fundingBefore as number | undefined,
-          0,
-          0
-        )
-        const fundingAfter = sanitizeInteger(
-          payload.fundingAfter as number | undefined,
-          fundingBefore,
-          0
-        )
-        const fundingDelta = sanitizeInteger(
-          payload.fundingDelta as number | undefined,
-          0,
-          Number.MIN_SAFE_INTEGER
-        )
+        const { fundingBefore, fundingAfter, fundingDelta } = payload
+        // These balances are historical observations. The event delta covers only its local contribution.
+        const funding =
+          typeof fundingBefore === 'number' &&
+          Number.isFinite(fundingBefore) &&
+          fundingBefore >= 0 &&
+          typeof fundingAfter === 'number' &&
+          Number.isFinite(fundingAfter) &&
+          fundingAfter >= 0 &&
+          typeof fundingDelta === 'number' &&
+          Number.isFinite(fundingDelta) &&
+          fundingDelta >= Number.MIN_SAFE_INTEGER
+            ? { before: fundingBefore, after: fundingAfter, delta: fundingDelta }
+            : reconcileBeforeAfterDelta(fundingBefore, fundingAfter, fundingDelta, 0)
         const clearanceBefore = sanitizeInteger(
           payload.clearanceLevelBefore as number | undefined,
           1,
@@ -9785,9 +9781,9 @@ function sanitizeOperationEvents(
               containmentDelta: containment.delta,
               clearanceLevelBefore: clearance.before,
               clearanceLevelAfter: clearance.after,
-              fundingBefore,
-              fundingAfter,
-              fundingDelta,
+              fundingBefore: funding.before,
+              fundingAfter: funding.after,
+              fundingDelta: funding.delta,
             },
           })
         )

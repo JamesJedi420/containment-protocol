@@ -168,9 +168,9 @@ describe('SPE-3055 operational personnel claim outcome producer', () => {
     expect(assigned.recovery?.stage).toBe('recovery_assigned')
     expect(assigned.recovery?.assignmentClaimRef).toBe('claim:attempt-recovery-claim')
     expect(assigned.recovery?.stage).not.toBe('completed')
-    expect(assigned.state?.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.assignmentClaimRef).toBe(
-      'claim:attempt-recovery-claim'
-    )
+    expect(
+      assigned.state?.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.assignmentClaimRef
+    ).toBe('claim:attempt-recovery-claim')
 
     const hydrated = hydrateGame(assigned.state!)
     expect(hydrated.facilityBreachOriginRecoveries?.['rec-claim-seam-ok']?.assignmentClaimRef).toBe(
@@ -210,6 +210,7 @@ describe('SPE-3055 operational personnel claim outcome producer', () => {
       respondWorkItem: failFixture.respondWorkItem,
     })
     expect(failed.ok).toBe(false)
+    if (failed.ok) throw new Error('Expected unsuccessful result')
     expect(failed.code).toBe('assignment_claim_not_held')
     expect(failed.recovery?.stage).toBe('escape_reported')
     expect(failed.recovery?.stage).not.toBe('completed')

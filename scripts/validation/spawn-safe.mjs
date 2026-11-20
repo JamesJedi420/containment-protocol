@@ -72,7 +72,9 @@ const NODE_SCRIPT_RE = /\.(?:c|m)?js$/i
  * On win32 npm is a `.cmd` shim, which CreateProcess cannot execute; Node
  * returns EINVAL before npm runs. Run npm's JS entrypoint through the current
  * node binary instead. Platform, paths, and fs are injected so the Windows
- * branch is testable on Linux CI, where it never executes naturally.
+ * branch is testable on Linux CI, where it never executes naturally. On POSIX,
+ * prefer the active npm entrypoint or its global layout beside the current Node
+ * before falling back to the existing trusted executable lookup.
  */
 export function resolveNpmLaunch({
   platform,
@@ -81,26 +83,31 @@ export function resolveNpmLaunch({
   fallbackCommand = 'npm',
   fileExists = fs.existsSync,
 } = {}) {
-  if (platform !== 'win32') {
-    return { ok: true, command: fallbackCommand, args: [] }
-  }
+  const fallback = { ok: true, command: fallbackCommand, args: [] }
   if (!nodeExecPath) {
-    return { ok: false, reason: 'node executable path unavailable' }
+    return platform === 'win32'
+      ? { ok: false, reason: 'node executable path unavailable' }
+      : fallback
   }
   const candidates = []
   if (npmExecPath && NODE_SCRIPT_RE.test(npmExecPath)) {
     candidates.push(npmExecPath)
   }
-  candidates.push(path.win32.join(path.win32.dirname(nodeExecPath), ...NPM_CLI_RELATIVE))
+  const paths = platform === 'win32' ? path.win32 : path.posix
+  const relative = platform === 'win32' ? NPM_CLI_RELATIVE : ['..', 'lib', ...NPM_CLI_RELATIVE]
+  candidates.push(paths.resolve(paths.dirname(nodeExecPath), ...relative))
   for (const candidate of candidates) {
     if (fileExists(candidate)) {
       return { ok: true, command: nodeExecPath, args: [candidate] }
     }
   }
-  return {
-    ok: false,
-    reason: 'npm CLI entrypoint not found on win32 (set npm_execpath or install npm beside node)',
-  }
+  return platform === 'win32'
+    ? {
+        ok: false,
+        reason:
+          'npm CLI entrypoint not found on win32 (set npm_execpath or install npm beside node)',
+      }
+    : fallback
 }
 
 /**

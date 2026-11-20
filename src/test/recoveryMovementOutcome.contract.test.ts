@@ -220,6 +220,7 @@ describe('SPE-1095 recovery-movement outcome producer', () => {
       movementEvidence: toRecoveryMovementEvidence(failResolve.outcome),
     })
     expect(failed.ok).toBe(false)
+    if (failed.ok) throw new Error('Expected unsuccessful result')
     expect(failed.code).toBe('movement_not_committed')
     expect(failed.recovery?.stage).toBe('capture_secured')
     expect(failed.recovery?.stage).not.toBe('completed')

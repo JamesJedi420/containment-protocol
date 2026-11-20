@@ -58,6 +58,9 @@ resolve these without changing the application compiler:
 - Only the build package's Prisma config receives `deepmerge-ts@8.0.2`.
   This crosses a major version, so the compatibility check exercises Prisma's
   actual TypeScript config loader with schema and migration paths.
+- Only the build package's Prisma config receives `effect@3.22.1` to address
+  GHSA-7589-6fvf-x4pw. Prisma config 6.19.3 pins 3.21.0; the compatibility
+  check exercises its config loader after this override.
 - Only the build package's `tsconfck` peer resolution references `$typescript`.
   The repository remains on TypeScript 6.0.3. This is a locally validated
   compatibility override; upstream still declares optional TypeScript 5 support.

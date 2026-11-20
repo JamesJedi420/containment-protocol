@@ -2,8 +2,8 @@
 name: cp-next-implementation-slice
 description: >-
   Selects or creates the next Containment Protocol Linear implementation slice
-  when nothing is In Progress. Use when the backlog handoff says In progress is
-  none, no slice was named, or the user asks what to work on next. Cursor may
+  when no coding slice is in progress in Linear. Use when no slice was named
+  or the user asks what to work on next. Cursor may
   create bounded issues under autonomous authority; ChatGPT Phase gates do not
   bind Cursor.
 ---
@@ -18,9 +18,9 @@ Obey `.cursor/rules/clean-main-before-next-slice.mdc` first. If `main` is dirty 
 
 If the user named a Linear issue, implement that issue after `main` is clean.
 
-## Confirm the queue is empty
+## Confirm no coding slice is in progress
 
-Read `planning/backlog-handoff-manifest.json` and the **In progress** line in `planning/backlog.md`. List Linear **In Progress** SPE issues.
+List current Linear **In Progress** SPE issues and identify eligible coding slices using their scope and blockers.
 
 - If a sole In Progress slice exists: **resume it**. Do not start a second.
 - If multiple In Progress: stop and ask which to resume.
@@ -28,12 +28,8 @@ Read `planning/backlog-handoff-manifest.json` and the **In progress** line in `p
 
 ## Choose or create
 
-Prefer, in order:
-
-1. Recommended next concrete SPE in `planning/backlog.md` (not the primary umbrella).
-2. Eligible child of `primary` with clear acceptance — **only when `primary` is non-null**; prefer higher priority, then lower SPE number. If `primary` is `null`, skip this step and say so in the `## Next slice` report rather than treating the skip as "no eligible children".
-3. Other eligible backlog children named in the active queue.
-4. If no eligible existing issue fits and durable scope is justified: **create** a bounded Linear issue (Goal/Scope/Constraints/Acceptance; prefer existing parent; no duplicate owners) under autonomous-authority safeguards, then select it.
+1. Compare eligible existing issues using current Linear status, priority, relationships, blockers, and scope. Follow the selection order in `docs/cursor-delegated-backlog-approval.md` under the safeguards in `docs/cursor-autonomous-authority.md`.
+2. If no eligible existing issue fits and durable scope is justified: **create** a bounded Linear issue (Goal/Scope/Constraints/Acceptance; prefer existing parent; no duplicate owners) under autonomous-authority safeguards, then select it.
 
 Skip Done/Canceled/duplicate/contradiction-only unless the issue itself is an approved docs/workflow boundary. Do not select SPE-1052 or any umbrella with unfinished children as the coding slice.
 

@@ -35,5 +35,5 @@ These prompts still target **documentation outside** this repository where upstr
 
 - `docs/design-audits-index.md` — integration audits (field names, routing)
 - `docs/linear-external-documentation-follow-ups.md` — full SPE-186+ prompt list
-- `planning/backlog.md` — near-term engineering queue
+- `planning/backlog.md` — near-term shortlist (Linear owns priority)
 - `planning/documentation-curation.md` — ongoing curation playbook (this file vs backlog vs maps)

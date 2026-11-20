@@ -170,7 +170,7 @@ A documentation path that does not exist in the clone is only acceptable when th
 - `docs/cursor-user-rules-snippet.md` — paste into Cursor User Rules (merge → main → new agent + Linear)
 - `docs/agent-session-handoff.md` — full handoff policy
 - `docs/contribution-and-release-operations.md` — contribution norms
-- `planning/backlog.md` — near-term queue
+- `planning/backlog.md` — near-term shortlist (Linear owns priority)
 - `planning/deferred-design-documents.md` — deferred depth tracker
 
 Read [Hermes shipping checkpoints](../docs/hermes-shipping-checkpoints.md) for local-model evidence delegation during the authorized ship loop, including pre-ship and post-merge curation. Record direct checks or bounded fallback where applicable; retain the existing actor-specific authority and closeout triggers.

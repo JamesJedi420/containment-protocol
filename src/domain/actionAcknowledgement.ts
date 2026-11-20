@@ -6,10 +6,28 @@ import type { ProtectedRemoteWorkExplainability } from './protectedRemoteWorkCel
 /** Presentation semantics derived only from the selected owners' evidence. */
 export function projectActionAcknowledgement(
   evidence:
-    | { kind: 'maintenance'; result: MaintenanceConversionResult; id: string }
-    | { kind: 'workshop'; id: string; receipt?: DepartmentWorkshopCompletionOutcome }
-    | { kind: 'remote'; work: ProtectedRemoteWorkExplainability }
+    | { kind: 'maintenance'; result: MaintenanceConversionResult; id: string; superseded?: boolean }
+    | { kind: 'workshop'; id: string; receipt?: DepartmentWorkshopCompletionOutcome; superseded?: boolean }
+    | { kind: 'remote'; work: ProtectedRemoteWorkExplainability; superseded?: boolean }
 ) {
+  if (evidence.superseded) {
+    return createOperationalExplanationRecord({
+      source:
+        evidence.kind === 'maintenance'
+          ? { system: 'maintenance_conversion', recordType: 'conversion', recordId: evidence.id }
+          : evidence.kind === 'workshop'
+            ? { system: 'department_workshop', recordType: 'work_order', recordId: evidence.id }
+            : { system: 'protected_remote_work', recordType: 'remote_work', recordId: evidence.work.workId },
+      subjectId: evidence.kind === 'remote' ? evidence.work.workId : evidence.id,
+      reasonCode: 'acknowledgement.result',
+      severity: 'routine',
+      lifecycle: 'superseded',
+      summary: 'superseded',
+      cause: 'Reported by the owning system.',
+      currentEffect: 'superseded',
+      confidence: 'confirmed',
+    })
+  }
   if (evidence.kind === 'remote') {
     const work = evidence.work
     const terminal =
@@ -36,7 +54,7 @@ export function projectActionAcknowledgement(
       ? evidence.result.status === 'applied'
         ? 'applied'
         : evidence.result.status === 'no_op'
-          ? 'no_op'
+          ? 'no_effect'
           : 'blocked'
       : !evidence.receipt || evidence.receipt.workOrderId !== evidence.id
         ? 'pending'
@@ -61,7 +79,7 @@ export function projectActionAcknowledgement(
     lifecycle: status === 'pending' ? 'active' : 'resolved',
     summary: status,
     cause: 'Reported by the owning system.',
-    currentEffect: status,
+    currentEffect: status === 'no_effect' ? 'no effect' : status,
     confidence: 'confirmed',
   })
 }

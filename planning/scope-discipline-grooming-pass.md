@@ -155,4 +155,4 @@ Reopen optional template stack authoring only when **all** are true:
 
 - `planning/documentation-curation.md` — cadence after grooming PR merges
 - `planning/infiltration-encounter-content-batch4plus-audit.md`
-- `planning/backlog.md` — shortlist refreshed after merge
+- `planning/backlog.md` — active queue after merge

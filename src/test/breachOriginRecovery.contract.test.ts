@@ -29,9 +29,7 @@ import { alertToWorkItem } from '../domain/liveRegistryAlertCenter'
 import { buildCanonicalProcedureAdapterFixture } from './helpers/canonicalProcedureAdapterFixture'
 import { createHeldAssignmentClaimEvidence } from './helpers/breachOriginRecoveryFixtures'
 
-function claimEvidence(
-  overrides: Partial<AssignmentClaimEvidence> = {}
-): AssignmentClaimEvidence {
+function claimEvidence(overrides: Partial<AssignmentClaimEvidence> = {}): AssignmentClaimEvidence {
   return {
     ...createHeldAssignmentClaimEvidence(),
     ...overrides,
@@ -137,9 +135,7 @@ function inboundScreenRequest() {
   }
 }
 
-function createRecovery(
-  overrides: Partial<Parameters<typeof createBreachOriginRecovery>[0]> = {}
-) {
+function createRecovery(overrides: Partial<Parameters<typeof createBreachOriginRecovery>[0]> = {}) {
   const { evidence } = escapeFixture()
   return createBreachOriginRecovery({
     recoveryId: 'rec-1',
@@ -191,6 +187,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       statusPatchComplete: true,
     })
     expect(patched.ok).toBe(false)
+    if (patched.ok) throw new Error('Expected unsuccessful result')
     expect(patched.code).toBe('status_patch_forbidden')
 
     const badEvidence = createBreachOriginRecovery({
@@ -209,6 +206,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       operationKey: 'op-bad',
     })
     expect(badEvidence.ok).toBe(false)
+    if (badEvidence.ok) throw new Error('Expected unsuccessful result')
     expect(badEvidence.code).toBe('escape_not_authoritative')
   })
 
@@ -222,6 +220,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       respondWorkItem,
     })
     expect(noClaim.ok).toBe(false)
+    if (noClaim.ok) throw new Error('Expected unsuccessful result')
     expect(noClaim.code).toBe('assignment_claim_missing')
 
     const notHeld = assignBreachRecovery(created.recovery!, {
@@ -230,6 +229,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       respondWorkItem,
     })
     expect(notHeld.ok).toBe(false)
+    if (notHeld.ok) throw new Error('Expected unsuccessful result')
     expect(notHeld.code).toBe('assignment_claim_not_held')
 
     const badOwner = assignBreachRecovery(created.recovery!, {
@@ -240,6 +240,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       respondWorkItem,
     })
     expect(badOwner.ok).toBe(false)
+    if (badOwner.ok) throw new Error('Expected unsuccessful result')
     expect(badOwner.code).toBe('assignment_claim_producer_invalid')
 
     const badKind = assignBreachRecovery(created.recovery!, {
@@ -248,6 +249,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       respondWorkItem: { ...respondWorkItem, kind: 'investigate' },
     })
     expect(badKind.ok).toBe(false)
+    if (badKind.ok) throw new Error('Expected unsuccessful result')
     expect(badKind.code).toBe('respond_work_item_invalid')
   })
 
@@ -269,19 +271,24 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     expect(failed.recovery?.terminalReport?.outcome).toBe('capture_failed')
     expect(failed.recovery?.terminalReport?.week).toBe(6)
 
-    const secured = confirmCaptureSecure(advanceToLocated(createRecovery({
-      recoveryId: 'rec-cap-ok',
-      operationKey: 'op-create-cap-ok',
-    }).recovery!), {
-      operationKey: 'op-capture-ok',
-      week: 6,
-      captureEvidence: {
-        producerOwner: 'SPE-104',
-        outcomeId: 'cap-2',
-        subjectRef: 'subject:anomaly-a',
-        secured: true,
-      },
-    })
+    const secured = confirmCaptureSecure(
+      advanceToLocated(
+        createRecovery({
+          recoveryId: 'rec-cap-ok',
+          operationKey: 'op-create-cap-ok',
+        }).recovery!
+      ),
+      {
+        operationKey: 'op-capture-ok',
+        week: 6,
+        captureEvidence: {
+          producerOwner: 'SPE-104',
+          outcomeId: 'cap-2',
+          subjectRef: 'subject:anomaly-a',
+          secured: true,
+        },
+      }
+    )
     expect(secured.ok).toBe(true)
     expect(secured.recovery?.stage).toBe('capture_secured')
     expect(secured.recovery?.stage).not.toBe('completed')
@@ -377,6 +384,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       coLocation: rejectedCoLocation(),
     })
     expect(denied.ok).toBe(false)
+    if (denied.ok) throw new Error('Expected unsuccessful result')
     expect(denied.recovery?.stage).toBe('admission_denied')
     expect(denied.reasonCodes).toContain('incompatible_destination')
 
@@ -412,6 +420,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       inboundScreen: inboundScreenRequest(),
     })
     expect(screened.ok).toBe(false)
+    if (screened.ok) throw new Error('Expected unsuccessful result')
     expect(screened.reasonCodes).toContain('inbound_screen_blocked')
   })
 
@@ -523,6 +532,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       formerRoleCategory: 'staff',
     })
     expect(smuggle.ok).toBe(false)
+    if (smuggle.ok) throw new Error('Expected unsuccessful result')
     expect(smuggle.code).toBe('custody_unresolved')
   })
 
@@ -547,6 +557,7 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
       locatedCommitted: true,
     })
     expect(stale.ok).toBe(false)
+    if (stale.ok) throw new Error('Expected unsuccessful result')
     expect(stale.code).toBe('stale_operation')
 
     const lost = reportLostContact(assigned.recovery!, {
@@ -556,13 +567,16 @@ describe('SPE-3735 breach-origin recovery handoff', () => {
     expect(lost.recovery?.stage).toBe('lost_contact')
     expect(lost.recovery?.terminalOutcomeReported).toBe(true)
 
-    const aborted = interruptBreachRecovery(createRecovery({
-      recoveryId: 'rec-abort',
-      operationKey: 'op-create-abort',
-    }).recovery!, {
-      operationKey: 'op-abort',
-      week: 6,
-    })
+    const aborted = interruptBreachRecovery(
+      createRecovery({
+        recoveryId: 'rec-abort',
+        operationKey: 'op-create-abort',
+      }).recovery!,
+      {
+        operationKey: 'op-abort',
+        week: 6,
+      }
+    )
     expect(aborted.recovery?.stage).toBe('interrupted')
     expect(aborted.recovery?.physicalEffectsOccurred).toBe(false)
   })

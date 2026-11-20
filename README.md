@@ -83,8 +83,12 @@ No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpe
 | `npm run verify:audits-index`             | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.                                                                                  |
 | `npm run verify:backlog-handoff`          | Verify `planning/backlog.md` handoff matches `planning/backlog-handoff-manifest.json`.                                                                           |
 | `npm run verify:theme-contracts`          | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`.                                                                            |
-| `npm run verify:requirements`             | SPE-3348: resolve and run path-selected required validators (local/CI parity).                                                                                   |
-| `npm run verify:requirements:test`        | SPE-3348 selection / unavailable / missing-required unit tests (+ SPE-3304 academy authored-content checks).                                                     |
+| `npm run verify:requirements`             | SPE-3348: resolve and run required validators (local/CI parity), including always-active dependency policy, audit and CP contract gates.                         |
+| `npm run verify:dependency-policy`        | SPE-3761: require exact direct dependency versions matching lockfile root metadata and resolved records.                                                         |
+| `npm run verify:dependency-audit`         | SPE-3761: audit the lockfile with all dependency classes; moderate-or-higher findings and tool/registry failures fail.                                           |
+| `npm run verify:cp-contracts`             | SPE-3762: execute and verify exactly the eight existing CP event/save contract suites using local `vmThreads`.                                                   |
+| `npm run verify:cp-contracts:ci`          | Same eight-suite contract gate using CI `forks`; retains strict-console behavior and fails on missing or unexecuted suites.                                      |
+| `npm run verify:requirements:test`        | Selection / unavailable / missing-required tests, Academy authored-content checks, dependency policy/audit fixtures and CP contract execution-guard fixtures.    |
 | `npm run verify:test-completeness`        | Fast unit fixtures for the SPE-3427 test-execution completeness evaluator.                                                                                       |
 | `npm run verify:academy-authored-content` | SPE-3304: Academy authored-content validator + fixture suite (`academy/content/**`).                                                                             |
 | `npm run session:preflight`               | Evaluate a versioned SPE-3337 evidence envelope from stdin and return `ready`/`blocked`/`unknown`; see [`docs/session-preflight.md`](docs/session-preflight.md). |
@@ -132,7 +136,7 @@ npm run verify:theme-contracts
 
 See `docs/repository-validation-requirements.md`.
 
-GitHub Actions on pull requests runs the requirement resolver: lint, tests, and bundle build for application / shared-config / academy and Vite entry changes, plus the activated audit, theme-contract, governance, and Academy validators. Playwright runs in a separate selected job. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
+GitHub Actions on pull requests runs the requirement resolver: dependency policy and native npm audit on every run, lint, tests, and bundle build for application / shared-config / academy and Vite entry changes, plus the activated audit-index, theme-contract, governance, and Academy validators. Playwright runs in a separate selected job. Coverage (`npm run coverage:ci`) runs on pushes to `main` / `master` after merge, not on every PR.
 
 ## Architecture
 
@@ -220,6 +224,12 @@ After a PR merges, sync local `main` before starting the next approved slice.
 - Schema ownership: `SCHEMA_REGISTRY.md`
 - Cross-scale handoff contracts: `docs/cross-scale-integration.md`
 - Dependency boundaries: `docs/dependency-boundaries.md`
+
+Canonical engineering READMEs, ADRs, and project-owned agent/skill guides stay in Git alongside
+the code they describe. The [documentation ownership and rights map](planning/documentation-curation.md#canonical-documentation-ownership-and-rights)
+identifies source surfaces and external exclusions; the [PR review procedure](planning/documentation-curation.md#documentation-reference-search-and-semantic-review)
+covers reference discovery and semantic drift. External documents require an ownership, access,
+and reuse-rights inventory before any separately authorized migration.
 
 When adding a new top-level `docs/*audit*.md`, update `docs/design-audits-index.md` in strict alphabetical order and run `npm run verify:audits-index`.
 

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { Agent } from '../domain/models'
 import { applyWeeklyAgentFatigue } from '../domain/sim/fatiguePipeline'
+import { advanceWeek } from '../domain/sim/advanceWeek'
+import { queueTraining } from '../domain/sim/training'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
   applyResponderEnergyExertion,
   applyResponderEnergyRecovery,
@@ -34,6 +37,55 @@ function makeAgent(overrides: Partial<Agent> = {}): Agent {
 }
 
 describe('responder energy budget', () => {
+  it('charges real weekly training through completion and persists reserve across reload', () => {
+    const initial = createStartingState()
+    const queued = queueTraining(initial, 'a_ava', 'combat-drills')
+    expect(queued.agents.a_ava.assignment?.state).toBe('training')
+    const first = advanceWeek(queued, 1000)
+    expect(first.agents.a_ava.energyBudget?.lastDutyCost).toBeGreaterThan(0)
+    expect(first.agents.a_ava.energyBudget!.currentReserve).toBeLessThan(100)
+    expect(first.agents.a_sato.energyBudget?.lastDutyCost).toBe(getResponderDutyCost('idle_upkeep'))
+    const loaded = loadGameSave(serializeGameSave(first))
+    expect(loaded.agents.a_ava.energyBudget).toEqual(first.agents.a_ava.energyBudget)
+    const second = advanceWeek(loaded, 1000)
+    expect(second.agents.a_ava.assignment?.state).toBe('idle')
+    expect(second.agents.a_ava.energyBudget!.currentReserve).toBeLessThan(
+      first.agents.a_ava.energyBudget!.currentReserve
+    )
+    expect(advanceWeek(loaded, 1000).agents.a_ava.energyBudget).toEqual(
+      second.agents.a_ava.energyBudget
+    )
+  })
+
+  it('charges an active deployment once and applies overdraw to the existing fatigue channel', () => {
+    const state = createStartingState()
+    const caseId = Object.keys(state.cases)[0]!
+    state.cases[caseId] = {
+      ...state.cases[caseId],
+      status: 'in_progress',
+      assignedTeamIds: ['t_nightwatch'],
+      weeksRemaining: 2,
+    }
+    state.agents.a_ava = {
+      ...state.agents.a_ava,
+      assignment: { state: 'assigned', caseId, teamId: 't_nightwatch', startedWeek: state.week },
+      energyBudget: {
+        currentReserve: 1,
+        reserveBand: 'depleted',
+        exertionDebt: 0,
+        estimateConfidence: 'medium',
+      },
+    }
+    const next = advanceWeek(state, 1000)
+    expect(next.agents.a_ava.energyBudget).toMatchObject({
+      currentReserve: 0,
+      reserveBand: 'overdrawn',
+      lastDutyCost: expect.any(Number),
+    })
+    expect(next.agents.a_ava.energyBudget!.exertionDebt).toBeGreaterThan(0)
+    expect(next.agents.a_ava.fatigueChannels!.physicalExhaustion).toBeGreaterThan(0)
+  })
+
   it('uses deterministic duty-cost classes', () => {
     expect(getResponderDutyCost('idle_upkeep')).toBeLessThan(getResponderDutyCost('patrol'))
     expect(getResponderDutyCost('patrol')).toBeLessThan(getResponderDutyCost('carry'))

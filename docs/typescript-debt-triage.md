@@ -159,7 +159,7 @@ These are **test-owned** fixtures, but the cast at `:14091` is a real question: 
 
 ### Cluster 5 — readonly domain outputs written through mutable construction
 
-`src/domain/affiliationPersonStatusWeeklyProgression.ts:119` assigns seven readonly list fields through `candidate as AffiliationPersonStatusRecord & Partial<Record<…, readonly string[]>>` (`TS2540` ×8). `src/domain/hiddenStateActivationAuthoring.ts:91-136` incrementally writes `anyTag`, `allTags`, `globalFlag`, `minHiddenModifierCount`, `minInvestigationWeight`, `when`, `detectionConfidence`, and `displacementTarget` into readonly trigger shapes (×8). `src/domain/postIncidentReviewRegistry.ts:639` writes five readonly week fields (×5). `spe947EvaluatorPersistence.ts` (4), `infiltrationCoverAuthoring.ts` (3), `infiltrationProbeAuthoring.ts` (3), and `surveillanceCapacityInterventionTuningRegistry.ts` (3) complete the 34 production occurrences; four more are in tests.
+`src/domain/affiliationPersonStatusWeeklyProgression.ts:119` assigns seven readonly list fields through `candidate as AffiliationPersonStatusRecord & Partial<Record<…, readonly string[]>>` (`TS2540` ×8). At the measured revision, [`slimTriggerCondition` and `slimAuthoredTrigger`](https://github.com/JamesJedi420/containment-protocol/blob/1108c4b9/src/domain/hiddenStateActivationAuthoring.ts#L91-L151) incrementally wrote `anyTag`, `allTags`, `globalFlag`, `minHiddenModifierCount`, `minInvestigationWeight`, `when`, `detectionConfidence`, and `displacementTarget` into readonly trigger shapes (×8). `src/domain/postIncidentReviewRegistry.ts:639` writes five readonly week fields (×5). `spe947EvaluatorPersistence.ts` (4), `infiltrationCoverAuthoring.ts` (3), `infiltrationProbeAuthoring.ts` (3), and `surveillanceCapacityInterventionTuningRegistry.ts` (3) complete the 34 production occurrences; four more are in tests.
 
 Canonical records were made readonly/frozen; the incremental writers predate that guarantee. **Production-owned.** Fix direction: build a mutable draft (`{ -readonly [K in keyof T]: T[K] }`) or a local builder, then freeze once at the boundary. Removing `readonly` from canonical evidence records is not an acceptable fix: it deletes the only compiler guarantee that a weekly pipeline cannot mutate another record's evidence.
 
@@ -190,7 +190,7 @@ The largest single mechanism: 136 test occurrences where a literal describes a d
 - `src/app/store/gameStore.test.ts:101` builds a `Candidate` without `evaluation` or `agentData`; `:4252` omits `expiryWeek`.
 - `src/test/dependentPrerequisiteActivation.test.ts:67` uses a computed property whose value does not match the registry entry type (`TS2418`).
 
-**Test-owned**, with one caveat: `divisionMetrics.test.ts:37` asserts a field the production code also reads (cluster 10); fixing the fixture without fixing `divisionMetrics.ts` would delete the only remaining signal that the read is dead.
+**Test-owned.** At the measured revision, the fixture and production code both used the legacy readiness field. SPE-3375 removed the production read and updated the fixture to use `deploymentEligible`.
 
 ### Cluster 10 — residual local contracts and one-off drift
 

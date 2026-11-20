@@ -92,8 +92,8 @@ Publish-queue execution-receipt mirror surfacing (SPE-2496) extends the `/publis
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.
 - **Docs-only changes** skip runtime gates but still require format/lint where configured.
 - **Architecture decisions** — durable cross-cutting decisions are recorded in `docs/adr/` under the format, lifecycle and supersession rules in `docs/adr/README.md`; an ADR records why, `architecture/` records how, and Linear keeps ownership of scope and lifecycle.
-- **Design audits** — when adding a new `docs/*audit*.md` checklist, register it in `docs/design-audits-index.md` in **strict alphabetical order**; `npm run verify:audits-index` must pass (CI enforces this after lint).
-- **SPE-186+ mirror and theme map** — when refreshing `docs/linear-external-documentation-follow-ups.md` or editing `architecture/external-design-theme-contracts.md`, run `npm run verify:theme-contracts` (CI enforces after the audit index step).
+- **Design audits** — when adding a new `docs/*audit*.md` checklist, register it in `docs/design-audits-index.md` in **strict alphabetical order**; `npm run verify:audits-index` must pass (CI selects `audits-index` — `required` — for `docs/*audit*.md` and `docs/design-audits-index.md`; a docs change selects no lint step, so there is no lint that runs before it).
+- **SPE-186+ mirror and theme map** — when refreshing `docs/linear-external-documentation-follow-ups.md` or editing `architecture/external-design-theme-contracts.md`, run `npm run verify:theme-contracts` (CI selects `theme-contracts` — `required` — for those paths, and for `architecture/**/*theme*`; when `docs/design-audits-index.md` is among the changes, `audits-index` runs first).
 
 ## Onboarding and demo kits
 

@@ -28,12 +28,8 @@ Read `planning/backlog-handoff-manifest.json` and the **In progress** line in `p
 
 ## Choose or create
 
-Prefer, in order:
-
-1. Recommended next concrete SPE in `planning/backlog.md` (not the primary umbrella).
-2. Eligible child of `primary` with clear acceptance — **only when `primary` is non-null**; prefer higher priority, then lower SPE number. If `primary` is `null`, skip this step and say so in the `## Next slice` report rather than treating the skip as "no eligible children".
-3. Other eligible backlog children listed in `planning/backlog.md`.
-4. If no eligible existing issue fits and durable scope is justified: **create** a bounded Linear issue (Goal/Scope/Constraints/Acceptance; prefer existing parent; no duplicate owners) under autonomous-authority safeguards, then select it.
+1. Compare eligible existing issues using current Linear status, priority, relationships, blockers, and scope. Follow the selection order in `docs/cursor-delegated-backlog-approval.md` under the safeguards in `docs/cursor-autonomous-authority.md`.
+2. If no eligible existing issue fits and durable scope is justified: **create** a bounded Linear issue (Goal/Scope/Constraints/Acceptance; prefer existing parent; no duplicate owners) under autonomous-authority safeguards, then select it.
 
 Skip Done/Canceled/duplicate/contradiction-only unless the issue itself is an approved docs/workflow boundary. Do not select SPE-1052 or any umbrella with unfinished children as the coding slice.
 

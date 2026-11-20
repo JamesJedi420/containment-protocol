@@ -156,8 +156,8 @@ rather than a current line inventory:
 | 6 | `planning/documentation-curation.md:79` | `near-term queue` | Corrected in this PR |
 | 7 | `planning/hidden-modality-matrix-post-matrix-queue.md:51` | `canonical active queue` | Corrected in this PR |
 | 8 | `planning/milestones.md:11` | `canonical queue` | Corrected in this PR |
-| 9 | `planning/scope-discipline-grooming-pass.md:10` | `queue authority` | Corrected in this PR |
-| 10 | `planning/scope-discipline-grooming-pass.md:156` | `active queue` | Corrected in this PR |
+| 9 | `planning/scope-discipline-grooming-pass.md:10` | `queue authority` | Historical record with a dated current-policy note |
+| 10 | `planning/scope-discipline-grooming-pass.md:156` | `active queue` | Historical record with a dated current-policy note |
 
 Three further lines are candidates by rule but reviewed benign: past-tense
 checklist and table rows in frozen slice records

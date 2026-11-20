@@ -7,7 +7,9 @@ One-page audit record. **Docs + Linear hygiene only** — no application code, n
 | **Branch** | `jamesdyedbq/docs-scope-discipline-grooming-pass` (June 2026); post-SPE-2480 refresh on `main` @ `74cbd67e` |
 | **Base `main`** | `74cbd67e` (June 2026, post SPE-2480 backlog handoff / PR #2879 merge) |
 | **Roadmap anchor** | `planning/roadmap.md` §15, §14 review questions |
-| **Selection authority** | Linear (`Todo`/`Backlog` state, priority, relationships); `planning/backlog.md` is a retained shortlist |
+| **Queue authority** | `planning/backlog.md` |
+
+**Current policy (2026-11-20).** This table records the June 2026 pass. Use current Linear status, priority, relationships, and blockers to select work. See [Cursor autonomous authority](../docs/cursor-autonomous-authority.md).
 
 ## Goal
 

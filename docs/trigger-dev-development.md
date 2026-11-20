@@ -7,12 +7,12 @@ simulation, store, and CI. Ownership: SPE-3516.
 ## Run locally
 
 1. Install dependencies with `npm ci`.
-2. If authentication is needed, the human runs `npx trigger.dev@4.8.3 login`.
-3. Run `npx trigger.dev@4.8.3 dev` and keep the worker running.
+2. If authentication is needed, the human runs `npx trigger.dev@4.8.6 login`.
+3. Run `npx trigger.dev@4.8.6 dev` and keep the worker running.
 4. In another terminal, run:
 
    ```sh
-   npx trigger.dev@4.8.3 tasks trigger hello-world --payload '{}' --wait --timeout 60
+   npx trigger.dev@4.8.6 tasks trigger hello-world --payload '{}' --wait --timeout 60
    ```
 
 Use Node 22 and npm 10.9.9, matching CI, when regenerating the lockfile.
@@ -30,7 +30,7 @@ sufficient for this workflow. If an SDK caller is added later, obtain the
 development `TRIGGER_SECRET_KEY` from the human and store it only in the ignored
 `.env`; never expose it through a `VITE_` variable or browser code.
 
-SDK and build packages are pinned together to `4.8.3` because the CLI rejects
+SDK and build packages are pinned together to `4.8.6` because the CLI rejects
 caret ranges during its compatibility check. Check matching package and CLI
 versions under the [dependency review policy](dependency-review-policy.md)
 (Sonatype preferred, documented fallback when unavailable) before future upgrades. Generated `.trigger` files are
@@ -108,13 +108,13 @@ editing/committing instead of allowing changed code to retain clean provenance.
    it does not submit anything or read credentials.
 2. Save the printed `payload` object to a gitignored file such as
    `.trigger/experiment-request.json`. Keep the printed `idempotencyKey`.
-3. Start `npx trigger.dev@4.8.3 dev --branch spe-3521-experiments` in that checkout.
+3. Start `npx trigger.dev@4.8.6 dev --branch spe-3521-experiments` in that checkout.
    The separate Development branch preserves any existing default worker.
    Wait for registration.
 4. Invoke the task using the existing CLI login:
 
    ```sh
-   npx trigger.dev@4.8.3 tasks trigger cp-simulation-experiment --env dev --branch spe-3521-experiments --payload-file .trigger/experiment-request.json --idempotency-key <printed-key> --ttl 5m --wait --timeout 90
+   npx trigger.dev@4.8.6 tasks trigger cp-simulation-experiment --env dev --branch spe-3521-experiments --payload-file .trigger/experiment-request.json --idempotency-key <printed-key> --ttl 5m --wait --timeout 90
    ```
 
 Repeat the same command to retrieve the original run rather than submit duplicate

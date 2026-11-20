@@ -142,21 +142,22 @@ single C2 candidate is `.cursor/skills/cp-next-implementation-slice/SKILL.md:21`
 `:126`, `:137`, plus the true negation at `planning/backlog.md:5`
 ("a green run is not evidence that this list is the queue").
 
-Live claims outstanding at this base, each requiring correction before the
-check can exit zero:
+The ten live claims at this base, each with the disposition it received. The
+line numbers belong to the base revision, so this is a record of that snapshot
+rather than a current line inventory:
 
-| # | Location | Matched vocabulary |
-| ---: | --- | --- |
-| 1 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | `active queue` |
-| 2 | `architecture/game-state-and-core-loop.md:317` | `canonical near-term priority queue` |
-| 3 | `docs/cursor-delegated-backlog-approval.md:30` | `authoritative queue` |
-| 4 | `docs/cursor-delegated-backlog-approval.md:57` | `active queue` |
-| 5 | `planning/deferred-design-documents.md:38` | `near-term engineering queue` |
-| 6 | `planning/documentation-curation.md:79` | `near-term queue` |
-| 7 | `planning/hidden-modality-matrix-post-matrix-queue.md:51` | `canonical active queue` |
-| 8 | `planning/milestones.md:11` | `canonical queue` |
-| 9 | `planning/scope-discipline-grooming-pass.md:10` | `queue authority` |
-| 10 | `planning/scope-discipline-grooming-pass.md:156` | `active queue` |
+| # | Location | Matched vocabulary | Disposition |
+| ---: | --- | --- | --- |
+| 1 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | `active queue` | Corrected in this PR |
+| 2 | `architecture/game-state-and-core-loop.md:317` | `canonical near-term priority queue` | Corrected in this PR |
+| 3 | `docs/cursor-delegated-backlog-approval.md:30` | `authoritative queue` | Removed before this PR, when that policy was rewritten to select from current Linear state |
+| 4 | `docs/cursor-delegated-backlog-approval.md:57` | `active queue` | Removed before this PR, when that policy was rewritten to select from current Linear state |
+| 5 | `planning/deferred-design-documents.md:38` | `near-term engineering queue` | Corrected in this PR |
+| 6 | `planning/documentation-curation.md:79` | `near-term queue` | Corrected in this PR |
+| 7 | `planning/hidden-modality-matrix-post-matrix-queue.md:51` | `canonical active queue` | Corrected in this PR |
+| 8 | `planning/milestones.md:11` | `canonical queue` | Corrected in this PR |
+| 9 | `planning/scope-discipline-grooming-pass.md:10` | `queue authority` | Corrected in this PR |
+| 10 | `planning/scope-discipline-grooming-pass.md:156` | `active queue` | Corrected in this PR |
 
 Three further lines are candidates by rule but reviewed benign: past-tense
 checklist and table rows in frozen slice records
@@ -165,15 +166,12 @@ checklist and table rows in frozen slice records
 not direct selection, and belong in the allowlist with their historical reason
 rather than being rewritten.
 
-Of those ten, the two in `docs/cursor-delegated-backlog-approval.md` were
-removed when that policy was rewritten to select from current Linear state, so
-rows 3 and 4 above describe wording the file no longer carries. The remaining
-eight were corrected in one follow-up docs change, and the single C2 heading
-(`## Confirm the queue is empty`) was renamed at the same time. Re-scanning the
-resulting revision with the same implementation leaves no live C1 claim and no
-C2 heading: what remains is the four structural exemptions, the one true
-negation, the three frozen-slice lines recorded here as the allowlist seed, and
-the unreferenced runtime-queue prose that is never a candidate.
+The eight corrections in this PR retired every live claim at the base, and the
+single C2 heading (`## Confirm the queue is empty`) was renamed in the same
+change. Re-scanning this PR's head with the same implementation leaves no live
+C1 claim and no C2 heading: what remains is the four structural exemptions, the
+one true negation, the three frozen-slice lines recorded here as the allowlist
+seed, and the unreferenced runtime-queue prose that is never a candidate.
 
 ### Snippet files and the distribution channel
 

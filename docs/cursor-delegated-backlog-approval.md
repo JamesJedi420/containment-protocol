@@ -50,9 +50,12 @@ Do **not** exercise this path inside a merge Phase B closeout session. Phase B s
 
 ### Selection order
 
-Use current Linear priority, dependencies, scope, and readiness to compare eligible issues under `docs/cursor-autonomous-authority.md`. Neither the backlog shortlist nor manifest `primary`, `recentlyShipped`, or JSON ordering establishes selection order. Verify any potentially relevant shipped evidence and relationships against its authoritative source.
+Compare eligible issues using current Linear state, priority, relationships, blockers, and scope under `docs/cursor-autonomous-authority.md`. Neither the backlog shortlist nor manifest `primary`, `recentlyShipped`, or JSON ordering establishes selection order. Verify any potentially relevant shipped evidence and relationships against its authoritative source.
 
-If two issues still tie, stop and ask. Do not invent a pick.
+1. If the human named an issue, select that issue when it passes eligibility; a named issue outranks every comparison below.
+2. Otherwise resume the sole Linear **In Progress** coding slice.
+3. Otherwise select the eligible issue with the highest current Linear priority, treating Urgent as highest and no-priority issues as last; when priorities are equal, prefer fewer unmet `blockedBy` blockers, then the lower issue number.
+4. If no eligible issue remains, stop with `no_eligible_issue`. If two issues still tie because Linear priority or blocker data is missing or conflicting, stop and ask. Do not invent a pick.
 
 ### Phase authority bounds
 
@@ -73,10 +76,10 @@ New durable boundaries remain Phase 1 → Phase 2 → Phase 3 (mandatory contrad
 
 Every delegated selection comment and slice-doc approval block must state:
 
-1. **Queue state** — primary, inProgress, recentlyShipped head, clean-main / open-PR check.
+1. **Linear state** — sole In Progress coding slice (or none), candidate statuses and priorities, unmet `blockedBy` blockers, clean-main / open-PR check.
 2. **Candidates compared** — at least three named alternatives when available, or why fewer exist.
 3. **Priority / dependency / feasibility / scope / architectural readiness** — one line each for the winner.
-4. **Duplication check** — why the pick is not already satisfied by `recentlyShipped` or Done children.
+4. **Duplication check** — why the pick is not already satisfied by verified shipped evidence (Linear Done status or a merged PR) or Done children.
 5. **Contradiction review** — conflicts with shipped owners, STOP holds (e.g. SPE-3043), and held issues (e.g. SPE-3121 / SPE-3107); disposition for each.
 6. **Eligibility checklist** — each eligibility bullet true/false.
 7. **Decision** — `delegated_approve` for the single SPE id, or `no_eligible_issue` (then stop and ask).

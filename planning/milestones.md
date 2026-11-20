@@ -8,7 +8,7 @@ Milestones are not just date buckets. They are bounded proof points that show th
 
 For Linear milestone × label routing (subsystem identity, label policy, and routing heuristics), see **`planning/milestone-label-policy.md`** alongside this file.
 
-For **near-term tactical ordering** of engineering tasks, see **`planning/backlog.md`** (canonical queue; avoids duplicating bullets across README and planning docs).
+For a **near-term shortlist** of engineering tasks, see **`planning/backlog.md`** (retained shortlist, not priority; avoids duplicating bullets across README and planning docs).
 
 This document exists to answer:
 

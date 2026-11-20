@@ -9,6 +9,8 @@ One-page audit record. **Docs + Linear hygiene only** — no application code, n
 | **Roadmap anchor** | `planning/roadmap.md` §15, §14 review questions |
 | **Queue authority** | `planning/backlog.md` |
 
+**Current policy (2026-11-20).** This table records the June 2026 pass. Use current Linear status, priority, relationships, and blockers to select work. See [Cursor autonomous authority](../docs/cursor-autonomous-authority.md).
+
 ## Goal
 
 Reconcile stale planning handoffs, classify blocked vs deferred vs promotable work, and leave a single honest **recommended next implementation** without opening parallel planning branches.

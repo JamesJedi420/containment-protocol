@@ -116,6 +116,86 @@ queue is empty” in `.cursor/skills/cp-next-implementation-slice/SKILL.md`.
 These are investigation leads, not a frozen count or line-number inventory;
 the implementation must rederive the complete set at its base revision.
 
+## Baseline snapshot at `9dd13af8`
+
+Scanned 2026-11-16 on `main` @ `9dd13af8` by reimplementing C1 and C2 exactly as
+specified above over the full scoped tree (1,202 tracked files). This is a dated
+snapshot, not a frozen inventory: line numbers move with every edit, and
+acceptance step 2 requires the implementation to rederive the set at its own
+base revision.
+
+| Outcome | C1 lines | C2 headings |
+| --- | ---: | ---: |
+| Live authority claim, to correct before activation | 10 | 1 |
+| Exempt: structural heading or `§ Active queue` reference | 4 | 0 |
+| Exempt: true negation in the same clause | 1 | 0 |
+| Reviewed benign, frozen historical record (allowlist) | 3 | 0 |
+| **C1/C2 candidates** | **18** | **1** |
+| Vocabulary hit with no backlog reference in its clause | 26 | — |
+
+The 26 unreferenced hits are runtime-queue prose (`docs/event-queue-audit.md`,
+`advanceQueues` usage) and are not candidates under the reference rule. The
+single C2 candidate is `.cursor/skills/cp-next-implementation-slice/SKILL.md:21`
+`## Confirm the queue is empty`. The five exempt C1 lines are
+`planning/backlog.md:13` (the structural split heading) and the
+`§ Active queue` references at `planning/scope-discipline-grooming-pass.md:116`,
+`:126`, `:137`, plus the true negation at `planning/backlog.md:5`
+("a green run is not evidence that this list is the queue").
+
+The ten live claims at this base, each with the disposition it received. The
+line numbers belong to the base revision, so this is a record of that snapshot
+rather than a current line inventory:
+
+| # | Location | Matched vocabulary | Disposition |
+| ---: | --- | --- | --- |
+| 1 | `.cursor/skills/cp-next-implementation-slice/SKILL.md:35` | `active queue` | Corrected in this PR |
+| 2 | `architecture/game-state-and-core-loop.md:317` | `canonical near-term priority queue` | Corrected in this PR |
+| 3 | `docs/cursor-delegated-backlog-approval.md:30` | `authoritative queue` | Removed before this PR, when that policy was rewritten to select from current Linear state |
+| 4 | `docs/cursor-delegated-backlog-approval.md:57` | `active queue` | Removed before this PR, when that policy was rewritten to select from current Linear state |
+| 5 | `planning/deferred-design-documents.md:38` | `near-term engineering queue` | Corrected in this PR |
+| 6 | `planning/documentation-curation.md:79` | `near-term queue` | Corrected in this PR |
+| 7 | `planning/hidden-modality-matrix-post-matrix-queue.md:51` | `canonical active queue` | Corrected in this PR |
+| 8 | `planning/milestones.md:11` | `canonical queue` | Corrected in this PR |
+| 9 | `planning/scope-discipline-grooming-pass.md:10` | `queue authority` | Historical record with a dated current-policy note |
+| 10 | `planning/scope-discipline-grooming-pass.md:156` | `active queue` | Historical record with a dated current-policy note |
+
+Three further lines are candidates by rule but reviewed benign: past-tense
+checklist and table rows in frozen slice records
+(`planning/branch-continuity-harvest-reconciliation-slice-1.md:41`, `:52`, and
+`planning/mvp-weekly-loop-proof-slice-3.md:50`). They describe what shipped, do
+not direct selection, and belong in the allowlist with their historical reason
+rather than being rewritten.
+
+The skill now selects from current Linear state, and its C2 heading names
+the check for an in-progress coding slice. The dated grooming record
+preserves its original wording and explains current policy in a dated
+note. When implementing the guard, re-scan the current base and review
+the grooming entries as historical allowlist candidates.
+
+### Snippet files and the distribution channel
+
+Six living entry points are prose pasted into an editor, not just tracked files:
+
+- `docs/cursor-user-rules-snippet.md`
+- `docs/cursor-backlog-hygiene-user-rules-snippet.md`
+- `docs/cursor-cloud-agent-linear-handoff-user-rules-snippet.md`
+- `docs/cursor-implementation-lite-user-rules-snippet.md`
+- `docs/cursor-pre-ship-audit-user-rules-snippet.md`
+- `docs/cursor-session-closeout-user-rules-snippet.md`
+
+All six are in C1 scope through `docs/**/*.md` and in C2 scope through
+`docs/cursor-*.md`. At the base above they contain **zero** closed-vocabulary
+hits; `docs/cursor-backlog-hygiene-user-rules-snippet.md:33` names
+`planning/backlog.md` without a queue term, so it is not a candidate.
+
+That cleanliness describes the files only. The copy a user pastes into Cursor →
+Settings → Rules → User Rules is outside the repository: no scanner reaches it,
+no commit corrects it, and `## Limits` states the same limitation. A merged fix
+therefore changes nothing in the editor until that block is re-pasted, and the
+old text continues to direct selection in the meantime. Any PR correcting one of
+these six files must say so in its description and name the re-paste as a manual
+follow-up step; a green validator is not evidence that the editor was updated.
+
 ## Implementation boundary and acceptance
 
 An authorized follow-up would:

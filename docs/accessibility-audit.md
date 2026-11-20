@@ -251,7 +251,7 @@ Move focus to the confirmation group's first button when it appears, return focu
 
 - The result summary is plain text at [`src/features/cases/CasesPage.tsx:515-521`](../src/features/cases/CasesPage.tsx#L515-L521): `Showing {cases.length} of {totalCases} cases` and `Active query: ...`.
 - The filter inputs use `FilterInput`/`FilterSelect` with `aria-controls` ([`src/components/FilterInput.tsx:29-37`](../src/components/FilterInput.tsx#L29-L37)) but no `aria-live` and no status role.
-- The filtered list at [`src/features/cases/CasesPage.tsx:569`](../src/features/cases/CasesPage.tsx#L569) is replaced in place; focus stays in the select that changed.
+- The filtered list at [`src/features/cases/CasesPage.tsx:562-563`](../src/features/cases/CasesPage.tsx#L562-L563) (`<ul aria-label="Triage list">` → `cases.map`) is replaced in place inside `#cases-results`; focus stays in the select that changed.
 
 **User impact**
 A screen reader user changes Status, Mode, Stage, Sort, or the risk toggle and hears nothing about how many cases remain or whether any match. They must leave the filter, navigate to the list, and count items to know whether the filter did anything.

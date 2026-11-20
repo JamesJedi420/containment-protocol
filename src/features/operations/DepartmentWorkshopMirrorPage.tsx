@@ -94,6 +94,8 @@ export default function DepartmentWorkshopMirrorPage() {
           className="panel panel-support space-y-3"
           role="region"
           aria-label="Department workshop lanes"
+          id="workshop-work-lanes"
+          tabIndex={-1}
         >
           <div className="space-y-1">
             <h3 className="text-lg font-semibold">
@@ -187,6 +189,8 @@ export default function DepartmentWorkshopMirrorPage() {
         className="panel panel-support space-y-4"
         role="region"
         aria-label="Completion quality and safety ledger"
+        id="workshop-completion-ledger"
+        tabIndex={-1}
       >
         <div className="space-y-1">
           <h3 className="text-lg font-semibold">

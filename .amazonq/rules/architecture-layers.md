@@ -1,6 +1,6 @@
 # Architecture and simulation layers
 
-Per `docs/dependency-boundaries.md` and `src/test/boundary-enforcement.test.ts`.
+Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`.
 
 ## Layer rules
 

@@ -166,12 +166,11 @@ checklist and table rows in frozen slice records
 not direct selection, and belong in the allowlist with their historical reason
 rather than being rewritten.
 
-The eight corrections in this PR retired every live claim at the base, and the
-single C2 heading (`## Confirm the queue is empty`) was renamed in the same
-change. Re-scanning this PR's head with the same implementation leaves no live
-C1 claim and no C2 heading: what remains is the four structural exemptions, the
-one true negation, the three frozen-slice lines recorded here as the allowlist
-seed, and the unreferenced runtime-queue prose that is never a candidate.
+The skill now selects from current Linear state, and its C2 heading names
+the check for an in-progress coding slice. The dated grooming record
+preserves its original wording and explains current policy in a dated
+note. When implementing the guard, re-scan the current base and review
+the grooming entries as historical allowlist candidates.
 
 ### Snippet files and the distribution channel
 

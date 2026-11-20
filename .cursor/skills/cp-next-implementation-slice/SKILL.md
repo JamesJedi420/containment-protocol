@@ -2,8 +2,8 @@
 name: cp-next-implementation-slice
 description: >-
   Selects or creates the next Containment Protocol Linear implementation slice
-  when nothing is In Progress. Use when the backlog handoff says In progress is
-  none, no slice was named, or the user asks what to work on next. Cursor may
+  when no coding slice is in progress in Linear. Use when no slice was named
+  or the user asks what to work on next. Cursor may
   create bounded issues under autonomous authority; ChatGPT Phase gates do not
   bind Cursor.
 ---
@@ -20,7 +20,7 @@ If the user named a Linear issue, implement that issue after `main` is clean.
 
 ## Confirm no coding slice is in progress
 
-Read `planning/backlog-handoff-manifest.json` and the **In progress** line in `planning/backlog.md`. List Linear **In Progress** SPE issues.
+List current Linear **In Progress** SPE issues and identify eligible coding slices using their scope and blockers.
 
 - If a sole In Progress slice exists: **resume it**. Do not start a second.
 - If multiple In Progress: stop and ask which to resume.

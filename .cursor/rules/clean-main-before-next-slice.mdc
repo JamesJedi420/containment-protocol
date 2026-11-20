@@ -13,7 +13,7 @@ Before starting a slice, check `git status` and a complete, paginated inventory 
 - the working tree has no uncommitted tracked changes
 - local `main` is not ahead of or behind freshly verified `origin/main`
 
-Ignored local files such as `.cursor/settings.json` do not make `main` dirty. Existing isolated-worktree start/resume checks in `docs/session-preflight.md` remain applicable; isolation never waives freshness or tracked cleanliness.
+Ignored local files, such as the MCP configuration under `.cursor/`, do not make `main` dirty. Existing isolated-worktree start/resume checks in `docs/session-preflight.md` remain applicable; isolation never waives freshness or tracked cleanliness.
 
 For each open PR:
 

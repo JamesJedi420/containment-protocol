@@ -48,7 +48,7 @@ PR #2423 merged. On main @ d031fd91. Next: SPE-2105 — planning/extranormal-eve
 
 ## See also
 
-- `planning/backlog.md` — canonical active queue
+- `planning/backlog.md` — retained shortlist (Linear owns priority)
 - `planning/scope-discipline-grooming-pass.md` — June 2026 §15 grooming record
 - `planning/extranormal-event-registry-slice-1.md`
 - `architecture/hidden-state-displacement-counter-detection.md`

@@ -314,5 +314,5 @@ These files extend the simulation design surface but are **not** tied to a singl
 
 **Planning**
 
-- `planning/backlog.md` — canonical near-term priority queue.
+- `planning/backlog.md` — near-term shortlist; Linear owns priority.
 - `planning/documentation-curation.md` — ongoing curation (backlog vs roadmap vs maps).

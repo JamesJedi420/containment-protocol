@@ -33,6 +33,7 @@
     "src/app/store/facilityMaintenanceConversion.test.ts",
     "src/app/store/facilityMaintenanceOrder.test.ts",
     "src/app/store/facilityMaintenancePurchase.test.ts",
+    "src/app/store/fundingSnapshotRoundTrip.test.ts",
     "src/app/store/gameStore.caseCancellation.test.ts",
     "src/app/store/gameStore.test.ts",
     "src/app/store/inventoryQuantityLimits.test.ts",

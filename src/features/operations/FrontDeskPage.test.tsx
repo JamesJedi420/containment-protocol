@@ -12,6 +12,9 @@ import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
 import { assignTeam } from '../../domain/sim/assign'
+import { selectAgencyEstablishmentFirstDossier } from '../../domain/agencyEstablishmentProjection'
+import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
+import CasesPage from '../cases/CasesPage'
 import FrontDeskPage from './FrontDeskPage'
 import {
   buildStrategicActionBudgetOpportunityCard,
@@ -31,7 +34,7 @@ function renderFrontDesk() {
         <Route path="/markets-suppliers" element={<p>Markets home</p>} />
         <Route path="/agency" element={<p>Agency home</p>} />
         <Route path="/factions" element={<p>Factions home</p>} />
-        <Route path="/cases" element={<p>Cases home</p>} />
+        <Route path="/cases" element={<CasesPage />} />
       </Routes>
     </MemoryRouter>
   )
@@ -298,7 +301,7 @@ describe('FrontDeskPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /active pressures/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /recent reports \/ events/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /immediate attention/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Needs Attention' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /teams \/ field status/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /procurement snapshot/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /agency standing/i })).toBeInTheDocument()
@@ -404,7 +407,40 @@ describe('FrontDeskPage', () => {
     expect(screen.getByText(/markets home/i)).toBeInTheDocument()
   })
 
-  it('renders staffing readiness opportunity and links to teams', async () => {
+  it('opens real starting-campaign triage and lets the Cases command defer the dossier', async () => {
+    const user = userEvent.setup()
+    const dossier = selectAgencyEstablishmentFirstDossier(useGameStore.getState().game)!
+    renderFrontDesk()
+
+    const attention = screen.getByRole('region', { name: 'Needs Attention' })
+    expect(within(attention).getByRole('heading', { name: dossier.title })).toBeInTheDocument()
+    expect(within(attention).getByText(dossier.routingExplanation.summary)).toBeInTheDocument()
+    await user.click(within(attention).getByRole('link', { name: 'Review dossier and triage' }))
+    const triage = screen.getByRole('region', { name: `Case triage detail: ${dossier.title}` })
+    expect(
+      useGameStore.getState().game.missionRouting?.missions[dossier.caseId]?.routingState
+    ).not.toBe('deferred')
+    await user.click(
+      within(triage).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer })
+    )
+    expect(
+      useGameStore.getState().game.missionRouting?.missions[dossier.caseId]?.routingState
+    ).toBe('deferred')
+  })
+
+  it('preserves the quiet state when there is no dossier or readiness exception', () => {
+    useGameStore.setState({ game: { ...createStartingState(), cases: {}, teams: {} } })
+    renderFrontDesk()
+
+    const attention = within(screen.getByRole('region', { name: 'Needs Attention' }))
+    expect(attention.queryByRole('link', { name: 'Review dossier and triage' })).toBeNull()
+    expect(attention.queryByRole('region', { name: 'Staffing readiness opportunity' })).toBeNull()
+    expect(
+      attention.getByText('No immediate intervention items are currently escalated.')
+    ).toBeInTheDocument()
+  })
+
+  it('renders staffing readiness inside Needs Attention and links to teams', async () => {
     const user = userEvent.setup()
     const game = withLostAgents(createStartingState(), 2)
     act(() => {
@@ -412,7 +448,10 @@ describe('FrontDeskPage', () => {
     })
     renderFrontDesk()
 
-    const opportunity = screen.getByRole('region', { name: /staffing readiness opportunity/i })
+    const attention = screen.getByRole('region', { name: 'Needs Attention' })
+    const opportunity = within(attention).getByRole('region', {
+      name: 'Staffing readiness opportunity',
+    })
     expect(
       within(opportunity).getByText(/staffing gap is pressuring readiness/i)
     ).toBeInTheDocument()

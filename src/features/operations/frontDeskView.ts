@@ -1,3 +1,4 @@
+import { selectAgencyEstablishmentFirstDossier } from '../../domain/agencyEstablishmentProjection'
 import {
   getFrontDeskAuthoredState,
   type FrontDeskDirectorRouteId,
@@ -281,6 +282,7 @@ export interface FrontDeskHubView {
   queueCards: FrontDeskQueueCardView[]
   recentItems: FrontDeskRecentItemView[]
   recentOutcomes: WeakestLinkOutcomeReportItemView[]
+  firstDossier: { title: string; summary: string; intelSummary: string; href: string } | null
   attentionItems: FrontDeskAttentionItemView[]
   teamStatus: FrontDeskTeamStatusView[]
   procurementSnapshot: FrontDeskProcurementSnapshotView
@@ -979,13 +981,15 @@ function buildAttentionItems(
   const shell = buildShellStatusBarView(game)
   const operationsReport = getOperationsReportView(game)
 
-  const noticeItems = briefing.notices.map((notice) => ({
-    id: `notice:${notice.id}`,
-    title: notice.title,
-    summary: notice.body,
-    tone: notice.tone,
-    ...(notice.actionTarget ? { href: getFrontDeskNoticeActionHref(notice.actionTarget) } : {}),
-  }))
+  const noticeItems = briefing.notices
+    .filter((notice) => notice.tone === 'danger' || notice.tone === 'warning')
+    .map((notice) => ({
+      id: `notice:${notice.id}`,
+      title: notice.title,
+      summary: notice.body,
+      tone: notice.tone,
+      ...(notice.actionTarget ? { href: getFrontDeskNoticeActionHref(notice.actionTarget) } : {}),
+    }))
 
   const debriefAttention =
     operationsReport.contractDebrief.attentionSummary &&
@@ -1015,7 +1019,7 @@ function buildAttentionItems(
       : []
 
   const signalItems = shell.signals
-    .filter((signal) => signal.tone !== 'neutral')
+    .filter((signal) => signal.tone === 'danger' || signal.tone === 'warning')
     .map((signal) => ({
       id: `signal:${signal.id}`,
       title: `${signal.label}: ${signal.value}`,
@@ -1775,6 +1779,7 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const operationsReport = getOperationsReportView(game)
   const attritionPressure = assessAttritionPressure(game)
   const rulesSummary = buildCampaignRulesSummary(game)
+  const firstDossier = game.week === 1 ? selectAgencyEstablishmentFirstDossier(game) : null
 
   return {
     weekLabel: `Week ${game.week} / Active cap ${game.config.maxActiveCases}`,
@@ -1815,6 +1820,15 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     queueCards: buildQueueCards(game, briefing),
     recentItems: buildRecentItems(game),
     recentOutcomes: operationsReport.recentOutcomes.slice(0, 2),
+    firstDossier:
+      firstDossier?.status === 'open'
+        ? {
+            title: firstDossier.title,
+            summary: firstDossier.routingExplanation.summary,
+            intelSummary: `${pluralize(firstDossier.deadlineRemaining, 'week')} remaining · Intel confidence ${Math.round(firstDossier.intel.confidence * 100)}%`,
+            href: `${APP_ROUTES.cases}?case=${encodeURIComponent(firstDossier.caseId)}`,
+          }
+        : null,
     attentionItems: buildAttentionItems(game, briefing),
     teamStatus: buildTeamStatusViews(game),
     procurementSnapshot: buildProcurementSnapshot(game),

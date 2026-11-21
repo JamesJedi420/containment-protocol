@@ -280,6 +280,103 @@ export default function FrontDeskPage() {
         </div>
       </header>
 
+      <section className="panel space-y-3" aria-label="Needs Attention">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Needs Attention</h2>
+          <Link to={APP_ROUTES.cases} className="text-sm opacity-60 hover:opacity-100">
+            Review routing
+          </Link>
+        </div>
+        {view.firstDossier ? (
+          <section
+            className="space-y-2 rounded border border-cyan-400/30 bg-cyan-500/8 px-3 py-3"
+            aria-label="First anomalous dossier"
+          >
+            <h3 className="font-semibold">{view.firstDossier.title}</h3>
+            <p className="text-sm">{view.firstDossier.summary}</p>
+            <p className="text-xs opacity-80">{view.firstDossier.intelSummary}</p>
+            <Link className="inline-flex text-sm underline" to={view.firstDossier.href}>
+              Review dossier and triage
+            </Link>
+          </section>
+        ) : null}
+        {view.staffingReadinessOpportunity ? (
+          <section className="space-y-2" aria-label="Staffing readiness opportunity">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h3 className="font-semibold">Staffing opportunity</h3>
+                <p className="text-xs opacity-60">
+                  Team staffing and deployment readiness pressure summary.
+                </p>
+              </div>
+              <span
+                className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.staffingReadinessOpportunity.tone)}`}
+              >
+                {formatToneLabel(view.staffingReadinessOpportunity.tone)}
+              </span>
+            </div>
+            <div
+              className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.staffingReadinessOpportunity.tone)}`}
+            >
+              <p className="text-sm font-medium">{view.staffingReadinessOpportunity.title}</p>
+              <p className="text-sm opacity-80">{view.staffingReadinessOpportunity.summary}</p>
+              {view.staffingReadinessOpportunity.details.length > 0 ? (
+                <ul className="space-y-1 text-sm opacity-70">
+                  {view.staffingReadinessOpportunity.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                <Link
+                  to={view.staffingReadinessOpportunity.href}
+                  className="opacity-70 hover:opacity-100"
+                >
+                  {view.staffingReadinessOpportunity.linkLabel}
+                </Link>
+                {view.staffingReadinessOpportunity.secondaryHref ? (
+                  <Link
+                    to={view.staffingReadinessOpportunity.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.staffingReadinessOpportunity.secondaryLinkLabel ?? 'Open'}
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </section>
+        ) : null}
+        {view.attentionItems.length > 0 ? (
+          <ul className="space-y-2">
+            {view.attentionItems.map((item) => (
+              <li
+                key={item.id}
+                className={`rounded border px-3 py-2 ${toneSurfaceClass(item.tone)}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{item.title}</p>
+                    <p className="text-xs opacity-80">{item.summary}</p>
+                  </div>
+                  {item.href ? (
+                    <Link
+                      to={item.href}
+                      className="text-[11px] uppercase tracking-[0.14em] opacity-70 hover:opacity-100"
+                    >
+                      Open
+                    </Link>
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : !view.firstDossier && !view.staffingReadinessOpportunity ? (
+          <p className="text-sm opacity-60">
+            No immediate intervention items are currently escalated.
+          </p>
+        ) : null}
+      </section>
+
       <div className="grid gap-4 xl:grid-cols-[minmax(250px,0.92fr)_minmax(0,1.25fr)_minmax(300px,1fr)]">
         <aside className="space-y-4">
           <section className="panel space-y-3" aria-label="Operations queues">
@@ -524,53 +621,6 @@ export default function FrontDeskPage() {
                       className="opacity-70 hover:opacity-100"
                     >
                       {view.procurementPressureOpportunity.secondaryLinkLabel ?? 'Open'}
-                    </Link>
-                  ) : null}
-                </div>
-              </div>
-            </section>
-          ) : null}
-
-          {view.staffingReadinessOpportunity ? (
-            <section className="panel space-y-3" aria-label="Staffing readiness opportunity">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold">Staffing opportunity</h2>
-                  <p className="text-xs opacity-60">
-                    Team staffing and deployment readiness pressure summary.
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.staffingReadinessOpportunity.tone)}`}
-                >
-                  {formatToneLabel(view.staffingReadinessOpportunity.tone)}
-                </span>
-              </div>
-              <div
-                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.staffingReadinessOpportunity.tone)}`}
-              >
-                <p className="text-sm font-medium">{view.staffingReadinessOpportunity.title}</p>
-                <p className="text-sm opacity-80">{view.staffingReadinessOpportunity.summary}</p>
-                {view.staffingReadinessOpportunity.details.length > 0 ? (
-                  <ul className="space-y-1 text-sm opacity-70">
-                    {view.staffingReadinessOpportunity.details.map((detail) => (
-                      <li key={detail}>{detail}</li>
-                    ))}
-                  </ul>
-                ) : null}
-                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
-                  <Link
-                    to={view.staffingReadinessOpportunity.href}
-                    className="opacity-70 hover:opacity-100"
-                  >
-                    {view.staffingReadinessOpportunity.linkLabel}
-                  </Link>
-                  {view.staffingReadinessOpportunity.secondaryHref ? (
-                    <Link
-                      to={view.staffingReadinessOpportunity.secondaryHref}
-                      className="opacity-70 hover:opacity-100"
-                    >
-                      {view.staffingReadinessOpportunity.secondaryLinkLabel ?? 'Open'}
                     </Link>
                   ) : null}
                 </div>
@@ -922,44 +972,6 @@ export default function FrontDeskPage() {
             {view.recentOutcomes.length === 0 && view.recentItems.length === 0 ? (
               <p className="text-sm opacity-60">No recent reports or events are available yet.</p>
             ) : null}
-          </section>
-
-          <section className="panel space-y-3" aria-label="Immediate attention">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Immediate Attention</h2>
-              <Link to={APP_ROUTES.cases} className="text-sm opacity-60 hover:opacity-100">
-                Review routing
-              </Link>
-            </div>
-            {view.attentionItems.length > 0 ? (
-              <ul className="space-y-2">
-                {view.attentionItems.map((item) => (
-                  <li
-                    key={item.id}
-                    className={`rounded border px-3 py-2 ${toneSurfaceClass(item.tone)}`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{item.title}</p>
-                        <p className="text-xs opacity-80">{item.summary}</p>
-                      </div>
-                      {item.href ? (
-                        <Link
-                          to={item.href}
-                          className="text-[11px] uppercase tracking-[0.14em] opacity-70 hover:opacity-100"
-                        >
-                          Open
-                        </Link>
-                      ) : null}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm opacity-60">
-                No immediate intervention items are currently escalated.
-              </p>
-            )}
           </section>
 
           <section className="panel space-y-4" role="region" aria-label="Simulation controls">

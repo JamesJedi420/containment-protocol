@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { assert, describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { getGlobalStateMetrics } from '../../features/dashboard/dashboardView'
@@ -14,6 +14,7 @@ describe('SPE-3763 funding snapshots', () => {
       expect(before.week).toBe(1)
       expect(before.rngSeed).toBe(1337)
       expect(before.events).toEqual([])
+      assert.exists(before.agency)
       expect(before.agency.fundingState).toBeUndefined()
 
       const produced = advanceWeek(before, Date.now())
@@ -61,6 +62,7 @@ describe('SPE-3763 funding snapshots', () => {
           stage
         ).toEqual(producedEvent)
         expect(state.funding, stage).toBe(57)
+        assert.exists(state.agency, stage)
         expect(state.agency.funding, stage).toBe(57)
         expect(state.agency.fundingState?.funding, stage).toBe(57)
         expect(state.agency.fundingState?.fundingHistory, stage).toEqual(expectedHistory)

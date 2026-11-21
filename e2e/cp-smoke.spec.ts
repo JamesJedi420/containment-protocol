@@ -15,6 +15,19 @@ import {
 } from './support/cpApp'
 
 test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smokes', () => {
+  test('SPE-3768 opens first-campaign dossier triage from Needs Attention', async ({ page }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    const dossier = page.getByRole('region', { name: 'First anomalous dossier' })
+    const title = await dossier.getByRole('heading').innerText()
+    await dossier.getByRole('link', { name: 'Review dossier and triage' }).click()
+
+    const triage = page.getByRole('region', { name: `Case triage detail: ${title}` })
+    await expect(triage).toBeVisible()
+    await triage.getByRole('button', { name: 'Defer', exact: true }).click()
+    await expect(triage.getByRole('button', { name: 'Clear disposition' })).toBeVisible()
+  })
+
   test('startup and player-visible navigation', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {

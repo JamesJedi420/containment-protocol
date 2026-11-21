@@ -1,7 +1,8 @@
 import { assert, describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { validateOperationEventPayload } from '../../domain/events/eventValidation'
+import { assignTeam } from '../../domain/sim/assign'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
-import { getGlobalStateMetrics } from '../../features/dashboard/dashboardView'
 import { loadGameSave, serializeGameSave, type GameSavePayload } from './saveSystem'
 
 describe('SPE-3763 funding snapshots', () => {
@@ -68,12 +69,50 @@ describe('SPE-3763 funding snapshots', () => {
         expect(state.agency.fundingState?.fundingHistory, stage).toEqual(expectedHistory)
       }
 
-      for (const state of [produced, firstLoad, secondLoad]) {
-        expect(getGlobalStateMetrics(state).funding).toBe(57)
-      }
       expect(secondLoad.events).toEqual(firstLoad.events)
     } finally {
       vi.useRealTimers()
+    }
+  })
+
+  it('preserves a signed opening balance from mission discipline through two reloads', () => {
+    const before = createStartingState()
+    before.funding = 3
+    assert.exists(before.agency)
+    before.agency.funding = 3
+
+    // Resolve a guaranteed mission failure with an existing trust-damage pair.
+    const mission = before.cases['case-001']
+    mission.mode = 'threshold'
+    mission.durationWeeks = 1
+    mission.weeksRemaining = 1
+    mission.weights = { combat: 1, investigation: 0, utility: 0, social: 0 }
+    mission.difficulty = { combat: 2000, investigation: 0, utility: 0, social: 0 }
+    before.agents.a_ava.relationships.a_kellan = -1.9
+    before.agents.a_kellan.relationships.a_ava = -1.9
+    before.agents.a_ava.trustDamageByAgent = { a_kellan: 1.4 }
+    before.agents.a_kellan.trustDamageByAgent = { a_ava: 1.4 }
+
+    const assigned = assignTeam(before, 'case-001', 't_nightwatch')
+    const produced = advanceWeek(assigned, Date.parse('2026-11-17T12:00:00.000Z'))
+    expect(produced.agents.a_kellan.trustConsequenceStack).toContainEqual(
+      expect.objectContaining({ consequenceType: 'disciplinary', pairAgentId: 'a_ava' })
+    )
+    const event = produced.events.find((entry) => entry.type === 'agency.containment_updated')
+    assert.exists(event)
+    expect(event.schemaVersion).toBe(2)
+    expect(event.payload).toMatchObject({ fundingBefore: -5, fundingAfter: 0, fundingDelta: -347 })
+    expect(validateOperationEventPayload('agency.containment_updated', event.payload).success).toBe(
+      true
+    )
+
+    const firstLoad = loadGameSave(serializeGameSave(produced))
+    const secondLoad = loadGameSave(serializeGameSave(firstLoad))
+    for (const state of [firstLoad, secondLoad]) {
+      expect(state.events.find((entry) => entry.id === event.id)).toEqual(event)
+      expect([state.funding, state.agency?.funding, state.agency?.fundingState?.funding]).toEqual([
+        4, 4, 4,
+      ])
     }
   })
 })

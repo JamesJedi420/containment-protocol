@@ -1,9 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { createStartingState } from '../data/startingState'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
 import { getGlobalStateMetrics } from '../features/dashboard/dashboardView'
 
 describe('getGlobalStateMetrics', () => {
+  it('keeps dashboard funding at 57 through both SPE-1749 save reloads', () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-17T12:00:00.000Z'))
+    try {
+      const produced = advanceWeek(createStartingState(), Date.now())
+      const firstLoad = loadGameSave(serializeGameSave(produced))
+      const secondLoad = loadGameSave(serializeGameSave(firstLoad))
+
+      for (const state of [produced, firstLoad, secondLoad]) {
+        expect(getGlobalStateMetrics(state).funding).toBe(57)
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('derives Year/Week from global week and weeksPerYear', () => {
     const game = createStartingState()
     game.week = 53

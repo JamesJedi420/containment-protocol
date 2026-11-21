@@ -9742,10 +9742,11 @@ function sanitizeOperationEvents(
         )
         const { fundingBefore, fundingAfter, fundingDelta } = payload
         // These balances are historical observations. The event delta covers only its local contribution.
+        // Current week close can record a disciplinary debit before the closing balance is floored.
         const funding =
           typeof fundingBefore === 'number' &&
           Number.isFinite(fundingBefore) &&
-          fundingBefore >= 0 &&
+          (fundingBefore >= 0 || entry.schemaVersion === CURRENT_OPERATION_EVENT_SCHEMA_VERSION) &&
           typeof fundingAfter === 'number' &&
           Number.isFinite(fundingAfter) &&
           fundingAfter >= 0 &&

@@ -93,14 +93,20 @@ describe('Agents roster query', () => {
 
   it('preserves the default roster order and sorts explicitly by two keys and identity', () => {
     const input: PersonnelQueryRecord[] = [
-      { ...baseRecord, id: 'z', name: 'Zhou' },
+      { ...baseRecord, id: 'z', name: 'Aardvark' },
       { ...baseRecord, id: 'b', role: 'hunter' },
       { ...baseRecord, id: 'a', role: 'hunter' },
       baseRecord,
     ]
     expect(evaluatePersonnelQuery(input, defaults)).toEqual(['z', 'b', 'a', 'reserve'])
+    expect(evaluatePersonnelQuery(input, defaults, { primary: 'role' })).toEqual([
+      'a',
+      'b',
+      'reserve',
+      'z',
+    ])
     const sort = { primary: 'role', secondary: 'name' } as const
-    const expected = ['a', 'b', 'reserve', 'z']
+    const expected = ['a', 'b', 'z', 'reserve']
     expect(evaluatePersonnelQuery(input, defaults, sort)).toEqual(expected)
     expect(evaluatePersonnelQuery([...input].reverse(), defaults, sort)).toEqual(expected)
     expect(input.map(({ id }) => id)).toEqual(['z', 'b', 'a', 'reserve'])

@@ -272,6 +272,21 @@ it('keeps an explicitly selected operative available when a query excludes them'
   expect(screen.getByRole('heading', { name: selected.name, level: 2 })).toBeInTheDocument()
 })
 
+it('shows only the portion of a pasted search that the roster uses', async () => {
+  const user = userEvent.setup()
+  renderAgentsPage()
+
+  const search = screen.getByLabelText('Search')
+  const queryAtLimit = 'x'.repeat(120)
+  await user.click(search)
+  await user.paste(`${queryAtLimit} ignored suffix`)
+
+  expect(search).toHaveValue(queryAtLimit)
+  expect(
+    new URLSearchParams(screen.getByTestId('location-search').textContent ?? '').get('q')
+  ).toBe(queryAtLimit)
+})
+
 it('has accessible filter panel with proper semantics', () => {
   useGameStore.setState({ game: createStartingState() })
   renderAgentsPage()

@@ -56,10 +56,10 @@ export default function AgentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedAgentTab, setSelectedAgentTab] = React.useState<TabType>(DEFAULT_AGENT_DETAIL_TAB)
-  const [searchDraft, setSearchDraft] = React.useState('')
+  const [queryBeforePendingSpace, setQueryBeforePendingSpace] = React.useState<string | null>(null)
   const filters = readAgentListFilters(game, searchParams)
-  // Preserve spaces while typing while the URL continues to store the normalized query.
-  const searchValue = normalizeSearchQuery(searchDraft) === filters.q ? searchDraft : filters.q
+  // Keep the separator while the player types the next word.
+  const searchValue = queryBeforePendingSpace === filters.q ? `${filters.q} ` : filters.q
   const urlTab = readEnumParam(searchParams, 'tab', AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB)
   const effectiveActiveTab = selectedAgentId ? selectedAgentTab : urlTab
 
@@ -221,8 +221,11 @@ export default function AgentsPage() {
             label="Search"
             value={searchValue}
             onChange={(value) => {
-              setSearchDraft(value)
-              if (normalizeSearchQuery(value) !== filters.q) updateFilters({ q: value })
+              const normalized = normalizeSearchQuery(value)
+              setQueryBeforePendingSpace(
+                normalized && value === `${normalized} ` ? normalized : null
+              )
+              if (normalized !== filters.q) updateFilters({ q: value })
             }}
             placeholder="Search agents, teams, traits, or assignments"
           />
@@ -302,7 +305,7 @@ export default function AgentsPage() {
               type="button"
               className="text-xs uppercase tracking-[0.24em] opacity-60 hover:opacity-100"
               onClick={() => {
-                setSearchDraft('')
+                setQueryBeforePendingSpace(null)
                 updateFilters(DEFAULT_AGENT_LIST_FILTERS)
               }}
             >

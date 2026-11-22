@@ -112,6 +112,7 @@
     "src/features/agents/AgentDetailPage.test.tsx",
     "src/features/agents/AgentTabsContainer.test.tsx",
     "src/features/agents/AgentsPage.test.tsx",
+    "src/features/agents/agentListView.test.ts",
     "src/features/cases/CaseDetailPage.test.tsx",
     "src/features/cases/CasesPage.test.tsx",
     "src/features/cases/caseView.test.ts",

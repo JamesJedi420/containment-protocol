@@ -51,6 +51,11 @@ Case-specific triage augmentation stays in `cases/caseView.ts`; the team, report
 and intel interfaces retain their existing public paths through shared delegation.
 Shared projections must not import back into a feature.
 
+`features/shared/personnelQueryView.ts` evaluates structured personnel filters,
+text queries, and optional two-key sorting over compact player-visible records.
+The Agents adapter in `agents/agentListView.ts` owns the searchable-field allowlist
+and URL codec. The shared evaluator receives no raw game state or feature imports.
+
 `features/shared/operationsRouteDrillDown.ts` owns shared UI navigation and consumes
 the shared feed codec, preserving canonical filter and return-link semantics.
 It is a UI navigation helper, not a simulation or store dependency.

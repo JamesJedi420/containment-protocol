@@ -67,6 +67,7 @@ describe('filter helper read/write contracts', () => {
 
     const invalidTeam = readAgentListFilters(game, new URLSearchParams('team=ghost-team'))
     expect(invalidTeam.team).toBe(DEFAULT_AGENT_LIST_FILTERS.team)
+    expect(readAgentListFilters(game, new URLSearchParams('team=constructor')).team).toBe('all')
 
     const output = writeAgentListFilters(
       {

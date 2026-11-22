@@ -248,6 +248,45 @@ it('shows the empty state for unmatched text search', async () => {
   })
 })
 
+it('keeps an explicitly selected operative available when a query excludes them', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const [selected, other] = Object.values(game.agents)
+  useGameStore.setState({ game })
+  renderAgentsPage()
+
+  await user.click(screen.getByRole('button', { name: new RegExp(selected.name, 'i') }))
+  await user.type(screen.getByLabelText('Search'), other.name)
+
+  expect(screen.getByLabelText('Search')).toHaveValue(other.name)
+  expect(
+    new URLSearchParams(screen.getByTestId('location-search').textContent ?? '').get('q')
+  ).toBe(other.name)
+  expect(screen.queryByRole('button', { name: new RegExp(selected.name, 'i') })).toBeNull()
+  expect(screen.getByRole('button', { name: new RegExp(other.name, 'i') })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: selected.name, level: 2 })).toBeInTheDocument()
+  expect(screen.getByText(/outside the current filter set/i)).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: /clear filters/i }))
+  expect(screen.getByRole('button', { name: new RegExp(selected.name, 'i') })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: selected.name, level: 2 })).toBeInTheDocument()
+})
+
+it('shows only the portion of a pasted search that the roster uses', async () => {
+  const user = userEvent.setup()
+  renderAgentsPage()
+
+  const search = screen.getByLabelText('Search')
+  const queryAtLimit = 'x'.repeat(120)
+  await user.click(search)
+  await user.paste(`${queryAtLimit} ignored suffix`)
+
+  expect(search).toHaveValue(queryAtLimit)
+  expect(
+    new URLSearchParams(screen.getByTestId('location-search').textContent ?? '').get('q')
+  ).toBe(queryAtLimit)
+})
+
 it('has accessible filter panel with proper semantics', () => {
   useGameStore.setState({ game: createStartingState() })
   renderAgentsPage()

@@ -3,11 +3,17 @@ import React from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { dispatchInputAction } from '../../app/inputRuntime'
-import { readEnumParam, toSearchString, writeEnumParam } from '../../app/searchParams'
+import {
+  normalizeSearchQuery,
+  readEnumParam,
+  toSearchString,
+  writeEnumParam,
+} from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
 import { AGENTS_GUIDANCE, EMPTY_STATES, ROLE_LABELS, SHELL_UI_TEXT } from '../../data/copy'
+import { evaluatePersonnelQuery, getPersonnelQueryFacet } from '../shared/personnelQueryView'
 import { AgentEntityPanel } from './AgentEntityPanel'
 import { AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB, type TabType } from './agentTabsModel'
 import {
@@ -20,8 +26,7 @@ import {
   type AgentRoleFilter,
   type AgentStatusFilter,
   type AgentTrainingFilter,
-  getFilteredAgentViews,
-  getRoleFilterOptions,
+  projectAgentQueryRecord,
   readAgentListFilters,
   writeAgentListFilters,
 } from './agentListView'
@@ -51,7 +56,10 @@ export default function AgentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedAgentTab, setSelectedAgentTab] = React.useState<TabType>(DEFAULT_AGENT_DETAIL_TAB)
+  const [queryBeforePendingSpace, setQueryBeforePendingSpace] = React.useState<string | null>(null)
   const filters = readAgentListFilters(game, searchParams)
+  // Keep the separator while the player types the next word.
+  const searchValue = queryBeforePendingSpace === filters.q ? `${filters.q} ` : filters.q
   const urlTab = readEnumParam(searchParams, 'tab', AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB)
   const effectiveActiveTab = selectedAgentId ? selectedAgentTab : urlTab
 
@@ -106,6 +114,11 @@ export default function AgentsPage() {
   )
 
   const agentViews = React.useMemo(() => getAgentViews(game), [game])
+  const queryRecords = React.useMemo(() => agentViews.map(projectAgentQueryRecord), [agentViews])
+  const viewsById = React.useMemo(
+    () => new Map(agentViews.map((view) => [view.agent.id, view])),
+    [agentViews]
+  )
 
   const metrics = React.useMemo(() => {
     const total = agentViews.length
@@ -116,10 +129,12 @@ export default function AgentsPage() {
     return { total, deployed, training, unavailable }
   }, [agentViews])
 
-  const visibleViews = getFilteredAgentViews(game, filters)
+  const visibleViews = evaluatePersonnelQuery(queryRecords, filters)
+    .map((id) => viewsById.get(id))
+    .filter((view) => view !== undefined)
   const selectedView = selectedAgentId
     ? (visibleViews.find((view) => view.agent.id === selectedAgentId) ??
-      agentViews.find((view) => view.agent.id === selectedAgentId) ??
+      viewsById.get(selectedAgentId) ??
       visibleViews[0])
     : (visibleViews[0] ?? agentViews[0])
   const selectedOutsideFilters = Boolean(
@@ -128,7 +143,10 @@ export default function AgentsPage() {
     !visibleViews.some((view) => view.agent.id === selectedView.agent.id)
   )
 
-  const roleOptions = React.useMemo(() => getRoleFilterOptions(game), [game])
+  const roleOptions = React.useMemo(
+    () => getPersonnelQueryFacet(queryRecords, 'role'),
+    [queryRecords]
+  )
 
   return (
     <section className="space-y-4">
@@ -201,8 +219,14 @@ export default function AgentsPage() {
           <FilterInput
             id="agents-search"
             label="Search"
-            value={filters.q}
-            onChange={(value) => updateFilters({ q: value })}
+            value={searchValue}
+            onChange={(value) => {
+              const normalized = normalizeSearchQuery(value)
+              setQueryBeforePendingSpace(
+                normalized && value === `${normalized} ` ? normalized : null
+              )
+              if (normalized !== filters.q) updateFilters({ q: value })
+            }}
             placeholder="Search agents, teams, traits, or assignments"
           />
 
@@ -280,7 +304,10 @@ export default function AgentsPage() {
             <button
               type="button"
               className="text-xs uppercase tracking-[0.24em] opacity-60 hover:opacity-100"
-              onClick={() => updateFilters(DEFAULT_AGENT_LIST_FILTERS)}
+              onClick={() => {
+                setQueryBeforePendingSpace(null)
+                updateFilters(DEFAULT_AGENT_LIST_FILTERS)
+              }}
             >
               Clear filters
             </button>

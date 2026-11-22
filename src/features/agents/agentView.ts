@@ -359,7 +359,8 @@ export function getAgentViews(game: GameState): AgentView[] {
         rightAssigned - leftAssigned ||
         rightTraining - leftTraining ||
         right.agent.fatigue - left.agent.fatigue ||
-        left.agent.name.localeCompare(right.agent.name)
+        left.agent.name.localeCompare(right.agent.name) ||
+        (left.agent.id < right.agent.id ? -1 : Number(left.agent.id > right.agent.id))
       )
     })
 }

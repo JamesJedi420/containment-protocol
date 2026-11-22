@@ -301,6 +301,14 @@ describe('RecruitmentPage', () => {
     expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
     expect(useGameStore.getState().game).toBe(committedGame)
 
+    await user.click(board.getByRole('button', { name: /^follow-up scout/i }))
+    const refinedNotice = screen.getByRole('link', {
+      name: 'View candidate: Avery Holt scouting refined',
+    })
+    refinedNotice.focus()
+    await user.keyboard('{Enter}')
+    expect(board.getByRole('heading', { name: 'Candidate board' })).toHaveFocus()
+
     await user.click(screen.getByRole('button', { name: 'Go back' }))
     expect(screen.getByTestId('location-search')).toHaveTextContent('?sort=name')
     expect(board.getByText('Briar Lane')).toBeInTheDocument()
@@ -313,8 +321,18 @@ describe('RecruitmentPage', () => {
 
     const board = within(screen.getByRole('article', { name: 'Candidate board' }))
     expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    const sortControl = screen.getByRole('combobox', { name: 'Sort' })
+    await user.selectOptions(sortControl, 'name')
+    expect(sortControl).toHaveFocus()
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '?category=agent&sort=name&expiring=1&candidate=cand-agent-001'
+    )
+    expect(board.getByRole('status')).toBeInTheDocument()
+
     await user.click(board.getByRole('button', { name: 'Clear candidate filter' }))
-    expect(screen.getByTestId('location-search')).toHaveTextContent('?category=agent&expiring=1')
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '?category=agent&sort=name&expiring=1'
+    )
     expect(board.queryByRole('status')).not.toBeInTheDocument()
     expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
   })
@@ -349,7 +367,7 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/field recon path/i)).toBeInTheDocument()
   })
 
-  it('reveals exact ceiling intel only after a confirmed deep scan', async () => {
+  it('opens the confirmed candidate with exact ceiling intel after a deep scan', async () => {
     const user = userEvent.setup()
     useGameStore.setState({ game: buildRecruitmentGame() })
 
@@ -359,11 +377,15 @@ describe('RecruitmentPage', () => {
     await user.click(screen.getByRole('button', { name: /^follow-up scout/i }))
     await user.click(screen.getByRole('button', { name: /^deep recon scan/i }))
 
-    await waitFor(() => {
-      expect(screen.getByText(/confirmed ceiling intel:/i)).toBeInTheDocument()
-      expect(screen.queryByText(/broad ceiling bands:/i)).not.toBeInTheDocument()
-      expect(screen.getByText(/avery holt intel confirmed/i)).toBeInTheDocument()
-    })
+    await user.click(
+      await screen.findByRole('link', { name: 'View candidate: Avery Holt intel confirmed' })
+    )
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?candidate=cand-agent-001')
+    expect(board.getByText(/confirmed ceiling intel:/i)).toBeInTheDocument()
+    expect(board.queryByText(/broad ceiling bands:/i)).not.toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
   })
 
   it('disables hire when the domain preview reports insufficient funding', () => {

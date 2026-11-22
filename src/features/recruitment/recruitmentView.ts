@@ -13,6 +13,7 @@ import {
   getCandidateOverall,
   isCandidateScoutConfirmed,
   getCandidateWeeklyCost,
+  isCandidateHireable,
   normalizeCandidateCategory,
   normalizeStaffCandidateSpecialty,
   previewCandidate,
@@ -166,6 +167,23 @@ export function getRecruitmentCandidateViews(
       }
     })
     .sort((left, right) => compareCandidateViews(left, right, filters.sort ?? 'expiry'))
+}
+
+export function findRecruitmentNoticeCandidate(
+  views: readonly RecruitmentCandidateView[],
+  candidateId: string | null,
+  week: number
+) {
+  if (!candidateId) {
+    return undefined
+  }
+
+  return views.find(
+    ({ candidate }) =>
+      candidate.id === candidateId &&
+      candidate.expiryWeek >= week &&
+      isCandidateHireable(candidate.hireStatus)
+  )
 }
 
 export function getRecruitmentMetrics(game: GameState) {

@@ -11100,6 +11100,66 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(payload.clearanceLevelAfter! - payload.clearanceLevelBefore!).toBe(3)
     })
 
+    it.each([
+      { fundingAfter: 53, expectedAfter: 53 },
+      { fundingAfter: 0, expectedAfter: 0 },
+      { fundingAfter: undefined, expectedAfter: 93 },
+      { fundingAfter: Number.NaN, expectedAfter: 93 },
+      { schemaVersion: 2, fundingAfter: -1, expectedAfter: 93 },
+      {
+        schemaVersion: 1,
+        fundingBefore: -5,
+        fundingAfter: 0,
+        expectedBefore: 0,
+        expectedAfter: -17,
+      },
+      { fundingBefore: -5, fundingAfter: 0, expectedBefore: 0, expectedAfter: -17 },
+    ])(
+      'SPE-3763 hydrates historical and malformed funding snapshots ($schemaVersion, $fundingBefore, $fundingAfter)',
+      ({
+        schemaVersion,
+        fundingBefore = 110,
+        fundingAfter,
+        expectedBefore = 110,
+        expectedAfter,
+      }) => {
+        const fallback = createStartingState()
+
+        const hydrated = hydrateGame({
+          ...stripGameTemplates(fallback),
+          events: [
+            {
+              id: 'evt-spe-3763-controlled',
+              schemaVersion,
+              type: 'agency.containment_updated',
+              timestamp: buildOperationEventTimestamp(2, 0),
+              payload: {
+                week: 2,
+                containmentRatingBefore: 50,
+                containmentRatingAfter: 50,
+                containmentDelta: 0,
+                clearanceLevelBefore: 1,
+                clearanceLevelAfter: 1,
+                fundingBefore,
+                fundingAfter,
+                fundingDelta: -17,
+              },
+            },
+          ],
+        })
+
+        const payload = hydrated.events[0]?.payload as {
+          fundingBefore?: number
+          fundingAfter?: number
+          fundingDelta?: number
+        }
+
+        expect(payload.fundingBefore).toBe(expectedBefore)
+        expect(payload.fundingAfter).toBe(expectedAfter)
+        expect(payload.fundingDelta).toBe(-17)
+      }
+    )
+
     it('517 enforces non-decreasing agent.promoted levels and matching levelsGained', () => {
       const fallback = createStartingState()
 

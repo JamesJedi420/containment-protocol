@@ -787,6 +787,7 @@ export interface OperationEventPayloadMap {
     containmentDelta: number
     clearanceLevelBefore: number
     clearanceLevelAfter: number
+    /** Historical balances at the producer boundaries. The delta is the local contribution. */
     fundingBefore: number
     fundingAfter: number
     fundingDelta: number

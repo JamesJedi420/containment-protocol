@@ -129,7 +129,9 @@ export default function AgentsPage() {
     return { total, deployed, training, unavailable }
   }, [agentViews])
 
-  const visibleViews = evaluatePersonnelQuery(queryRecords, filters).map((id) => viewsById.get(id)!)
+  const visibleViews = evaluatePersonnelQuery(queryRecords, filters)
+    .map((id) => viewsById.get(id))
+    .filter((view) => view !== undefined)
   const selectedView = selectedAgentId
     ? (visibleViews.find((view) => view.agent.id === selectedAgentId) ??
       viewsById.get(selectedAgentId) ??

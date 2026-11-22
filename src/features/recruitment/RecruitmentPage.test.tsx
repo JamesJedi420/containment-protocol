@@ -1,6 +1,6 @@
 // cspell:words cand
 import '../../test/setup'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -8,6 +8,7 @@ import { createStartingState } from '../../data/startingState'
 import { type Candidate } from '../../domain/models'
 import { useGameStore } from '../../app/store/gameStore'
 import RecruitmentPage from './RecruitmentPage'
+import { RECRUITMENT_LIST_PREFERENCES_KEY } from './recruitmentListPreferences'
 
 const baseEvaluation = {
   overallVisible: true,
@@ -119,6 +120,7 @@ function renderRecruitmentPage(route = '/recruitment') {
 }
 
 beforeEach(() => {
+  localStorage.removeItem(RECRUITMENT_LIST_PREFERENCES_KEY)
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
 })
@@ -221,6 +223,115 @@ describe('RecruitmentPage', () => {
       expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
     })
   })
+
+  it('restores browser-local filters on an ordinary visit and clears them with Reset filters', async () => {
+    const user = userEvent.setup()
+    const game = buildRecruitmentGame()
+    useGameStore.setState({ game })
+    const firstVisit = renderRecruitmentPage()
+
+    await user.type(screen.getByLabelText('Search'), 'avery')
+    await user.selectOptions(screen.getByLabelText('Category'), 'agent')
+    await user.selectOptions(screen.getByLabelText('Sort'), 'name')
+    await user.click(screen.getByLabelText('Expiring soon only'))
+    firstVisit.unmount()
+
+    const secondVisit = renderRecruitmentPage()
+    expect(screen.getByText('Saved filters restored')).toHaveRole('status')
+    expect(screen.getByLabelText('Search')).toHaveValue('avery')
+    expect(screen.getByLabelText('Category')).toHaveValue('agent')
+    expect(screen.getByLabelText('Sort')).toHaveValue('name')
+    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
+
+    screen.getByRole('button', { name: 'Reset filters' }).focus()
+    await user.keyboard('{Enter}')
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBeNull()
+    expect(useGameStore.getState().game).toBe(game)
+    secondVisit.unmount()
+
+    renderRecruitmentPage()
+    expect(screen.getByLabelText('Search')).toHaveValue('')
+    expect(screen.getByLabelText('Category')).toHaveValue('all')
+    expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
+    expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
+  })
+
+  it('opens an explicit candidate excluded by saved filters and keeps the saved filters intact', async () => {
+    const user = userEvent.setup()
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    const saved = 'q=briar&category=staff&sort=wage'
+    localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, saved)
+
+    renderRecruitmentPage('/recruitment?candidate=cand-agent-001')
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
+    await user.click(board.getByRole('button', { name: 'Clear candidate filter' }))
+    expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    expect(board.getByText('Briar Lane')).toBeInTheDocument()
+    expect(screen.getByLabelText('Search')).toHaveValue('')
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe(saved)
+  })
+
+  it('keeps both changes when filter controls fire before the router renders', () => {
+    renderRecruitmentPage()
+
+    act(() => {
+      fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'agent' } })
+      fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'name' } })
+    })
+
+    expect(screen.getByLabelText('Category')).toHaveValue('agent')
+    expect(screen.getByLabelText('Sort')).toHaveValue('name')
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('category=agent&sort=name')
+  })
+
+  it.each(['?sort=expiry', '?candidate=missing'])(
+    'keeps explicit defaults after normalizing %s to an empty query',
+    (search) => {
+      localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, 'q=briar&sort=name')
+
+      renderRecruitmentPage(`/recruitment${search}`)
+
+      expect(screen.getByTestId('location-search').textContent).toBe('')
+      expect(screen.getByLabelText('Search')).toHaveValue('')
+      expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
+      expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('q=briar&sort=name')
+    }
+  )
+
+  it('normalizes saved query values through the same rules as the live controls', () => {
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    localStorage.setItem(
+      RECRUITMENT_LIST_PREFERENCES_KEY,
+      'q=++avery++&category=retired&sort=unknown&expiring=invalid&candidate=cand-staff-001'
+    )
+
+    renderRecruitmentPage()
+
+    expect(screen.getByLabelText('Search')).toHaveValue('avery')
+    expect(screen.getByLabelText('Category')).toHaveValue('all')
+    expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
+    expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
+    expect(screen.queryByRole('button', { name: 'Clear candidate filter' })).not.toBeInTheDocument()
+  })
+
+  it.each(['{broken-json', `q=${'x'.repeat(2048)}`])(
+    'uses default filters when saved data is malformed or oversized',
+    (saved) => {
+      localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, saved)
+
+      renderRecruitmentPage()
+
+      expect(screen.getByLabelText('Search')).toHaveValue('')
+      expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
+      expect(screen.queryByText('Saved filters restored')).not.toBeInTheDocument()
+    }
+  )
 
   it('normalizes invalid URL params to defaults while preserving valid search', async () => {
     useGameStore.setState({ game: buildRecruitmentGame() })

@@ -8,6 +8,10 @@ import { RECRUITMENT_GUIDANCE } from '../../data/copy'
 import { getCandidateWeeklyCost } from '../../domain/recruitment'
 import { getReserveAgents } from '../../domain/sim/teamManagement'
 import {
+  readRecruitmentListPreferences,
+  saveRecruitmentListPreferences,
+} from './recruitmentListPreferences'
+import {
   findRecruitmentNoticeCandidate,
   getRecruitmentCandidateViews,
   getRecruitmentMetrics,
@@ -24,6 +28,7 @@ import {
 } from './recruitmentListView'
 
 const SCOUTING_NOTICE_NAVIGATION = 'recruitment-scouting-notice'
+const EXPLICIT_DEFAULT_FILTERS = 'recruitment-explicit-default-filters'
 
 export default function RecruitmentPage() {
   const { game, hireCandidate, scoutCandidate } = useGameStore()
@@ -32,7 +37,22 @@ export default function RecruitmentPage() {
   const navigationType = useNavigationType()
   const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
   const boardHeading = useRef<HTMLHeadingElement>(null)
-  const filters = useMemo(() => readRecruitmentListFilters(searchParams), [searchParams])
+  const pendingFilters = useRef<{
+    locationKey: string
+    filters: RecruitmentListFilters
+    candidate?: string
+  }>(undefined)
+  const restoredFilters = useMemo(
+    () =>
+      searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS
+        ? readRecruitmentListPreferences()
+        : undefined,
+    [searchParams, state]
+  )
+  const filters = useMemo(
+    () => restoredFilters ?? readRecruitmentListFilters(searchParams),
+    [restoredFilters, searchParams]
+  )
   const candidateId = searchParams.get(RECRUITMENT_CANDIDATE_PARAM)
   const viewFilters = useMemo(() => toRecruitmentViewFilters(filters), [filters])
   const boardViews = useMemo(
@@ -50,8 +70,11 @@ export default function RecruitmentPage() {
   const normalizedSearch = normalizedSearchParams.toString()
 
   useEffect(() => {
-    if (searchParams.toString() !== normalizedSearch) {
-      setSearchParams(normalizedSearch, { replace: true })
+    if (searchParams.size > 0 && searchParams.toString() !== normalizedSearch) {
+      setSearchParams(normalizedSearch, {
+        replace: true,
+        state: normalizedSearch ? null : EXPLICIT_DEFAULT_FILTERS,
+      })
     }
   }, [normalizedSearch, searchParams, setSearchParams])
 
@@ -61,12 +84,33 @@ export default function RecruitmentPage() {
     }
   }, [activeCandidateId, fromScoutingNotice, key, navigationType])
 
-  const updateFilters = (patch: Partial<RecruitmentListFilters>, keepCandidate = true) => {
-    const nextSearchParams = writeRecruitmentListFilters({ ...filters, ...patch })
-    if (keepCandidate && activeCandidateId) {
-      nextSearchParams.set(RECRUITMENT_CANDIDATE_PARAM, activeCandidateId)
+  useEffect(() => {
+    if (pendingFilters.current?.locationKey !== key) pendingFilters.current = undefined
+  }, [key])
+
+  const replaceFilters = (nextFilters: RecruitmentListFilters, candidate?: string) => {
+    const nextSearchParams = writeRecruitmentListFilters(nextFilters)
+    if (candidate) {
+      nextSearchParams.set(RECRUITMENT_CANDIDATE_PARAM, candidate)
     }
-    setSearchParams(nextSearchParams, { replace: true })
+    // Consecutive input events can arrive before the router renders the replaced entry.
+    pendingFilters.current = { locationKey: key, filters: nextFilters, candidate }
+    setSearchParams(nextSearchParams, {
+      replace: true,
+      state: nextSearchParams.size > 0 ? null : EXPLICIT_DEFAULT_FILTERS,
+    })
+  }
+
+  const updateFilters = (patch: Partial<RecruitmentListFilters>) => {
+    const pending = pendingFilters.current?.locationKey === key ? pendingFilters.current : undefined
+    const nextFilters = { ...(pending?.filters ?? filters), ...patch }
+    saveRecruitmentListPreferences(nextFilters)
+    replaceFilters(nextFilters, pending ? pending.candidate : activeCandidateId)
+  }
+
+  const resetFilters = () => {
+    saveRecruitmentListPreferences(DEFAULT_RECRUITMENT_LIST_FILTERS)
+    replaceFilters(DEFAULT_RECRUITMENT_LIST_FILTERS)
   }
 
   const metrics = useMemo(() => getRecruitmentMetrics(game), [game])
@@ -180,12 +224,13 @@ export default function RecruitmentPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] opacity-50">
+          {restoredFilters ? <output>Saved filters restored</output> : null}
           <span>Visible fit: {visibleOverallCount}</span>
           <span>Expiring visible: {expiringSoonVisible}</span>
           <button
             type="button"
             className="underline decoration-dotted underline-offset-4"
-            onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS, false)}
+            onClick={resetFilters}
           >
             Reset filters
           </button>
@@ -320,7 +365,7 @@ export default function RecruitmentPage() {
               type="button"
               className="btn btn-sm btn-ghost"
               onClick={() => {
-                updateFilters({}, false)
+                replaceFilters(filters)
                 boardHeading.current?.focus()
               }}
             >
@@ -489,11 +534,7 @@ export default function RecruitmentPage() {
               Clear the search or reset the board to review the full intake.
             </p>
             {hasActiveFilters ? (
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost"
-                onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS, false)}
-              >
+              <button type="button" className="btn btn-sm btn-ghost" onClick={resetFilters}>
                 Reset filters
               </button>
             ) : null}

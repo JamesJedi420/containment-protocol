@@ -95,6 +95,35 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(rows).toHaveCount(initialCount)
   })
 
+  test('SPE-3130 restores recruitment filters on a fresh visit and resets them with the keyboard', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await openPrimaryNav(page, 'Recruitment')
+    const filters = page.getByRole('region', { name: 'Recruitment filters' })
+    const category = filters.getByRole('combobox', { name: 'Category' })
+    const sort = filters.getByRole('combobox', { name: 'Sort' })
+    await category.selectOption('agent')
+    await sort.selectOption('name')
+
+    await openPrimaryNav(page, 'Operations Desk')
+    await page.setViewportSize({ width: 390, height: 844 })
+    await openPrimaryNav(page, 'Recruitment')
+    await page.reload()
+    await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
+    await expect(category).toHaveValue('agent')
+    await expect(sort).toHaveValue('name')
+
+    const reset = filters.getByRole('button', { name: 'Reset filters' })
+    await reset.focus()
+    await page.keyboard.press('Enter')
+    await page.reload()
+    await expect(category).toHaveValue('all')
+    await expect(sort).toHaveValue('expiry')
+    await expect(filters.getByRole('status')).toHaveCount(0)
+  })
+
   test('advance one operational week through player controls', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {

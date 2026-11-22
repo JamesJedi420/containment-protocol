@@ -277,6 +277,87 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/avery holt scouting initiated/i)).toBeInTheDocument()
   })
 
+  it('uses the exact live candidate from a scouting notice and restores the prior board on Back', async () => {
+    const user = userEvent.setup()
+    const game = buildRecruitmentGame()
+    game.candidates[0]!.id = 'candidate:avery & 1'
+    useGameStore.setState({ game })
+    renderRecruitmentPage('/recruitment?sort=name')
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    await user.click(board.getByRole('button', { name: /^scout/i }))
+    const committedGame = useGameStore.getState().game
+    const noticeLink = screen.getByRole('link', {
+      name: 'View candidate: Avery Holt scouting initiated',
+    })
+    noticeLink.focus()
+    await user.keyboard('{Enter}')
+
+    const search = screen.getByTestId('location-search').textContent ?? ''
+    expect(new URLSearchParams(search).get('candidate')).toBe('candidate:avery & 1')
+    expect(board.getByRole('heading', { name: 'Candidate board' })).toHaveFocus()
+    expect(board.getByRole('status')).toHaveTextContent('from the scouting notice')
+    expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
+    expect(useGameStore.getState().game).toBe(committedGame)
+
+    await user.click(board.getByRole('button', { name: /^follow-up scout/i }))
+    const refinedNotice = screen.getByRole('link', {
+      name: 'View candidate: Avery Holt scouting refined',
+    })
+    refinedNotice.focus()
+    await user.keyboard('{Enter}')
+    expect(board.getByRole('heading', { name: 'Candidate board' })).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }))
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?sort=name')
+    expect(board.getByText('Briar Lane')).toBeInTheDocument()
+  })
+
+  it('can clear a candidate target while keeping compatible board filters', async () => {
+    const user = userEvent.setup()
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    renderRecruitmentPage('/recruitment?candidate=cand-agent-001&category=agent&expiring=1')
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    expect(board.getByText('Avery Holt')).toBeInTheDocument()
+    const sortControl = screen.getByRole('combobox', { name: 'Sort' })
+    await user.selectOptions(sortControl, 'name')
+    expect(sortControl).toHaveFocus()
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '?category=agent&sort=name&expiring=1&candidate=cand-agent-001'
+    )
+    expect(board.getByRole('status')).toBeInTheDocument()
+
+    await user.click(board.getByRole('button', { name: 'Clear candidate filter' }))
+    expect(screen.getByTestId('location-search')).toHaveTextContent(
+      '?category=agent&sort=name&expiring=1'
+    )
+    expect(board.queryByRole('status')).not.toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
+  })
+
+  it.each(['missing', 'expired', 'unavailable', 'excluded by the board filter'])(
+    'falls back to the filtered board when the target is %s',
+    async (condition) => {
+      const game = buildRecruitmentGame()
+      const candidate = game.candidates[0]!
+      if (condition === 'missing') game.candidates.shift()
+      if (condition === 'expired') candidate.expiryWeek = game.week - 1
+      if (condition === 'unavailable') candidate.hireStatus = 'reserved'
+      useGameStore.setState({ game })
+      const filters = condition === 'excluded by the board filter' ? 'category=staff' : 'sort=name'
+      renderRecruitmentPage(`/recruitment?candidate=${candidate.id}&${filters}`)
+
+      await waitFor(() => {
+        expect(screen.getByTestId('location-search')).toHaveTextContent(`?${filters}`)
+      })
+      const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+      expect(board.queryByRole('status')).not.toBeInTheDocument()
+      expect(board.getByText('Briar Lane')).toBeInTheDocument()
+    }
+  )
+
   it('shows the eventual hire class for remapped agent candidates', () => {
     useGameStore.setState({ game: buildRecruitmentGame() })
 
@@ -286,7 +367,7 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/field recon path/i)).toBeInTheDocument()
   })
 
-  it('reveals exact ceiling intel only after a confirmed deep scan', async () => {
+  it('opens the confirmed candidate with exact ceiling intel after a deep scan', async () => {
     const user = userEvent.setup()
     useGameStore.setState({ game: buildRecruitmentGame() })
 
@@ -296,11 +377,15 @@ describe('RecruitmentPage', () => {
     await user.click(screen.getByRole('button', { name: /^follow-up scout/i }))
     await user.click(screen.getByRole('button', { name: /^deep recon scan/i }))
 
-    await waitFor(() => {
-      expect(screen.getByText(/confirmed ceiling intel:/i)).toBeInTheDocument()
-      expect(screen.queryByText(/broad ceiling bands:/i)).not.toBeInTheDocument()
-      expect(screen.getByText(/avery holt intel confirmed/i)).toBeInTheDocument()
-    })
+    await user.click(
+      await screen.findByRole('link', { name: 'View candidate: Avery Holt intel confirmed' })
+    )
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?candidate=cand-agent-001')
+    expect(board.getByText(/confirmed ceiling intel:/i)).toBeInTheDocument()
+    expect(board.queryByText(/broad ceiling bands:/i)).not.toBeInTheDocument()
+    expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
   })
 
   it('disables hire when the domain preview reports insufficient funding', () => {

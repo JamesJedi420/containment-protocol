@@ -565,6 +565,7 @@ describe('buildEventFeedView', () => {
     expect(view.title).toContain('scouting refined')
     expect(view.detail).toContain('B -> A tier')
     expect(view.detail).toContain('low -> high confidence')
+    expect(view.href).toBe('/recruitment?candidate=cand-001')
   })
 
   it('recruitment.intel_confirmed shows the confirmed tier', () => {
@@ -1741,7 +1742,7 @@ describe('buildEventFeedView href', () => {
     expect(buildEventFeedView(hired).href).toBe('/agents/a-007')
   })
 
-  it('recruitment scouting events link to the recruitment page', () => {
+  it('recruitment scouting events link to the exact candidate on the recruitment board', () => {
     const initiated = makeEvent('recruitment.scouting_initiated', {
       week: 1,
       candidateId: 'cand-1',
@@ -1752,7 +1753,7 @@ describe('buildEventFeedView href', () => {
       confidence: 'low',
       revealLevel: 1,
     })
-    expect(buildEventFeedView(initiated).href).toBe('/recruitment')
+    expect(buildEventFeedView(initiated).href).toBe('/recruitment?candidate=cand-1')
 
     const confirmed = makeEvent('recruitment.intel_confirmed', {
       week: 1,
@@ -1767,7 +1768,7 @@ describe('buildEventFeedView href', () => {
       previousConfidence: 'high',
       revealLevel: 2,
     })
-    expect(buildEventFeedView(confirmed).href).toBe('/recruitment')
+    expect(buildEventFeedView(confirmed).href).toBe('/recruitment?candidate=cand-1')
   })
 
   it('production, faction, market, and agency events have no href', () => {

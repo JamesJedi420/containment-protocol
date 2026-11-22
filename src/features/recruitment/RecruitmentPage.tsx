@@ -1,6 +1,6 @@
-import { type ReactNode, useEffect, useMemo } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
+import { type ReactNode, useEffect, useMemo, useRef } from 'react'
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
+import { APP_ROUTES, RECRUITMENT_CANDIDATE_PARAM } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -8,6 +8,7 @@ import { RECRUITMENT_GUIDANCE } from '../../data/copy'
 import { getCandidateWeeklyCost } from '../../domain/recruitment'
 import { getReserveAgents } from '../../domain/sim/teamManagement'
 import {
+  findRecruitmentNoticeCandidate,
   getRecruitmentCandidateViews,
   getRecruitmentMetrics,
   getRecruitmentScoutingOverview,
@@ -22,27 +23,54 @@ import {
   writeRecruitmentListFilters,
 } from './recruitmentListView'
 
+const SCOUTING_NOTICE_NAVIGATION = 'recruitment-scouting-notice'
+
 export default function RecruitmentPage() {
   const { game, hireCandidate, scoutCandidate } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const filters = readRecruitmentListFilters(searchParams)
+  const { key, state } = useLocation()
+  const navigationType = useNavigationType()
+  const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
+  const boardHeading = useRef<HTMLHeadingElement>(null)
+  const filters = useMemo(() => readRecruitmentListFilters(searchParams), [searchParams])
+  const candidateId = searchParams.get(RECRUITMENT_CANDIDATE_PARAM)
+  const viewFilters = useMemo(() => toRecruitmentViewFilters(filters), [filters])
+  const boardViews = useMemo(
+    () => getRecruitmentCandidateViews(game, viewFilters),
+    [game, viewFilters]
+  )
+  const noticeView = findRecruitmentNoticeCandidate(boardViews, candidateId, game.week)
+  const views = noticeView ? [noticeView] : boardViews
+  const activeCandidateId = noticeView?.candidate.id
+
   const normalizedSearchParams = writeRecruitmentListFilters(filters)
+  if (activeCandidateId) {
+    normalizedSearchParams.set(RECRUITMENT_CANDIDATE_PARAM, activeCandidateId)
+  }
   const normalizedSearch = normalizedSearchParams.toString()
 
   useEffect(() => {
     if (searchParams.toString() !== normalizedSearch) {
-      setSearchParams(normalizedSearchParams, { replace: true })
+      setSearchParams(normalizedSearch, { replace: true })
     }
-  }, [normalizedSearch, normalizedSearchParams, searchParams, setSearchParams])
+  }, [normalizedSearch, searchParams, setSearchParams])
 
-  const updateFilters = (patch: Partial<RecruitmentListFilters>) => {
-    setSearchParams(writeRecruitmentListFilters({ ...filters, ...patch }), { replace: true })
+  useEffect(() => {
+    if (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice)) {
+      boardHeading.current?.focus()
+    }
+  }, [activeCandidateId, fromScoutingNotice, key, navigationType])
+
+  const updateFilters = (patch: Partial<RecruitmentListFilters>, keepCandidate = true) => {
+    const nextSearchParams = writeRecruitmentListFilters({ ...filters, ...patch })
+    if (keepCandidate && activeCandidateId) {
+      nextSearchParams.set(RECRUITMENT_CANDIDATE_PARAM, activeCandidateId)
+    }
+    setSearchParams(nextSearchParams, { replace: true })
   }
 
   const metrics = useMemo(() => getRecruitmentMetrics(game), [game])
   const scoutingOverview = useMemo(() => getRecruitmentScoutingOverview(game), [game])
-  const viewFilters = useMemo(() => toRecruitmentViewFilters(filters), [filters])
-  const views = useMemo(() => getRecruitmentCandidateViews(game, viewFilters), [game, viewFilters])
   const reserveAgents = useMemo(() => getReserveAgents(game), [game])
   const visibleOverallCount = views.filter((view) => !view.hiddenOverall).length
   const expiringSoonVisible = views.filter((view) => view.expiringSoon).length
@@ -157,7 +185,7 @@ export default function RecruitmentPage() {
           <button
             type="button"
             className="underline decoration-dotted underline-offset-4"
-            onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS)}
+            onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS, false)}
           >
             Reset filters
           </button>
@@ -245,9 +273,11 @@ export default function RecruitmentPage() {
                     {entry.href ? (
                       <Link
                         to={entry.href}
-                        className="mt-2 inline-flex text-xs uppercase tracking-[0.18em] opacity-60"
+                        state={SCOUTING_NOTICE_NAVIGATION}
+                        className="btn btn-sm btn-ghost mt-2"
+                        aria-label={`View candidate: ${entry.title}`}
                       >
-                        Open source
+                        View candidate
                       </Link>
                     ) : null}
                   </li>
@@ -263,16 +293,41 @@ export default function RecruitmentPage() {
         </div>
       </article>
 
-      <article className="panel space-y-3">
+      <article className="panel space-y-3" aria-labelledby="recruitment-candidate-board">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <h3 className="text-base font-semibold">Candidate board</h3>
+            <h3
+              id="recruitment-candidate-board"
+              ref={boardHeading}
+              tabIndex={-1}
+              className="text-base font-semibold"
+            >
+              Candidate board
+            </h3>
             <p className="text-sm opacity-60">{RECRUITMENT_GUIDANCE.impressionExplained}</p>
           </div>
           <p className="text-xs uppercase tracking-[0.24em] opacity-50">
             Weekly wage and expiry are shown per candidate
           </p>
         </div>
+
+        {noticeView ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm" role="status">
+              Showing the candidate from the scouting notice.
+            </p>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={() => {
+                updateFilters({}, false)
+                boardHeading.current?.focus()
+              }}
+            >
+              Clear candidate filter
+            </button>
+          </div>
+        ) : null}
 
         {views.length > 0 ? (
           <ul className="space-y-3">
@@ -437,7 +492,7 @@ export default function RecruitmentPage() {
               <button
                 type="button"
                 className="btn btn-sm btn-ghost"
-                onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS)}
+                onClick={() => updateFilters(DEFAULT_RECRUITMENT_LIST_FILTERS, false)}
               >
                 Reset filters
               </button>

@@ -60,6 +60,41 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     }
   })
 
+  test('SPE-3057 opens the live candidate from a scouting notice', async ({ page }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    await openPrimaryNav(page, 'Recruitment')
+    await page.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('name')
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    const board = page.getByRole('article', { name: 'Candidate board' })
+    const rows = board.getByRole('listitem')
+    const initialCount = await rows.count()
+    expect(initialCount).toBeGreaterThan(1)
+    const scout = board.getByRole('button', { name: /^Scout \(\$/ }).first()
+    const candidateName = await scout
+      .locator('xpath=ancestor::li[1]')
+      .locator('p')
+      .first()
+      .innerText()
+    await scout.click()
+
+    const notice = page.getByRole('link', {
+      name: `View candidate: ${candidateName} scouting initiated`,
+    })
+    await notice.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/recruitment\?candidate=/)
+    await expect(board.getByRole('heading', { name: 'Candidate board' })).toBeFocused()
+    await expect(rows).toHaveCount(1)
+    await expect(board.getByText(candidateName, { exact: true })).toBeVisible()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
+    await expect(rows).toHaveCount(initialCount)
+  })
+
   test('advance one operational week through player controls', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {

@@ -565,7 +565,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'neutral',
-        href: APP_ROUTES.recruitment,
+        href: APP_ROUTES.recruitmentCandidate(event.payload.candidateId),
         searchText:
           `${event.payload.candidateName} scouting initiated ${event.payload.candidateId} ${event.payload.projectedTier} ${event.payload.confidence}`.toLowerCase(),
       }
@@ -580,7 +580,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'success',
-        href: APP_ROUTES.recruitment,
+        href: APP_ROUTES.recruitmentCandidate(event.payload.candidateId),
         searchText:
           `${event.payload.candidateName} scouting refined ${event.payload.candidateId} ${event.payload.previousProjectedTier ?? ''} ${event.payload.projectedTier} ${event.payload.previousConfidence ?? ''} ${event.payload.confidence}`.toLowerCase(),
       }
@@ -595,7 +595,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'success',
-        href: APP_ROUTES.recruitment,
+        href: APP_ROUTES.recruitmentCandidate(event.payload.candidateId),
         searchText:
           `${event.payload.candidateName} intel confirmed ${event.payload.candidateId} ${event.payload.confirmedTier ?? event.payload.projectedTier}`.toLowerCase(),
       }

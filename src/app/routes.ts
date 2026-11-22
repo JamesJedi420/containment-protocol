@@ -1,3 +1,6 @@
+const RECRUITMENT_PATH = '/recruitment'
+export const RECRUITMENT_CANDIDATE_PARAM = 'candidate'
+
 export const APP_ROUTES = {
   operationsDesk: '/',
   dashboard: '/',
@@ -5,7 +8,9 @@ export const APP_ROUTES = {
   agents: '/agents',
   cards: '/cards',
   agentDetail: (agentId: string) => `/agents/${encodeURIComponent(agentId)}`,
-  recruitment: '/recruitment',
+  recruitment: RECRUITMENT_PATH,
+  recruitmentCandidate: (candidateId: string) =>
+    `${RECRUITMENT_PATH}?${new URLSearchParams({ [RECRUITMENT_CANDIDATE_PARAM]: candidateId })}`,
   registry: '/registry',
   registryDetail: (agentId: string) => `/registry/${encodeURIComponent(agentId)}`,
   contracts: '/contracts',

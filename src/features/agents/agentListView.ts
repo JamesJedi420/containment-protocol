@@ -5,8 +5,9 @@ import {
   writeEnumParam,
   writeStringParam,
 } from '../../app/searchParams'
-import type { AgentRole, GameState } from '../../domain/models'
-import { getAgentViews, type AgentView } from './agentView'
+import type { GameState } from '../../domain/models'
+import type { PersonnelQueryFilters, PersonnelQueryRecord } from '../shared/personnelQueryView'
+import type { AgentView } from './agentView'
 
 export const AGENT_ROLE_FILTERS = [
   'all',
@@ -28,14 +29,7 @@ export type AgentStatusFilter = (typeof AGENT_STATUS_FILTERS)[number]
 export type AgentFatigueFilter = (typeof AGENT_FATIGUE_FILTERS)[number]
 export type AgentTrainingFilter = (typeof AGENT_TRAINING_FILTERS)[number]
 
-export interface AgentListFilters {
-  q: string
-  role: AgentRoleFilter
-  status: AgentStatusFilter
-  team: 'all' | 'unassigned' | string
-  fatigue: AgentFatigueFilter
-  training: AgentTrainingFilter
-}
+export type AgentListFilters = PersonnelQueryFilters
 
 export const DEFAULT_AGENT_LIST_FILTERS: AgentListFilters = {
   q: '',
@@ -52,7 +46,7 @@ export function readAgentListFilters(
 ): AgentListFilters {
   const teamParam = readStringParam(searchParams, 'team')
   const team =
-    teamParam === 'unassigned' || game.teams[teamParam]
+    teamParam === 'unassigned' || Object.hasOwn(game.teams, teamParam)
       ? teamParam
       : DEFAULT_AGENT_LIST_FILTERS.team
 
@@ -107,63 +101,32 @@ export function writeAgentListFilters(
   return nextSearchParams
 }
 
-export function getFilteredAgentViews(game: GameState, filters: AgentListFilters): AgentView[] {
-  return getAgentViews(game).filter((view) => matchesAgentFilters(view, filters))
-}
-
-export function getRoleFilterOptions(game: GameState): AgentRole[] {
-  return [...new Set(getAgentViews(game).map((view) => view.agent.role))]
-}
-
-function matchesAgentFilters(view: AgentView, filters: AgentListFilters): boolean {
-  if (filters.role !== 'all' && view.agent.role !== filters.role) {
-    return false
+export function projectAgentQueryRecord(view: AgentView): PersonnelQueryRecord {
+  const { agent, team, trainingEntry } = view
+  const { callsign, codename } = view.materialized.identity
+  return {
+    id: agent.id,
+    name: agent.name,
+    role: agent.role,
+    status: agent.status,
+    teamId: team?.id,
+    fatigue: view.capability.fatigueBand,
+    training: trainingEntry ? 'training' : 'available',
+    // Keep this allowlist explicit. AgentView also carries internal state for other consumers.
+    searchText: [
+      agent.name,
+      agent.role,
+      agent.status,
+      view.assignmentLabel,
+      team?.name ?? 'reserve pool',
+      team?.tags.join(' ') ?? '',
+      view.domainTags.join(' '),
+      view.traitLabels.join(' '),
+      trainingEntry?.trainingName ?? '',
+      callsign ?? '',
+      codename ?? '',
+    ]
+      .join(' ')
+      .toLowerCase(),
   }
-
-  if (filters.status !== 'all' && view.agent.status !== filters.status) {
-    return false
-  }
-
-  if (filters.team === 'unassigned') {
-    if (view.team) {
-      return false
-    }
-  } else if (filters.team !== 'all' && view.team?.id !== filters.team) {
-    return false
-  }
-
-  if (filters.fatigue !== 'all' && view.capability.fatigueBand !== filters.fatigue) {
-    return false
-  }
-
-  if (filters.training === 'training' && !view.trainingEntry) {
-    return false
-  }
-
-  if (filters.training === 'available' && view.trainingEntry) {
-    return false
-  }
-
-  if (!filters.q) {
-    return true
-  }
-
-  const normalizedQuery = filters.q.toLowerCase()
-  const searchableText = [
-    view.agent.name,
-    view.agent.role,
-    view.agent.status,
-    view.assignmentLabel,
-    view.team?.name ?? 'reserve pool',
-    view.team?.tags.join(' ') ?? '',
-    view.domainTags.join(' '),
-    view.traitLabels.join(' '),
-    view.trainingEntry?.trainingName ?? '',
-    view.materialized.identity.callsign ?? '',
-    view.materialized.identity.codename ?? '',
-  ]
-    .join(' ')
-    .toLowerCase()
-
-  return searchableText.includes(normalizedQuery)
 }

@@ -9740,12 +9740,21 @@ function sanitizeOperationEvents(
           payload.containmentDelta,
           0
         )
-        const funding = reconcileBeforeAfterDelta(
-          payload.fundingBefore,
-          payload.fundingAfter,
-          payload.fundingDelta,
-          0
-        )
+        const { fundingBefore, fundingAfter, fundingDelta } = payload
+        // These balances are historical observations. The event delta covers only its local contribution.
+        // Current week close can record a disciplinary debit before the closing balance is floored.
+        const funding =
+          typeof fundingBefore === 'number' &&
+          Number.isFinite(fundingBefore) &&
+          (fundingBefore >= 0 || entry.schemaVersion === CURRENT_OPERATION_EVENT_SCHEMA_VERSION) &&
+          typeof fundingAfter === 'number' &&
+          Number.isFinite(fundingAfter) &&
+          fundingAfter >= 0 &&
+          typeof fundingDelta === 'number' &&
+          Number.isFinite(fundingDelta) &&
+          fundingDelta >= Number.MIN_SAFE_INTEGER
+            ? { before: fundingBefore, after: fundingAfter, delta: fundingDelta }
+            : reconcileBeforeAfterDelta(fundingBefore, fundingAfter, fundingDelta, 0)
         const clearanceBefore = sanitizeInteger(
           payload.clearanceLevelBefore as number | undefined,
           1,

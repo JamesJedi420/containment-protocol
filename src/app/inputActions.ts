@@ -8,9 +8,9 @@ export const INPUT_ACTIONS = [
   { id: 'reference.previous', label: 'Previous reference entry', context: 'focused' },
   { id: 'reference.next', label: 'Next reference entry', context: 'focused' },
   { id: 'recovery.reload', label: 'Reload after render failure', context: 'global' },
-  { id: 'filters.previous', label: 'Previous filter tag', context: 'focused' },
-  { id: 'filters.next', label: 'Next filter tag', context: 'focused' },
-  { id: 'filters.activate', label: 'Apply focused filter tag', context: 'focused' },
+  { id: 'filters.previous', label: 'Previous option in focused group', context: 'focused' },
+  { id: 'filters.next', label: 'Next option in focused group', context: 'focused' },
+  { id: 'filters.activate', label: 'Activate focused option', context: 'focused' },
 ] as const
 
 export type InputActionId = (typeof INPUT_ACTIONS)[number]['id']

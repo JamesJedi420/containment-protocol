@@ -22,6 +22,9 @@ export default function AgencyPage() {
     convertFacilityMaintenanceResources,
     applyBreachOriginRecoveryStep,
     applyProtectedRemoteWorkStep,
+    assignOperationalStaffPost,
+    reassignOperationalStaffPost,
+    unassignOperationalStaffPost,
   } = useGameStore()
   const maintenance = projectFacilityMaintenanceView(game)
   const staffing = projectOperationalStaffingView(game)
@@ -84,7 +87,16 @@ export default function AgencyPage() {
         </div>
       </article>
 
-      <OperationalStaffingPanel staffing={staffing} />
+      <OperationalStaffingPanel
+        staffing={staffing}
+        onChangePost={(request, destination) => {
+          if (destination === null) return unassignOperationalStaffPost(request)
+          const assignment = { ...request, postId: destination }
+          return request.expectedPreviousPostId === null
+            ? assignOperationalStaffPost(assignment)
+            : reassignOperationalStaffPost(assignment)
+        }}
+      />
 
       <FacilityRegisterPanel register={facilityRegister} />
 

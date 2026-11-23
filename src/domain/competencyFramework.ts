@@ -1,6 +1,7 @@
 import { clamp } from './math'
 import { COMPETENCY_CALIBRATION } from './sim/calibration'
 import type { Agent } from './models'
+import type { SpecialistSkillBand } from './specialistLaborRegistry'
 
 export type CompetencyDomain =
   | 'response'
@@ -46,6 +47,14 @@ export interface CompetencyEvaluationResult {
 export interface CertificationGateResult {
   allowed: boolean
   missingCertifications: string[]
+}
+
+export interface SpecialistSkillBandProjection {
+  readonly domain: CompetencyDomain
+  readonly band: SpecialistSkillBand
+  readonly visibility: CompetencyVisibility
+  /** True when the band is derived from an estimated (not fully known) profile. */
+  readonly estimated: boolean
 }
 
 function normalizeScore(value: number) {
@@ -263,5 +272,39 @@ export function meetsCertificationGate(
   return {
     allowed: missing.length === 0,
     missingCertifications: missing,
+  }
+}
+
+/**
+ * SPE-2266: Deterministic specialist skill-band projection from canonical competency.
+ *
+ * Maps a domain score to SpecialistSkillBand for the existing specialist-labor
+ * workshop feed. specialistOperatorSlots remains a derived/materialized cache only.
+ * Estimated visibility is flagged; exact scores are not exposed in the projection.
+ */
+export function projectSpecialistSkillBandFromCompetency(
+  profile: CompetencyProfile,
+  domain: CompetencyDomain
+): SpecialistSkillBandProjection {
+  const score = normalizeScore(profile.scores[domain] ?? 0)
+  const visibility = profile.visibility
+  const estimated = visibility !== 'known'
+
+  let band: SpecialistSkillBand
+  if (score >= 90) {
+    band = 'master'
+  } else if (score >= 70) {
+    band = 'expert'
+  } else if (score >= 40) {
+    band = 'competent'
+  } else {
+    band = 'novice'
+  }
+
+  return {
+    domain,
+    band,
+    visibility,
+    estimated,
   }
 }

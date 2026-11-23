@@ -46,7 +46,7 @@ export const DEFAULT_BINDINGS: Record<InputActionId, readonly InputBinding[]> = 
   'settings.open': [keyboardBinding('s'), { device: 'controller', button: 9 }],
   'navigation.back': [keyboardBinding('ArrowLeft'), { device: 'controller', button: 4 }],
   'navigation.forward': [keyboardBinding('ArrowRight'), { device: 'controller', button: 5 }],
-  'staffing.manage': [keyboardBinding('m'), { device: 'controller', button: 2 }],
+  'staffing.manage': [keyboardBinding('m'), { device: 'controller', button: 7 }],
   'modal.dismiss': [keyboardBinding('x'), { device: 'controller', button: 1 }],
   'reference.open': [keyboardBinding('h'), { device: 'controller', button: 8 }],
   'reference.previous': [keyboardBinding('ArrowUp'), { device: 'controller', button: 12 }],

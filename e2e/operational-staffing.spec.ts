@@ -59,7 +59,7 @@ test('hires, assigns, moves, reloads, and unassigns staff using touch, controlle
   await expect(effective).toHaveText('0')
   await expect(staffing.getByRole('link', { name: 'Manage operational posts' })).toBeVisible()
   await expect(destination).not.toBeFocused()
-  await press(2)
+  await press(7)
   await expect(destination).toBeFocused()
   await expect(page).toHaveURL(/agency#operational-staff-posts$/)
   const person = staffing.getByRole('group')

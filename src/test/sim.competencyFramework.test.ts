@@ -5,6 +5,7 @@ import {
   buildCompetencyProfileFromAgent,
   evaluateCompetencyTask,
   meetsCertificationGate,
+  projectSpecialistSkillBandFromCompetency,
   type CompetencyAgentSource,
 } from '../domain/competencyFramework'
 
@@ -255,5 +256,47 @@ describe('competencyFramework slice 1', () => {
 
     expect(result.score).toBeGreaterThan(profile.scores.research)
     expect(['partial', 'success']).toContain(result.outcome)
+  })
+
+  it('projects specialist skill bands from competency without leaking hidden scores', () => {
+    const knownStrong = makeAgent({
+      id: 'agent-known-strong',
+      role: 'investigator',
+      combat: 25,
+      investigation: 92,
+      utility: 30,
+      social: 30,
+      confidence: 'high',
+    })
+    const estimatedWeak = makeAgent({
+      id: 'agent-estimated-weak',
+      role: 'investigator',
+      combat: 25,
+      investigation: 25,
+      utility: 30,
+      social: 30,
+      confidence: 'low',
+    })
+
+    const knownProfile = buildCompetencyProfileFromAgent(knownStrong)
+    const estimatedProfile = buildCompetencyProfileFromAgent(estimatedWeak)
+
+    const knownProjection = projectSpecialistSkillBandFromCompetency(knownProfile, 'research')
+    const estimatedProjection = projectSpecialistSkillBandFromCompetency(estimatedProfile, 'research')
+
+    expect(knownProjection.band).toBe('master')
+    expect(knownProjection.visibility).toBe('known')
+    expect(knownProjection.estimated).toBe(false)
+    expect(knownProjection.domain).toBe('research')
+
+    expect(estimatedProjection.band).toBe('novice')
+    expect(estimatedProjection.visibility).toBe('estimated')
+    expect(estimatedProjection.estimated).toBe(true)
+
+    // Same role, different bands
+    expect(knownProjection.band).not.toBe(estimatedProjection.band)
+
+    // Deterministic
+    expect(projectSpecialistSkillBandFromCompetency(knownProfile, 'research')).toEqual(knownProjection)
   })
 })

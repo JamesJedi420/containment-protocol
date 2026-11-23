@@ -259,6 +259,20 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
   })
 
+  it('updates an already-mounted live region when saved filters are restored', () => {
+    localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, 'sort=name')
+    const observer = new MutationObserver(() => {})
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+
+    renderRecruitmentPage()
+
+    const status = screen.getByText('Saved filters restored')
+    expect(status).toHaveAttribute('aria-live', 'polite')
+    expect(status).toHaveAttribute('aria-atomic', 'true')
+    expect(observer.takeRecords().some((record) => record.target === status)).toBe(true)
+    observer.disconnect()
+  })
+
   it('opens an explicit candidate excluded by saved filters and keeps the saved filters intact', async () => {
     const user = userEvent.setup()
     useGameStore.setState({ game: buildRecruitmentGame() })
@@ -424,6 +438,30 @@ describe('RecruitmentPage', () => {
     expect(screen.getByTestId('location-search')).toHaveTextContent('?sort=name')
     expect(board.getByText('Briar Lane')).toBeInTheDocument()
   })
+
+  it.each([
+    { saved: null, priorSort: 'expiry' },
+    { saved: 'sort=wage', priorSort: 'wage' },
+  ])(
+    'restores the prior queryless board after editing a notice ($priorSort)',
+    async ({ saved, priorSort }) => {
+      const user = userEvent.setup()
+      useGameStore.setState({ game: buildRecruitmentGame() })
+      if (saved) localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, saved)
+      renderRecruitmentPage()
+
+      expect(screen.getByLabelText('Sort')).toHaveValue(priorSort)
+      const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+      await user.click(board.getByRole('button', { name: /^scout/i }))
+      await user.click(
+        screen.getByRole('link', { name: 'View candidate: Avery Holt scouting initiated' })
+      )
+      await user.selectOptions(screen.getByLabelText('Sort'), 'name')
+      await user.click(screen.getByRole('button', { name: 'Go back' }))
+      expect(screen.getByLabelText('Sort')).toHaveValue(priorSort)
+      expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toContain('sort=name')
+    }
+  )
 
   it('can clear a candidate target while keeping compatible board filters', async () => {
     const user = userEvent.setup()

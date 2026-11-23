@@ -121,7 +121,7 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await page.reload()
     await expect(category).toHaveValue('all')
     await expect(sort).toHaveValue('expiry')
-    await expect(filters.getByRole('status')).toHaveCount(0)
+    await expect(filters.getByRole('status')).toBeEmpty()
   })
 
   test('advance one operational week through player controls', async ({ page }) => {

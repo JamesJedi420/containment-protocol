@@ -29,6 +29,14 @@ import {
 
 const SCOUTING_NOTICE_NAVIGATION = 'recruitment-scouting-notice'
 const EXPLICIT_DEFAULT_FILTERS = 'recruitment-explicit-default-filters'
+const BOARD_SNAPSHOT = 'recruitment-board-snapshot'
+type BoardSnapshot = { type: typeof BOARD_SNAPSHOT; search: string; restored: boolean }
+
+function isBoardSnapshot(state: unknown): state is BoardSnapshot {
+  return (
+    typeof state === 'object' && state !== null && 'type' in state && state.type === BOARD_SNAPSHOT
+  )
+}
 
 export default function RecruitmentPage() {
   const { game, hireCandidate, scoutCandidate } = useGameStore()
@@ -37,6 +45,7 @@ export default function RecruitmentPage() {
   const navigationType = useNavigationType()
   const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
   const boardHeading = useRef<HTMLHeadingElement>(null)
+  const restoreStatus = useRef<HTMLOutputElement>(null)
   const pendingFilters = useRef<{
     locationKey: string
     filters: RecruitmentListFilters
@@ -44,9 +53,11 @@ export default function RecruitmentPage() {
   }>(undefined)
   const restoredFilters = useMemo(
     () =>
-      searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS
-        ? readRecruitmentListPreferences()
-        : undefined,
+      searchParams.size === 0 && isBoardSnapshot(state)
+        ? readRecruitmentListFilters(new URLSearchParams(state.search))
+        : searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS
+          ? readRecruitmentListPreferences()
+          : undefined,
     [searchParams, state]
   )
   const filters = useMemo(
@@ -70,13 +81,29 @@ export default function RecruitmentPage() {
   const normalizedSearch = normalizedSearchParams.toString()
 
   useEffect(() => {
-    if (searchParams.size > 0 && searchParams.toString() !== normalizedSearch) {
+    if (searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS && !isBoardSnapshot(state)) {
+      setSearchParams('', {
+        replace: true,
+        state: {
+          type: BOARD_SNAPSHOT,
+          search: normalizedSearch,
+          restored: Boolean(restoredFilters),
+        },
+      })
+    } else if (searchParams.size > 0 && searchParams.toString() !== normalizedSearch) {
       setSearchParams(normalizedSearch, {
         replace: true,
         state: normalizedSearch ? null : EXPLICIT_DEFAULT_FILTERS,
       })
     }
-  }, [normalizedSearch, searchParams, setSearchParams])
+  }, [normalizedSearch, restoredFilters, searchParams, setSearchParams, state])
+
+  useEffect(() => {
+    if (restoreStatus.current) {
+      restoreStatus.current.textContent =
+        isBoardSnapshot(state) && state.restored ? 'Saved filters restored' : ''
+    }
+  }, [state])
 
   useEffect(() => {
     if (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice)) {
@@ -224,7 +251,7 @@ export default function RecruitmentPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 text-xs uppercase tracking-[0.24em] opacity-50">
-          {restoredFilters ? <output>Saved filters restored</output> : null}
+          <output ref={restoreStatus} aria-live="polite" aria-atomic="true" />
           <span>Visible fit: {visibleOverallCount}</span>
           <span>Expiring visible: {expiringSoonVisible}</span>
           <button

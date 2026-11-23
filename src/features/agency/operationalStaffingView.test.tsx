@@ -92,9 +92,11 @@ function staffingPanel(
         staffing={projectOperationalStaffingView(game, facilityValidity)}
         onChangePost={(request, destination) => {
           const store = useGameStore.getState()
-          return destination === null
-            ? store.unassignOperationalStaffPost(request)
-            : store.assignOperationalStaffPost({ ...request, postId: destination })
+          if (destination === null) return store.unassignOperationalStaffPost(request)
+          const assignment = { ...request, postId: destination }
+          return request.expectedPreviousPostId === null
+            ? store.assignOperationalStaffPost(assignment)
+            : store.reassignOperationalStaffPost(assignment)
         }}
       />
     </MemoryRouter>
@@ -150,7 +152,9 @@ describe('canonical operational staffing surfacing', () => {
     expect(capacity().byStaffId.a?.postId).toBe('staff-post:analysis:1')
     expectCapacity(1)
     expect(within(panel).queryByText(copy.unassigned, { exact: false })).not.toBeInTheDocument()
-    expect(within(panel).getByRole('status')).toHaveTextContent('Avery: Post assigned.')
+    expect(within(panel).getByRole('status')).toHaveTextContent(
+      'Avery · Analysis post 1: Post assigned.'
+    )
     await user.click(within(person).getByRole('button', { name: 'Move to Analysis post 2' }))
     expect(capacity().byStaffId.a?.postId).toBe('staff-post:analysis:2')
     expectCapacity(1)
@@ -160,13 +164,14 @@ describe('canonical operational staffing surfacing', () => {
     expect(within(panel).getByText(copy.unassigned, { exact: false })).toBeInTheDocument()
   })
 
-  it('announces a canonical occupancy blocker without changing the roster or capacity', async () => {
+  it('announces each occupied destination without changing the roster or capacity', async () => {
     const game = gameWithStaff(
       {
         a: { specialty: 'analysis' },
         b: { specialty: 'analysis', operationalPostId: 'staff-post:analysis:1' },
+        c: { specialty: 'analysis', operationalPostId: 'staff-post:analysis:2' },
       },
-      { a: 'Avery', b: 'Bea' }
+      { a: 'Avery', b: 'Bea', c: 'Casey' }
     )
     useGameStore.setState({ game })
     const panel = renderStaffing()
@@ -174,11 +179,22 @@ describe('canonical operational staffing surfacing', () => {
     await userEvent.click(
       within(person).getByRole('button', { name: 'Assign to Analysis post 1 (occupied)' })
     )
-    expect(within(panel).getByRole('status')).toHaveTextContent(
-      'Another staff member already holds this post.'
+    const status = within(panel).getByRole('status')
+    expect(status).toHaveTextContent(
+      'Avery · Analysis post 1: Another staff member already holds this post.'
     )
+    const secondPost = within(person).getByRole('button', {
+      name: 'Assign to Analysis post 2 (occupied)',
+    })
+    await userEvent.click(secondPost)
+    expect(status).toHaveTextContent(
+      'Avery · Analysis post 2: Another staff member already holds this post.'
+    )
+    const previousAnnouncement = status.firstElementChild
+    await userEvent.click(secondPost)
+    expect(status.firstElementChild).not.toBe(previousAnnouncement)
     expect(useGameStore.getState().game).toBe(game)
-    expect(displayedCount(panel, copy.capacity)).toBe('1')
+    expect(displayedCount(panel, copy.capacity)).toBe('2')
   })
 
   it('announces a stale request from an outdated view and accepts a retry after refresh', async () => {
@@ -197,7 +213,9 @@ describe('canonical operational staffing surfacing', () => {
     expect(useGameStore.getState().game).toBe(updated)
     rerender(staffingPanel(updated))
     await userEvent.click(screen.getByRole('button', { name: 'Move to Analysis post 2' }))
-    expect(screen.getByRole('status')).toHaveTextContent('Avery: Post reassigned.')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Avery · Analysis post 2: Post reassigned.'
+    )
   })
 
   it('displays the SPE-3387 facility result through loss and recovery with one retained assignment', () => {

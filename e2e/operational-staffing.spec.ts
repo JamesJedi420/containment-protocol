@@ -46,16 +46,6 @@ test('hires, assigns, moves, reloads, and unassigns staff using touch, controlle
     .filter({ hasText: 'Effective operational capacity' })
     .locator('+ dd')
   const destination = staffing.getByRole('heading', { name: 'Operational post assignments' })
-  await expect(effective).toHaveText('0')
-  await staffing.getByRole('link', { name: 'Manage operational posts' }).tap()
-  await expect(destination).toBeFocused()
-  await expect(page).toHaveURL(/agency#operational-staff-posts$/)
-  const person = staffing.getByRole('group')
-  const options = person.getByRole('button', { name: /^Assign to / })
-  await options.first().tap()
-  await expect(effective).toHaveText('1')
-  await expect(person.getByRole('button', { name: /^Current post: .* post 1$/ })).toBeFocused()
-
   const press = async (button: number) => {
     await page.evaluate(async (pressed) => {
       const pad = (window as unknown as { staffingPad: { pressed: number } }).staffingPad
@@ -66,6 +56,20 @@ test('hires, assigns, moves, reloads, and unassigns staff using touch, controlle
       pad.pressed = pressed
     }, button)
   }
+  await expect(effective).toHaveText('0')
+  await expect(staffing.getByRole('link', { name: 'Manage operational posts' })).toBeVisible()
+  await expect(destination).not.toBeFocused()
+  await press(2)
+  await expect(destination).toBeFocused()
+  await expect(page).toHaveURL(/agency#operational-staff-posts$/)
+  const person = staffing.getByRole('group')
+  const firstPost = person.getByRole('button', { name: /^Assign to .* post 1$/ })
+  await press(15)
+  await expect(firstPost).toBeFocused()
+  await firstPost.tap()
+  await expect(effective).toHaveText('1')
+  await expect(person.getByRole('button', { name: /^Current post: .* post 1$/ })).toBeFocused()
+
   await press(15)
   await expect(person.getByRole('button', { name: /^Move to .* post 2$/ })).toBeFocused()
   await press(0)

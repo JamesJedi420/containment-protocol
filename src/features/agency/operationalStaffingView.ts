@@ -10,6 +10,12 @@ import type {
   OperationalStaffPostReason,
 } from '../../domain/operationalStaffPosts'
 
+export type {
+  OperationalStaffPostId,
+  OperationalStaffPostRequest,
+  OperationalStaffPostResult,
+} from '../../domain/operationalStaffPosts'
+
 export const OPERATIONAL_STAFF_POSTS_ANCHOR = 'operational-staff-posts'
 
 /** Presentation copy stays separate from canonical staffing reasons and counts. */
@@ -33,7 +39,8 @@ export const OPERATIONAL_STAFFING_COPY = {
   choosePost: (post: string, assigned: boolean) =>
     assigned ? `Move to ${post}` : `Assign to ${post}`,
   occupiedPost: (action: string) => `${action} (occupied)`,
-  commandFeedback: (person: string, result: string) => `${person}: ${result}`,
+  commandFeedback: (person: string, result: string, post?: string) =>
+    post ? `${person} · ${post}: ${result}` : `${person}: ${result}`,
   facilityHold: (reason: string) => `Capacity temporarily withheld. ${reason}`,
 } as const
 

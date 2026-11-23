@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router'
-import { useFocusedControls } from '../../app/inputRuntime'
-import type {
-  OperationalStaffPostId,
-  OperationalStaffPostRequest,
-  OperationalStaffPostResult,
-} from '../../domain/operationalStaffPosts'
+import { Link, useLocation, useNavigate } from 'react-router'
+import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import {
   OPERATIONAL_STAFF_POST_REASON_COPY,
   OPERATIONAL_STAFF_POSTS_ANCHOR,
   OPERATIONAL_STAFFING_COPY as copy,
 } from './operationalStaffingView'
-import type { projectOperationalStaffingView } from './operationalStaffingView'
+import type {
+  OperationalStaffPostId,
+  OperationalStaffPostRequest,
+  OperationalStaffPostResult,
+  projectOperationalStaffingView,
+} from './operationalStaffingView'
 
 export function OperationalStaffingPanel({
   staffing,
@@ -26,26 +26,39 @@ export function OperationalStaffingPanel({
   const heading = useRef<HTMLHeadingElement>(null)
   const panel = useRef<HTMLElement>(null)
   const { hash, key } = useLocation()
-  const [feedback, setFeedback] = useState('')
+  const navigate = useNavigate()
+  const managementHash = `#${OPERATIONAL_STAFF_POSTS_ANCHOR}`
+  const [feedback, setFeedback] = useState({ attempt: 0, message: '' })
+  useInputConsumer({
+    id: 'staffing.manage',
+    context: 'route',
+    available: () => staffing.personnel.length > 0,
+    execute: () => void navigate(managementHash),
+  })
   useFocusedControls(
     () => panel.current?.querySelectorAll<HTMLElement>('a[href], h4, button') ?? []
   )
 
   useEffect(() => {
-    if (hash === `#${OPERATIONAL_STAFF_POSTS_ANCHOR}`) heading.current?.focus()
-  }, [hash, key])
+    if (hash === managementHash) heading.current?.focus()
+  }, [hash, key, managementHash])
 
   function changePost(
     person: (typeof staffing.personnel)[number],
-    destination: OperationalStaffPostId | null
+    target: (typeof person.targets)[number] | null
   ) {
     const result = onChangePost(
       { staffId: person.id, expectedPreviousPostId: person.postId },
-      destination
+      target?.id ?? null
     )
-    setFeedback(
-      copy.commandFeedback(person.name, OPERATIONAL_STAFF_POST_REASON_COPY[result.reason])
-    )
+    setFeedback(({ attempt }) => ({
+      attempt: attempt + 1,
+      message: copy.commandFeedback(
+        person.name,
+        OPERATIONAL_STAFF_POST_REASON_COPY[result.reason],
+        target?.label
+      ),
+    }))
   }
 
   return (
@@ -85,7 +98,7 @@ export function OperationalStaffingPanel({
         )}
       </div>
       {staffing.unassignedCount > 0 && (
-        <Link to={`#${OPERATIONAL_STAFF_POSTS_ANCHOR}`} className="btn min-h-11 max-w-full">
+        <Link to={managementHash} className="btn min-h-11 max-w-full">
           {copy.managePosts}
         </Link>
       )}
@@ -94,12 +107,12 @@ export function OperationalStaffingPanel({
           ref={heading}
           id={OPERATIONAL_STAFF_POSTS_ANCHOR}
           tabIndex={-1}
-          className="scroll-mt-24 font-semibold"
+          className="focus-ring scroll-mt-24 font-semibold"
         >
           {copy.postHeading}
         </h4>
         <p className="wrap-anywhere text-sm" role="status" aria-atomic="true">
-          {feedback}
+          {feedback.message && <span key={feedback.attempt}>{feedback.message}</span>}
         </p>
         {!staffing.unavailable && staffing.personnel.length === 0 && (
           <p className="text-sm">{copy.emptyRoster}</p>
@@ -127,7 +140,7 @@ export function OperationalStaffingPanel({
                       className="btn min-h-11 max-w-full whitespace-normal"
                       aria-disabled={isCurrent}
                       onClick={() => {
-                        if (!isCurrent) changePost(person, target.id)
+                        if (!isCurrent) changePost(person, target)
                       }}
                     >
                       {isCurrent

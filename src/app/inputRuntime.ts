@@ -143,6 +143,36 @@ export function useInputConsumer(consumer: InputConsumer) {
   useLayoutEffect(() => registerInputConsumer(consumer), [consumer])
 }
 
+/** Shared remappable traversal for a group of native controls. */
+export function useFocusedControls(getControls: () => Iterable<HTMLElement>) {
+  function target(offset: number) {
+    const controls = Array.from(getControls())
+    const index = controls.findIndex((control) => control === document.activeElement)
+    return index < 0 ? undefined : controls[index + offset]
+  }
+  useInputConsumer({
+    id: 'filters.previous',
+    context: 'focused',
+    available: () => !!target(-1),
+    execute: () => target(-1)?.focus(),
+  })
+  useInputConsumer({
+    id: 'filters.next',
+    context: 'focused',
+    available: () => !!target(1),
+    execute: () => target(1)?.focus(),
+  })
+  useInputConsumer({
+    id: 'filters.activate',
+    context: 'focused',
+    available: () => {
+      const control = target(0)
+      return !!control?.matches('button:not([aria-disabled="true"]), a[href]')
+    },
+    execute: () => target(0)?.click(),
+  })
+}
+
 export function dispatchInputAction(id: InputActionId, targetId?: string): boolean {
   if (readSnapshot().capture) return false
   const modal = document.querySelector('dialog[open]') !== null

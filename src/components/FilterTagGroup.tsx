@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useInputConsumer } from '../app/inputRuntime'
+import { useFocusedControls } from '../app/inputRuntime'
 
 export interface FilterTagOption {
   value: string
@@ -22,31 +22,9 @@ export function FilterTagGroup({
   onChange: (value: string) => void
 }) {
   const root = useRef<HTMLFieldSetElement>(null)
-  const buttons = () =>
-    Array.from(root.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
-  const target = (offset: number) => {
-    const items = buttons()
-    const index = items.findIndex((item) => item === document.activeElement)
-    return index < 0 ? undefined : items[index + offset]
-  }
-  useInputConsumer({
-    id: 'filters.previous',
-    context: 'focused',
-    available: () => !!target(-1),
-    execute: () => target(-1)?.focus(),
-  })
-  useInputConsumer({
-    id: 'filters.next',
-    context: 'focused',
-    available: () => !!target(1),
-    execute: () => target(1)?.focus(),
-  })
-  useInputConsumer({
-    id: 'filters.activate',
-    context: 'focused',
-    available: () => !!target(0),
-    execute: () => target(0)?.click(),
-  })
+  useFocusedControls(
+    () => root.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? []
+  )
   return (
     <fieldset id={id} ref={root} className="filter-tag-group">
       <legend>{label}</legend>

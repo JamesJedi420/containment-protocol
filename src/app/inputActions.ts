@@ -3,14 +3,15 @@ export const INPUT_ACTIONS = [
   { id: 'settings.open', label: 'Open settings', context: 'global' },
   { id: 'navigation.back', label: 'Go back', context: 'route' },
   { id: 'navigation.forward', label: 'Go forward', context: 'route' },
+  { id: 'staffing.manage', label: 'Manage operational posts in Agency Command', context: 'route' },
   { id: 'modal.dismiss', label: 'Dismiss dialog', context: 'modal' },
   { id: 'reference.open', label: 'Open reference', context: 'global' },
   { id: 'reference.previous', label: 'Previous reference entry', context: 'focused' },
   { id: 'reference.next', label: 'Next reference entry', context: 'focused' },
   { id: 'recovery.reload', label: 'Reload after render failure', context: 'global' },
-  { id: 'filters.previous', label: 'Previous filter tag', context: 'focused' },
-  { id: 'filters.next', label: 'Next filter tag', context: 'focused' },
-  { id: 'filters.activate', label: 'Apply focused filter tag', context: 'focused' },
+  { id: 'filters.previous', label: 'Previous option in focused group', context: 'focused' },
+  { id: 'filters.next', label: 'Next option in focused group', context: 'focused' },
+  { id: 'filters.activate', label: 'Activate focused option', context: 'focused' },
 ] as const
 
 export type InputActionId = (typeof INPUT_ACTIONS)[number]['id']
@@ -45,6 +46,7 @@ export const DEFAULT_BINDINGS: Record<InputActionId, readonly InputBinding[]> = 
   'settings.open': [keyboardBinding('s'), { device: 'controller', button: 9 }],
   'navigation.back': [keyboardBinding('ArrowLeft'), { device: 'controller', button: 4 }],
   'navigation.forward': [keyboardBinding('ArrowRight'), { device: 'controller', button: 5 }],
+  'staffing.manage': [keyboardBinding('m'), { device: 'controller', button: 7 }],
   'modal.dismiss': [keyboardBinding('x'), { device: 'controller', button: 1 }],
   'reference.open': [keyboardBinding('h'), { device: 'controller', button: 8 }],
   'reference.previous': [keyboardBinding('ArrowUp'), { device: 'controller', button: 12 }],

@@ -18,6 +18,7 @@
     "src/app/App.trainingDivision.route.test.tsx",
     "src/app/App.workflow.test.tsx",
     "src/app/AppRouter.test.tsx",
+    "src/app/MainMenu.test.tsx",
     "src/app/NavigationHistoryControls.test.tsx",
     "src/app/appRouteNavParity.test.ts",
     "src/app/applicationRoot.test.ts",

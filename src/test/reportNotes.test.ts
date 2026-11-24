@@ -6,6 +6,7 @@ import type { AnyOperationEventDraft } from '../domain/events'
 import * as factions from '../domain/factions'
 import * as reportNotes from '../domain/reportNotes'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import * as scoring from '../domain/sim/scoring'
 
 const {
   buildAnchorFactionInstabilityNote,
@@ -83,10 +84,19 @@ describe('Anchor faction report disposition', () => {
 
   it('runs the anchor builder at week close and preserves report finalization', () => {
     const builder = vi.spyOn(reportNotes, 'buildAnchorFactionInstabilityNote')
+    const score = vi.spyOn(scoring, 'calcWeekScore')
     const next = advanceWeek(startingState)
     const report = next.reports.at(-1)
 
     expect(builder).toHaveReturnedWith(expect.objectContaining({ disposition: 'produced' }))
+    expect(score).toHaveBeenCalledWith(
+      expect.objectContaining({
+        week: startingState.week,
+        notes: expect.arrayContaining([
+          expect.objectContaining({ type: 'system.anchor_instability' }),
+        ]),
+      })
+    )
     expect(report).toMatchObject({ week: startingState.week })
     expect(report?.notes?.some((note) => note.type === 'system.anchor_instability')).toBe(false)
   })

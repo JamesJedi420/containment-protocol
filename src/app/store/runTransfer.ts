@@ -2976,6 +2976,22 @@ function finiteCandidateWeek(value: unknown, campaignWeek?: number) {
   return week
 }
 
+const CANDIDATE_AVAILABILITY_HORIZON_WEEKS = 4
+
+function isAuthoredCandidateAvailabilityWeek(
+  value: unknown,
+  campaignWeek?: number
+): value is number {
+  // The recruitment generator authors availability through four weeks ahead.
+  return (
+    campaignWeek !== undefined &&
+    typeof value === 'number' &&
+    Number.isSafeInteger(value) &&
+    value >= 1 &&
+    value <= campaignWeek + CANDIDATE_AVAILABILITY_HORIZON_WEEKS
+  )
+}
+
 function sanitizeRevealLevel(value: unknown): CandidateRevealLevel {
   if (value === 0 || value === 1 || value === 2) {
     return value
@@ -3130,7 +3146,13 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
       ? entry.hireStatus
       : 'available') as CandidatePipelineStatus
   )
-  let expiryWeek = finiteCandidateWeek(entry.expiryWeek, campaignWeek) ?? campaignWeek ?? 1
+  const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
+  const availabilityReferenceWeek =
+    (hireStatus === 'available' || hireStatus === 'reserved') &&
+    funnelStage !== 'hired' &&
+    funnelStage !== 'lost'
+      ? campaignWeek
+      : undefined
   const weeklyCostRaw =
     typeof entry.weeklyCost === 'number' && Number.isFinite(entry.weeklyCost)
       ? Math.max(0, Math.trunc(entry.weeklyCost))
@@ -3199,22 +3221,44 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
         .map((liability) => liability.trim())
     ),
   ]
-  const availabilityWindow = isRecord(entry.availabilityWindow)
-    ? (() => {
-        const opensWeek = finiteCandidateWeek(entry.availabilityWindow.opensWeek, campaignWeek)
-        const closesWeek = finiteCandidateWeek(entry.availabilityWindow.closesWeek, campaignWeek)
+  const rawWindow = isRecord(entry.availabilityWindow) ? entry.availabilityWindow : undefined
+  const rawOpensWeek = rawWindow?.opensWeek
+  const rawClosesWeek = rawWindow?.closesWeek
+  const authoredAvailabilityWindow =
+    isAuthoredCandidateAvailabilityWeek(rawOpensWeek, availabilityReferenceWeek) &&
+    isAuthoredCandidateAvailabilityWeek(rawClosesWeek, availabilityReferenceWeek) &&
+    rawOpensWeek <= rawClosesWeek
+      ? { opensWeek: rawOpensWeek, closesWeek: rawClosesWeek }
+      : undefined
+  const availabilityWindow =
+    authoredAvailabilityWindow ??
+    (() => {
+      const opensWeek = finiteCandidateWeek(rawOpensWeek, campaignWeek)
+      const closesWeek = finiteCandidateWeek(rawClosesWeek, campaignWeek)
 
-        if (opensWeek === undefined || closesWeek === undefined) {
-          return undefined
-        }
+      if (opensWeek === undefined || closesWeek === undefined) {
+        return undefined
+      }
 
-        return {
-          opensWeek,
-          closesWeek: Math.max(opensWeek, closesWeek),
-        }
-      })()
-    : undefined
-  const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
+      return {
+        opensWeek,
+        closesWeek: Math.max(opensWeek, closesWeek),
+      }
+    })()
+  const rawExpiryWeek = entry.expiryWeek
+  // Intel Surge adds one week to the maximum generated expiry and leaves the window intact.
+  const hasIntelSurgeExpiry =
+    authoredAvailabilityWindow !== undefined &&
+    authoredAvailabilityWindow.closesWeek - authoredAvailabilityWindow.opensWeek ===
+      CANDIDATE_AVAILABILITY_HORIZON_WEEKS &&
+    typeof rawExpiryWeek === 'number' &&
+    Number.isSafeInteger(rawExpiryWeek) &&
+    rawExpiryWeek - authoredAvailabilityWindow.closesWeek === 1
+  let expiryWeek =
+    isAuthoredCandidateAvailabilityWeek(rawExpiryWeek, availabilityReferenceWeek) ||
+    hasIntelSurgeExpiry
+      ? rawExpiryWeek
+      : (finiteCandidateWeek(rawExpiryWeek, campaignWeek) ?? campaignWeek ?? 1)
   // Recruitment funnel metadata (created/lastUpdated) is informational and must survive
   // save/load round-trips even when it is out-of-range relative to current campaign week.
   // Only lower-bound normalize to 1..N-safe finite weeks.
@@ -3233,7 +3277,8 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
     cappedCampaignWeek !== undefined &&
     hireStatus === 'available' &&
     (expiryWeek < cappedCampaignWeek ||
-      (normalizedAvailabilityWindow !== undefined &&
+      (!hasIntelSurgeExpiry &&
+        normalizedAvailabilityWindow !== undefined &&
         normalizedAvailabilityWindow.closesWeek < cappedCampaignWeek))
   ) {
     hireStatus = 'expired'

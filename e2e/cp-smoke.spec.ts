@@ -163,13 +163,51 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       const rows = board.getByRole('listitem')
       const expiryBadge = page.getByText('Expiring soon', { exact: true })
 
+      const visibleCandidateIds = (candidateRows = rows) =>
+        candidateRows.evaluateAll((items, storageKey) => {
+          const saved = localStorage.getItem(storageKey)
+          if (!saved) throw new Error('Expected a saved campaign')
+          const { state } = JSON.parse(saved) as {
+            state: { game: { candidates: { id: string; name: string }[] } }
+          }
+          return items.map((item) => {
+            const name = item.querySelector('p')?.textContent?.trim()
+            const matches = state.game.candidates.filter((candidate) => candidate.name === name)
+            const [candidate] = matches
+            if (!candidate || matches.length !== 1) {
+              throw new Error(`Expected one saved candidate for ${name}`)
+            }
+            return candidate.id
+          })
+        }, CP_GAME_STORAGE_KEY)
+
+      // Week two has a populated board and no candidates expiring within one week.
       await openPrimaryNav(page, 'Operations Desk')
       await advanceOperationalWeek(page)
       await openPrimaryNav(page, 'Recruitment')
-      await expect(rows.first()).toBeVisible()
+      await expect(rows).toHaveCount(4)
+      await expiring.click()
+      await expect(expiring).toBeChecked()
+      await expect(rows).toHaveCount(0)
+      const emptyWeekIds = await visibleCandidateIds()
+      expect(emptyWeekIds).toEqual([])
+      await page.goto('/recruitment')
+      await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
+      await expect(expiring).toBeChecked()
+      await expect(board.getByText('No candidates match the current filters.')).toBeVisible()
+      await expect.poll(() => visibleCandidateIds()).toEqual(emptyWeekIds)
+      await reset.click()
+      await expect(rows).toHaveCount(4)
+
+      // The next week has two expiring candidates alongside later arrivals.
+      await openPrimaryNav(page, 'Operations Desk')
+      await advanceOperationalWeek(page)
+      await openPrimaryNav(page, 'Recruitment')
+      await expect(rows).toHaveCount(8)
       const initialCount = await rows.count()
-      const expiringCount = await rows.filter({ has: expiryBadge }).count()
-      expect(expiringCount).toBeLessThan(initialCount)
+      const expiringIds = await visibleCandidateIds(rows.filter({ has: expiryBadge }))
+      expect(expiringIds).toEqual(['cand-707858473', 'cand-536550149'])
+      const expiringCount = expiringIds.length
 
       // Re-enter the visited board using the shell's controller history actions.
       await press(4)
@@ -184,6 +222,7 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await expect(expiring).toBeChecked()
       await expect(page).toHaveURL(/\/recruitment\?expiring=1$/)
       await expect(rows).toHaveCount(expiringCount)
+      await expect.poll(() => visibleCandidateIds()).toEqual(expiringIds)
       await expect(expiring).toBeFocused()
 
       await press(next)
@@ -207,6 +246,7 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
       await expect(expiring).toBeChecked()
       await expect(rows).toHaveCount(expiringCount)
+      await expect.poll(() => visibleCandidateIds()).toEqual(expiringIds)
       await press(next)
       await expect(expiring).toBeFocused()
 
@@ -214,7 +254,8 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await page.goto('/recruitment')
       await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
       await expect(expiring).toBeChecked()
-      await expect(rows.first()).toBeVisible()
+      await expect(rows).toHaveCount(expiringCount)
+      await expect.poll(() => visibleCandidateIds()).toEqual(expiringIds)
       await expect(rows.filter({ hasNot: expiryBadge })).toHaveCount(0)
       await press(next)
       await expect(expiring).toBeFocused()

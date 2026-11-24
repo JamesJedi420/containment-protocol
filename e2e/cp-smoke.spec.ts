@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import type { RunExportPayload } from '../src/app/store/runTransfer'
 import {
   advanceOperationalWeek,
   assignFirstOpenTriageCase,
@@ -14,17 +15,68 @@ import {
 } from './support/cpApp'
 
 test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smokes', () => {
-  test('SPE-3768 opens first-campaign dossier triage from Needs Attention', async ({ page }) => {
+  test('SPE-1354 opens eligible first-campaign evidence and triage from Needs Attention', async ({
+    page,
+  }) => {
     await clearCampaignStorage(page)
     await openFrontDesk(page)
     const dossier = page.getByRole('region', { name: 'First anomalous dossier' })
     const title = await dossier.getByRole('heading').innerText()
+    await expect(dossier.getByText(/Intel confidence \d+%/)).toBeVisible()
+    await expect(
+      page.locator('details', { hasText: 'How the first week works' })
+    ).not.toHaveAttribute('open')
     await dossier.getByRole('link', { name: 'Review dossier and triage' }).click()
 
     const triage = page.getByRole('region', { name: `Case triage detail: ${title}` })
     await expect(triage).toBeVisible()
     await triage.getByRole('button', { name: 'Defer', exact: true }).click()
     await expect(triage.getByRole('button', { name: 'Clear disposition' })).toBeVisible()
+  })
+
+  test('SPE-1354 preserves Week 1 planning with no eligible dossier after import and reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    const dossier = page.getByRole('region', { name: 'First anomalous dossier' })
+    await expect(dossier).toBeVisible()
+
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    const payload = page.getByRole('textbox', { name: 'Run payload' })
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(await payload.inputValue())
+    expect(Object.keys(exported.game.cases).length).toBeGreaterThan(0)
+    // The importer restores starter cases for an empty map. Resolved cases survive import
+    // and are excluded by the ordinary dossier selector.
+    const cases = Object.fromEntries(
+      Object.entries(exported.game.cases).map(([id, entry]) => [
+        id,
+        { ...entry, status: 'resolved', assignedTeamIds: [] },
+      ])
+    )
+    await payload.fill(JSON.stringify({ ...exported, game: { ...exported.game, cases } }))
+    await page.getByRole('button', { name: 'Import Run', exact: true }).click()
+    await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
+    const imported: RunExportPayload = JSON.parse(await payload.inputValue())
+    expect(Object.keys(imported.game.cases).sort()).toEqual(Object.keys(cases).sort())
+    expect(Object.values(imported.game.cases).map((entry) => entry.status)).toEqual(
+      Object.values(cases).map((entry) => entry.status)
+    )
+    expect(imported.game.events).toEqual(exported.game.events)
+
+    const guidance = page
+      .getByRole('region', { name: 'Needs Attention' })
+      .getByText(/No anomalous dossier is available/)
+    await expect(guidance).toBeVisible()
+    await expect(dossier).toHaveCount(0)
+    await page.reload()
+    await openFrontDesk(page)
+    await expect(guidance).toBeVisible()
+    await expect(dossier).toHaveCount(0)
+    await expect(page.getByText('How the first week works', { exact: true })).toBeVisible()
+    await page.getByRole('link', { name: 'Review routing', exact: true }).click()
+    await expect(page).toHaveURL(/\/cases$/)
   })
 
   test('startup and player-visible navigation', async ({ page }) => {

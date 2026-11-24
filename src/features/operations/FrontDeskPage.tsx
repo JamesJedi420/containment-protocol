@@ -299,6 +299,11 @@ export default function FrontDeskPage() {
               Review dossier and triage
             </Link>
           </section>
+        ) : game.week === 1 ? (
+          <p className="text-sm opacity-80">
+            No anomalous dossier is available to review right now. You can continue planning the
+            week.
+          </p>
         ) : null}
         {view.staffingReadinessOpportunity ? (
           <section className="space-y-2" aria-label="Staffing readiness opportunity">

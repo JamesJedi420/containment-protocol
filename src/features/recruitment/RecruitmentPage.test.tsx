@@ -2,8 +2,20 @@
 import '../../test/setup'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  createPath,
+  MemoryRouter,
+  NavigationType,
+  parsePath,
+  Route,
+  Router,
+  Routes,
+  useLocation,
+  useNavigate,
+  type Location,
+  type To,
+} from 'react-router'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { type Candidate } from '../../domain/models'
 import { useGameStore } from '../../app/store/gameStore'
@@ -117,6 +129,43 @@ function renderRecruitmentPage(route = '/recruitment') {
       </Routes>
     </MemoryRouter>
   )
+}
+
+function renderWithStagedReplacements(search = '', state: unknown = null) {
+  const replacements: Location[] = []
+  let replacementCount = 0
+  const navigator = {
+    createHref: (to: To) => (typeof to === 'string' ? to : createPath(to)),
+    go: vi.fn(),
+    push: vi.fn(),
+    replace(to: To, state: unknown) {
+      replacements.push({
+        pathname: '/recruitment',
+        search: '',
+        hash: '',
+        ...(typeof to === 'string' ? parsePath(to) : to),
+        state,
+        key: `replacement-${replacementCount++}`,
+      })
+    },
+  }
+  const board = (location: Location) => (
+    <Router location={location} navigator={navigator} navigationType={NavigationType.Replace}>
+      <LocationSearchProbe />
+      <RecruitmentPage />
+    </Router>
+  )
+  const { rerender } = render(
+    board({ pathname: '/recruitment', search, hash: '', state, key: 'entry' })
+  )
+  return {
+    replacements,
+    commitReplacement() {
+      const location = replacements.shift()
+      if (!location) throw new Error('Expected a pending router replacement')
+      rerender(board(location))
+    },
+  }
 }
 
 beforeEach(() => {
@@ -368,6 +417,57 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Category')).toHaveValue('agent')
     expect(screen.getByLabelText('Sort')).toHaveValue('name')
     expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('category=agent&sort=name')
+  })
+
+  it('retains filter edits when the router commits older replacements between input events', () => {
+    const { commitReplacement } = renderWithStagedReplacements()
+
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'agent' } })
+    commitReplacement()
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'name' } })
+    commitReplacement()
+    fireEvent.click(screen.getByLabelText('Expiring soon only'))
+    commitReplacement()
+    commitReplacement()
+
+    expect(screen.getByLabelText('Category')).toHaveValue('agent')
+    expect(screen.getByLabelText('Sort')).toHaveValue('name')
+    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe(
+      'category=agent&sort=name&expiring=1'
+    )
+  })
+
+  it('waits for the latest edit before normalizing an excluded candidate target', () => {
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    const { commitReplacement, replacements } = renderWithStagedReplacements(
+      '?candidate=cand-agent-001'
+    )
+
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'staff' } })
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'name' } })
+    commitReplacement()
+    expect(replacements.map(({ search }) => search)).toEqual([
+      '?category=staff&sort=name&candidate=cand-agent-001',
+    ])
+    commitReplacement()
+    commitReplacement()
+
+    expect(screen.getByTestId('location-search').textContent).toBe('?category=staff&sort=name')
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('category=staff&sort=name')
+  })
+
+  it('ignores a malformed history snapshot and restores valid saved filters', () => {
+    localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, 'category=staff')
+    const { commitReplacement } = renderWithStagedReplacements('', {
+      type: 'recruitment-board-snapshot',
+      search: [['invalid']],
+      restored: true,
+    })
+    commitReplacement()
+
+    expect(screen.getByLabelText('Category')).toHaveValue('staff')
+    expect(screen.getByText('Saved filters restored')).toBeInTheDocument()
   })
 
   it.each(['?sort=expiry', '?candidate=missing'])(

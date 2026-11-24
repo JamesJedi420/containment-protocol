@@ -106,10 +106,13 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const sort = filters.getByRole('combobox', { name: 'Sort' })
     await category.selectOption('agent')
     await sort.selectOption('name')
+    await expect(page).toHaveURL(/\/recruitment\?category=agent&sort=name$/)
 
     await openPrimaryNav(page, 'Operations Desk')
     await page.setViewportSize({ width: 390, height: 844 })
     await openPrimaryNav(page, 'Recruitment')
+    await expect(category).toHaveValue('agent')
+    await expect(sort).toHaveValue('name')
     await page.reload()
     await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
     await expect(category).toHaveValue('agent')

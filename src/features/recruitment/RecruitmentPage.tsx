@@ -43,15 +43,26 @@ type BoardReplacement = {
   revision?: number
 }
 
-function readBoardEntryState(state: unknown): BoardSnapshot | BoardReplacement | undefined {
-  if (
-    typeof state === 'object' &&
-    state !== null &&
-    'type' in state &&
-    (state.type === BOARD_SNAPSHOT || state.type === BOARD_REPLACEMENT)
-  ) {
-    return state as BoardSnapshot | BoardReplacement
+function isBoardEntryState(state: unknown): state is BoardSnapshot | BoardReplacement {
+  if (typeof state !== 'object' || state === null || !('type' in state)) return false
+
+  if (state.type === BOARD_SNAPSHOT) {
+    return (
+      'search' in state &&
+      typeof state.search === 'string' &&
+      'restored' in state &&
+      typeof state.restored === 'boolean' &&
+      (!('entryKey' in state) || typeof state.entryKey === 'string')
+    )
   }
+
+  return (
+    state.type === BOARD_REPLACEMENT &&
+    'entryKey' in state &&
+    typeof state.entryKey === 'string' &&
+    (!('revision' in state) ||
+      (typeof state.revision === 'number' && Number.isSafeInteger(state.revision)))
+  )
 }
 
 export default function RecruitmentPage() {
@@ -60,7 +71,7 @@ export default function RecruitmentPage() {
   const { key, state } = useLocation()
   const navigationType = useNavigationType()
   const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
-  const entryState = readBoardEntryState(state)
+  const entryState = isBoardEntryState(state) ? state : undefined
   const snapshot = entryState?.type === BOARD_SNAPSHOT ? entryState : undefined
   const replacement = entryState?.type === BOARD_REPLACEMENT ? entryState : undefined
   const entryKey = entryState?.entryKey ?? key

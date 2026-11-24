@@ -94,9 +94,26 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(rows).toHaveCount(initialCount)
   })
 
-  test('SPE-3130 restores recruitment filters on a fresh visit and resets them with the keyboard', async ({
+  test('SPE-3130 / SPE-3137 restore recruitment filters and support keyboard and controller reset', async ({
     page,
   }) => {
+    await page.addInitScript(() => {
+      const pad = { pressed: -1 }
+      Object.assign(window, { recruitmentPad: pad })
+      Object.defineProperty(navigator, 'getGamepads', {
+        value: () => [
+          {
+            index: 0,
+            connected: true,
+            mapping: 'standard',
+            buttons: Array.from({ length: 17 }, (_, button) => ({
+              pressed: button === pad.pressed,
+              value: Number(button === pad.pressed),
+            })),
+          },
+        ],
+      })
+    })
     await clearCampaignStorage(page)
     await openFrontDesk(page)
     await openPrimaryNav(page, 'Recruitment')
@@ -124,6 +141,98 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(category).toHaveValue('all')
     await expect(sort).toHaveValue('expiry')
     await expect(filters.getByRole('status')).toBeEmpty()
+
+    await test.step('Traverse and activate recruitment controls using only gamepad input', async () => {
+      const press = (button: number) =>
+        page.evaluate(async (pressed) => {
+          const pad = (window as unknown as { recruitmentPad: { pressed: number } }).recruitmentPad
+          const pollFrames = () =>
+            new Promise<void>((resolve) =>
+              requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+            )
+          await pollFrames()
+          pad.pressed = pressed
+          await pollFrames()
+          pad.pressed = -1
+        }, button)
+      const previous = 14
+      const next = 15
+      const activate = 0
+      const expiring = filters.getByRole('checkbox', { name: 'Expiring soon only' })
+      const board = page.getByRole('article', { name: 'Candidate board' })
+      const rows = board.getByRole('listitem')
+      const expiryBadge = page.getByText('Expiring soon', { exact: true })
+
+      await openPrimaryNav(page, 'Operations Desk')
+      await advanceOperationalWeek(page)
+      await openPrimaryNav(page, 'Recruitment')
+      await expect(rows.first()).toBeVisible()
+      const initialCount = await rows.count()
+      const expiringCount = await rows.filter({ has: expiryBadge }).count()
+      expect(expiringCount).toBeLessThan(initialCount)
+
+      // Re-enter the visited board using the shell's controller history actions.
+      await press(4)
+      await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible()
+      await press(5)
+      await expect(page.getByRole('main')).toBeFocused()
+      await expect(expiring).not.toBeFocused()
+      await press(next)
+      await expect(expiring).toBeFocused()
+      await expect(expiring).not.toBeChecked()
+      await press(activate)
+      await expect(expiring).toBeChecked()
+      await expect(page).toHaveURL(/\/recruitment\?expiring=1$/)
+      await expect(rows).toHaveCount(expiringCount)
+      await expect(expiring).toBeFocused()
+
+      await press(next)
+      await expect(reset).toBeFocused()
+      await press(previous)
+      await expect(expiring).toBeFocused()
+      await press(activate)
+      await expect(expiring).not.toBeChecked()
+      await expect(rows).toHaveCount(initialCount)
+      await press(activate)
+      await expect(expiring).toBeChecked()
+
+      // A fresh URL visit restores the preference and applies it to the hydrated candidates.
+      await page.goto('/recruitment')
+      await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
+      await expect(expiring).toBeChecked()
+      await expect(rows.filter({ hasNot: expiryBadge })).toHaveCount(0)
+      await press(next)
+      await expect(expiring).toBeFocused()
+      await press(next)
+      await expect(reset).toBeFocused()
+      await press(activate)
+      await expect(reset).toBeFocused()
+      await expect(expiring).not.toBeChecked()
+      await expect(rows).toHaveCount(initialCount)
+      await page.goto('/recruitment')
+      await expect(rows).toHaveCount(initialCount)
+      await expect(filters.getByRole('status')).toBeEmpty()
+
+      // The results-area Reset disappears on success, so focus returns to the persistent Reset.
+      await page.goto('/recruitment?q=no-such-candidate&category=agent&sort=name&expiring=1')
+      const emptyReset = board.getByRole('button', { name: 'Reset filters' })
+      await expect(emptyReset).toBeVisible()
+      await press(next)
+      await expect(expiring).toBeFocused()
+      await press(next)
+      await expect(reset).toBeFocused()
+      await press(next)
+      await expect(emptyReset).toBeFocused()
+      await press(activate)
+      await expect(reset).toBeFocused()
+      await expect(emptyReset).toHaveCount(0)
+      await expect(page).toHaveURL(/\/recruitment$/)
+      await expect(category).toHaveValue('all')
+      await expect(sort).toHaveValue('expiry')
+      await expect(expiring).not.toBeChecked()
+      await expect(filters.getByRole('textbox', { name: 'Search' })).toBeEmpty()
+      await expect(rows).toHaveCount(initialCount)
+    })
   })
 
   test.describe('Recruitment query on a narrow touch viewport', () => {

@@ -236,6 +236,7 @@ describe('RecruitmentPage', () => {
     const reset = within(board).getByRole('button', { name: 'Reset filters' })
     reset.focus()
     await user.keyboard('{Enter}')
+    expect(within(filters).getByRole('button', { name: 'Reset filters' })).toHaveFocus()
     expect(count).toHaveTextContent('Showing 2 of 2')
     expect(within(filters).getByRole('combobox', { name: 'Sort' })).toHaveValue('expiry')
     expect(search).toHaveValue('')
@@ -342,7 +343,7 @@ describe('RecruitmentPage', () => {
 
     expect(screen.getByLabelText('Category')).toHaveValue('agent')
     expect(screen.getByLabelText('Sort')).toHaveValue('name')
-    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).toBeChecked()
     expect(screen.getByText(/avery holt/i)).toBeInTheDocument()
     expect(screen.queryByText(/briar lane/i)).not.toBeInTheDocument()
   })
@@ -356,7 +357,12 @@ describe('RecruitmentPage', () => {
     await user.type(screen.getByLabelText('Search'), 'briar')
     await user.selectOptions(screen.getByLabelText('Category'), 'staff')
     await user.selectOptions(screen.getByLabelText('Sort'), 'name')
-    await user.click(screen.getByLabelText('Expiring soon only'))
+    const expiring = screen.getByRole('checkbox', { name: 'Expiring soon only' })
+    await user.tab()
+    expect(expiring).toHaveFocus()
+    await user.keyboard(' ')
+    expect(expiring).toBeChecked()
+    expect(expiring).toHaveFocus()
 
     await waitFor(() => {
       const locationSearch = screen.getByTestId('location-search').textContent ?? ''
@@ -368,7 +374,15 @@ describe('RecruitmentPage', () => {
       expect(params.get('expiring')).toBe('1')
     })
 
-    await user.click(screen.getByRole('button', { name: /reset filters/i }))
+    await user.tab()
+    const reset = within(screen.getByRole('region', { name: 'Recruitment filters' })).getByRole(
+      'button',
+      { name: 'Reset filters' }
+    )
+    expect(reset).toHaveFocus()
+    await user.keyboard('{Enter}')
+    expect(reset).toHaveFocus()
+    expect(expiring).not.toBeChecked()
 
     await waitFor(() => {
       expect(screen.getByTestId('location-search')).toHaveTextContent('')
@@ -385,7 +399,7 @@ describe('RecruitmentPage', () => {
       expect(screen.getByLabelText('Search')).toHaveValue('avery')
       expect(screen.getByLabelText('Category')).toHaveValue('agent')
       expect(screen.getByLabelText('Sort')).toHaveValue('name')
-      expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).toBeChecked()
     })
 
     firstRender.unmount()
@@ -396,7 +410,7 @@ describe('RecruitmentPage', () => {
       expect(screen.getByLabelText('Search')).toHaveValue('avery')
       expect(screen.getByLabelText('Category')).toHaveValue('agent')
       expect(screen.getByLabelText('Sort')).toHaveValue('name')
-      expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+      expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).toBeChecked()
     })
   })
 
@@ -409,7 +423,7 @@ describe('RecruitmentPage', () => {
     await user.type(screen.getByLabelText('Search'), 'avery')
     await user.selectOptions(screen.getByLabelText('Category'), 'agent')
     await user.selectOptions(screen.getByLabelText('Sort'), 'name')
-    await user.click(screen.getByLabelText('Expiring soon only'))
+    await user.click(screen.getByRole('checkbox', { name: 'Expiring soon only' }))
     firstVisit.unmount()
 
     const secondVisit = renderRecruitmentPage()
@@ -417,7 +431,7 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Search')).toHaveValue('avery')
     expect(screen.getByLabelText('Category')).toHaveValue('agent')
     expect(screen.getByLabelText('Sort')).toHaveValue('name')
-    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).toBeChecked()
     const board = within(screen.getByRole('article', { name: 'Candidate board' }))
     expect(board.getByText('Avery Holt')).toBeInTheDocument()
     expect(board.queryByText('Briar Lane')).not.toBeInTheDocument()
@@ -432,7 +446,7 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Search')).toHaveValue('')
     expect(screen.getByLabelText('Category')).toHaveValue('all')
     expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
-    expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).not.toBeChecked()
   })
 
   it('updates an already-mounted live region when saved filters are restored', () => {
@@ -487,13 +501,19 @@ describe('RecruitmentPage', () => {
     commitReplacement()
     fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'name' } })
     commitReplacement()
-    fireEvent.click(screen.getByLabelText('Expiring soon only'))
+    const expiring = screen.getByRole('checkbox', { name: 'Expiring soon only' })
+    fireEvent.click(expiring)
+    fireEvent.click(expiring)
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('category=agent&sort=name')
+    fireEvent.click(expiring)
+    commitReplacement()
+    commitReplacement()
     commitReplacement()
     commitReplacement()
 
     expect(screen.getByLabelText('Category')).toHaveValue('agent')
     expect(screen.getByLabelText('Sort')).toHaveValue('name')
-    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    expect(expiring).toBeChecked()
     expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe(
       'category=agent&sort=name&expiring=1'
     )
@@ -557,7 +577,7 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Search')).toHaveValue('avery')
     expect(screen.getByLabelText('Category')).toHaveValue('all')
     expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
-    expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).not.toBeChecked()
     expect(screen.queryByRole('button', { name: 'Clear candidate filter' })).not.toBeInTheDocument()
   })
 
@@ -584,7 +604,7 @@ describe('RecruitmentPage', () => {
 
     expect(screen.getByLabelText('Category')).toHaveValue('all')
     expect(screen.getByLabelText('Sort')).toHaveValue('expiry')
-    expect(screen.getByLabelText('Expiring soon only')).not.toBeChecked()
+    expect(screen.getByRole('checkbox', { name: 'Expiring soon only' })).not.toBeChecked()
 
     await waitFor(() => {
       expect(screen.getByTestId('location-search')).toHaveTextContent('?q=avery')

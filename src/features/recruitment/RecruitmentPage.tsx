@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
+import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import { APP_ROUTES, RECRUITMENT_CANDIDATE_PARAM } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
@@ -78,6 +79,25 @@ export default function RecruitmentPage() {
     searchParams.size === 0 && !entryState && state !== EXPLICIT_DEFAULT_FILTERS
   const boardHeading = useRef<HTMLHeadingElement>(null)
   const restoreStatus = useRef<HTMLOutputElement>(null)
+  const expiryToggle = useRef<HTMLButtonElement>(null)
+  const filtersReset = useRef<HTMLButtonElement>(null)
+  const emptyBoardReset = useRef<HTMLButtonElement>(null)
+  const getControllerControls = () =>
+    [expiryToggle.current, filtersReset.current, emptyBoardReset.current].filter(
+      (control) => control !== null
+    )
+  useFocusedControls(getControllerControls)
+  useInputConsumer({
+    id: 'filters.next',
+    context: 'route',
+    available: () => {
+      const toggle = expiryToggle.current
+      if (!toggle) return false
+      const { activeElement } = toggle.ownerDocument
+      return !getControllerControls().some((control) => control === activeElement)
+    },
+    execute: () => expiryToggle.current?.focus(),
+  })
   const nextRevision = useRef(0)
   const pendingFilters = useRef<{
     entryKey: string
@@ -286,22 +306,27 @@ export default function RecruitmentPage() {
             ]}
           />
           <div className="flex items-end">
-            <label
-              htmlFor="recruitment-expiring"
-              className="flex w-full items-center justify-between gap-3 rounded border border-white/10 px-3 py-2 text-sm"
+            <button
+              id="recruitment-expiring"
+              ref={expiryToggle}
+              type="button"
+              role="checkbox"
+              aria-checked={filters.expiringSoonOnly}
+              className="flex w-full items-center justify-between gap-3 rounded border border-white/10 px-3 py-2 text-left text-sm focus:outline-2 focus:outline-offset-2"
+              onClick={() =>
+                updateFilters({
+                  expiringSoonOnly: !(getPendingFilters()?.filters ?? filters).expiringSoonOnly,
+                })
+              }
             >
               <span>Expiring soon only</span>
-              <input
-                id="recruitment-expiring"
-                type="checkbox"
-                checked={filters.expiringSoonOnly}
-                onChange={(event) =>
-                  updateFilters({
-                    expiringSoonOnly: event.target.checked,
-                  })
-                }
-              />
-            </label>
+              <span
+                aria-hidden="true"
+                className="flex size-4 shrink-0 items-center justify-center rounded-sm border border-current"
+              >
+                {filters.expiringSoonOnly ? '✓' : ''}
+              </span>
+            </button>
           </div>
         </div>
 
@@ -310,8 +335,9 @@ export default function RecruitmentPage() {
           <span>Visible fit: {visibleOverallCount}</span>
           <span>Expiring visible: {expiringSoonVisible}</span>
           <button
+            ref={filtersReset}
             type="button"
-            className="underline decoration-dotted underline-offset-4"
+            className="underline decoration-dotted underline-offset-4 focus:outline-2 focus:outline-offset-2"
             onClick={resetFilters}
           >
             Reset filters
@@ -618,7 +644,15 @@ export default function RecruitmentPage() {
               Clear the search or reset the board to review the full intake.
             </p>
             {hasActiveFilters ? (
-              <button type="button" className="btn btn-sm btn-ghost" onClick={resetFilters}>
+              <button
+                ref={emptyBoardReset}
+                type="button"
+                className="btn btn-sm btn-ghost focus:outline-2 focus:outline-offset-2"
+                onClick={() => {
+                  resetFilters()
+                  filtersReset.current?.focus()
+                }}
+              >
                 Reset filters
               </button>
             ) : null}

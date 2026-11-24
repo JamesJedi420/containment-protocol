@@ -83,6 +83,12 @@ export function buildThresholdCourtProtocolNote(
     }
   )
 }
+type AnchorFactionNoteResult =
+  | { disposition: 'produced'; note: ReportNote }
+  | { disposition: 'omitted'; reason: 'no-anchor-faction' }
+  | { disposition: 'invalid-input'; field: 'cases' | 'reports' | 'market' | 'events' }
+  | { disposition: 'builder-failure' }
+
 // SPE-52: Add a system note surfacing anchor faction instability at end of week
 export function buildAnchorFactionInstabilityNote(
   game: Pick<
@@ -97,13 +103,33 @@ export function buildAnchorFactionInstabilityNote(
     | 'events'
   >,
   week: number
-): ReportNote | null {
+): AnchorFactionNoteResult {
   try {
-    const states = buildFactionStates(game)
-    if (!states || states.length === 0) return null
-    const anchor = states[0]
+    if (!game.cases || typeof game.cases !== 'object' || Array.isArray(game.cases)) {
+      return { disposition: 'invalid-input', field: 'cases' }
+    }
+    if (
+      !Array.isArray(game.reports) ||
+      game.reports
+        .slice(-3)
+        .some(
+          (report) =>
+            !Array.isArray(report?.unresolvedTriggers) || !Array.isArray(report?.failedCases)
+        )
+    ) {
+      return { disposition: 'invalid-input', field: 'reports' }
+    }
+    if (!game.market || typeof game.market !== 'object' || Array.isArray(game.market)) {
+      return { disposition: 'invalid-input', field: 'market' }
+    }
+    if (!Array.isArray(game.events)) {
+      return { disposition: 'invalid-input', field: 'events' }
+    }
+
+    const [anchor] = buildFactionStates(game)
+    if (!anchor) return { disposition: 'omitted', reason: 'no-anchor-faction' }
     const distortion = inspectDistortion(anchor.distortion)
-    return createDeterministicReportNote(
+    const note = createDeterministicReportNote(
       `Anchor Faction Instability — Cohesion: ${anchor.cohesion}, Agenda Pressure: ${anchor.agendaPressure}, Reliability: ${anchor.reliability}, Distortion: ${anchor.distortion} (${distortion.summary})`,
       week,
       914,
@@ -120,8 +146,9 @@ export function buildAnchorFactionInstabilityNote(
         week,
       }
     )
+    return { disposition: 'produced', note }
   } catch {
-    return null
+    return { disposition: 'builder-failure' }
   }
 }
 import { getMarketPressureLabel } from '../data/production'

@@ -111,7 +111,7 @@ Fields set only when defined (no `undefined` values stored):
 | `buildEscalationConsequenceNote` | `system.escalation_consequence` | Threat family, escalation band, consequences, severeHit — sequence 910 |
 | `buildThresholdCourtProxyConflictNote` | `system.proxy_conflict` | Only emitted when `effect === 'proxy_interference'` — sequence 911 |
 | `buildThresholdCourtProtocolNote` | `system.protocol_contact` | Threshold Court contact outcome, reliability/distortion deltas — sequence 913 |
-| `buildAnchorFactionInstabilityNote` | `system.anchor_instability` | Anchor faction cohesion, agendaPressure, reliability, distortion summary — sequence 914 |
+| `buildAnchorFactionInstabilityNote` | `system.anchor_instability` | On `produced`, anchor faction cohesion, agendaPressure, reliability, and distortion summary with sequence 914 |
 
 ---
 
@@ -179,6 +179,22 @@ Hub notes are **not deterministic** — they use live `Date.now()` timestamps. T
 | `AgencyReportSummary` (`agency.ts`) | Reads `latestReport.notes.length` for UI rollup |
 | `agency.ts → countCriticalItems` | Counts `unresolvedTriggers` and `failedCases` in reports for urgency badge |
 
+### Anchor-faction builder disposition
+
+[SPE-3349](https://linear.app/spectranoir/issue/SPE-3349) owns this Codex slice under
+[SPE-3347](https://linear.app/spectranoir/issue/SPE-3347). The anchor-faction builder returns
+`produced` with the existing note, `omitted` when the faction projection has no anchor, or
+`invalid-input` with the field name when a required case, recent report, market, or event
+container is missing or malformed. An exception during construction returns `builder-failure`
+without exception text or state values. The input checks cover containers the faction builder
+reads directly and the case lists in the three recent reports it reads.
+
+`advanceWeek` adds only the `produced` note to the interim report. The existing
+`finalizeEvents` step replaces those interim notes with event-reflected notes. Developers can
+inspect the disposition at the builder return or its week-close call site. The disposition is
+absent from finalized reports, operation events, and persisted state. Event-map coverage and
+other guarded builders remain open on SPE-3349. SPE-3350 retains report-note identity.
+
 ---
 
 ## 9. Common Pitfalls
@@ -189,5 +205,5 @@ Hub notes are **not deterministic** — they use live `Date.now()` timestamps. T
 | Using `Date.now()` in event-reflected notes | Non-deterministic IDs — duplicate notes on hot reload or re-render | Always use `createDeterministicReportNote` with sequence counter |
 | Emitting hub notes through the deterministic path | Hub notes lack a stable sequence anchor | Keep hub notes in `buildHubReportNotes` separate from event-driven path |
 | Standalone system note sequences collide (e.g. two builders using sequence 910) | Notes share identical IDs — last-write wins or dedup errors | Reserve unique sequence values per builder (910–914 are currently claimed) |
-| Calling `buildAnchorFactionInstabilityNote` with a partial game state that lacks `market` or `events` | `buildFactionStates` throws — note is silently dropped via catch | Ensure all required fields are present when constructing the partial game state arg |
+| Calling `buildAnchorFactionInstabilityNote` with a partial game state that lacks `market` or `events` | The result reports `invalid-input` and names the field | Supply the canonical market and events before calling the builder |
 | Reading `factionStandingNet` from `ReportNoteMetadata` as the total standing — it is the net delta across all factions for one mission | Overstates cumulative faction impact | Use per-faction `standingAfter` fields for current standing, not net |

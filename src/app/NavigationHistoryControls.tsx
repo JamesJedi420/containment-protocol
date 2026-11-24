@@ -9,7 +9,7 @@ import {
   startNavigationHistory,
 } from './navigationHistory'
 
-export function NavigationHistoryControls() {
+export function NavigationHistoryControls({ active = true }: { active?: boolean }) {
   const location = useLocation()
   const action = useNavigationType()
   const navigate = useNavigate()
@@ -48,13 +48,13 @@ export function NavigationHistoryControls() {
   useInputConsumer({
     id: 'navigation.back',
     context: 'route',
-    available: () => !pendingRef.current && back !== null,
+    available: () => active && !pendingRef.current && back !== null,
     execute: () => travel(back),
   })
   useInputConsumer({
     id: 'navigation.forward',
     context: 'route',
-    available: () => !pendingRef.current && forward !== null,
+    available: () => active && !pendingRef.current && forward !== null,
     execute: () => travel(forward),
   })
 

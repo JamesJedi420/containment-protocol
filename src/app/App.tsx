@@ -4,6 +4,7 @@ import AppShell from './AppShell'
 import { APP_ROUTES } from './routes'
 import { getAutomaticMissionLoadError } from './store/gameStore'
 import { CampaignRecovery } from './CampaignRecovery'
+import { MainMenu } from './MainMenu'
 
 type RouteModule = { default: ComponentType }
 type RouteLoader = () => Promise<RouteModule>
@@ -185,6 +186,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={renderLazyRoute(OperationsDeskPage)} />
+        <Route path={APP_ROUTES.mainMenu} element={<MainMenu />} />
         <Route path="contracts" element={renderLazyRoute(ContractBoardPage)} />
         <Route path="agents">
           <Route index element={renderLazyRoute(AgentsPage)} />

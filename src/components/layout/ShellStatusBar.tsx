@@ -25,7 +25,7 @@ interface WeekCloseAnnouncement {
   reportLinkLabel: string
 }
 
-export function ShellStatusBar() {
+export function ShellStatusBar({ showUtilities = true }: { showUtilities?: boolean }) {
   const { game, advanceWeek, gameReplacementRevision } = useGameStore()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -133,7 +133,7 @@ export function ShellStatusBar() {
 
         <div className="topbar-right" data-testid="topbar-right-actions">
           <div className="topbar-utility-group" data-testid="topbar-utility-group">
-            <ReferenceAccess />
+            {showUtilities && <ReferenceAccess />}
 
             <button
               type="button"
@@ -162,7 +162,7 @@ export function ShellStatusBar() {
               {view.weeklyReportLabel}
             </Link>
 
-            <SettingsAccess />
+            {showUtilities && <SettingsAccess />}
           </div>
 
           <span className="topbar-divider" aria-hidden="true" />

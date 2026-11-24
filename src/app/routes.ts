@@ -2,6 +2,7 @@ const RECRUITMENT_PATH = '/recruitment'
 export const RECRUITMENT_CANDIDATE_PARAM = 'candidate'
 
 export const APP_ROUTES = {
+  mainMenu: '/main-menu',
   operationsDesk: '/',
   dashboard: '/',
   help: '/help',

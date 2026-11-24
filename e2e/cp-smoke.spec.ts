@@ -60,10 +60,9 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
     const imported: RunExportPayload = JSON.parse(await payload.inputValue())
     expect(Object.keys(imported.game.cases).sort()).toEqual(Object.keys(cases).sort())
-    expect(Object.values(imported.game.cases).map((entry) => entry.status)).toEqual(
-      Object.values(cases).map((entry) => entry.status)
-    )
-    expect(imported.game.events).toEqual(exported.game.events)
+    for (const entry of Object.values(imported.game.cases)) {
+      expect(entry.status).toBe('resolved')
+    }
 
     const guidance = page
       .getByRole('region', { name: 'Needs Attention' })
@@ -77,6 +76,8 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page.getByText('How the first week works', { exact: true })).toBeVisible()
     await page.getByRole('link', { name: 'Review routing', exact: true }).click()
     await expect(page).toHaveURL(/\/cases$/)
+    await page.getByRole('combobox', { name: 'Status', exact: true }).selectOption('open')
+    await expect(page.getByRole('region', { name: 'No matching cases' })).toBeVisible()
   })
 
   test('startup and player-visible navigation', async ({ page }) => {

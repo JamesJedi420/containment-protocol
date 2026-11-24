@@ -164,6 +164,31 @@ describe('ritualComponentSchema (SPE-1332 slice 1)', () => {
     )
   })
 
+  it('compares reused variant and slot ids only within the requested frame', () => {
+    const otherDawn = {
+      ...fictionalCureVariants[0],
+      id: 'ritual-component:dawn-key',
+      kind: 'object',
+      label: 'echo key',
+      frameId: omenFrame,
+    } as const
+    const otherDusk = {
+      ...fictionalCureVariants[1],
+      id: 'ritual-component:dusk-key',
+      kind: 'object',
+      label: 'shadow key',
+      frameId: omenFrame,
+    } as const
+    const combined = [otherDusk, ...fictionalCureVariants, otherDawn]
+
+    expect(compareRitualVariants(combined, cureFrame, dawn, dusk)).toEqual(
+      compareRitualVariants(fictionalCureVariants, cureFrame, dawn, dusk)
+    )
+    expect(compareRitualVariants(combined, omenFrame, dawn, dusk)).toEqual([
+      { slotId: 'ritual-slot:token', left: otherDawn, right: otherDusk },
+    ])
+  })
+
   it('rejects unpaired metadata, ambiguous slots, and comparisons without both variants', () => {
     const first = fictionalCureVariants[0]
     const unpaired = { ...first, slotId: undefined }
@@ -187,7 +212,7 @@ describe('ritualComponentSchema (SPE-1332 slice 1)', () => {
 
   it('stores an omen-triggered, multi-channel fictional component set', () => {
     const records: RitualComponent[] = fictionalOmen.map(([kind, label]) => ({
-      id: `ritual-component:omen-${kind.replace('_', '-')}`,
+      id: `ritual-component:omen-${kind.replaceAll('_', '-')}`,
       kind,
       label,
       certainty: kind === 'wording' ? 'unknown' : 'known',

@@ -477,7 +477,9 @@ it('explains Defer before selection and records it without deploying a team', as
   const defer = detail.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer })
   const warning = MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail
   expect(game.cases[archiveId]).toMatchObject({ status: 'open', assignedTeamIds: [] })
-  expect(game.missionRouting.missions[archiveId].playerDisposition).toBeUndefined()
+  const initialMission = game.missionRouting.missions[archiveId]
+  expect(initialMission, 'expected a routing record for the open Archive').toBeDefined()
+  expect(initialMission?.playerDisposition).toBeUndefined()
   expect(detail.getByText(warning)).toBeVisible()
   expect(defer).toHaveAccessibleDescription(warning)
   expect(defer).toHaveAttribute('aria-pressed', 'false')

@@ -302,11 +302,12 @@ describe('FrontDeskPage', () => {
     expect(guide).toHaveAttribute('open')
     expect(within(guide).getByText(/You run the containment agency/)).toBeVisible()
     expect(within(guide).getAllByRole('listitem')).toHaveLength(9)
+    expect(within(guide).getByText('Train, recover, and prepare.')).toBeVisible()
     expect(within(guide).getByText(/A stabilizing week.*A degraded week/)).toBeVisible()
     expect(dossier).toBeVisible()
     expect(useGameStore.getState().game).toBe(before)
 
-    act(() => useGameStore.getState().advanceWeek())
+    await user.click(screen.getByRole('button', { name: /^advance week\s*→$/i }))
     expect(useGameStore.getState().game.week).toBe(2)
     expect(summary).not.toBeInTheDocument()
   })

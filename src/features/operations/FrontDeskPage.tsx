@@ -400,7 +400,8 @@ export default function FrontDeskPage() {
               before committing.
             </li>
             <li>
-              <strong>Train and prepare.</strong> Close gaps that could affect this week’s work.
+              <strong>Train, recover, and prepare.</strong> Rest staff and address readiness gaps
+              before committing teams.
             </li>
             <li>
               <strong>Form teams.</strong> Match people to the work and check what each team can

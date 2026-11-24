@@ -127,6 +127,60 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(filters.getByRole('status')).toBeEmpty()
   })
 
+  test.describe('Recruitment query on a narrow touch viewport', () => {
+    test.use({ hasTouch: true, locale: 'fr-FR', viewport: { width: 390, height: 844 } })
+
+    test('SPE-3137 keeps name order and makes empty results and reset accessible', async ({
+      page,
+    }) => {
+      await clearCampaignStorage(page)
+      await advanceOperationalWeek(page)
+      await openPrimaryNav(page, 'Recruitment')
+
+      const filters = page.getByRole('region', { name: 'Recruitment filters' })
+      const board = page.getByRole('article', { name: 'Candidate board' })
+      const rows = board.getByRole('listitem')
+      const sort = filters.getByRole('combobox', { name: 'Sort' })
+      await sort.selectOption('name')
+      await expect(page).toHaveURL(/sort=name$/)
+      const names = await rows.evaluateAll((items) =>
+        items.map((item) => item.querySelector('p')?.textContent ?? '')
+      )
+      expect(names.length).toBeGreaterThan(1)
+      expect(names).toEqual([...names].sort())
+      expect(await board.ariaSnapshot()).toContain('listitem')
+
+      const expiring = filters.getByRole('checkbox', { name: 'Expiring soon only' })
+      await expiring.tap()
+      await expect(expiring).toBeChecked()
+      await expect(page).toHaveURL(/expiring=1/)
+      const query = filters.getByRole('textbox', { name: 'Search' })
+      await query.fill('aucun résultat')
+      await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'aucun résultat')
+      const count = filters.getByText(`Showing 0 of ${names.length}`)
+      await expect(count).toHaveAttribute('aria-live', 'polite')
+      await expect(board.getByText('No candidates match the current filters.')).toBeVisible()
+      for (const region of [filters, board]) {
+        const bounds = await region.boundingBox()
+        expect(bounds?.x).toBeGreaterThanOrEqual(0)
+        expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390)
+        expect(await region.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+          true
+        )
+      }
+
+      const reset = filters.getByRole('button', { name: 'Reset filters' })
+      await expiring.focus()
+      await page.keyboard.press('Tab')
+      await expect(reset).toBeFocused()
+      await reset.tap()
+      await expect(query).toBeEmpty()
+      await expect(sort).toHaveValue('expiry')
+      await expect(expiring).not.toBeChecked()
+      await expect(rows).toHaveCount(names.length)
+    })
+  })
+
   test('advance one operational week through player controls', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {

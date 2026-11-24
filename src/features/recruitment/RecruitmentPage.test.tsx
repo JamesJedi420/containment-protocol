@@ -204,6 +204,43 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/overall fit obscured/i)).toBeInTheDocument()
   })
 
+  it('shows visible fit order and announces results for non-ASCII search and keyboard reset', async () => {
+    const user = userEvent.setup()
+    const game = buildRecruitmentGame()
+    const [agent, staff] = game.candidates
+    game.candidates = [
+      { ...agent!, name: 'Éloïse Holt' },
+      { ...staff!, name: 'Ari Lane', evaluation: { ...staff!.evaluation, overallValue: 99 } },
+    ]
+    useGameStore.setState({ game })
+    renderRecruitmentPage('/recruitment?sort=overall')
+
+    const board = screen.getByRole('article', { name: 'Candidate board' })
+    const filters = screen.getByRole('region', { name: 'Recruitment filters' })
+    const count = within(filters).getByText('Showing 2 of 2')
+    expect(count).toHaveAttribute('aria-live', 'polite')
+    expect(count).toHaveAttribute('aria-atomic', 'true')
+    expect(within(board).getAllByRole('listitem')[0]).toHaveTextContent('Éloïse Holt')
+
+    const search = within(filters).getByRole('textbox', { name: 'Search' })
+    await user.type(search, 'ÉLOÏSE')
+    expect(count).toHaveTextContent('Showing 1 of 2')
+    expect(within(board).getByRole('listitem')).toHaveTextContent('Éloïse Holt')
+    expect(screen.getByTestId('location-search')).toHaveTextContent('sort=overall')
+
+    await user.clear(search)
+    await user.type(search, 'aucun résultat')
+    expect(count).toHaveTextContent('Showing 0 of 2')
+    expect(within(board).getByText('No candidates match the current filters.')).toBeVisible()
+
+    const reset = within(board).getByRole('button', { name: 'Reset filters' })
+    reset.focus()
+    await user.keyboard('{Enter}')
+    expect(count).toHaveTextContent('Showing 2 of 2')
+    expect(within(filters).getByRole('combobox', { name: 'Sort' })).toHaveValue('expiry')
+    expect(search).toHaveValue('')
+  })
+
   it('rejects a stale operative offer and rechecks faction policy before hiring', async () => {
     const user = userEvent.setup()
     const game = buildRecruitmentGame()

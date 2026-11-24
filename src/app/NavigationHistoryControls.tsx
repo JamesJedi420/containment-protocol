@@ -1,7 +1,8 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useNavigationType } from 'react-router'
+import { matchPath, useLocation, useNavigate, useNavigationType } from 'react-router'
 import { useGameStore } from './store/gameStore'
 import { dispatchInputAction, useInputConsumer } from './inputRuntime'
+import { APP_ROUTES } from './routes'
 import {
   findNavigationDelta,
   isNavigationDestinationAvailable,
@@ -9,7 +10,7 @@ import {
   startNavigationHistory,
 } from './navigationHistory'
 
-export function NavigationHistoryControls() {
+export function NavigationHistoryControls({ active = true }: { readonly active?: boolean }) {
   const location = useLocation()
   const action = useNavigationType()
   const navigate = useNavigate()
@@ -34,6 +35,7 @@ export function NavigationHistoryControls() {
   }, [action, location.key])
 
   const available = (entry: { pathname: string }) =>
+    !matchPath(APP_ROUTES.mainMenu, entry.pathname) &&
     isNavigationDestinationAvailable(entry.pathname, game)
   const back = findNavigationDelta(observed, -1, available)
   const forward = findNavigationDelta(observed, 1, available)
@@ -48,13 +50,13 @@ export function NavigationHistoryControls() {
   useInputConsumer({
     id: 'navigation.back',
     context: 'route',
-    available: () => !pendingRef.current && back !== null,
+    available: () => active && !pendingRef.current && back !== null,
     execute: () => travel(back),
   })
   useInputConsumer({
     id: 'navigation.forward',
     context: 'route',
-    available: () => !pendingRef.current && forward !== null,
+    available: () => active && !pendingRef.current && forward !== null,
     execute: () => travel(forward),
   })
 

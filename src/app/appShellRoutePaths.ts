@@ -4,6 +4,7 @@
  */
 export const APP_SHELL_STATIC_ROUTE_PATHS = [
   '',
+  'main-menu',
   'contracts',
   'agents',
   'recruitment',

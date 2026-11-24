@@ -25,7 +25,7 @@ interface WeekCloseAnnouncement {
   reportLinkLabel: string
 }
 
-export function ShellStatusBar({ showUtilities = true }: { showUtilities?: boolean }) {
+export function ShellStatusBar({ showUtilities = true }: { readonly showUtilities?: boolean }) {
   const { game, advanceWeek, gameReplacementRevision } = useGameStore()
   const location = useLocation()
   const [searchParams] = useSearchParams()

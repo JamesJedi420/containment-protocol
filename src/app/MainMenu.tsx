@@ -59,7 +59,9 @@ function canContinueCampaign(): boolean {
 export function MainMenu() {
   const navigate = useNavigate()
   const heading = useRef<HTMLHeadingElement>(null)
-  const [canContinue, setCanContinue] = useState(canContinueCampaign)
+  const [continueStatus, setContinueStatus] = useState<'unavailable' | 'ready' | 'unconfirmed'>(
+    () => (canContinueCampaign() ? 'ready' : 'unavailable')
+  )
 
   useLayoutEffect(() => {
     heading.current?.focus()
@@ -67,7 +69,7 @@ export function MainMenu() {
 
   function continueCampaign() {
     if (!canContinueCampaign()) {
-      setCanContinue(false)
+      setContinueStatus('unconfirmed')
       return
     }
 
@@ -90,18 +92,17 @@ export function MainMenu() {
         <button
           type="button"
           className="btn btn-primary min-h-11"
-          disabled={!canContinue}
+          disabled={continueStatus !== 'ready'}
           onClick={continueCampaign}
         >
           Continue
         </button>
         <SettingsAccess />
       </div>
-      {!canContinue && (
-        <p role="status" className="text-sm text-text-soft">
-          A saved campaign could not be confirmed.
-        </p>
-      )}
+      <output className="block text-sm text-text-soft empty:m-0">
+        {continueStatus === 'unavailable' && 'No campaign is ready to continue.'}
+        {continueStatus === 'unconfirmed' && 'A saved campaign could not be confirmed.'}
+      </output>
     </section>
   )
 }

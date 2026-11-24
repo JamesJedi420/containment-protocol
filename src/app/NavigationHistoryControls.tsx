@@ -9,7 +9,7 @@ import {
   startNavigationHistory,
 } from './navigationHistory'
 
-export function NavigationHistoryControls({ active = true }: { active?: boolean }) {
+export function NavigationHistoryControls({ active = true }: { readonly active?: boolean }) {
   const location = useLocation()
   const action = useNavigationType()
   const navigate = useNavigate()

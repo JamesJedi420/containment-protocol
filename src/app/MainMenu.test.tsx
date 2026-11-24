@@ -73,8 +73,9 @@ describe('local Main Menu', () => {
 
       const button = screen.getByRole('button', { name: 'Continue' })
       expect(button).toBeDisabled()
+      expect(screen.getByText('No campaign is ready to continue.')).toBeVisible()
       await user.click(button)
-      expect(screen.getByText('A saved campaign could not be confirmed.')).toBeVisible()
+      expect(screen.queryByText('A saved campaign could not be confirmed.')).not.toBeInTheDocument()
       expect(screen.getByRole('heading', { name: 'Main Menu' })).toBeVisible()
       expect(useGameStore.getState()).toBe(state)
       expect(localStorage.getItem(storageKey)).toBe(raw)
@@ -89,9 +90,11 @@ describe('local Main Menu', () => {
 
     const button = screen.getByRole('button', { name: 'Continue' })
     expect(button).toBeEnabled()
+    expect(screen.queryByText('A saved campaign could not be confirmed.')).not.toBeInTheDocument()
     localStorage.setItem(storageKey, 'changed in another tab')
     await user.click(button)
     expect(button).toBeDisabled()
+    expect(screen.getByRole('status')).toHaveTextContent('A saved campaign could not be confirmed.')
     expect(screen.getByRole('heading', { name: 'Main Menu' })).toBeVisible()
     expect(useGameStore.getState()).toBe(state)
     expect(localStorage.getItem(storageKey)).toBe('changed in another tab')

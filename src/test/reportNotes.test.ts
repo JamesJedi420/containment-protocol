@@ -106,11 +106,18 @@ describe('Anchor faction report disposition', () => {
     const builder = vi
       .spyOn(reportNotes, 'buildAnchorFactionInstabilityNote')
       .mockReturnValueOnce(failure)
+    const score = vi.spyOn(scoring, 'calcWeekScore')
     const next = advanceWeek(startingState)
+    const [interimReport] = score.mock.calls[0]
 
     expect(builder).toHaveReturnedWith(failure)
+    expect(interimReport.notes?.some((note) => note.type === 'system.anchor_instability')).toBe(
+      false
+    )
     expect(next.reports.at(-1)).toMatchObject({ week: startingState.week })
-    expect(JSON.stringify([next.reports, next.events])).not.toContain(failure.disposition)
+    expect(JSON.stringify([interimReport, next.reports, next.events])).not.toContain(
+      failure.disposition
+    )
   })
 })
 

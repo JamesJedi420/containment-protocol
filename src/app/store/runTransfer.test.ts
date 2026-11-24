@@ -9504,11 +9504,20 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
-    it.each([2, 3, 4])(
+    it.each([
+      [2, false],
+      [3, false],
+      [4, false],
+      [5, true],
+    ] as const)(
       'keeps a scouted recruit eligible through its week +%i expiry after JSON reload',
-      (weeksUntilExpiry) => {
+      (weeksUntilExpiry, intelSurge) => {
         const fallback = createStartingState()
-        const generated = advanceWeek(fallback)
+        const generated = advanceWeek(
+          intelSurge
+            ? { ...fallback, directiveState: { selectedId: 'intel-surge', history: [] } }
+            : fallback
+        )
         const expiryWeek = generated.week + weeksUntilExpiry
         const recruit = generated.candidates.find(
           (candidate) => candidate.category === 'agent' && candidate.expiryWeek === expiryWeek
@@ -9520,7 +9529,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         expect(previewCandidate(original, campaign).canHire).toBe(true)
         expect(original.availabilityWindow).toEqual({
           opensWeek: campaign.week,
-          closesWeek: expiryWeek,
+          closesWeek: expiryWeek - Number(intelSurge),
         })
 
         // Keep the test campaign open through the expiry and the following week close.

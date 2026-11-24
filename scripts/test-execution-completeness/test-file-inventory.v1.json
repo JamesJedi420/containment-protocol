@@ -823,6 +823,7 @@
     "src/test/revealPayloadDisguiseIntegration.test.ts",
     "src/test/revealPayloadOrchestration.test.ts",
     "src/test/revealPayloadScoutingIntegration.test.ts",
+    "src/test/ritualComponentSchema.test.ts",
     "src/test/rivalExpeditionProgress.test.ts",
     "src/test/rivalExpeditionWeekClose.test.ts",
     "src/test/rivalPressure.test.ts",

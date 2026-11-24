@@ -30,12 +30,28 @@ import {
 const SCOUTING_NOTICE_NAVIGATION = 'recruitment-scouting-notice'
 const EXPLICIT_DEFAULT_FILTERS = 'recruitment-explicit-default-filters'
 const BOARD_SNAPSHOT = 'recruitment-board-snapshot'
-type BoardSnapshot = { type: typeof BOARD_SNAPSHOT; search: string; restored: boolean }
+const BOARD_REPLACEMENT = 'recruitment-board-replacement'
+type BoardSnapshot = {
+  type: typeof BOARD_SNAPSHOT
+  entryKey?: string
+  search: string
+  restored: boolean
+}
+type BoardReplacement = {
+  type: typeof BOARD_REPLACEMENT
+  entryKey: string
+  revision?: number
+}
 
-function isBoardSnapshot(state: unknown): state is BoardSnapshot {
-  return (
-    typeof state === 'object' && state !== null && 'type' in state && state.type === BOARD_SNAPSHOT
-  )
+function readBoardEntryState(state: unknown): BoardSnapshot | BoardReplacement | undefined {
+  if (
+    typeof state === 'object' &&
+    state !== null &&
+    'type' in state &&
+    (state.type === BOARD_SNAPSHOT || state.type === BOARD_REPLACEMENT)
+  ) {
+    return state as BoardSnapshot | BoardReplacement
+  }
 }
 
 export default function RecruitmentPage() {
@@ -44,21 +60,29 @@ export default function RecruitmentPage() {
   const { key, state } = useLocation()
   const navigationType = useNavigationType()
   const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
+  const entryState = readBoardEntryState(state)
+  const snapshot = entryState?.type === BOARD_SNAPSHOT ? entryState : undefined
+  const replacement = entryState?.type === BOARD_REPLACEMENT ? entryState : undefined
+  const entryKey = entryState?.entryKey ?? key
+  const shouldSnapshot =
+    searchParams.size === 0 && !entryState && state !== EXPLICIT_DEFAULT_FILTERS
   const boardHeading = useRef<HTMLHeadingElement>(null)
   const restoreStatus = useRef<HTMLOutputElement>(null)
+  const nextRevision = useRef(0)
   const pendingFilters = useRef<{
-    locationKey: string
+    entryKey: string
+    revision: number
     filters: RecruitmentListFilters
     candidate?: string
   }>(undefined)
   const restoredFilters = useMemo(
     () =>
-      searchParams.size === 0 && isBoardSnapshot(state)
-        ? readRecruitmentListFilters(new URLSearchParams(state.search))
-        : searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS
+      searchParams.size === 0 && snapshot
+        ? readRecruitmentListFilters(new URLSearchParams(snapshot.search))
+        : shouldSnapshot
           ? readRecruitmentListPreferences()
           : undefined,
-    [searchParams, state]
+    [searchParams, shouldSnapshot, snapshot]
   )
   const filters = useMemo(
     () => restoredFilters ?? readRecruitmentListFilters(searchParams),
@@ -81,29 +105,44 @@ export default function RecruitmentPage() {
   const normalizedSearch = normalizedSearchParams.toString()
 
   useEffect(() => {
-    if (searchParams.size === 0 && state !== EXPLICIT_DEFAULT_FILTERS && !isBoardSnapshot(state)) {
+    const pending = pendingFilters.current
+    if (pending) {
+      // Earlier replaces can render first. Only our latest edit acknowledges the draft.
+      if (pending.entryKey === entryKey && pending.revision !== replacement?.revision) return
+      pendingFilters.current = undefined
+    }
+
+    if (shouldSnapshot) {
       setSearchParams('', {
         replace: true,
         state: {
           type: BOARD_SNAPSHOT,
+          entryKey,
           search: normalizedSearch,
           restored: Boolean(restoredFilters),
-        },
+        } satisfies BoardSnapshot,
       })
     } else if (searchParams.size > 0 && searchParams.toString() !== normalizedSearch) {
       setSearchParams(normalizedSearch, {
         replace: true,
-        state: normalizedSearch ? null : EXPLICIT_DEFAULT_FILTERS,
+        state: { type: BOARD_REPLACEMENT, entryKey } satisfies BoardReplacement,
       })
     }
-  }, [normalizedSearch, restoredFilters, searchParams, setSearchParams, state])
+  }, [
+    entryKey,
+    normalizedSearch,
+    replacement,
+    restoredFilters,
+    searchParams,
+    setSearchParams,
+    shouldSnapshot,
+  ])
 
   useEffect(() => {
     if (restoreStatus.current) {
-      restoreStatus.current.textContent =
-        isBoardSnapshot(state) && state.restored ? 'Saved filters restored' : ''
+      restoreStatus.current.textContent = snapshot?.restored ? 'Saved filters restored' : ''
     }
-  }, [state])
+  }, [snapshot])
 
   useEffect(() => {
     if (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice)) {
@@ -111,25 +150,27 @@ export default function RecruitmentPage() {
     }
   }, [activeCandidateId, fromScoutingNotice, key, navigationType])
 
-  useEffect(() => {
-    if (pendingFilters.current?.locationKey !== key) pendingFilters.current = undefined
-  }, [key])
+  const getPendingFilters = () => {
+    const pending = pendingFilters.current
+    return pending?.entryKey === entryKey ? pending : undefined
+  }
 
   const replaceFilters = (nextFilters: RecruitmentListFilters, candidate?: string) => {
     const nextSearchParams = writeRecruitmentListFilters(nextFilters)
     if (candidate) {
       nextSearchParams.set(RECRUITMENT_CANDIDATE_PARAM, candidate)
     }
-    // Consecutive input events can arrive before the router renders the replaced entry.
-    pendingFilters.current = { locationKey: key, filters: nextFilters, candidate }
+    nextRevision.current = Math.max(nextRevision.current, replacement?.revision ?? 0) + 1
+    const revision = nextRevision.current
+    pendingFilters.current = { entryKey, revision, filters: nextFilters, candidate }
     setSearchParams(nextSearchParams, {
       replace: true,
-      state: nextSearchParams.size > 0 ? null : EXPLICIT_DEFAULT_FILTERS,
+      state: { type: BOARD_REPLACEMENT, entryKey, revision } satisfies BoardReplacement,
     })
   }
 
   const updateFilters = (patch: Partial<RecruitmentListFilters>) => {
-    const pending = pendingFilters.current?.locationKey === key ? pendingFilters.current : undefined
+    const pending = getPendingFilters()
     const nextFilters = { ...(pending?.filters ?? filters), ...patch }
     saveRecruitmentListPreferences(nextFilters)
     replaceFilters(nextFilters, pending ? pending.candidate : activeCandidateId)
@@ -392,7 +433,7 @@ export default function RecruitmentPage() {
               type="button"
               className="btn btn-sm btn-ghost"
               onClick={() => {
-                replaceFilters(filters)
+                replaceFilters(getPendingFilters()?.filters ?? filters)
                 boardHeading.current?.focus()
               }}
             >

@@ -2,8 +2,20 @@
 import '../../test/setup'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  createPath,
+  MemoryRouter,
+  NavigationType,
+  parsePath,
+  Route,
+  Router,
+  Routes,
+  useLocation,
+  useNavigate,
+  type Location,
+  type To,
+} from 'react-router'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { type Candidate } from '../../domain/models'
 import { useGameStore } from '../../app/store/gameStore'
@@ -368,6 +380,47 @@ describe('RecruitmentPage', () => {
     expect(screen.getByLabelText('Category')).toHaveValue('agent')
     expect(screen.getByLabelText('Sort')).toHaveValue('name')
     expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe('category=agent&sort=name')
+  })
+
+  it('retains filter edits when the router commits older replacements between input events', () => {
+    const replacements: Location[] = []
+    const navigator = {
+      createHref: (to: To) => (typeof to === 'string' ? to : createPath(to)),
+      go: vi.fn(),
+      push: vi.fn(),
+      replace(to: To, state: unknown) {
+        replacements.push({
+          pathname: '/recruitment',
+          search: '',
+          hash: '',
+          ...(typeof to === 'string' ? parsePath(to) : to),
+          state,
+          key: `replacement-${replacements.length}`,
+        })
+      },
+    }
+    const board = (location: Location) => (
+      <Router location={location} navigator={navigator} navigationType={NavigationType.Replace}>
+        <RecruitmentPage />
+      </Router>
+    )
+    const { rerender } = render(
+      board({ pathname: '/recruitment', search: '', hash: '', state: null, key: 'entry' })
+    )
+
+    fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'agent' } })
+    rerender(board(replacements[0]!))
+    fireEvent.change(screen.getByLabelText('Sort'), { target: { value: 'name' } })
+    rerender(board(replacements[1]!))
+    fireEvent.click(screen.getByLabelText('Expiring soon only'))
+    rerender(board(replacements.at(-1)!))
+
+    expect(screen.getByLabelText('Category')).toHaveValue('agent')
+    expect(screen.getByLabelText('Sort')).toHaveValue('name')
+    expect(screen.getByLabelText('Expiring soon only')).toBeChecked()
+    expect(localStorage.getItem(RECRUITMENT_LIST_PREFERENCES_KEY)).toBe(
+      'category=agent&sort=name&expiring=1'
+    )
   })
 
   it.each(['?sort=expiry', '?candidate=missing'])(

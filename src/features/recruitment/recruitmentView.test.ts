@@ -117,6 +117,132 @@ describe('recruitment view contract', () => {
     })
   })
 
+  it.each(['overall', 'expiry', 'wage', 'name'] as const)(
+    'keeps visible order and search results identical when hidden values change under %s sort',
+    (sort) => {
+      const game = createStartingState()
+      const [template] = buildCandidates()
+      if (template?.category !== 'agent') throw new Error('Expected an agent candidate fixture')
+
+      const makeCandidate = (id: string, hiddenFit: number): Candidate => ({
+        ...template,
+        id,
+        name: 'Éloïse Holt',
+        revealLevel: 0,
+        sourceContactName: `Unlisted contact ${hiddenFit}`,
+        evaluation: {
+          ...template.evaluation,
+          overallVisible: false,
+          overallValue: hiddenFit,
+          potentialVisible: false,
+          potentialTier: hiddenFit > 50 ? 'high' : 'low',
+        },
+        agentData: {
+          ...template.agentData,
+          traits: [`unlisted-trait-${hiddenFit}`],
+          stats: { combat: hiddenFit, investigation: 42, utility: 48, social: 35 },
+        },
+      })
+
+      const readVisibleResults = () =>
+        getRecruitmentCandidateViews(game, { search: ' ÉLOÏSE ', category: 'agent', sort }).map(
+          ({ candidate, roleLabel, overallLabel, potentialLabel, sourceLabel }) => ({
+            id: candidate.id,
+            roleLabel,
+            overallLabel,
+            potentialLabel,
+            sourceLabel,
+          })
+        )
+
+      game.candidates = [makeCandidate('cand-b', 99), makeCandidate('cand-a', 10)]
+      const initial = readVisibleResults()
+      expect(initial.map(({ id }) => id)).toEqual(['cand-a', 'cand-b'])
+      expect(initial.map(({ overallLabel }) => overallLabel)).toEqual(['Obscured', 'Obscured'])
+
+      game.candidates = [makeCandidate('cand-b', 10), makeCandidate('cand-a', 99)]
+      expect(readVisibleResults()).toEqual(initial)
+      game.candidates.reverse()
+      expect(readVisibleResults()).toEqual(initial)
+      expect(getRecruitmentCandidateViews(game, { search: 'Unlisted contact', sort })).toEqual([])
+      expect(getRecruitmentCandidateViews(game, { search: 'unlisted-trait', sort })).toEqual([])
+    }
+  )
+
+  it('uses visible numeric values and places stale or missing values after known values', () => {
+    const game = createStartingState()
+    game.week = 4
+    const [first, second, third] = buildCandidates()
+    game.candidates = [
+      {
+        ...first!,
+        expiryWeek: Number.NaN,
+        weeklyWage: undefined,
+        evaluation: { ...baseEvaluation, overallValue: Number.NaN },
+      },
+      { ...second!, expiryWeek: 6, evaluation: { ...second!.evaluation, overallValue: 100 } },
+      { ...third!, expiryWeek: 6 },
+    ]
+    const readOrder = (sort: 'expiry' | 'overall' | 'wage') =>
+      getRecruitmentCandidateViews(game, { sort }).map(({ candidate }) => candidate.id)
+
+    expect(readOrder('expiry')).toEqual(['cand-charlie', 'cand-bravo', 'cand-alpha'])
+    expect(readOrder('overall')).toEqual(['cand-charlie', 'cand-bravo', 'cand-alpha'])
+    expect(readOrder('wage')).toEqual(['cand-bravo', 'cand-charlie', 'cand-alpha'])
+    expect(getRecruitmentCandidateViews(game, { expiringSoonOnly: true })).toEqual([])
+    expect(getRecruitmentCandidateViews(game, { search: 'avery' })[0]?.overallLabel).toBe(
+      'Obscured'
+    )
+
+    game.candidates = [
+      { ...first!, weeklyWage: 25 },
+      { ...second!, name: 'Aaron Lane', weeklyWage: 25 },
+    ]
+    expect(readOrder('wage')).toEqual(['cand-bravo', 'cand-alpha'])
+  })
+
+  it('searches displayed specialty and category values instead of legacy storage values', () => {
+    const game = createStartingState()
+    const [, staff] = buildCandidates()
+    if (staff?.category !== 'staff') throw new Error('Expected a staff candidate fixture')
+    game.candidates = [
+      { ...staff, staffData: { ...staff.staffData, specialty: 'intelligence' } },
+      {
+        ...staff,
+        id: 'cand-specialist',
+        category: 'fieldTech',
+        staffData: undefined,
+      },
+    ]
+    const readIds = (search: string, category?: string) =>
+      getRecruitmentCandidateViews(game, { search, category }).map(({ candidate }) => candidate.id)
+
+    expect(readIds('staff / intel', 'staff')).toEqual(['cand-bravo'])
+    expect(readIds('specialist', 'specialist')).toEqual(['cand-specialist'])
+    expect(readIds('intelligence')).toEqual([])
+    expect(readIds('fieldTech')).toEqual([])
+    expect(readIds('specialist', 'staff')).toEqual([])
+  })
+
+  it('evaluates a representative board with stable results within one second', () => {
+    const game = createStartingState()
+    const [, staff] = buildCandidates()
+    if (staff?.category !== 'staff') throw new Error('Expected a staff candidate fixture')
+    const indices = Array.from({ length: 250 }, (_, index) => String(index).padStart(3, '0'))
+    game.candidates = [...indices].reverse().map((index) => ({
+      ...staff,
+      id: `candidate-${index}`,
+      name: `Candidate ${index}`,
+    }))
+
+    const started = performance.now()
+    const ids = getRecruitmentCandidateViews(game, { category: 'staff', sort: 'name' }).map(
+      ({ candidate }) => candidate.id
+    )
+    expect(performance.now() - started).toBeLessThan(1000)
+    expect(ids).toEqual(indices.map((index) => `candidate-${index}`))
+  })
+
   it('reports recruitment pressure metrics from the current pipeline', () => {
     const game = createStartingState()
     game.week = 4

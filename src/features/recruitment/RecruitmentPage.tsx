@@ -5,7 +5,6 @@ import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
 import { RECRUITMENT_GUIDANCE } from '../../data/copy'
-import { getCandidateWeeklyCost } from '../../domain/recruitment'
 import { getReserveAgents } from '../../domain/sim/teamManagement'
 import {
   readRecruitmentListPreferences,
@@ -239,7 +238,11 @@ export default function RecruitmentPage() {
               Expiring candidates close after their deadline. Hire before the slot closes.
             </p>
           </div>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+          <p
+            className="text-xs uppercase tracking-[0.24em] opacity-50"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             Showing {views.length} of {metrics.total}
           </p>
         </div>
@@ -456,9 +459,7 @@ export default function RecruitmentPage() {
         {views.length > 0 ? (
           <ul className="space-y-3">
             {views.map((view) => {
-              const { candidate } = view
-              const wage = getCandidateWeeklyCost(candidate) ?? 0
-              const weeksRemaining = Math.max(candidate.expiryWeek - game.week, 0)
+              const { candidate, expiryWeek, weeklyWage } = view
 
               return (
                 <li key={candidate.id} className="rounded border border-white/10 px-3 py-3">
@@ -472,7 +473,9 @@ export default function RecruitmentPage() {
                         </p>
                       ) : null}
                       <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                        Expires week {candidate.expiryWeek} / {weeksRemaining}w remaining
+                        {expiryWeek === undefined
+                          ? 'Expiry unknown'
+                          : `Expires week ${expiryWeek} / ${Math.max(expiryWeek - game.week, 0)}w remaining`}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -514,7 +517,9 @@ export default function RecruitmentPage() {
                       <span className="block text-[11px] uppercase tracking-[0.18em] opacity-60 mb-1">
                         Profile
                       </span>
-                      <p className="opacity-70">Weekly wage: ${wage}</p>
+                      <p className="opacity-70">
+                        Weekly wage: {weeklyWage === undefined ? '—' : `$${weeklyWage}`}
+                      </p>
                       <p className="opacity-70">Teamwork: {candidate.evaluation.teamwork}</p>
                       <p className="opacity-70">Outlook: {candidate.evaluation.outlook}</p>
                     </div>

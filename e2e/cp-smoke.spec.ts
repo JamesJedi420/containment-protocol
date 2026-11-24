@@ -7,7 +7,6 @@ import {
   clearCampaignStorage,
   CP_GAME_STORAGE_KEY,
   expectNoPageErrors,
-  hireFirstEnabledCandidate,
   launchContractFromMissionBoard,
   openContainmentSiteAndIncidentDesk,
   openFrontDesk,
@@ -127,6 +126,60 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(filters.getByRole('status')).toBeEmpty()
   })
 
+  test.describe('Recruitment query on a narrow touch viewport', () => {
+    test.use({ hasTouch: true, locale: 'fr-FR', viewport: { width: 390, height: 844 } })
+
+    test('SPE-3137 keeps name order and makes empty results and reset accessible', async ({
+      page,
+    }) => {
+      await clearCampaignStorage(page)
+      await advanceOperationalWeek(page)
+      await openPrimaryNav(page, 'Recruitment')
+
+      const filters = page.getByRole('region', { name: 'Recruitment filters' })
+      const board = page.getByRole('article', { name: 'Candidate board' })
+      const rows = board.getByRole('listitem')
+      const sort = filters.getByRole('combobox', { name: 'Sort' })
+      await sort.selectOption('name')
+      await expect(page).toHaveURL(/sort=name$/)
+      const names = await rows.evaluateAll((items) =>
+        items.map((item) => item.querySelector('p')?.textContent ?? '')
+      )
+      expect(names.length).toBeGreaterThan(1)
+      expect(names).toEqual([...names].sort())
+      expect(await board.ariaSnapshot()).toContain('listitem')
+
+      const expiring = filters.getByRole('checkbox', { name: 'Expiring soon only' })
+      await expiring.tap()
+      await expect(expiring).toBeChecked()
+      await expect(page).toHaveURL(/expiring=1/)
+      const query = filters.getByRole('textbox', { name: 'Search' })
+      await query.fill('aucun résultat')
+      await expect(page).toHaveURL((url) => url.searchParams.get('q') === 'aucun résultat')
+      const count = filters.getByText(`Showing 0 of ${names.length}`)
+      await expect(count).toHaveAttribute('aria-live', 'polite')
+      await expect(board.getByText('No candidates match the current filters.')).toBeVisible()
+      for (const region of [filters, board]) {
+        const bounds = await region.boundingBox()
+        expect(bounds?.x).toBeGreaterThanOrEqual(0)
+        expect((bounds?.x ?? 0) + (bounds?.width ?? 0)).toBeLessThanOrEqual(390)
+        expect(await region.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+          true
+        )
+      }
+
+      const reset = filters.getByRole('button', { name: 'Reset filters' })
+      await expiring.focus()
+      await page.keyboard.press('Tab')
+      await expect(reset).toBeFocused()
+      await reset.tap()
+      await expect(query).toBeEmpty()
+      await expect(sort).toHaveValue('expiry')
+      await expect(expiring).not.toBeChecked()
+      await expect(rows).toHaveCount(names.length)
+    })
+  })
+
   test('advance one operational week through player controls', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
@@ -201,13 +254,34 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     }
   })
 
-  test('hire a recruitment candidate after week advance', async ({ page }) => {
+  test('hire an operative after week advance', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
       await clearCampaignStorage(page)
       await openFrontDesk(page)
       await advanceOperationalWeek(page)
-      await hireFirstEnabledCandidate(page)
+
+      await openPrimaryNav(page, 'Agents')
+      const rosterTotal = page.getByText(/\d+\s*shown\s*\/\s*\d+\s*total/i)
+      const agentsBefore = Number((await rosterTotal.innerText()).match(/\/\s*(\d+)\s*total/i)?.[1])
+
+      await openPrimaryNav(page, 'Recruitment')
+      await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('agent')
+      await expect(page).toHaveURL(/\/recruitment\?category=agent$/)
+      const board = page.getByRole('article', { name: 'Candidate board' })
+      const hire = page
+        .getByRole('button', { name: 'Hire', exact: true })
+        .and(page.locator(':enabled'))
+      const candidate = board.getByRole('listitem').filter({ has: hire }).first()
+      const candidateName = await candidate.locator('p').first().innerText()
+      await candidate.getByRole('button', { name: 'Hire', exact: true }).click()
+      await expect(board.getByText(candidateName, { exact: true })).toHaveCount(0)
+
+      await openPrimaryNav(page, 'Agents')
+      await expect(rosterTotal).toHaveText(new RegExp(`/\\s*${agentsBefore + 1}\\s*total`, 'i'))
+      await expect(
+        page.getByRole('button').filter({ hasText: candidateName }).first()
+      ).toBeVisible()
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

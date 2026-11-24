@@ -20,6 +20,7 @@ import {
   type CandidatePreview,
 } from '../../domain/recruitment'
 import { buildEventFeedView, type EventFeedView } from '../dashboard/eventFeedView'
+import { evaluatePersonnelQuery, type PersonnelQueryRecord } from '../shared/personnelQueryView'
 
 const CANDIDATE_STAT_KEYS: Array<'combat' | 'investigation' | 'utility' | 'social'> = [
   'combat',
@@ -37,6 +38,8 @@ export interface RecruitmentViewFilters extends CandidateFilters {
 export interface RecruitmentCandidateView {
   candidate: Candidate
   roleLabel: string
+  weeklyWage?: number
+  expiryWeek?: number
   offeredRole?: AgentRole
   hireOutcomeLabel?: string
   sourceLabel?: string
@@ -87,85 +90,81 @@ export function getRecruitmentCandidateViews(
   game: GameState,
   filters: RecruitmentViewFilters = {}
 ): RecruitmentCandidateView[] {
-  const recruitmentPool = getCandidatePool(game)
-  const search = filters.search?.trim().toLowerCase() ?? ''
-  const filtered = filterCandidates(recruitmentPool, filters).filter((candidate) => {
-    if (filters.expiringSoonOnly && candidate.expiryWeek > game.week + 1) {
-      return false
-    }
+  const candidates = filterCandidates(getCandidatePool(game), filters).filter(
+    (candidate) => !filters.expiringSoonOnly || isExpiringSoon(candidate.expiryWeek, game.week)
+  )
+  const candidatesById = new Map(candidates.map((candidate) => [candidate.id, candidate]))
+  const search = normalizeRecruitmentSearchText(filters.search?.trim() ?? '')
+  const ids = evaluatePersonnelQuery(
+    candidates.map((candidate) => projectRecruitmentQueryRecord(candidate, search.length > 0)),
+    { q: search, role: 'all', status: 'all', team: 'all', fatigue: 'all', training: 'all' },
+    { primary: 'name' }
+  )
 
-    if (search.length === 0) {
-      return true
-    }
+  const matches = ids.flatMap((id) => {
+    const candidate = candidatesById.get(id)
+    if (!candidate) return []
 
-    const haystack = [
-      candidate.name,
-      candidate.category,
-      candidate.sourceFactionName,
-      candidate.sourceContactName,
-      candidate.sourceSummary,
-      candidate.agentData?.role,
-      candidate.agentData?.specialization,
-      candidate.staffData?.specialty,
-      candidate.evaluation.impression,
-      candidate.evaluation.outlook,
-      ...candidate.evaluation.rumorTags,
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase()
-
-    return haystack.includes(search)
-  })
-
-  return filtered
-    .map((candidate) => {
-      const offeredRole = getCandidateHireRole(candidate)
-      const preview = previewCandidate(candidate, game, offeredRole)
-      const scoutAssessment = assessCandidateScouting(game, candidate.id)
-      const scoutIntel = buildCandidateScoutIntel(candidate)
-      const onboardingReadiness = buildCandidateOnboardingReadinessLabels(candidate)
-
-      return {
+    return [
+      {
         candidate,
-        roleLabel: getCandidateRoleLabel(candidate),
-        ...(offeredRole ? { offeredRole, hireOutcomeLabel: ROLE_LABELS[offeredRole] } : {}),
-        ...(getCandidateSourceLabel(candidate)
-          ? { sourceLabel: getCandidateSourceLabel(candidate) }
-          : {}),
-        overallLabel:
-          candidate.evaluation.overallVisible && getCandidateOverall(candidate) !== undefined
-            ? String(getCandidateOverall(candidate))
-            : 'Obscured',
-        potentialLabel: candidate.evaluation.potentialVisible
-          ? (candidate.evaluation.potentialTier ?? 'Unknown')
-          : 'Unknown',
-        scoutLabel: formatScoutLabel(candidate),
-        scoutDepthLabel: scoutIntel.depthLabel,
-        scoutWorthLabel: scoutIntel.worthLabel,
-        scoutConfidenceLabel: scoutIntel.confidenceLabel,
-        ...(offeredRole === 'field_recon' ? { scoutIdentityLabel: 'Field Recon path' } : {}),
-        onboardingStageLabel: onboardingReadiness.stageLabel,
-        onboardingAccessLabel: onboardingReadiness.accessLabel,
-        onboardingCheckpointLabels: onboardingReadiness.checkpointLabels,
-        knownNowSummary: scoutIntel.knownNowSummary,
-        uncertaintySummary: scoutIntel.uncertaintySummary,
-        nextScanSummary: scoutIntel.nextScanSummary,
-        capIntelLabel: scoutIntel.capLabel,
-        capIntelDetails: scoutIntel.capDetails,
-        scoutActionLabel: getScoutActionLabel(candidate, scoutAssessment.nextStage),
-        scoutCost: scoutAssessment.cost > 0 ? scoutAssessment.cost : undefined,
-        canScout: scoutAssessment.canScout,
-        scoutBlockedReason: scoutAssessment.reason
-          ? formatScoutBlockedReason(scoutAssessment.reason)
+        overall: candidate.evaluation.overallVisible
+          ? finiteNumber(getCandidateOverall(candidate))
           : undefined,
-        expiringSoon: candidate.expiryWeek <= game.week + 1,
-        hiddenOverall:
-          !candidate.evaluation.overallVisible || getCandidateOverall(candidate) === undefined,
-        preview,
-      }
-    })
-    .sort((left, right) => compareCandidateViews(left, right, filters.sort ?? 'expiry'))
+        expiryWeek: finiteNumber(candidate.expiryWeek),
+        weeklyWage: finiteNumber(getCandidateWeeklyCost(candidate)),
+      },
+    ]
+  })
+  const sort = filters.sort ?? 'expiry'
+  // Stable numeric sorting preserves shared name and identity order for ties.
+  if (sort !== 'name')
+    matches.sort((left, right) => compareRecruitmentSortValues(left, right, sort))
+
+  return matches.map(({ candidate, overall, expiryWeek, weeklyWage }) => {
+    const offeredRole = getCandidateHireRole(candidate)
+    const preview = previewCandidate(candidate, game, offeredRole)
+    const scoutAssessment = assessCandidateScouting(game, candidate.id)
+    const scoutIntel = buildCandidateScoutIntel(candidate)
+    const onboardingReadiness = buildCandidateOnboardingReadinessLabels(candidate)
+
+    return {
+      candidate,
+      roleLabel: getCandidateRoleLabel(candidate),
+      expiryWeek,
+      weeklyWage,
+      ...(offeredRole ? { offeredRole, hireOutcomeLabel: ROLE_LABELS[offeredRole] } : {}),
+      ...(getCandidateSourceLabel(candidate)
+        ? { sourceLabel: getCandidateSourceLabel(candidate) }
+        : {}),
+      overallLabel: overall === undefined ? 'Obscured' : String(overall),
+      potentialLabel: candidate.evaluation.potentialVisible
+        ? (candidate.evaluation.potentialTier ?? 'Unknown')
+        : 'Unknown',
+      scoutLabel: formatScoutLabel(candidate),
+      scoutDepthLabel: scoutIntel.depthLabel,
+      scoutWorthLabel: scoutIntel.worthLabel,
+      scoutConfidenceLabel: scoutIntel.confidenceLabel,
+      ...(offeredRole === 'field_recon' ? { scoutIdentityLabel: 'Field Recon path' } : {}),
+      onboardingStageLabel: onboardingReadiness.stageLabel,
+      onboardingAccessLabel: onboardingReadiness.accessLabel,
+      onboardingCheckpointLabels: onboardingReadiness.checkpointLabels,
+      knownNowSummary: scoutIntel.knownNowSummary,
+      uncertaintySummary: scoutIntel.uncertaintySummary,
+      nextScanSummary: scoutIntel.nextScanSummary,
+      capIntelLabel: scoutIntel.capLabel,
+      capIntelDetails: scoutIntel.capDetails,
+      scoutActionLabel: getScoutActionLabel(candidate, scoutAssessment.nextStage),
+      scoutCost: scoutAssessment.cost > 0 ? scoutAssessment.cost : undefined,
+      canScout: scoutAssessment.canScout,
+      scoutBlockedReason: scoutAssessment.reason
+        ? formatScoutBlockedReason(scoutAssessment.reason)
+        : undefined,
+      expiringSoon: isExpiringSoon(expiryWeek, game.week),
+      hiddenOverall: overall === undefined,
+      preview,
+    }
+  })
 }
 
 export function findRecruitmentNoticeCandidate(
@@ -281,36 +280,67 @@ function buildCandidateOnboardingReadinessLabels(candidate: Candidate) {
   }
 }
 
-function compareCandidateViews(
-  left: RecruitmentCandidateView,
-  right: RecruitmentCandidateView,
-  sort: NonNullable<RecruitmentViewFilters['sort']>
+function projectRecruitmentQueryRecord(
+  candidate: Candidate,
+  includeSearchText: boolean
+): PersonnelQueryRecord {
+  return {
+    id: candidate.id,
+    name: candidate.name,
+    // The evaluator requires roster fields. Recruitment never queries or facets on these values.
+    role: 'hunter',
+    status: 'active',
+    teamId: undefined,
+    fatigue: 'steady',
+    training: 'available',
+    searchText: includeSearchText
+      ? normalizeRecruitmentSearchText(
+          [
+            candidate.name,
+            normalizeCandidateCategory(candidate.category),
+            getCandidateSourceLabel(candidate),
+            candidate.sourceSummary,
+            getCandidateRoleLabel(candidate),
+            candidate.evaluation.impression,
+            candidate.evaluation.outlook,
+            ...candidate.evaluation.rumorTags,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        ).toLowerCase()
+      : '',
+  }
+}
+
+function normalizeRecruitmentSearchText(text: string) {
+  // Existing saved searches may separate the rendered label parts with a space.
+  return text.replaceAll(' / ', ' ')
+}
+
+function finiteNumber(value: number | undefined) {
+  return Number.isFinite(value) ? value : undefined
+}
+
+function isExpiringSoon(expiryWeek: number | undefined, week: number) {
+  return (finiteNumber(expiryWeek) ?? Infinity) <= week + 1
+}
+
+interface RecruitmentSortValues {
+  overall: number | undefined
+  expiryWeek: number | undefined
+  weeklyWage: number | undefined
+}
+
+function compareRecruitmentSortValues(
+  left: RecruitmentSortValues,
+  right: RecruitmentSortValues,
+  sort: Exclude<NonNullable<RecruitmentViewFilters['sort']>, 'name'>
 ) {
-  if (sort === 'name') {
-    return left.candidate.name.localeCompare(right.candidate.name)
-  }
+  if (sort === 'wage') return (left.weeklyWage ?? Infinity) - (right.weeklyWage ?? Infinity) || 0
 
-  if (sort === 'wage') {
-    return (
-      (getCandidateWeeklyCost(left.candidate) ?? Number.MAX_SAFE_INTEGER) -
-        (getCandidateWeeklyCost(right.candidate) ?? Number.MAX_SAFE_INTEGER) ||
-      left.candidate.name.localeCompare(right.candidate.name)
-    )
-  }
-
-  if (sort === 'overall') {
-    return (
-      right.preview.estimatedValue - left.preview.estimatedValue ||
-      left.candidate.expiryWeek - right.candidate.expiryWeek ||
-      left.candidate.name.localeCompare(right.candidate.name)
-    )
-  }
-
-  return (
-    left.candidate.expiryWeek - right.candidate.expiryWeek ||
-    (getCandidateOverall(right.candidate) ?? -1) - (getCandidateOverall(left.candidate) ?? -1) ||
-    left.candidate.name.localeCompare(right.candidate.name)
-  )
+  const expiry = (left.expiryWeek ?? Infinity) - (right.expiryWeek ?? Infinity)
+  const overall = (right.overall ?? -Infinity) - (left.overall ?? -Infinity)
+  return sort === 'overall' ? overall || expiry || 0 : expiry || overall || 0
 }
 
 function getCandidateRoleLabel(candidate: Candidate) {

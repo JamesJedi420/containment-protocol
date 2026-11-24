@@ -463,41 +463,54 @@ it('shows triage context footer when filters match no cases', () => {
   expect(screen.getByText(/teams available:/i)).toBeInTheDocument()
 })
 
-it('sets defer disposition from triage detail panel', async () => {
+it('explains Defer before selection and records it without deploying a team', async () => {
   const user = userEvent.setup()
-  const game = {
-    ...createStartingState(),
-    missionRouting: normalizeMissionRoutingState(createStartingState()),
-    cases: {
-      ...createStartingState().cases,
-      'case-triage-defer': makeCase('case-triage-defer', 'Defer Me Case', { status: 'open' }),
-    },
-  }
-
+  const archiveId = 'case-002'
+  const archiveTitle = 'The Whispering Archive'
+  const game = createStartingState()
+  game.missionRouting = normalizeMissionRoutingState(game)
   useGameStore.setState({ game })
-  renderCasesPage(['/cases?case=case-triage-defer'])
+  renderCasesPage(['/cases'])
+  await selectTriageCase(user, archiveTitle)
 
-  await selectTriageCase(user, 'Defer Me Case')
+  const detail = within(getCardByName(archiveTitle))
+  const defer = detail.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer })
+  const warning = MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail
+  expect(game.cases[archiveId]).toMatchObject({ status: 'open', assignedTeamIds: [] })
+  const initialMission = game.missionRouting.missions[archiveId]
+  expect(initialMission, 'expected a routing record for the open Archive').toBeDefined()
+  expect(initialMission?.playerDisposition).toBeUndefined()
+  expect(detail.getByText(warning)).toBeVisible()
+  expect(defer).toHaveAccessibleDescription(warning)
+  expect(defer).toHaveAttribute('aria-pressed', 'false')
 
-  await user.click(screen.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer }))
+  detail.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.routeNow }).focus()
+  await user.tab()
+  expect(defer).toHaveFocus()
+  await user.keyboard('{Enter}')
 
-  expect(
-    useGameStore.getState().game.missionRouting?.missions['case-triage-defer']?.routingState
-  ).toBe('deferred')
+  const deferredGame = useGameStore.getState().game
+  expect(deferredGame.missionRouting?.missions[archiveId]).toMatchObject({
+    playerDisposition: 'defer',
+    routingState: 'deferred',
+  })
+  expect(deferredGame.cases[archiveId]).toMatchObject({ status: 'open', assignedTeamIds: [] })
+  expect(deferredGame.teams).toEqual(game.teams)
 
-  const listChips = screen.getByTestId('case-triage-chips-case-triage-defer')
+  const listChips = screen.getByTestId(`case-triage-chips-${archiveId}`)
   expect(
     within(listChips).getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
   ).toBeInTheDocument()
+  expect(defer).toHaveAttribute('aria-pressed', 'true')
+  expect(detail.getByText(warning)).toBeVisible()
 
-  const detail = getCardByName('Defer Me Case')
-  expect(within(detail).getByLabelText('Triage disposition')).toBeInTheDocument()
+  await user.click(detail.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.clear }))
   expect(
-    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer })
-  ).toHaveAttribute('aria-pressed', 'true')
-  expect(
-    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.clear })
-  ).toBeInTheDocument()
+    useGameStore.getState().game.missionRouting?.missions[archiveId]?.playerDisposition
+  ).toBeUndefined()
+  expect(defer).toHaveAttribute('aria-pressed', 'false')
+  expect(detail.getByText(warning)).toBeVisible()
+  expect(defer).toHaveAccessibleDescription(warning)
 })
 
 it('sanitizes stale case query when the case is outside the filtered triage list', async () => {

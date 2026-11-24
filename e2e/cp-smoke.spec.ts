@@ -7,7 +7,6 @@ import {
   clearCampaignStorage,
   CP_GAME_STORAGE_KEY,
   expectNoPageErrors,
-  hireFirstEnabledCandidate,
   launchContractFromMissionBoard,
   openContainmentSiteAndIncidentDesk,
   openFrontDesk,
@@ -255,13 +254,34 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     }
   })
 
-  test('hire a recruitment candidate after week advance', async ({ page }) => {
+  test('hire an operative after week advance', async ({ page }) => {
     const probe = attachPageErrorProbe(page)
     try {
       await clearCampaignStorage(page)
       await openFrontDesk(page)
       await advanceOperationalWeek(page)
-      await hireFirstEnabledCandidate(page)
+
+      await openPrimaryNav(page, 'Agents')
+      const rosterTotal = page.getByText(/\d+\s*shown\s*\/\s*\d+\s*total/i)
+      const agentsBefore = Number((await rosterTotal.innerText()).match(/\/\s*(\d+)\s*total/i)?.[1])
+
+      await openPrimaryNav(page, 'Recruitment')
+      await page.getByRole('combobox', { name: 'Category', exact: true }).selectOption('agent')
+      await expect(page).toHaveURL(/\/recruitment\?category=agent$/)
+      const board = page.getByRole('article', { name: 'Candidate board' })
+      const hire = page
+        .getByRole('button', { name: 'Hire', exact: true })
+        .and(page.locator(':enabled'))
+      const candidate = board.getByRole('listitem').filter({ has: hire }).first()
+      const candidateName = await candidate.locator('p').first().innerText()
+      await candidate.getByRole('button', { name: 'Hire', exact: true }).click()
+      await expect(board.getByText(candidateName, { exact: true })).toHaveCount(0)
+
+      await openPrimaryNav(page, 'Agents')
+      await expect(rosterTotal).toHaveText(new RegExp(`/\\s*${agentsBefore + 1}\\s*total`, 'i'))
+      await expect(
+        page.getByRole('button').filter({ hasText: candidateName }).first()
+      ).toBeVisible()
       expectNoPageErrors(probe)
     } finally {
       probe.dispose()

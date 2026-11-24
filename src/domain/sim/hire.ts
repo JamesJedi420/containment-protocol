@@ -1,4 +1,4 @@
-import { type Agent, type AgentData, type GameState, type Id } from '../models'
+import type { Agent, AgentData, AgentRole, GameState, Id } from '../models'
 import { createRecruitmentScoutIntel } from '../agentPotential'
 import {
   appendOperationEventDrafts,
@@ -18,9 +18,7 @@ import {
 } from '../factions'
 import {
   getCandidatePool,
-  getCandidateFunnelStage,
   getCandidateWeeklyCost,
-  isCandidateHireable,
   mapRecruitRoleToAgentRole,
   normalizeCandidateCategory,
   normalizeStaffCandidateSpecialty,
@@ -256,7 +254,11 @@ function createActiveAgent(
   )
 }
 
-export function hireCandidate(state: GameState, candidateId: string): GameState {
+export function hireCandidate(
+  state: GameState,
+  candidateId: Id,
+  offeredRole?: AgentRole
+): GameState {
   const currentRecruitmentPool = getCandidatePool(state)
   const candidate = currentRecruitmentPool.find((entry) => entry.id === candidateId)
 
@@ -274,9 +276,7 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
 
   if (
     destination &&
-    (recruitCategory === 'agent' ||
-      recruitCategory === 'staff' ||
-      recruitCategory === 'instructor')
+    (recruitCategory === 'agent' || recruitCategory === 'staff' || recruitCategory === 'instructor')
   ) {
     const identityGate = resolveHireIdentityGate(
       state,
@@ -290,15 +290,7 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
     }
   }
 
-  if (!isCandidateHireable(candidate.hireStatus)) {
-    return normalizeNoopIfDirty(state)
-  }
-
-  if (getCandidateFunnelStage(candidate) === 'lost') {
-    return normalizeNoopIfDirty(state)
-  }
-
-  const preview = previewCandidate(candidate, state)
+  const preview = previewCandidate(candidate, state, offeredRole)
   if (!preview.canHire) {
     return normalizeNoopIfDirty(state)
   }

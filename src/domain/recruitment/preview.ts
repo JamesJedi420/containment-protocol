@@ -1,11 +1,13 @@
-import type { Candidate, GameState } from '../models'
+import type { AgentRole, Candidate, GameState } from '../models'
 import { getFactionReputationTier } from '../factions'
 import {
+  getCandidateFunnelStage,
   getCandidateWeeklyCost,
   getCandidateOverall,
   isCandidateHireable,
   normalizeCandidateCategory,
 } from './helpers'
+import { getCandidateHireRole } from './hireOutcome'
 
 export interface CandidatePreview {
   canHire: boolean
@@ -51,7 +53,11 @@ function deriveEstimatedValue(candidate: Candidate) {
   return 50
 }
 
-export function previewCandidate(candidate: Candidate, game: GameState): CandidatePreview {
+export function previewCandidate(
+  candidate: Candidate,
+  game: GameState,
+  offeredRole?: AgentRole
+): CandidatePreview {
   const reasons: string[] = []
   const pushReason = (reason: string) => {
     if (!reasons.includes(reason)) {
@@ -61,8 +67,12 @@ export function previewCandidate(candidate: Candidate, game: GameState): Candida
   const normalizedCategory = normalizeCandidateCategory(candidate.category)
   const weeklyCost = getCandidateWeeklyCost(candidate) ?? 0
 
-  if (!isCandidateHireable(candidate.hireStatus)) {
+  if (!isCandidateHireable(candidate.hireStatus) || getCandidateFunnelStage(candidate) === 'lost') {
     pushReason('unavailable')
+  }
+
+  if (offeredRole !== undefined && offeredRole !== getCandidateHireRole(candidate)) {
+    pushReason('role-mismatch')
   }
 
   if (weeklyCost > game.funding) {

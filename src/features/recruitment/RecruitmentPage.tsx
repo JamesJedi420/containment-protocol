@@ -538,7 +538,7 @@ export default function RecruitmentPage() {
                       type="button"
                       className="btn btn-sm btn-primary"
                       disabled={!view.preview.canHire}
-                      onClick={() => hireCandidate(candidate.id)}
+                      onClick={() => hireCandidate(candidate.id, view.offeredRole)}
                     >
                       Hire
                     </button>

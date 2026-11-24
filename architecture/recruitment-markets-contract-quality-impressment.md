@@ -10,6 +10,10 @@
 - **Applicant waves** — deterministic arrivals keyed to week, unrest, faction posture, and campaign clocks.
 - **Hiring funnels** — screening → offer → onboarding → probation; each stage can drop or downgrade candidates.
 
+### Operative offers
+
+The recruitment board uses the canonical operative role derived from the candidate's role and specialization. The Hire action carries that displayed role to execution. The same eligibility check used for the preview compares it to the live role and checks current availability, funding, and faction policy. A changed role blocks the old offer before it can spend funds, change the roster, or emit a hiring event. Candidates remain discoverable under the existing board rules. Hire a newly displayed role by acting on its current offer.
+
 ## Acquisition channels
 
 - **Public postings** — high volume, mixed quality, visible to rivals and press.

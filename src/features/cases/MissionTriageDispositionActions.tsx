@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import type { MissionTriageDisposition } from '../../domain/models'
 import type { MissionTriageDispositionView } from './missionTriageDispositionView'
@@ -11,6 +12,8 @@ export function MissionTriageDispositionActions({
   onDisposition: (disposition: MissionTriageDisposition) => void
   onClear: () => void
 }) {
+  const deferDetailId = useId()
+
   if (!dispositionView.visible) {
     return null
   }
@@ -34,7 +37,7 @@ export function MissionTriageDispositionActions({
           className="btn btn-sm btn-ghost focus-ring"
           disabled={!dispositionView.deferEnabled}
           aria-pressed={dispositionView.active === 'defer'}
-          title={MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail}
+          aria-describedby={deferDetailId}
           onClick={() => onDisposition('defer')}
         >
           {MISSION_TRIAGE_DISPOSITION_LABELS.defer}
@@ -53,9 +56,9 @@ export function MissionTriageDispositionActions({
       {dispositionView.activeLabel ? (
         <p className="text-xs font-medium text-sky-200/90">{dispositionView.activeLabel}</p>
       ) : null}
-      {dispositionView.consequenceDetail ? (
-        <p className="text-xs text-amber-200/90">{dispositionView.consequenceDetail}</p>
-      ) : null}
+      <p id={deferDetailId} className="text-xs text-amber-200/90">
+        {dispositionView.consequenceDetail ?? MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail}
+      </p>
       <p className="text-xs opacity-60">{dispositionView.assignDistinctNote}</p>
       {dispositionView.active ? (
         <button type="button" className="btn btn-sm btn-ghost focus-ring" onClick={onClear}>

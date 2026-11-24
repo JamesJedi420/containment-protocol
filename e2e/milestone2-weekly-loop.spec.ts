@@ -56,12 +56,19 @@ async function runCampaign(browser: Browser) {
     await expect(detail).toContainText('Stage 1')
     await expect(detail).toContainText('Assign one team')
     await expect(detail).toContainText('Deadline: 1 week')
-    await detail.getByRole('button', { name: 'Defer', exact: true }).click()
-    await expect(detail.getByRole('button', { name: 'Defer', exact: true })).toHaveAttribute(
-      'aria-pressed',
-      'true'
-    )
+    const defer = detail.getByRole('button', { name: 'Defer', exact: true })
+    const deferWarning = 'Accept delay; escalation may continue while deferred.'
+    await expect(detail.getByText(deferWarning, { exact: true })).toBeVisible()
+    await expect(defer).toHaveAccessibleDescription(deferWarning)
+    await expect(defer).toHaveAttribute('aria-pressed', 'false')
+    await expect(page.getByRole('tab', { name: 'Assigned (0)', exact: true })).toBeVisible()
+    await detail.getByRole('button', { name: 'Route now', exact: true }).focus()
+    await page.keyboard.press('Tab')
+    await expect(defer).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(defer).toHaveAttribute('aria-pressed', 'true')
     await expect(detail).toContainText('escalation may continue while deferred')
+    await expect(page.getByRole('tab', { name: 'Assigned (0)', exact: true })).toBeVisible()
 
     const board = page.getByRole('region', { name: 'Contract board' })
     await board.getByRole('button', { name: new RegExp(`^${deployedContract}`) }).click()

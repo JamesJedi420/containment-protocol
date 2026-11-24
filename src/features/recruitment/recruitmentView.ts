@@ -94,7 +94,7 @@ export function getRecruitmentCandidateViews(
     (candidate) => !filters.expiringSoonOnly || isExpiringSoon(candidate.expiryWeek, game.week)
   )
   const candidatesById = new Map(candidates.map((candidate) => [candidate.id, candidate]))
-  const search = filters.search?.trim() ?? ''
+  const search = normalizeRecruitmentSearchText(filters.search?.trim() ?? '')
   const ids = evaluatePersonnelQuery(
     candidates.map((candidate) => projectRecruitmentQueryRecord(candidate, search.length > 0)),
     { q: search, role: 'all', status: 'all', team: 'all', fatigue: 'all', training: 'all' },
@@ -294,21 +294,27 @@ function projectRecruitmentQueryRecord(
     fatigue: 'steady',
     training: 'available',
     searchText: includeSearchText
-      ? [
-          candidate.name,
-          normalizeCandidateCategory(candidate.category),
-          getCandidateRoleLabel(candidate),
-          getCandidateSourceLabel(candidate),
-          candidate.sourceSummary,
-          candidate.evaluation.impression,
-          candidate.evaluation.outlook,
-          ...candidate.evaluation.rumorTags,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase()
+      ? normalizeRecruitmentSearchText(
+          [
+            candidate.name,
+            normalizeCandidateCategory(candidate.category),
+            getCandidateSourceLabel(candidate),
+            candidate.sourceSummary,
+            getCandidateRoleLabel(candidate),
+            candidate.evaluation.impression,
+            candidate.evaluation.outlook,
+            ...candidate.evaluation.rumorTags,
+          ]
+            .filter(Boolean)
+            .join(' ')
+        ).toLowerCase()
       : '',
   }
+}
+
+function normalizeRecruitmentSearchText(text: string) {
+  // Existing saved searches may separate the rendered label parts with a space.
+  return text.replaceAll(' / ', ' ')
 }
 
 function finiteNumber(value: number | undefined) {

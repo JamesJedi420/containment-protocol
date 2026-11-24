@@ -193,6 +193,12 @@ describe('recruitment view contract', () => {
     expect(getRecruitmentCandidateViews(game, { search: 'avery' })[0]?.overallLabel).toBe(
       'Obscured'
     )
+
+    game.candidates = [
+      { ...first!, weeklyWage: 25 },
+      { ...second!, name: 'Aaron Lane', weeklyWage: 25 },
+    ]
+    expect(readOrder('wage')).toEqual(['cand-bravo', 'cand-alpha'])
   })
 
   it('searches displayed specialty and category values instead of legacy storage values', () => {

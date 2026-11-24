@@ -241,6 +241,30 @@ describe('RecruitmentPage', () => {
     expect(search).toHaveValue('')
   })
 
+  it.each(['combat recon', 'combat / recon', 'Chancery Avery', 'Chancery / Avery'])(
+    'restores saved search %s across display separators',
+    (query) => {
+      const game = buildRecruitmentGame()
+      game.candidates[0] = {
+        ...game.candidates[0]!,
+        sourceFactionName: 'Chancery',
+        sourceContactName: 'Avery',
+      }
+      useGameStore.setState({ game })
+      window.localStorage.setItem(
+        RECRUITMENT_LIST_PREFERENCES_KEY,
+        new URLSearchParams({ q: query }).toString()
+      )
+
+      renderRecruitmentPage()
+
+      expect(screen.getByRole('textbox', { name: 'Search' })).toHaveValue(query)
+      const board = screen.getByRole('article', { name: 'Candidate board' })
+      expect(within(board).getByRole('listitem')).toHaveTextContent('Avery Holt')
+      expect(within(board).getByText('Source Chancery / Avery')).toBeVisible()
+    }
+  )
+
   it('rejects a stale operative offer and rechecks faction policy before hiring', async () => {
     const user = userEvent.setup()
     const game = buildRecruitmentGame()

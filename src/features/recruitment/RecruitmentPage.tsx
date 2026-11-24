@@ -82,24 +82,19 @@ export default function RecruitmentPage() {
   const expiryToggle = useRef<HTMLButtonElement>(null)
   const filtersReset = useRef<HTMLButtonElement>(null)
   const emptyBoardReset = useRef<HTMLButtonElement>(null)
-  useFocusedControls(() =>
+  const getControllerControls = () =>
     [expiryToggle.current, filtersReset.current, emptyBoardReset.current].filter(
       (control) => control !== null
     )
-  )
+  useFocusedControls(getControllerControls)
   useInputConsumer({
     id: 'filters.next',
     context: 'route',
     available: () => {
       const toggle = expiryToggle.current
       if (!toggle) return false
-      const { activeElement, body } = toggle.ownerDocument
-      return (
-        activeElement === body ||
-        activeElement === toggle.closest('main') ||
-        activeElement === boardHeading.current ||
-        !!activeElement?.matches('nav a[aria-current="page"]')
-      )
+      const { activeElement } = toggle.ownerDocument
+      return !getControllerControls().some((control) => control === activeElement)
     },
     execute: () => expiryToggle.current?.focus(),
   })

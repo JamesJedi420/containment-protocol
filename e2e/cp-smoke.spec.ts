@@ -196,10 +196,25 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await press(activate)
       await expect(expiring).toBeChecked()
 
+      // A fresh in-app visit uses the same live campaign and restores the exact filtered subset.
+      await press(4)
+      await expect(page.getByRole('heading', { name: 'Operations Overview' })).toBeVisible()
+      const staffingLink = page
+        .getByRole('banner', { name: 'Shell status bar' })
+        .getByRole('link', { name: /^Staffing:/ })
+      await staffingLink.click()
+      await expect(staffingLink).toBeFocused()
+      await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
+      await expect(expiring).toBeChecked()
+      await expect(rows).toHaveCount(expiringCount)
+      await press(next)
+      await expect(expiring).toBeFocused()
+
       // A fresh URL visit restores the preference and applies it to the hydrated candidates.
       await page.goto('/recruitment')
       await expect(filters.getByRole('status')).toHaveText('Saved filters restored')
       await expect(expiring).toBeChecked()
+      await expect(rows.first()).toBeVisible()
       await expect(rows.filter({ hasNot: expiryBadge })).toHaveCount(0)
       await press(next)
       await expect(expiring).toBeFocused()
@@ -232,6 +247,15 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       await expect(expiring).not.toBeChecked()
       await expect(filters.getByRole('textbox', { name: 'Search' })).toBeEmpty()
       await expect(rows).toHaveCount(initialCount)
+
+      await page.getByRole('button', { name: 'Advance week', exact: true }).click()
+      await expect(page.getByTestId('shell-week-status')).toBeFocused()
+      await press(next)
+      await expect(expiring).toBeFocused()
+      await press(next)
+      await expect(reset).toBeFocused()
+      await press(activate)
+      await expect(reset).toBeFocused()
     })
   })
 

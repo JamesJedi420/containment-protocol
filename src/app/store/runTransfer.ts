@@ -2976,6 +2976,20 @@ function finiteCandidateWeek(value: unknown, campaignWeek?: number) {
   return week
 }
 
+function isAuthoredCandidateAvailabilityWeek(
+  value: unknown,
+  campaignWeek?: number
+): value is number {
+  // The recruitment generator authors availability through four weeks ahead.
+  return (
+    campaignWeek !== undefined &&
+    typeof value === 'number' &&
+    Number.isSafeInteger(value) &&
+    value >= 1 &&
+    value <= campaignWeek + 4
+  )
+}
+
 function sanitizeRevealLevel(value: unknown): CandidateRevealLevel {
   if (value === 0 || value === 1 || value === 2) {
     return value
@@ -3130,7 +3144,16 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
       ? entry.hireStatus
       : 'available') as CandidatePipelineStatus
   )
-  let expiryWeek = finiteCandidateWeek(entry.expiryWeek, campaignWeek) ?? campaignWeek ?? 1
+  const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
+  const availabilityReferenceWeek =
+    (hireStatus === 'available' || hireStatus === 'reserved') &&
+    funnelStage !== 'hired' &&
+    funnelStage !== 'lost'
+      ? campaignWeek
+      : undefined
+  let expiryWeek = isAuthoredCandidateAvailabilityWeek(entry.expiryWeek, availabilityReferenceWeek)
+    ? entry.expiryWeek
+    : (finiteCandidateWeek(entry.expiryWeek, campaignWeek) ?? campaignWeek ?? 1)
   const weeklyCostRaw =
     typeof entry.weeklyCost === 'number' && Number.isFinite(entry.weeklyCost)
       ? Math.max(0, Math.trunc(entry.weeklyCost))
@@ -3201,8 +3224,17 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
   ]
   const availabilityWindow = isRecord(entry.availabilityWindow)
     ? (() => {
-        const opensWeek = finiteCandidateWeek(entry.availabilityWindow.opensWeek, campaignWeek)
-        const closesWeek = finiteCandidateWeek(entry.availabilityWindow.closesWeek, campaignWeek)
+        const { opensWeek: rawOpensWeek, closesWeek: rawClosesWeek } = entry.availabilityWindow
+        if (
+          isAuthoredCandidateAvailabilityWeek(rawOpensWeek, availabilityReferenceWeek) &&
+          isAuthoredCandidateAvailabilityWeek(rawClosesWeek, availabilityReferenceWeek) &&
+          rawOpensWeek <= rawClosesWeek
+        ) {
+          return { opensWeek: rawOpensWeek, closesWeek: rawClosesWeek }
+        }
+
+        const opensWeek = finiteCandidateWeek(rawOpensWeek, campaignWeek)
+        const closesWeek = finiteCandidateWeek(rawClosesWeek, campaignWeek)
 
         if (opensWeek === undefined || closesWeek === undefined) {
           return undefined
@@ -3214,7 +3246,6 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
         }
       })()
     : undefined
-  const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
   // Recruitment funnel metadata (created/lastUpdated) is informational and must survive
   // save/load round-trips even when it is out-of-range relative to current campaign week.
   // Only lower-bound normalize to 1..N-safe finite weeks.

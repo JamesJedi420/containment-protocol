@@ -13,6 +13,9 @@ import { getCasePressureWithBelief } from '../../domain/pressure'
 import { getContractOffers } from '../../domain/contracts'
 import { getCampaignDate, resolveCalendarConfig } from '../../domain/campaignCalendar'
 import { createSeedCampaignLedger } from '../../domain/campaignLedger'
+import { previewCandidate } from '../../domain/recruitment/preview'
+import { advanceWeek } from '../../domain/sim/advanceWeek'
+import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import {
   getProductionRecipe,
@@ -9499,6 +9502,135 @@ describe('runTransfer import sanitization (326-332)', () => {
         createdWeek: 6,
         lastUpdatedWeek: 6,
       })
+    })
+
+    it.each([2, 3, 4])(
+      'keeps a scouted recruit eligible through its week +%i expiry after JSON reload',
+      (weeksUntilExpiry) => {
+        const fallback = createStartingState()
+        const generated = advanceWeek(fallback)
+        const expiryWeek = generated.week + weeksUntilExpiry
+        const recruit = generated.candidates.find(
+          (candidate) => candidate.category === 'agent' && candidate.expiryWeek === expiryWeek
+        )
+        assert(recruit)
+        const campaign = scoutCandidate(generated, recruit.id)
+        const original = campaign.candidates.find(({ id }) => id === recruit.id)
+        assert(original?.scoutReport)
+        expect(previewCandidate(original, campaign).canHire).toBe(true)
+        expect(original.availabilityWindow).toEqual({
+          opensWeek: campaign.week,
+          closesWeek: expiryWeek,
+        })
+
+        // Keep the test campaign open through the expiry and the following week close.
+        campaign.config = { ...campaign.config, maxActiveCases: 40, fundingBasePerWeek: 500 }
+        campaign.funding = 1000
+        campaign.cases = Object.fromEntries(
+          Object.entries(campaign.cases).map(([id, entry]) => [
+            id,
+            { ...entry, deadlineWeeks: 30, deadlineRemaining: 30 },
+          ])
+        )
+        const reload = (game: typeof campaign) => parseRunExport(serializeRunExport(game), fallback)
+        const departures = (game: typeof campaign) =>
+          game.events.filter(
+            (event) =>
+              event.type === 'recruitment.candidate_departed' &&
+              event.payload.candidateId === recruit.id
+          )
+
+        let game = reload(campaign)
+        for (let week = campaign.week; week <= expiryWeek; week++) {
+          expect(game.week).toBe(week)
+          const candidate = game.candidates.find(({ id }) => id === recruit.id)
+          expect(candidate).toMatchObject({
+            id: original.id,
+            hireStatus: original.hireStatus,
+            funnelStage: original.funnelStage,
+            scoutReport: original.scoutReport,
+            availabilityWindow: original.availabilityWindow,
+            expiryWeek,
+          })
+          assert(candidate)
+          expect(previewCandidate(candidate, game).canHire).toBe(true)
+          expect(departures(game)).toEqual([])
+          game = advanceWeek(game)
+          if (game.week <= expiryWeek) {
+            game = reload(game)
+          }
+        }
+
+        expect(game.week).toBe(expiryWeek + 1)
+        const notices = departures(game)
+        expect(notices).toEqual([
+          expect.objectContaining({
+            payload: expect.objectContaining({
+              candidateId: recruit.id,
+              week: expiryWeek,
+              reason: 'expired_from_consideration',
+            }),
+          }),
+        ])
+        const reloaded = reload(game)
+        const advanced = advanceWeek(reloaded)
+        expect(advanced.week).toBe(expiryWeek + 2)
+        for (const state of [game, reloaded, advanced]) {
+          expect(state.candidates.some(({ id }) => id === recruit.id)).toBe(false)
+          assert(state.recruitmentPool)
+          expect(state.recruitmentPool.some(({ id }) => id === recruit.id)).toBe(false)
+          expect(departures(state)).toEqual(notices)
+        }
+      }
+    )
+
+    it('preserves reserved recruitment state and limits future dates to valid live availability', () => {
+      const fallback = createStartingState()
+      const week = 6
+      const reserved = buildAgentCandidate({
+        hireStatus: 'reserved',
+        funnelStage: 'screening',
+        expiryWeek: week + 4,
+        availabilityWindow: { opensWeek: week + 2, closesWeek: week + 4 },
+      })
+      const terminal = buildAgentCandidate({
+        ...reserved,
+        id: 'cand-lost',
+        hireStatus: 'expired',
+        funnelStage: 'lost',
+        lossReason: 'withdrew',
+      })
+      const tooFar = buildAgentCandidate({
+        id: 'cand-outside-horizon',
+        expiryWeek: week + 5,
+        availabilityWindow: { opensWeek: week, closesWeek: week + 5 },
+      })
+      const game = { ...fallback, week, candidates: [reserved, terminal, tooFar] }
+      const hydrated = parseRunExport(serializeRunExport(game), fallback)
+
+      expect(hydrated.candidates).toMatchObject([
+        {
+          id: reserved.id,
+          hireStatus: 'reserved',
+          funnelStage: 'screening',
+          expiryWeek: reserved.expiryWeek,
+          availabilityWindow: reserved.availabilityWindow,
+        },
+        {
+          id: terminal.id,
+          hireStatus: 'expired',
+          funnelStage: 'lost',
+          lossReason: 'withdrew',
+          expiryWeek: week,
+          availabilityWindow: { opensWeek: week, closesWeek: week },
+        },
+        {
+          id: tooFar.id,
+          expiryWeek: week,
+          availabilityWindow: { opensWeek: week, closesWeek: week },
+        },
+      ])
+      expect(hydrated.recruitmentPool).toEqual(hydrated.candidates)
     })
   })
 

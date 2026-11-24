@@ -699,3 +699,7 @@ Cases and Intel mode facets remain owned by their existing URL filter readers/wr
 ### Actor dossier helper (SPE-2095)
 
 `ActorDossierRecord` and append-only dated `ActorDossierSnapshot` patches in `src/domain/actorDossier.ts` are transient institutional helper contracts. No GameState, save-envelope or event schema changes. The Agent adapter retains the Agent ID and does not infer missing clearance/history. Field and snapshot metadata access is explicit; player annotations are separate non-authoritative typed values with no persistence/edit workflow. Snapshot generation and durable storage remain deferred to their existing owners.
+
+### Foreknowledge event schema (SPE-1125)
+
+Pure domain module `src/domain/foreknowledgeEventSchema.ts` defines compact authored future-knowledge event records with explicit source, confidence, truth-state class, fixity, self-fulfillment risk, avoidability, optional observer identity, contradiction conditions, disclosure posture, responsibility pressure, and optional forecast horizon. Parse fails closed on malformed input. Sample conditional forecast demonstrates distinction from fixed fate. `projectResponsibilityPressure` and `isCurrentlyActionable` show observer/disclosure/fixity variance and horizon/contradiction non-actionable reduction while always preserving uncertainty/provenance. No GameState field, prophecy simulator, or OperationEvent/`GAME_STORE_VERSION`/`GAME_SAVE_VERSION` change.

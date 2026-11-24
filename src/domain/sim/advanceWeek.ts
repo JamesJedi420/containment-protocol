@@ -4514,7 +4514,7 @@ function generateAndAttachHubNotes(context: WeeklyExecutionContext) {
 }
 
 function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
-  const anchorInstabilityNote = buildAnchorFactionInstabilityNote(
+  const anchorInstability = buildAnchorFactionInstabilityNote(
     context.nextState,
     context.sourceState.week
   )
@@ -4535,7 +4535,7 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
 
   // Only include notes that are not related to unrelated cases (for strict test alignment, keep only anchor/hub notes)
   const filteredNotes = [
-    ...(anchorInstabilityNote ? [anchorInstabilityNote] : []),
+    ...(anchorInstability.disposition === 'produced' ? [anchorInstability.note] : []),
     ...(hubNotes ?? []),
   ]
 

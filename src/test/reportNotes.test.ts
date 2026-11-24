@@ -1,14 +1,125 @@
 // cspell:words cand medkits
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { createNote } from '../data/copy'
+import { startingState } from '../data/startingState'
 import type { AnyOperationEventDraft } from '../domain/events'
-import {
+import * as factions from '../domain/factions'
+import * as reportNotes from '../domain/reportNotes'
+import { advanceWeek } from '../domain/sim/advanceWeek'
+import * as scoring from '../domain/sim/scoring'
+
+const {
+  buildAnchorFactionInstabilityNote,
   buildDeterministicReportNotesFromEventDrafts,
   countWeeklyReportOutcomes,
   createDeterministicReportNote,
   formatLatestReportRollup,
   formatOutcomeCountSummary,
-} from '../domain/reportNotes'
+} = reportNotes
+
+describe('Anchor faction report disposition', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('produces the existing deterministic report note', () => {
+    const { week } = startingState
+    const result = buildAnchorFactionInstabilityNote(startingState, week)
+
+    expect(result).toMatchObject({
+      disposition: 'produced',
+      note: {
+        id: createDeterministicReportNote('', week, 914).id,
+        type: 'system.anchor_instability',
+        content: expect.stringMatching(/^Anchor Faction Instability/),
+        metadata: { week },
+      },
+    })
+    expect(buildAnchorFactionInstabilityNote(startingState, week)).toEqual(result)
+  })
+
+  it('deliberately omits the note when the faction builder returns no anchor', () => {
+    vi.spyOn(factions, 'buildFactionStates').mockReturnValueOnce([])
+
+    expect(buildAnchorFactionInstabilityNote(startingState, startingState.week)).toEqual({
+      disposition: 'omitted',
+      reason: 'no-anchor-faction',
+    })
+  })
+
+  it.each(['cases', 'reports', 'market', 'events'] as const)(
+    'identifies missing %s before invoking the faction builder',
+    (field) => {
+      const incomplete = { ...startingState }
+      Reflect.deleteProperty(incomplete, field)
+      const factionBuilder = vi.spyOn(factions, 'buildFactionStates')
+
+      expect(buildAnchorFactionInstabilityNote(incomplete, incomplete.week)).toEqual({
+        disposition: 'invalid-input',
+        field,
+      })
+      expect(factionBuilder).not.toHaveBeenCalled()
+    }
+  )
+
+  it('classifies incomplete recent report data as invalid input', () => {
+    const [report] = advanceWeek(startingState).reports
+    const incompleteReport = { ...report }
+    Reflect.deleteProperty(incompleteReport, 'unresolvedTriggers')
+    const incomplete = { ...startingState, reports: [incompleteReport] }
+
+    expect(buildAnchorFactionInstabilityNote(incomplete, incomplete.week)).toEqual({
+      disposition: 'invalid-input',
+      field: 'reports',
+    })
+  })
+
+  it('reports an execution failure without including exception details', () => {
+    vi.spyOn(factions, 'buildFactionStates').mockImplementationOnce(() => {
+      throw new Error('Internal faction detail')
+    })
+
+    expect(buildAnchorFactionInstabilityNote(startingState, startingState.week)).toEqual({
+      disposition: 'builder-failure',
+    })
+  })
+
+  it('runs the anchor builder at week close and preserves report finalization', () => {
+    const builder = vi.spyOn(reportNotes, 'buildAnchorFactionInstabilityNote')
+    const score = vi.spyOn(scoring, 'calcWeekScore')
+    const next = advanceWeek(startingState)
+    const report = next.reports.at(-1)
+
+    expect(builder).toHaveReturnedWith(expect.objectContaining({ disposition: 'produced' }))
+    expect(score).toHaveBeenCalledWith(
+      expect.objectContaining({
+        week: startingState.week,
+        notes: expect.arrayContaining([
+          expect.objectContaining({ type: 'system.anchor_instability' }),
+        ]),
+      })
+    )
+    expect(report).toMatchObject({ week: startingState.week })
+    expect(report?.notes?.some((note) => note.type === 'system.anchor_instability')).toBe(false)
+  })
+
+  it('keeps a failed builder disposition out of finalized reports and events', () => {
+    const failure = { disposition: 'builder-failure' } as const
+    const builder = vi
+      .spyOn(reportNotes, 'buildAnchorFactionInstabilityNote')
+      .mockReturnValueOnce(failure)
+    const score = vi.spyOn(scoring, 'calcWeekScore')
+    const next = advanceWeek(startingState)
+    const [interimReport] = score.mock.calls[0]
+
+    expect(builder).toHaveReturnedWith(failure)
+    expect(interimReport.notes?.some((note) => note.type === 'system.anchor_instability')).toBe(
+      false
+    )
+    expect(next.reports.at(-1)).toMatchObject({ week: startingState.week })
+    expect(JSON.stringify([interimReport, next.reports, next.events])).not.toContain(
+      failure.disposition
+    )
+  })
+})
 
 describe('Event Feed Note Identity', () => {
   describe('createNote', () => {

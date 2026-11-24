@@ -6,6 +6,8 @@ This note clarifies how the first playable weekly loop should be framed so onboa
 
 ## Compact week loop (managerial cadence)
 
+In Week 1, the Front Desk offers this sequence in the optional **How the first week works** guide. Players can go directly to a visible dossier or another existing action. The guide stays available throughout Week 1 and uses the current campaign week on reload.
+
 Linear onboarding copy (mirrored here so git stays canonical):
 
 1. **Review the week** — inspect the event feed, candidate pool, current team or company state, available knowledge, and emerging blockers.

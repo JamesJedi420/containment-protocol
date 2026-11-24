@@ -1,0 +1,7 @@
+# SPE-1354 First-week Front Desk guide
+
+[SPE-1354](https://linear.app/spectranoir/issue/SPE-1354) owns player-facing week-loop framing. Codex owns this slice on `codex/spe-1354-first-week-guide` over `52cd6168eed4a1c70a27f8e5e00cdf743d07f324`. Live SPE-3752 collection and the structured start check verified clean named MSI `main` and zero open or draft PRs on November 24, 2026. The issue had no unresolved blocker or executor assignment when selected.
+
+Use the nine authored phases and strategic success cues in `docs/first-run-week-loop.md`. The production `OperationsDeskPage` index route renders `FrontDeskPage`, which reads the canonical campaign week. Add an optional Week 1 disclosure below the existing Needs Attention panel. Opening it should explain the managerial role, each phase’s purpose, and how to distinguish a stabilizing week from a degraded week. The dossier route remains available while the disclosure is closed or open. The guide’s visibility follows the loaded campaign week.
+
+The footprint is `src/features/operations/FrontDeskPage.tsx`, its existing `FrontDeskPage.test.tsx`, the canonical framing document, and this slice. Verify native keyboard activation, all nine phases, both success cues, dossier availability, and disappearance after the existing week-close action. The current digest, first-anomaly timing measurements, tutorial orchestration, and simulation rules are outside this slice. Use the requirement-selected checks and existing browser suite. Review and release evidence belongs on the PR and SPE-1354.

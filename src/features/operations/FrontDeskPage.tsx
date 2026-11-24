@@ -377,6 +377,59 @@ export default function FrontDeskPage() {
         ) : null}
       </section>
 
+      {game.week === 1 && (
+        <details className="panel space-y-3">
+          <summary className="cursor-pointer text-sm font-semibold">
+            How the first week works
+          </summary>
+          <p className="text-sm">
+            You run the containment agency. Your teams carry out the commitments you make. Use this
+            guide to decide what needs attention before the next week.
+          </p>
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <li>
+              <strong>Review the week.</strong> Check incoming pressure, available staff, and
+              blockers.
+            </li>
+            <li>
+              <strong>Recruit or defer.</strong> Weigh hiring against resources needed for current
+              work.
+            </li>
+            <li>
+              <strong>Equip and validate.</strong> Check loadouts, qualifications, and readiness
+              before committing.
+            </li>
+            <li>
+              <strong>Train and prepare.</strong> Close gaps that could affect this week’s work.
+            </li>
+            <li>
+              <strong>Form teams.</strong> Match people to the work and check what each team can
+              cover.
+            </li>
+            <li>
+              <strong>Triage missions.</strong> Review known evidence and decide what needs a
+              response now.
+            </li>
+            <li>
+              <strong>Deploy.</strong> Commit a team to work the agency can support.
+            </li>
+            <li>
+              <strong>Review outcomes.</strong> Use the week report to see what changed and what
+              carries forward.
+            </li>
+            <li>
+              <strong>Recover and progress.</strong> Restore readiness and invest where it will help
+              next week.
+            </li>
+          </ol>
+          <p className="text-sm">
+            A stabilizing week leaves teams able to act again, major pressures manageable, and room
+            to recover. A degraded week leaves fewer ready people or less support while unresolved
+            pressure grows. Check the report and team readiness before making the next commitment.
+          </p>
+        </details>
+      )}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(250px,0.92fr)_minmax(0,1.25fr)_minmax(300px,1fr)]">
         <aside className="space-y-4">
           <section className="panel space-y-3" aria-label="Operations queues">

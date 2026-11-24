@@ -287,6 +287,30 @@ describe('FrontDeskPage', () => {
     useGameStore.setState({ game: createStartingState() })
   })
 
+  it('offers an optional guide during the first campaign week', async () => {
+    const user = userEvent.setup()
+    renderFrontDesk()
+
+    const summary = screen.getByText('How the first week works')
+    const guide = summary.closest('details')!
+    const dossier = screen.getByRole('link', { name: 'Review dossier and triage' })
+    expect(dossier).toBeVisible()
+    expect(guide).not.toHaveAttribute('open')
+    const before = useGameStore.getState().game
+
+    await user.click(summary)
+    expect(guide).toHaveAttribute('open')
+    expect(within(guide).getByText(/You run the containment agency/)).toBeVisible()
+    expect(within(guide).getAllByRole('listitem')).toHaveLength(9)
+    expect(within(guide).getByText(/A stabilizing week.*A degraded week/)).toBeVisible()
+    expect(dossier).toBeVisible()
+    expect(useGameStore.getState().game).toBe(before)
+
+    act(() => useGameStore.getState().advanceWeek())
+    expect(useGameStore.getState().game.week).toBe(2)
+    expect(summary).not.toBeInTheDocument()
+  })
+
   it('renders the bounded operations hub sections and supports drill-ins', async () => {
     const user = userEvent.setup()
     renderFrontDesk()

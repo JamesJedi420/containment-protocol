@@ -1,7 +1,7 @@
 import { assessAttritionPressure } from '../../domain/agent/attrition'
 import { buildAgentStatCaps } from '../../domain/agentPotential'
 import { evaluateAffiliationOnboardingReadiness } from '../../domain/affiliationOnboardingReadiness'
-import { type Candidate, type GameState, type StatBlock } from '../../domain/models'
+import type { AgentRole, Candidate, GameState, StatBlock } from '../../domain/models'
 import { ROLE_LABELS } from '../../data/copy'
 import { evaluateRecruitmentScoutSupport } from '../../domain/recon'
 import { filterCandidates, type CandidateFilters } from '../../domain/sim/candidateFilter'
@@ -37,6 +37,7 @@ export interface RecruitmentViewFilters extends CandidateFilters {
 export interface RecruitmentCandidateView {
   candidate: Candidate
   roleLabel: string
+  offeredRole?: AgentRole
   hireOutcomeLabel?: string
   sourceLabel?: string
   overallLabel: string
@@ -119,16 +120,16 @@ export function getRecruitmentCandidateViews(
 
   return filtered
     .map((candidate) => {
-      const preview = previewCandidate(candidate, game)
+      const offeredRole = getCandidateHireRole(candidate)
+      const preview = previewCandidate(candidate, game, offeredRole)
       const scoutAssessment = assessCandidateScouting(game, candidate.id)
-      const hireOutcomeLabel = getCandidateHireOutcomeLabel(candidate)
       const scoutIntel = buildCandidateScoutIntel(candidate)
       const onboardingReadiness = buildCandidateOnboardingReadinessLabels(candidate)
 
       return {
         candidate,
         roleLabel: getCandidateRoleLabel(candidate),
-        ...(hireOutcomeLabel ? { hireOutcomeLabel } : {}),
+        ...(offeredRole ? { offeredRole, hireOutcomeLabel: ROLE_LABELS[offeredRole] } : {}),
         ...(getCandidateSourceLabel(candidate)
           ? { sourceLabel: getCandidateSourceLabel(candidate) }
           : {}),
@@ -143,9 +144,7 @@ export function getRecruitmentCandidateViews(
         scoutDepthLabel: scoutIntel.depthLabel,
         scoutWorthLabel: scoutIntel.worthLabel,
         scoutConfidenceLabel: scoutIntel.confidenceLabel,
-        ...(hireOutcomeLabel === ROLE_LABELS.field_recon
-          ? { scoutIdentityLabel: 'Field Recon path' }
-          : {}),
+        ...(offeredRole === 'field_recon' ? { scoutIdentityLabel: 'Field Recon path' } : {}),
         onboardingStageLabel: onboardingReadiness.stageLabel,
         onboardingAccessLabel: onboardingReadiness.accessLabel,
         onboardingCheckpointLabels: onboardingReadiness.checkpointLabels,
@@ -326,12 +325,6 @@ function getCandidateRoleLabel(candidate: Candidate) {
   }
 
   return normalizeCandidateCategory(candidate.category)
-}
-
-function getCandidateHireOutcomeLabel(candidate: Candidate) {
-  const hireRole = getCandidateHireRole(candidate)
-
-  return hireRole ? ROLE_LABELS[hireRole] : undefined
 }
 
 function getCandidateSourceLabel(candidate: Candidate) {

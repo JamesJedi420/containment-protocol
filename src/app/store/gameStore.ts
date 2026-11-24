@@ -114,6 +114,7 @@ import {
 } from '../../domain/hiddenCombatResolver'
 import type { ScreenRouteContext } from '../../domain/screenRouting'
 import {
+  type AgentRole,
   type ContractNextIntent,
   type DeveloperLogEvent,
   type GameConfig,
@@ -458,7 +459,7 @@ interface GameStore {
   ) => void
   /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
   setPublicDisclosurePostureChoice: (recordId: Id, posture: PublicDisclosurePostureChoice) => void
-  hireCandidate: (candidateId: Id) => void
+  hireCandidate: (candidateId: Id, offeredRole?: AgentRole) => void
   reserveWorkshopStaffTime: (request: StaffTimeRequest) => StaffTimeResult
   releaseWorkshopStaffTime: (id: string, revision: string) => StaffTimeResult
   assignOperationalStaffPost: (
@@ -1884,7 +1885,8 @@ export const useGameStore = create<GameStore>()(
           return { game: result.state }
         }),
 
-      hireCandidate: (candidateId) => set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+      hireCandidate: (candidateId, offeredRole) =>
+        set((s) => ({ game: hireCandidate(s.game, candidateId, offeredRole) })),
       reserveWorkshopStaffTime: (request) => {
         const result = reserveWorkshopStaffTime(get().game, request)
         if (result.status === 'applied') set({ game: result.game })

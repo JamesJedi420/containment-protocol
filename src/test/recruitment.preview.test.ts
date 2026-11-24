@@ -42,6 +42,14 @@ describe('previewCandidate', () => {
       reasons: [],
       estimatedValue: 74,
     })
+    expect(previewCandidate(candidate, game, 'field_recon').canHire).toBe(true)
+    expect(previewCandidate(candidate, game, 'hunter')).toMatchObject({
+      canHire: false,
+      reasons: ['role-mismatch'],
+    })
+    expect(
+      previewCandidate({ ...candidate, funnelStage: 'lost' }, game, 'field_recon')
+    ).toMatchObject({ canHire: false, reasons: ['unavailable'] })
   })
 
   it('reports blocking reasons for insufficient funding and unsupported specialist recruits', () => {

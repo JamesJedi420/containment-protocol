@@ -155,6 +155,72 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/overall fit obscured/i)).toBeInTheDocument()
   })
 
+  it('rejects a stale operative offer and rechecks faction policy before hiring', async () => {
+    const user = userEvent.setup()
+    const game = buildRecruitmentGame()
+    game.funding = 120
+    const candidate = game.candidates.find((entry) => entry.category === 'agent')!
+    const offer: Candidate = {
+      ...candidate,
+      revealLevel: 0,
+      evaluation: {
+        ...candidate.evaluation,
+        overallVisible: false,
+        potentialVisible: false,
+      },
+      sourceFactionId: 'black_budget',
+      sourceRequiredTier: 'allied',
+    }
+    const faction = game.factions?.black_budget
+    if (!faction) throw new Error('Expected Black Budget faction in the starting campaign')
+    const initial = {
+      ...game,
+      candidates: [offer],
+      factions: { ...game.factions, black_budget: { ...faction, reputation: 80 } },
+    }
+    useGameStore.setState({ game: initial })
+    renderRecruitmentPage()
+
+    const hire = screen.getByRole('button', { name: 'Hire' })
+    expect(hire).toBeEnabled()
+    expect(screen.getByText(/Hire outcome: Field Recon/i)).toBeInTheDocument()
+
+    const changedRole = {
+      ...initial,
+      candidates: [{ ...offer, agentData: { ...offer.agentData, specialization: 'patrol' } }],
+    }
+    act(() => {
+      useGameStore.setState({ game: changedRole })
+      // The rendered button still represents the old offer during this update.
+      fireEvent.click(hire)
+    })
+    expect(useGameStore.getState().game).toEqual(changedRole)
+    expect(screen.getByText('Avery Holt')).toBeInTheDocument()
+
+    const policyBlocked = {
+      ...changedRole,
+      factions: { ...changedRole.factions, black_budget: { ...faction, reputation: 0 } },
+    }
+    act(() => {
+      useGameStore.setState({ game: policyBlocked })
+      // The role now matches, but the live faction no longer permits the offer.
+      fireEvent.click(hire)
+    })
+    expect(useGameStore.getState().game).toEqual(policyBlocked)
+    expect(screen.getByText('Avery Holt')).toBeInTheDocument()
+    expect(screen.getByText(/Hiring blocked: faction-locked/i)).toBeInTheDocument()
+    expect(screen.getByText(/overall fit obscured/i)).toBeInTheDocument()
+    expect(hire).toBeDisabled()
+
+    act(() => useGameStore.setState({ game: changedRole }))
+    await user.click(hire)
+    const hired = useGameStore.getState().game
+    expect(hired.agents[offer.id]?.role).toBe('hunter')
+    expect(hired.funding).toBe(90)
+    expect(hired.candidates).toEqual([])
+    expect(hired.events.filter((event) => event.type === 'agent.hired')).toHaveLength(1)
+  })
+
   it('hydrates URL filters and applies candidate board filtering', async () => {
     useGameStore.setState({ game: buildRecruitmentGame() })
 

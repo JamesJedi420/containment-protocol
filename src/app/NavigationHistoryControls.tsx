@@ -1,7 +1,8 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate, useNavigationType } from 'react-router'
+import { matchPath, useLocation, useNavigate, useNavigationType } from 'react-router'
 import { useGameStore } from './store/gameStore'
 import { dispatchInputAction, useInputConsumer } from './inputRuntime'
+import { APP_ROUTES } from './routes'
 import {
   findNavigationDelta,
   isNavigationDestinationAvailable,
@@ -34,6 +35,7 @@ export function NavigationHistoryControls({ active = true }: { readonly active?:
   }, [action, location.key])
 
   const available = (entry: { pathname: string }) =>
+    !matchPath(APP_ROUTES.mainMenu, entry.pathname) &&
     isNavigationDestinationAvailable(entry.pathname, game)
   const back = findNavigationDelta(observed, -1, available)
   const forward = findNavigationDelta(observed, 1, available)

@@ -100,9 +100,15 @@ describe('local Main Menu', () => {
     expect(localStorage.getItem(storageKey)).toBe('changed in another tab')
   })
 
-  it('opens the menu from the Operations Desk and retains the campaign on return', async () => {
+  it('retains the campaign and skips the menu in campaign history on return', async () => {
     const user = userEvent.setup()
     renderApp(APP_ROUTES.operationsDesk)
+    await findOperationsDesk()
+    const primaryNav = within(screen.getByRole('navigation', { name: 'Primary operations' }))
+    await user.click(primaryNav.getByRole('link', { name: 'Cases' }))
+    const casesHeading = { name: 'Cases', level: 1 }
+    expect(screen.getByRole('heading', casesHeading)).toBeVisible()
+    await user.click(primaryNav.getByRole('link', { name: 'Operations Desk' }))
     await findOperationsDesk()
     const campaign = useGameStore.getState().game
     const persisted = localStorage.getItem(storageKey)
@@ -119,6 +125,18 @@ describe('local Main Menu', () => {
     expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
     expect(useGameStore.getState().game).toBe(campaign)
     expect(localStorage.getItem(storageKey)).toBe(persisted)
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.queryByRole('heading', { name: 'Main Menu' })).not.toBeInTheDocument()
+    expect(await findOperationsDesk()).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(screen.getByRole('heading', casesHeading)).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Forward' }))
+    expect(await findOperationsDesk()).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Forward' }))
+    expect(await findOperationsDesk()).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Forward' })).toBeDisabled()
   })
 
   it('opens the shared Settings dialog from the menu without changing campaign state', async () => {

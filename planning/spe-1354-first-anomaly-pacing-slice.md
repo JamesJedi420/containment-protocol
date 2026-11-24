@@ -4,4 +4,6 @@
 
 `src/features/operations/FrontDeskPage.tsx` uses the existing dossier projection in Needs Attention and explains when Week 1 has no available dossier. `e2e/cp-smoke.spec.ts` follows the fresh campaign from visible intelligence to its existing Defer action, then independently imports and reloads a start with only resolved cases through the built-in transfer UI. `docs/first-run-week-loop.md` records both paths and the provisional playtest goals.
 
+For Week 1 triage, `src/features/operations/frontDeskView.ts` asks the shared selector in `src/domain/agencyEstablishmentProjection.ts` to rank only open candidates. The opening briefing still considers all unresolved cases. The browser smoke assigns the opening dossier and follows the next available dossier without advancing the week. `src/features/operations/FrontDeskPage.test.tsx` covers the explicit unavailable message in the quiet state.
+
 The resolved-case fixture verifies an unavailable dossier and ordinary planning after import. The importer restores the default cases for an empty case map. Weekly digest coverage, formal timing measurements, tutorial orchestration, simulation, persistence, and telemetry changes sit outside this slice.

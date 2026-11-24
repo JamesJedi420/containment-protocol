@@ -176,10 +176,13 @@ function compareDossierCandidates(
 }
 
 export function selectAgencyEstablishmentFirstDossier(
-  game: GameState
+  game: GameState,
+  { openOnly = false }: { openOnly?: boolean } = {}
 ): AgencyEstablishmentFirstDossierProjection | null {
   const selected = Object.values(game.cases)
-    .filter((currentCase) => currentCase.status !== 'resolved')
+    .filter((currentCase) =>
+      openOnly ? currentCase.status === 'open' : currentCase.status !== 'resolved'
+    )
     .map((currentCase) => {
       const triage = triageMission(game, currentCase)
       return { currentCase, triage, triageScore: triage.score }

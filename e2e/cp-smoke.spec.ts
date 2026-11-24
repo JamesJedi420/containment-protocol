@@ -31,7 +31,20 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const triage = page.getByRole('region', { name: `Case triage detail: ${title}` })
     await expect(triage).toBeVisible()
     await triage.getByRole('button', { name: 'Defer', exact: true }).click()
-    await expect(triage.getByRole('button', { name: 'Clear disposition' })).toBeVisible()
+    const clearDisposition = triage.getByRole('button', { name: 'Clear disposition' })
+    await expect(clearDisposition).toBeVisible()
+    await clearDisposition.click()
+    await triage.getByRole('button', { name: 'Assign Night Watch', exact: true }).click()
+
+    await openPrimaryNav(page, 'Operations Desk')
+    await openFrontDesk(page)
+    await expect(dossier).toBeVisible()
+    const nextTitle = await dossier.getByRole('heading').innerText()
+    expect(nextTitle).not.toBe(title)
+    await dossier.getByRole('link', { name: 'Review dossier and triage' }).click()
+    await expect(
+      page.getByRole('region', { name: `Case triage detail: ${nextTitle}` })
+    ).toBeVisible()
   })
 
   test('SPE-1354 preserves Week 1 planning with no eligible dossier after import and reload', async ({

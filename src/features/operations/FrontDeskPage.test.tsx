@@ -459,6 +459,7 @@ describe('FrontDeskPage', () => {
 
     const attention = within(screen.getByRole('region', { name: 'Needs Attention' }))
     expect(attention.queryByRole('link', { name: 'Review dossier and triage' })).toBeNull()
+    expect(attention.getByText(/No anomalous dossier is available/i)).toBeInTheDocument()
     expect(attention.queryByRole('region', { name: 'Staffing readiness opportunity' })).toBeNull()
     expect(
       attention.getByText('No immediate intervention items are currently escalated.')

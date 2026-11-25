@@ -1601,8 +1601,8 @@ export default function FrontDeskPage() {
                       </p>
                       <p className="opacity-75">
                         {view.latestReport.funding.after < view.latestReport.funding.before
-                          ? 'The closing update left less funding. Check today’s balance and supplier prices before you order or defer a purchase.'
-                          : 'The closing update left more funding. Check today’s balance and supplier prices before you reconsider a deferred purchase.'}
+                          ? 'The closing update shows less funding. Check today’s balance and supplier prices before you order or defer a purchase.'
+                          : 'The closing update shows more funding. Check today’s balance and supplier prices before you reconsider a deferred purchase.'}
                       </p>
                       <Link to={APP_ROUTES.marketsSuppliers} className="underline">
                         Check procurement affordability
@@ -1613,6 +1613,11 @@ export default function FrontDeskPage() {
                       {view.latestReport.funding.status === 'unchanged'
                         ? 'Funding held steady in the recorded closing update.'
                         : 'The funding comparison is unavailable for this report.'}
+                    </p>
+                  )}
+                  {view.latestReport.funding.status !== 'incomplete' && (
+                    <p className="text-sm opacity-60">
+                      Imported history can include reconstructed balances.
                     </p>
                   )}
                 </section>

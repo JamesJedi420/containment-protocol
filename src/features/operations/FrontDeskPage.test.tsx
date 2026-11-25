@@ -512,6 +512,26 @@ describe('FrontDeskPage', () => {
     }
   })
 
+  it('labels funding history that may contain reconstructed imported balances', () => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const closed = useGameStore.getState().game
+    const imported = hydrateGame({
+      ...stripGameTemplates(closed),
+      events: closed.events.map((event) =>
+        event.type === 'agency.containment_updated'
+          ? { ...event, payload: { ...event.payload, fundingAfter: undefined } }
+          : event
+      ),
+    })
+    useGameStore.setState({ game: imported })
+    renderFrontDesk()
+
+    const digest = within(screen.getByRole('region', { name: 'Week-close funding' }))
+    expect(digest.getByText('110 → 93 funding', { exact: true })).toBeVisible()
+    expect(digest.getByText('Imported history can include reconstructed balances.')).toBeVisible()
+  })
+
   it.each(['verified', 'quiet', 'missing previous', 'missing current', 'legacy', 'mixed'] as const)(
     'shows field-agent hiring with %s evidence',
     (scenario) => {

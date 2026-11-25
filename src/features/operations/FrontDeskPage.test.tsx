@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
+import { hydrateGame, stripGameTemplates } from '../../app/store/runTransfer'
 import { dispatchInputAction } from '../../app/inputRuntime'
 import { buildAgentCandidate } from '../../test/recruitment/fixtures'
 import { createStartingState } from '../../data/startingState'
@@ -429,6 +430,13 @@ describe('FrontDeskPage', () => {
               : 'Containment rating history is incomplete for this week.'
           )
         ).toBeVisible()
+        expect(digest.queryByRole('link')).toBeNull()
+      }
+
+      if (scenario === 'capped') {
+        const reloaded = hydrateGame(stripGameTemplates(useGameStore.getState().game))
+        act(() => useGameStore.setState({ game: reloaded }))
+        expect(digest.getByText('No containment rating change recorded for this week.')).toBeVisible()
         expect(digest.queryByRole('link')).toBeNull()
       }
     }

@@ -228,6 +228,34 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     ).toBeVisible()
   })
 
+  test('SPE-1354 preserves a containment rating floored at zero after reload', async ({ page }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    const payload = page.getByRole('textbox', { name: 'Run payload' })
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(await payload.inputValue())
+    expect(exported.game.agency).toBeDefined()
+    // Start one point above the floor. The ordinary close still produces the report and event.
+    const game = {
+      ...exported.game,
+      containmentRating: 1,
+      agency: { ...exported.game.agency!, containmentRating: 1 },
+    }
+    await payload.fill(JSON.stringify({ ...exported, game }))
+    await page.getByRole('button', { name: 'Import Run', exact: true }).click()
+    await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
+    await advanceOperationalWeek(page)
+
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(report.getByRole('link', { name: 'Week 1', exact: true })).toBeVisible()
+    const digest = report.getByRole('region', { name: 'Containment rating' })
+    await expect(digest.getByText('1% → 0%', { exact: true })).toBeVisible()
+    const summary = await digest.innerText()
+    await page.reload()
+    await expect(digest).toHaveText(summary, { useInnerText: true })
+  })
+
   test('SPE-1354 carries completed staff training through week close and reload', async ({
     page,
   }) => {

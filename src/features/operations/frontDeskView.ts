@@ -25,6 +25,7 @@ import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCo
 import type { GameState, WeeklyReport } from '../../domain/models'
 import { STATUS_LABELS } from '../../data/copy'
 import { getProcurementListings } from '../../domain/market'
+import { clamp } from '../../domain/math'
 import { getTrainingProgram } from '../../data/training'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
@@ -1487,9 +1488,10 @@ function buildWeeklyContainmentDigest(
   for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
     const event = game.events[index]!
     if (event.type !== 'agency.containment_updated' || event.payload.week !== week) continue
-    const { containmentRatingBefore: before, containmentRatingAfter: after } = event.payload
-    if (!Number.isFinite(before) || !Number.isFinite(after)) return { status: 'incomplete' }
-    // Funding and clearance share this event, and the raw delta is taken before clamping.
+    const { containmentRatingBefore: before, containmentRatingAfter: recordedAfter } = event.payload
+    if (!Number.isFinite(before) || !Number.isFinite(recordedAfter)) return { status: 'incomplete' }
+    // Save hydration can restore the unclamped sum. Honor the week-close rating bounds.
+    const after = clamp(recordedAfter, 0, 100)
     if (before !== after) return { status: 'changed', before, after, eventId: event.id }
   }
 

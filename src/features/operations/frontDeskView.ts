@@ -25,6 +25,7 @@ import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCo
 import type { GameState, WeeklyReport } from '../../domain/models'
 import { STATUS_LABELS } from '../../data/copy'
 import { getProcurementListings } from '../../domain/market'
+import { getTrainingProgram } from '../../data/training'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
 import {
@@ -1390,8 +1391,9 @@ function buildWeeklyStaffTrainingDigest(
   for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
     const event = game.events[index]!
     if (event.type !== 'agent.training_completed') continue
-    const { queueId, agentId, agentName, trainingName } = event.payload
-    if (completions.has(queueId)) continue
+    const { queueId, agentId, agentName, trainingId, trainingName } = event.payload
+    // Team drills emit one completion per participant using the same event type.
+    if (getTrainingProgram(trainingId)?.scope !== 'agent' || completions.has(queueId)) continue
     completions.set(queueId, {
       eventId: event.id,
       agentName,

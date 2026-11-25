@@ -362,13 +362,24 @@ describe('FrontDeskPage', () => {
     'attributes individual training to the closing report with %s marker history',
     (history) => {
       const game = createStartingState()
-      const agent = Object.values(game.agents).find((entry) => entry.status === 'active')!
+      const team = Object.values(game.teams).find((entry) => entry.name === 'Night Watch')!
+      const agent = Object.values(game.agents).find(
+        (entry) => entry.status === 'active' && !(team.memberIds ?? team.agentIds).includes(entry.id)
+      )!
       useGameStore.setState({ game })
       useGameStore.getState().queueTraining(agent.id, 'analysis-lab')
+      useGameStore.getState().queueTeamTraining(team.id, 'coordination-drill')
       useGameStore.getState().advanceWeek()
       useGameStore.getState().advanceWeek()
       const closed = useGameStore.getState().game
-      const completion = closed.events.find((event) => event.type === 'agent.training_completed')
+      const completion = closed.events
+        .filter((event) => event.type === 'agent.training_completed')
+        .find((event) => event.payload.trainingId === 'analysis-lab')
+      const drillCompletion = closed.events.findIndex(
+        (event) =>
+          event.type === 'agent.training_completed' &&
+          event.payload.trainingId === 'coordination-drill'
+      )
       const previousClose = closed.events.findIndex(
         (event) => event.type === 'intel.report_generated' && event.payload.week === 1
       )
@@ -379,6 +390,8 @@ describe('FrontDeskPage', () => {
       expect(previousClose).toBeGreaterThanOrEqual(0)
       expect(closed.events.indexOf(completion!)).toBeGreaterThan(previousClose)
       expect(currentClose).toBeGreaterThan(closed.events.indexOf(completion!))
+      expect(drillCompletion).toBeGreaterThan(previousClose)
+      expect(drillCompletion).toBeLessThan(currentClose)
 
       const events = closed.events.filter(
         (_, index) =>
@@ -414,6 +427,7 @@ describe('FrontDeskPage', () => {
       expect(report.queryByText(/Earlier course|Later course/)).toBeNull()
       if (history === 'complete') {
         const staff = within(report.getByRole('list', { name: 'Staff training completions' }))
+        expect(staff.getAllByRole('listitem')).toHaveLength(1)
         expect(staff.getByText(`${agent.name} completed Analysis Lab`)).toBeVisible()
         expect(staff.getByText(`Training record ${completion!.id}`)).toBeVisible()
         expect(

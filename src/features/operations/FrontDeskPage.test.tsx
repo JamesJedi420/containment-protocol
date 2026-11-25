@@ -495,7 +495,7 @@ describe('FrontDeskPage', () => {
     expect(digest.queryByText(/990|991/)).toBeNull()
     if (scenario === 'changed') {
       expect(digest.getByText(`${before} → ${after} funding`)).toBeVisible()
-      expect(digest.getByText(`Week-close agency update · Record ${update.id}`)).toBeVisible()
+      expect(digest.getByText(`Funding source · Record ${update.id}`)).toBeVisible()
       expect(digest.getByRole('link', { name: 'Check procurement affordability' })).toHaveAttribute(
         'href',
         '/markets-suppliers'

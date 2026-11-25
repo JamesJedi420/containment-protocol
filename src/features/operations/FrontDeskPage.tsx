@@ -1597,7 +1597,7 @@ export default function FrontDeskPage() {
                         funding
                       </p>
                       <p className="opacity-75">
-                        Week-close agency update · Record {view.latestReport.funding.eventId}
+                        Funding source · Record {view.latestReport.funding.eventId}
                       </p>
                       <p className="opacity-75">
                         {view.latestReport.funding.after < view.latestReport.funding.before

@@ -253,7 +253,7 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       fundingAfter: 53,
       fundingDelta: -17,
     })
-    const reference = funding.getByText(`Week-close agency update · Record ${update.id}`)
+    const reference = funding.getByText(`Funding source · Record ${update.id}`)
     await expect(funding.getByText('110 → 53 funding', { exact: true })).toBeVisible()
     await expect(reference).toBeVisible()
 

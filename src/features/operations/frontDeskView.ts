@@ -1352,7 +1352,10 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
   }
 
   const { report, score } = latest
-  const previousReport = game.reports.findLast((entry) => entry.week === report.week - 1)
+  const previousReport = game.reports
+    .slice()
+    .reverse()
+    .find((entry) => entry.week === report.week - 1)
   // Use current Cases board identities and compare only their recorded report fields.
   const unresolvedCases = Object.values(game.cases)
     .filter((currentCase) => currentCase.status !== 'resolved')

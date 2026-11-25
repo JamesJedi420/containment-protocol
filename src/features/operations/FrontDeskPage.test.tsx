@@ -15,7 +15,6 @@ import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
 import { assignTeam } from '../../domain/sim/assign'
 import { selectAgencyEstablishmentFirstDossier } from '../../domain/agencyEstablishmentProjection'
-import { buildReportCaseSnapshot } from '../../domain/sim/reportCaseSnapshot'
 import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import CasesPage from '../cases/CasesPage'
 import FrontDeskPage from './FrontDeskPage'
@@ -297,7 +296,8 @@ describe('FrontDeskPage', () => {
       const afterClose = useGameStore.getState().game
       const report = afterClose.reports[0]!
       const openCase = Object.values(afterClose.cases).find((entry) => entry.status === 'open')!
-      const closed = buildReportCaseSnapshot(openCase)
+      const closed = report.caseSnapshots?.[openCase.id]
+      if (!closed) throw new Error('Expected the production report to include the open case.')
       const previous = {
         ...closed,
         deadlineRemaining: closed.deadlineRemaining + (deadlineChange ?? 0),

@@ -142,8 +142,16 @@ it('routes dashboard command links into case, team, and report drill-down pages'
     await screen.findByRole('region', { name: /front desk operations hub/i }, { timeout: 5000 })
   ).toBeInTheDocument()
 
+  expect(
+    screen.getByRole('link', { name: /^review active operation: vampire nest in the stockyards$/i })
+  ).toHaveAttribute('href', '/cases?case=case-001')
+
   await user.click(
-    await screen.findByRole('link', { name: /vampire nest in the stockyards/i }, { timeout: 5000 })
+    await screen.findByRole(
+      'link',
+      { name: /^night watch assigned to vampire nest in the stockyards$/i },
+      { timeout: 5000 }
+    )
   )
   expect(
     await screen.findByRole(

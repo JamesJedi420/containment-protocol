@@ -443,7 +443,7 @@ describe('FrontDeskPage', () => {
     }
   )
 
-  it.each(['verified', 'quiet', 'missing previous', 'missing current', 'legacy'] as const)(
+  it.each(['verified', 'quiet', 'missing previous', 'missing current', 'legacy', 'mixed'] as const)(
     'shows field-agent hiring with %s evidence',
     (scenario) => {
       useGameStore.setState({ game: createStartingState() })
@@ -472,7 +472,7 @@ describe('FrontDeskPage', () => {
         })
       const events = [
         ...closed.events.slice(0, start),
-        hire,
+        ...(scenario === 'quiet' ? [hire] : []),
         ...closed.events
           .slice(start, end)
           .filter(
@@ -483,10 +483,10 @@ describe('FrontDeskPage', () => {
         nonFieldHire(closed.events.length + 99, 'staff'),
         nonFieldHire(closed.events.length + 100, 'instructor'),
         ...(scenario === 'missing current' ? [] : closed.events.slice(end)),
-        hire,
+        ...(scenario === 'quiet' ? [hire] : []),
       ]
       let game = { ...closed, events }
-      if (scenario === 'legacy') {
+      if (scenario === 'legacy' || scenario === 'mixed') {
         const legacyHire = {
           ...hire,
           id: 'evt-unverified-legacy-hire',
@@ -497,10 +497,12 @@ describe('FrontDeskPage', () => {
             agentName: candidate.name,
           },
         }
+        const currentMarker = events.findIndex((event) => isMarker(event, 2))
+        expect(currentMarker).toBeGreaterThan(0)
         game = hydrateGame(
           {
             ...stripGameTemplates(closed),
-            events: [...events.slice(0, -2), legacyHire, events.at(-2)],
+            events: [...events.slice(0, currentMarker), legacyHire, ...events.slice(currentMarker)],
           },
           createStartingState(),
           { allowLegacySyntheticRepair: true }
@@ -518,7 +520,7 @@ describe('FrontDeskPage', () => {
       renderFrontDesk()
 
       const digest = within(screen.getByRole('region', { name: 'Field-agent hiring' }))
-      if (scenario === 'verified') {
+      if (scenario === 'verified' || scenario === 'mixed') {
         expect(digest.getAllByRole('listitem')).toHaveLength(1)
         expect(digest.getByText(`${candidate.name} joined the field roster`)).toBeVisible()
         expect(digest.getByText(`Hire record ${hire.id}`)).toBeVisible()
@@ -526,7 +528,13 @@ describe('FrontDeskPage', () => {
         expect(
           digest.getByRole('link', { name: `Review ${candidate.name} in Roster` })
         ).toHaveAttribute('href', `/agents/${encodeURIComponent(candidate.id)}`)
-        expect(digest.queryByText(/history is incomplete/)).toBeNull()
+        if (scenario === 'mixed') {
+          expect(
+            digest.getByText('Field-agent hire history is incomplete for this week.')
+          ).toBeVisible()
+        } else {
+          expect(digest.queryByText(/history is incomplete/)).toBeNull()
+        }
       } else {
         expect(digest.queryByRole('link')).toBeNull()
         expect(

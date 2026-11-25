@@ -69,9 +69,9 @@ function expectQuiet(game: GameState, week: number) {
   }
 }
 
-async function runQuietPath(browser: Browser, hire: boolean) {
+async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
   const context = await browser.newContext({
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL,
     locale: 'en-US',
     timezoneId: 'UTC',
   })
@@ -134,6 +134,45 @@ async function runQuietPath(browser: Browser, hire: boolean) {
     expectQuiet(secondWeek, 3)
     expect(secondWeek.market.week).toBe(initial.market.week + 2)
     for (const id of hiredIds) expect(secondWeek.agents[id]).toBeDefined()
+    const latestReport = page.getByRole('region', { name: 'Latest report' })
+    await expect(latestReport.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+    const hiring = latestReport.getByRole('region', { name: 'Field-agent hiring' })
+    const hireEvents = secondWeek.events
+      .filter((event) => event.type === 'agent.hired')
+      .filter((event) => event.payload.week === 2 && event.payload.recruitCategory === 'agent')
+    expect(hireEvents.map((event) => event.payload.agentId)).toEqual(hiredIds)
+    const hireRecord = hireEvents[0]
+    const checkHiring = async () => {
+      if (hireRecord) {
+        const { agentId, agentName } = hireRecord.payload
+        const rows = hiring.getByRole('list', { name: 'Field-agent hires' }).getByRole('listitem')
+        await expect(rows).toHaveCount(1)
+        await expect(rows.first()).toContainText(`${agentName} joined the field roster`)
+        await expect(rows.first()).toContainText(`Hire record ${hireRecord.id}`)
+        await expect(
+          hiring.getByRole('link', { name: `Review ${agentName} in Roster` })
+        ).toHaveAttribute('href', `/agents/${encodeURIComponent(agentId)}`)
+      } else {
+        await expect(hiring).toContainText('No field-agent hires recorded for this week.')
+        await expect(hiring.getByRole('link')).toHaveCount(0)
+      }
+      await expect(hiring).not.toContainText('history is incomplete')
+    }
+    await checkHiring()
+    await page.reload()
+    await checkHiring()
+    const containmentEvent = secondWeek.events.find(
+      (event) => event.type === 'agency.containment_updated' && event.payload.week === 2
+    )
+    if (!containmentEvent) throw new Error('Expected the Week 2 containment record.')
+    const containmentReference = `Week-close agency update · Record ${containmentEvent.id}`
+    await expect(latestReport.getByText(containmentReference, { exact: true })).toBeVisible()
+    const otherLatestReportText = await latestReport.evaluate((report, reference) => {
+      const copy = report.cloneNode(true) as HTMLElement
+      copy.querySelector('[aria-label="Field-agent hiring"]')?.remove()
+      // The hire advances the shared event sequence. Its effect on this reference is verified above.
+      return copy.textContent?.replace(reference, 'Week-close agency update')
+    }, containmentReference)
     await page
       .getByRole('region', { name: 'Latest report' })
       .getByRole('link', { name: 'Week 2', exact: true })
@@ -151,9 +190,16 @@ async function runQuietPath(browser: Browser, hire: boolean) {
     )
     expect(final.reports).toEqual(secondWeek.reports)
     for (const id of hiredIds) expect(final.agents[id]).toEqual(secondWeek.agents[id])
+    if (hireRecord) {
+      const { agentId, agentName } = hireRecord.payload
+      await openPrimaryNav(page, 'Operations Desk')
+      await hiring.getByRole('link', { name: `Review ${agentName} in Roster` }).click()
+      await expect(page).toHaveURL(`/agents/${encodeURIComponent(agentId)}`)
+      await expect(page.getByRole('heading', { name: agentName, exact: true })).toBeVisible()
+    }
     expectNoPageErrors(probe)
     await expectCampaignStateBudget(hire ? 'quiet-hire' : 'quiet-no-hire', initial, final)
-    return { initial, firstWeek, final, hiredIds, reportText }
+    return { initial, firstWeek, final, hiredIds, reportText, otherLatestReportText }
   } finally {
     probe.dispose()
     await context.close()
@@ -162,15 +208,19 @@ async function runQuietPath(browser: Browser, hire: boolean) {
 
 test('a quiet campaign supports recruitment and independent weekly refresh without forced incidents', async ({
   browser,
+  baseURL,
 }) => {
   test.setTimeout(CAMPAIGN_COMPARISON_TIMEOUT_MS)
-  const hired = await runQuietPath(browser, true)
-  const noHire = await runQuietPath(browser, false)
+  if (!baseURL) throw new Error('The quiet campaign requires the configured app URL.')
+  const hired = await runQuietPath(browser, baseURL, true)
+  const noHire = await runQuietPath(browser, baseURL, false)
   expect(hired.initial).toEqual(noHire.initial)
   expect(hired.firstWeek).toEqual(noHire.firstWeek)
+  expect(hired.reportText).toBe(noHire.reportText)
+  expect(hired.otherLatestReportText).toBe(noHire.otherLatestReportText)
   expect(Object.keys(hired.final.agents).length).toBe(Object.keys(noHire.final.agents).length + 1)
-  expect(await runQuietPath(browser, true)).toEqual(hired)
-  expect(await runQuietPath(browser, false)).toEqual(noHire)
+  expect(await runQuietPath(browser, baseURL, true)).toEqual(hired)
+  expect(await runQuietPath(browser, baseURL, false)).toEqual(noHire)
   await test.info().attach('quiet-period-hiring-comparison', {
     body: JSON.stringify({ hired, noHire }, null, 2),
     contentType: 'application/json',

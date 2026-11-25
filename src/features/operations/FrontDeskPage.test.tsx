@@ -9,6 +9,7 @@ import { dispatchInputAction } from '../../app/inputRuntime'
 import { buildAgentCandidate } from '../../test/recruitment/fixtures'
 import { createStartingState } from '../../data/startingState'
 import { createOperationEvent } from '../../domain/events/eventBus'
+import { previewCandidate } from '../../domain/recruitment'
 import * as hubState from '../../domain/hub/hubState'
 import { getCanonicalFundingState, placeProcurementOrder } from '../../domain/funding'
 import { getProcurementListings } from '../../domain/market'
@@ -438,6 +439,111 @@ describe('FrontDeskPage', () => {
         act(() => useGameStore.setState({ game: reloaded }))
         expect(digest.getByText('No containment rating change recorded for this week.')).toBeVisible()
         expect(digest.queryByRole('link')).toBeNull()
+      }
+    }
+  )
+
+  it.each(['verified', 'quiet', 'missing previous', 'missing current', 'legacy', 'mixed'] as const)(
+    'shows field-agent hiring with %s evidence',
+    (scenario) => {
+      useGameStore.setState({ game: createStartingState() })
+      useGameStore.getState().advanceWeek()
+      const open = useGameStore.getState().game
+      const candidate = open.candidates.find(
+        (entry) => entry.category === 'agent' && previewCandidate(entry, open).canHire
+      )
+      if (!candidate) throw new Error('Expected a hireable field agent in Week 2.')
+      useGameStore.getState().hireCandidate(candidate.id)
+      useGameStore.getState().advanceWeek()
+      const closed = useGameStore.getState().game
+      const hire = closed.events.find((event) => event.type === 'agent.hired')
+      if (hire?.type !== 'agent.hired') throw new Error('Expected a field-agent hire record.')
+      const isMarker = (event: (typeof closed.events)[number], week: number) =>
+        event.type === 'intel.report_generated' && event.payload.week === week
+      const start = closed.events.findIndex((event) => isMarker(event, 1))
+      const end = closed.events.findIndex((event) => isMarker(event, 2))
+      expect(closed.events.indexOf(hire)).toBeGreaterThan(start)
+      expect(closed.events.indexOf(hire)).toBeLessThan(end)
+      const nonFieldHire = (sequence: number, recruitCategory: 'staff' | 'instructor') =>
+        createOperationEvent(sequence, {
+          type: 'agent.hired',
+          sourceSystem: 'agent',
+          payload: { ...hire.payload, recruitCategory },
+        })
+      const events = [
+        ...closed.events.slice(0, start),
+        ...(scenario === 'quiet' ? [hire] : []),
+        ...closed.events
+          .slice(start, end)
+          .filter(
+            (event) =>
+              !(scenario === 'missing previous' && isMarker(event, 1)) &&
+              !(event === hire && (scenario === 'quiet' || scenario === 'legacy'))
+          ),
+        nonFieldHire(closed.events.length + 99, 'staff'),
+        nonFieldHire(closed.events.length + 100, 'instructor'),
+        ...(scenario === 'missing current' ? [] : closed.events.slice(end)),
+        ...(scenario === 'quiet' ? [hire] : []),
+      ]
+      let game = { ...closed, events }
+      if (scenario === 'legacy' || scenario === 'mixed') {
+        const legacyHire = {
+          ...hire,
+          id: 'evt-unverified-legacy-hire',
+          payload: {
+            week: 2,
+            candidateId: candidate.id,
+            agentId: candidate.id,
+            agentName: candidate.name,
+          },
+        }
+        const currentMarker = events.findIndex((event) => isMarker(event, 2))
+        expect(currentMarker).toBeGreaterThan(0)
+        game = hydrateGame(
+          {
+            ...stripGameTemplates(closed),
+            events: [...events.slice(0, currentMarker), legacyHire, ...events.slice(currentMarker)],
+          },
+          createStartingState(),
+          { allowLegacySyntheticRepair: true }
+        )
+        expect(game.events).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              id: legacyHire.id,
+              payload: expect.objectContaining({ recruitCategory: 'agent' }),
+            }),
+          ])
+        )
+      }
+      useGameStore.setState({ game })
+      renderFrontDesk()
+
+      const digest = within(screen.getByRole('region', { name: 'Field-agent hiring' }))
+      if (scenario === 'verified' || scenario === 'mixed') {
+        expect(digest.getAllByRole('listitem')).toHaveLength(1)
+        expect(digest.getByText(`${candidate.name} joined the field roster`)).toBeVisible()
+        expect(digest.getByText(`Hire record ${hire.id}`)).toBeVisible()
+        expect(digest.getByText(/review their readiness before assigning duties/i)).toBeVisible()
+        expect(
+          digest.getByRole('link', { name: `Review ${candidate.name} in Roster` })
+        ).toHaveAttribute('href', `/agents/${encodeURIComponent(candidate.id)}`)
+        if (scenario === 'mixed') {
+          expect(
+            digest.getByText('Field-agent hire history is incomplete for this week.')
+          ).toBeVisible()
+        } else {
+          expect(digest.queryByText(/history is incomplete/)).toBeNull()
+        }
+      } else {
+        expect(digest.queryByRole('link')).toBeNull()
+        expect(
+          digest.getByText(
+            scenario === 'quiet'
+              ? 'No field-agent hires recorded for this week.'
+              : 'Field-agent hire history is incomplete for this week.'
+          )
+        ).toBeVisible()
       }
     }
   )

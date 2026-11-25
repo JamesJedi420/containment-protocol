@@ -252,6 +252,15 @@ export const EVENT_FEED_TEXT = {
   relationshipSummaryMode: 'Summary by pair',
   relationshipAllMode: 'All relationship updates',
   showingResults: 'Showing {count} of {total} events',
+  noticeStatus: { unread: 'Unread', read: 'Read', acknowledged: 'Acknowledged' },
+  markNoticeRead: 'Mark as read',
+  acknowledgeNotice: 'Acknowledge',
+  noticeActionLabel: '{action}: {notice}',
+  departureNotices: 'Departure notices',
+  showDepartureNotices: 'Show departure notices',
+  hideDepartureNotices: 'Hide departure notices',
+  searchDepartureNotices: 'Search departure notices',
+  noDepartureNotices: 'No departure notices match.',
 }
 
 export const OPERATIONS_DESK_TEXT = {

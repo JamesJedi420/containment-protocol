@@ -156,6 +156,11 @@ import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionRes
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import {
+  getOperationNoticeStatus,
+  isOperationNotice,
+  recordNewOperationNotices,
+} from '../../domain/operationNoticeState'
+import {
   activateHistoricalRouteReplayRegistryForInteractionStart,
   type HistoricalRouteReplayInteractionKind,
 } from '../../domain/historicalRouteReplayActivation'
@@ -583,6 +588,7 @@ interface GameStore {
   recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId: string) => void
   recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId: string) => void
   advanceWeek: () => void
+  setOperationNoticeStatus: (eventId: string, nextStatus: 'read' | 'acknowledged') => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
   setSquadKitTemplate: (template: SquadKitTemplate) => void
@@ -2729,7 +2735,42 @@ export const useGameStore = create<GameStore>()(
         return note
       },
 
-      advanceWeek: () => set((s) => ({ game: advanceWeek(s.game) })),
+      advanceWeek: () =>
+        set(({ game }) => {
+          const next = advanceWeek(game)
+          if (next === game) return { game }
+          const operationNoticeStates = recordNewOperationNotices(
+            game.events,
+            next.events,
+            game.operationNoticeStates
+          )
+          return {
+            game:
+              operationNoticeStates === undefined && next.operationNoticeStates === undefined
+                ? next
+                : { ...next, operationNoticeStates },
+          }
+        }),
+      setOperationNoticeStatus: (eventId, nextStatus) =>
+        set((state) => {
+          const { game } = state
+          if (!game.events.some((event) => event.id === eventId && isOperationNotice(event))) {
+            return state
+          }
+          const status = getOperationNoticeStatus(game.operationNoticeStates, eventId)
+          const expectedStatus = status === 'unread' ? 'read' : 'acknowledged'
+          if (status === 'acknowledged' || nextStatus !== expectedStatus) return state
+
+          return {
+            game: {
+              ...game,
+              operationNoticeStates: {
+                ...game.operationNoticeStates,
+                [eventId]: nextStatus,
+              },
+            },
+          }
+        }),
 
       setSquadMetadata: (metadata) =>
         set((s) => ({

@@ -3,6 +3,7 @@ import { assert, describe, expect, it } from 'vitest'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
 import { buildOperationEventTimestamp } from '../../domain/events'
+import { getOperationNoticeStatus } from '../../domain/operationNoticeState'
 import { buildReportNoteTimestamp } from '../../domain/reportNotes'
 import {
   AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
@@ -24,7 +25,7 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import { getLevelForXp, getXpThresholdForLevel } from '../../domain/progression'
-import type { CaseInstance } from '../../domain/models'
+import type { CaseInstance, OperationEvent } from '../../domain/models'
 import { resolveMapMetadata } from '../../domain/siteGeneration/mapMetadata'
 import type { SiteGenerationStageSnapshot } from '../../domain/siteGeneration/packets'
 import type { DistortionState } from '../../domain/shared/distortion'
@@ -61,8 +62,56 @@ import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { generateHubState } from '../../domain/hub/hubState'
 import { placeDelayedMarketOrder } from '../../domain/sim/market'
+import { loadGameSave, serializeGameSave } from './saveSystem'
 
 describe('runTransfer helpers', () => {
+  it('round-trips notice states and treats legacy departure history as read', () => {
+    const game = createStartingState()
+    const departures: OperationEvent<'recruitment.candidate_departed'>[] = [1, 2, 3, 4].map(
+      (index) => ({
+        id: `evt-${String(index).padStart(6, '0')}`,
+        type: 'recruitment.candidate_departed',
+        sourceSystem: 'system',
+        schemaVersion: 1,
+        timestamp: buildOperationEventTimestamp(game.week, index),
+        payload: {
+          week: game.week,
+          candidateId: `candidate-${index}`,
+          candidateName: `Recruit ${index}`,
+          reason: 'unknown_departure',
+          destination: 'Regional office',
+        },
+      })
+    )
+    const legacy = hydrateGame({ ...game, events: departures }, game)
+    expect(legacy.operationNoticeStates).toBeUndefined()
+    expect(legacy.events).toHaveLength(4)
+    expect(getOperationNoticeStatus(legacy.operationNoticeStates, departures[0].id)).toBe('read')
+
+    const expected = {
+      [departures[0].id]: 'acknowledged',
+      [departures[1].id]: 'unread',
+      [departures[2].id]: 'read',
+    } as const
+    const dirtySave = {
+      ...legacy,
+      operationNoticeStates: { ...expected, [departures[3].id]: 'invalid', 'evt-orphan': 'unread' },
+    }
+    const hydrated = hydrateGame(dirtySave as typeof legacy, game)
+    expect(hydrated.operationNoticeStates).toEqual(expected)
+    expect(hydrated.events).toEqual(legacy.events)
+    for (const reloaded of [
+      parseRunExport(serializeRunExport(hydrated)),
+      loadGameSave(serializeGameSave(hydrated)),
+    ]) {
+      expect(reloaded.operationNoticeStates).toEqual(expected)
+      expect(reloaded.events).toEqual(legacy.events)
+    }
+    expect(hydrateGame({ operationNoticeStates: expected }, legacy).operationNoticeStates).toBe(
+      undefined
+    )
+  })
+
   it('preserves fallback affiliation file work queue evidence repair workflows for older saves', () => {
     const fallbackWorkflow = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
       workQueueEntryId: 'person-status:legacy',

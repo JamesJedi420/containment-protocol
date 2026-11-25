@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
+import { dispatchInputAction } from '../../app/inputRuntime'
+import { buildAgentCandidate } from '../../test/recruitment/fixtures'
 import { createStartingState } from '../../data/startingState'
 import { createOperationEvent } from '../../domain/events/eventBus'
 import * as hubState from '../../domain/hub/hubState'
@@ -281,10 +283,142 @@ function withRankedHubFactionSignals(game: GameState): GameState {
 }
 
 describe('FrontDeskPage', () => {
+  it('keeps departure notices in the feed through acknowledgement and automatic reload', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const candidates = ['Avery Holt', 'Morgan Vale'].map((name, index) =>
+      buildAgentCandidate({
+        id: `cand-expiring-${index}`,
+        name,
+        expiryWeek: game.week,
+        scoutReport: { stage: 1, projectedTier: 'B', exactKnown: false, confidence: 'low' },
+      })
+    )
+    useGameStore.setState({ game: { ...game, candidates, recruitmentPool: candidates } })
+    useGameStore.getState().advanceWeek()
+
+    const before = useGameStore.getState().game
+    const departureEvents = before.events.filter(
+      (event) => event.type === 'recruitment.candidate_departed'
+    )
+    expect(departureEvents).toHaveLength(2)
+    expect(before.operationNoticeStates).toEqual(
+      Object.fromEntries(departureEvents.map((event) => [event.id, 'unread']))
+    )
+
+    const desk = renderFrontDesk()
+    const showFeed = screen.getByRole('button', { name: 'Show departure notices' })
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    expect(showFeed).toHaveFocus()
+    act(() => {
+      expect(dispatchInputAction('filters.activate')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Hide departure notices' })).toHaveFocus()
+    const visibleFeed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(within(visibleFeed).getAllByRole('listitem')).toHaveLength(2)
+    const search = within(visibleFeed).getByRole('searchbox', { name: 'Search departure notices' })
+    await user.type(search, 'Avery Holt')
+    expect(search).toHaveValue('Avery Holt')
+    expect(within(visibleFeed).getAllByRole('listitem')).toHaveLength(1)
+    screen.getByRole('button', { name: 'Hide departure notices' }).focus()
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    const markRead = screen.getByRole('button', { name: /mark as read: avery holt/i })
+    expect(markRead).toHaveFocus()
+    await user.keyboard('{Enter}')
+    const acknowledge = screen.getByRole('button', { name: /acknowledge: avery holt/i })
+    expect(acknowledge).toHaveFocus()
+    const notice = acknowledge.closest('li')!
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Read$/)
+
+    const firstEvent = departureEvents.find(
+      (event) => event.payload.candidateName === 'Avery Holt'
+    )!
+    act(() => useGameStore.getState().setOperationNoticeStatus(firstEvent.id, 'read'))
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Read$/)
+    act(() => {
+      expect(dispatchInputAction('filters.activate')).toBe(true)
+    })
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Acknowledged$/)
+    expect(acknowledge).toHaveFocus()
+    expect(dispatchInputAction('filters.activate')).toBe(false)
+    await user.clear(search)
+    expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
+    expect(useGameStore.getState().game.events).toBe(before.events)
+
+    const store = useGameStore.getState()
+    store.setOperationNoticeStatus(firstEvent.id, 'acknowledged')
+    store.setOperationNoticeStatus('missing-event', 'read')
+    expect(useGameStore.getState().game).toBe(store.game)
+    desk.unmount()
+
+    await useGameStore.persist.rehydrate()
+    const reloaded = useGameStore.getState().game
+    expect(reloaded.operationNoticeStates).toEqual(store.game.operationNoticeStates)
+    expect(
+      reloaded.events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toEqual(departureEvents)
+    renderFrontDesk()
+    await user.click(screen.getByRole('button', { name: 'Show departure notices' }))
+    expect(screen.getByRole('button', { name: /acknowledge: avery holt/i })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
+    expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
+    const feed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(within(feed).getByRole('link', { name: /avery holt is no longer available/i })).toBeVisible()
+  })
+
   beforeEach(() => {
     vi.restoreAllMocks()
     useGameStore.persist.clearStorage()
     useGameStore.setState({ game: createStartingState() })
+  })
+
+  it('orders imported departure notices by instant and preserves the order of ties', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const departures = [
+      { name: 'Older notice', timestamp: '2042-01-02T10:00:00+02:00' },
+      { name: 'First at nine', timestamp: '2042-01-02T09:00:00Z' },
+      { name: 'Second at nine', timestamp: '2042-01-02T10:00:00+01:00' },
+      { name: 'Legacy notice', timestamp: 'invalid' },
+    ].map(({ name, timestamp }, index) => ({
+      ...createOperationEvent(index + 1, {
+        type: 'recruitment.candidate_departed',
+        sourceSystem: 'system',
+        payload: {
+          week: game.week,
+          candidateId: `candidate-${index}`,
+          candidateName: name,
+          reason: 'unknown_departure',
+        },
+      }),
+      timestamp,
+    }))
+    useGameStore.setState({ game: { ...game, events: departures } })
+    await useGameStore.persist.rehydrate()
+    expect(useGameStore.getState().game.events.map((event) => event.timestamp)).toEqual([
+      ...departures.slice(0, 3).map((event) => event.timestamp),
+      '2042-01-01T00:00:00.004Z',
+    ])
+
+    renderFrontDesk()
+    await user.click(screen.getByRole('button', { name: 'Show departure notices' }))
+    const feed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(
+      within(feed)
+        .getAllByRole('link')
+        .map((link) => link.textContent)
+    ).toEqual(
+      ['First at nine', 'Second at nine', 'Older notice', 'Legacy notice'].map(
+        (name) => `${name} is no longer available`
+      )
+    )
   })
 
   it('offers an optional guide during the first campaign week', async () => {

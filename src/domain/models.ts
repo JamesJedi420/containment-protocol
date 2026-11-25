@@ -1,4 +1,5 @@
 import type { CampaignCommandIdentityState } from './campaignCommandIdentity'
+import type { OperationNoticeStates } from './operationNoticeState'
 import type { ProtectedRemoteWorkStation } from './protectedRemoteWorkLab'
 import type { CustomDifficultyOverrides, DifficultyProfileId } from './difficultyProfileResolver'
 import type { IsolatedScenarioRunState } from './isolatedScenarioRunner'
@@ -2841,6 +2842,7 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  operationNoticeStates?: OperationNoticeStates
   /**
    * SPE-2741: canonical offscreen rival-expedition packets keyed by embedded expedition id.
    * Hydration and runtime normalization drop malformed siblings and preserve stable key order.

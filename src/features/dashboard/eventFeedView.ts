@@ -15,6 +15,7 @@ import { getEquipmentGradeDefinition } from '../../domain/equipmentGrade'
 import { type GameState, type OperationEvent, type OperationEventType } from '../../domain/models'
 import type { ContainmentClassId } from '../../domain/containmentClassInspection'
 import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
+import { getOperationNoticeStatus, isOperationNotice } from '../../domain/operationNoticeState'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -1397,6 +1398,29 @@ export function getFilteredEventFeedViews(
   }
 
   return mapped
+}
+
+export function getOperationNoticeViews(game: GameState, query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  return game.events
+    .filter(isOperationNotice)
+    .map(buildEventFeedView)
+    .filter((view) => view.searchText.includes(normalizedQuery))
+    .sort((left, right) => {
+      const leftInstant = Date.parse(left.event.timestamp)
+      const rightInstant = Date.parse(right.event.timestamp)
+      // Hydration repairs invalid timestamps. Keep any remaining invalid entries last.
+      if (Number.isNaN(leftInstant)) return Number.isNaN(rightInstant) ? 0 : 1
+      if (Number.isNaN(rightInstant)) return -1
+      return rightInstant - leftInstant
+    })
+    .map((view) => ({
+      id: view.event.id,
+      title: view.title,
+      detail: view.detail,
+      href: view.href,
+      status: getOperationNoticeStatus(game.operationNoticeStates, view.event.id),
+    }))
 }
 
 function aggregateRelationshipEventViews(views: EventFeedView[]) {

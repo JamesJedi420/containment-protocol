@@ -1585,6 +1585,47 @@ export default function FrontDeskPage() {
                     </p>
                   )}
                 </section>
+                <section
+                  className="space-y-2 border-t border-white/10 pt-2"
+                  aria-label="Field-agent hiring"
+                >
+                  <h3 className="text-sm font-semibold">Field-agent hiring</h3>
+                  {view.latestReport.fieldAgentHires.hireCount > 0 && (
+                    <>
+                      <p className="text-sm opacity-70">
+                        New field agents expand the roster. Review their readiness before assigning
+                        duties.
+                      </p>
+                      <ul className="space-y-2" aria-label="Field-agent hires">
+                        {view.latestReport.fieldAgentHires.hires.map((hire) => (
+                          <li key={hire.eventId} className="text-sm">
+                            <p className="font-medium">{hire.agentName} joined the field roster</p>
+                            <p className="opacity-75">Hire record {hire.eventId}</p>
+                            <Link to={hire.agentHref} className="underline">
+                              Review {hire.agentName} in Roster
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                      {view.latestReport.fieldAgentHires.hireCount >
+                        view.latestReport.fieldAgentHires.hires.length && (
+                        <p className="text-sm opacity-70">
+                          Showing {view.latestReport.fieldAgentHires.hires.length} of{' '}
+                          {view.latestReport.fieldAgentHires.hireCount} verified hires.
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {!view.latestReport.fieldAgentHires.historyAvailable ? (
+                    <p className="text-sm opacity-70">
+                      Field-agent hire history is incomplete for this week.
+                    </p>
+                  ) : view.latestReport.fieldAgentHires.hireCount === 0 ? (
+                    <p className="text-sm opacity-70">
+                      No field-agent hires recorded for this week.
+                    </p>
+                  ) : null}
+                </section>
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Staff training</h3>
                   {view.latestReport.staffTraining.completionCount > 0 ? (

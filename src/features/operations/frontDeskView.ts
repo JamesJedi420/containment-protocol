@@ -154,6 +154,11 @@ export interface FrontDeskLatestReportView {
   containment:
     | { status: 'incomplete' | 'quiet' }
     | { status: 'changed'; before: number; after: number; eventId: string }
+  fieldAgentHires: {
+    historyAvailable: boolean
+    hireCount: number
+    hires: { eventId: string; agentName: string; agentHref: string }[]
+  }
   staffTraining: {
     historyAvailable: boolean
     completionCount: number
@@ -1370,10 +1375,7 @@ function describeCaseCarryover(
     : 'Still unresolved. No reported change to status, stage or open-case deadline.'
 }
 
-function buildWeeklyStaffTrainingDigest(
-  game: GameState,
-  week: number
-): FrontDeskLatestReportView['staffTraining'] {
+function getCompletedReportEventWindow(game: GameState, week: number) {
   const closeIndex = game.events.findIndex(
     (event) => event.type === 'intel.report_generated' && event.payload.week === week
   )
@@ -1384,16 +1386,71 @@ function buildWeeklyStaffTrainingDigest(
     closeIndex < 0 ||
     (week > 1 && (previousCloseIndex < 0 || previousCloseIndex >= closeIndex))
   ) {
-    return { historyAvailable: false, completionCount: 0, completions: [] }
+    return null
   }
+  return game.events.slice(previousCloseIndex + 1, closeIndex).reverse()
+}
+
+function buildWeeklyFieldAgentHires(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['fieldAgentHires'] {
+  const events = getCompletedReportEventWindow(game, week)
+  if (!events) return { historyAvailable: false, hireCount: 0, hires: [] }
+
+  let historyAvailable = true
+  const hires = new Map<string, FrontDeskLatestReportView['fieldAgentHires']['hires'][number]>()
+  for (const event of events) {
+    if (event.type !== 'agent.hired') continue
+    const { agentId, agentName, candidateId, recruitCategory, week: hireWeek } = event.payload
+    if (recruitCategory !== 'agent' || hireWeek !== week) continue
+
+    const agent = game.agents[agentId]
+    // Legacy hydration can supply hire payload defaults. Match the linked Roster record.
+    if (
+      !agent ||
+      game.staff[agentId] ||
+      candidateId !== agentId ||
+      agent.id !== agentId ||
+      agent.name !== agentName ||
+      agent.serviceRecord?.joinedWeek !== week ||
+      !agent.history?.timeline.some(
+        (entry) =>
+          entry.eventType === 'agent.hired' && entry.week === week && entry.eventId === event.id
+      )
+    ) {
+      historyAvailable = false
+      continue
+    }
+    if (!hires.has(agentId)) {
+      hires.set(agentId, {
+        eventId: event.id,
+        agentName: agent.name,
+        agentHref: APP_ROUTES.agentDetail(agentId),
+      })
+    }
+  }
+
+  return {
+    historyAvailable,
+    hireCount: hires.size,
+    hires: [...hires.values()].slice(0, MAX_QUEUE_DETAILS),
+  }
+}
+
+function buildWeeklyStaffTrainingDigest(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['staffTraining'] {
+  const events = getCompletedReportEventWindow(game, week)
+  if (!events) return { historyAvailable: false, completionCount: 0, completions: [] }
 
   const completions = new Map<
     string,
     FrontDeskLatestReportView['staffTraining']['completions'][number]
   >()
   // Training can use the incoming week during close. The report markers bound the interval.
-  for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
-    const event = game.events[index]!
+  for (const event of events) {
     if (event.type !== 'agent.training_completed') continue
     const { queueId, agentId, agentName, trainingId, trainingName } = event.payload
     // Team drills emit one completion per participant using the same event type.
@@ -1531,6 +1588,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
     containment: buildWeeklyContainmentDigest(game, report.week),
+    fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,

@@ -104,6 +104,7 @@ import {
 import { buildOperationEventTimestamp, inferOperationEventSourceSystem } from '../../domain/events'
 import type { OperationEventPayloadMap } from '../../domain/events'
 import { operationEventPayloadSchemas } from '../../domain/events/eventValidation'
+import { sanitizeOperationNoticeStates } from '../../domain/operationNoticeState'
 import {
   getKnownProcurementItemIds,
   normalizeFundingState,
@@ -10775,6 +10776,9 @@ export function hydrateGame(
     equipmentRecoveryOutcomes,
   })
   const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
+  const operationNoticeStates = Array.isArray(game.events)
+    ? sanitizeOperationNoticeStates(game.operationNoticeStates, events)
+    : undefined
   const market = sanitizeMarket(game.market, fallback.market, week)
   const inventory = sanitizeInventory(game.inventory, fallback.inventory)
   const damagedEquipmentQueue = sanitizeDamagedEquipmentQueue(
@@ -10949,6 +10953,7 @@ export function hydrateGame(
     caseQueue: sanitizeCaseQueueState(game.caseQueue, normalizedCases, fallback.caseQueue),
     reports,
     events,
+    operationNoticeStates,
     rivalExpeditionProgressPackets,
     rivalExpeditionClues,
     historicalRouteReplays,

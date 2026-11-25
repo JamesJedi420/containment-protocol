@@ -252,6 +252,12 @@ export const EVENT_FEED_TEXT = {
   relationshipSummaryMode: 'Summary by pair',
   relationshipAllMode: 'All relationship updates',
   showingResults: 'Showing {count} of {total} events',
+  noticeStatus: { unread: 'Unread', read: 'Read', acknowledged: 'Acknowledged' },
+  markNoticeRead: 'Mark as read',
+  acknowledgeNotice: 'Acknowledge',
+  noticeActionLabel: '{action}: {notice}',
+  showFeed: 'Show operations feed',
+  hideFeed: 'Hide operations feed',
 }
 
 export const OPERATIONS_DESK_TEXT = {

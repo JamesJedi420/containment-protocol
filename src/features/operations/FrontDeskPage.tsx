@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
+import { useFocusedControls } from '../../app/inputRuntime'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
@@ -10,9 +11,11 @@ import {
   DASHBOARD_CONFIRM,
   DASHBOARD_PRESET_LABELS,
   EMPTY_STATES,
+  EVENT_FEED_TEXT,
   FEEDBACK_MESSAGES,
 } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
+import { EventFeedPanel } from '../dashboard/EventFeedPanel'
 import {
   getFrontDeskNoticeActionHref,
   getFrontDeskHubView,
@@ -117,6 +120,13 @@ export default function FrontDeskPage() {
     message: FEEDBACK_MESSAGES.seedInfo,
   })
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showEventFeed, setShowEventFeed] = useState(false)
+  const eventFeedControls = useRef<HTMLDivElement>(null)
+  useFocusedControls(
+    () =>
+      eventFeedControls.current?.querySelectorAll<HTMLElement>('input, select, button, a[href]') ??
+      []
+  )
   const feedbackTimeoutRef = useRef<number | undefined>(undefined)
   const lastRouteLogSignatureRef = useRef('')
   const view = useMemo(() => getFrontDeskHubView(game), [game])
@@ -1031,6 +1041,20 @@ export default function FrontDeskPage() {
             {view.recentOutcomes.length === 0 && view.recentItems.length === 0 ? (
               <p className="text-sm opacity-60">No recent reports or events are available yet.</p>
             ) : null}
+            <div className="space-y-3" ref={eventFeedControls}>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                aria-expanded={showEventFeed}
+                aria-controls="front-desk-operations-feed"
+                onClick={() => setShowEventFeed((visible) => !visible)}
+              >
+                {showEventFeed ? EVENT_FEED_TEXT.hideFeed : EVENT_FEED_TEXT.showFeed}
+              </button>
+              <div id="front-desk-operations-feed" hidden={!showEventFeed}>
+                {showEventFeed ? <EventFeedPanel /> : null}
+              </div>
+            </div>
           </section>
 
           <section className="panel space-y-4" role="region" aria-label="Simulation controls">

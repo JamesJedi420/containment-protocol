@@ -63,6 +63,10 @@ Owner correction: escalation increments are optional mission rules. An omitted `
 
 Documents versioning strategy for OperationEvent types to ensure backward compatibility and safe migrations.
 
+### Operation notice acknowledgement (SPE-2756)
+
+The optional campaign field `GameState.operationNoticeStates` stores `unread`, `read`, or `acknowledged` by canonical operation-event ID. SPE-2726 candidate-departure events are the first supported notice type. The store records newly produced departures as unread when it commits a week close. Historical events without a record display as read. Hydration preserves supported statuses only for matching, retained notice events and drops malformed, orphaned, or unsupported entries. Acknowledgement never modifies the event or hides its history. This is additive field-level hydration for automatic saves and exported saves. Event payload schemas and envelope versions are unchanged.
+
 ### Recurring containment requirement history (SPE-3181)
 
 Optional `GameState.containmentRequirementStates` is the canonical persisted map of subject-scoped recurring requirement packets, keyed by `containmentRequirementRegistryKey(subjectRef, requirementId)` (JSON-serialized pair). The key must match each packet's authored `definition.subjectRef` and `definition.requirementId`. The packet retains the current cadence `windowId` and `startWeek`/`endWeek`, lifecycle state, last valid fulfillment reference/week/input, per-window counts and reason codes, fulfilled-window identities, activation-intent identities, and **required `processedWindowIds`** covering every previously closed window (including deficient/passive windows without work or fulfillment). The single-complete-fulfillment invariant and authored recovery/constraint policy are revalidated on import. The registry is bounded to 256 entries; malformed siblings, forged keys, duplicates/inconsistent history, or a present packet lacking required closed-window markers reject the **whole present registry** rather than losing deficiency/idempotency evidence.

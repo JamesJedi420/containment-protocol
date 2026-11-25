@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
+import { dispatchInputAction } from '../../app/inputRuntime'
+import { buildAgentCandidate } from '../../test/recruitment/fixtures'
 import { createStartingState } from '../../data/startingState'
 import { createOperationEvent } from '../../domain/events/eventBus'
 import * as hubState from '../../domain/hub/hubState'
@@ -281,6 +283,83 @@ function withRankedHubFactionSignals(game: GameState): GameState {
 }
 
 describe('FrontDeskPage', () => {
+  it('keeps departure notices in the feed through acknowledgement and automatic reload', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const candidates = ['Avery Holt', 'Morgan Vale'].map((name, index) =>
+      buildAgentCandidate({
+        id: `cand-expiring-${index}`,
+        name,
+        expiryWeek: game.week,
+        scoutReport: { stage: 1, projectedTier: 'B', exactKnown: false, confidence: 'low' },
+      })
+    )
+    useGameStore.setState({ game: { ...game, candidates, recruitmentPool: candidates } })
+    useGameStore.getState().advanceWeek()
+
+    const before = useGameStore.getState().game
+    const departureEvents = before.events.filter(
+      (event) => event.type === 'recruitment.candidate_departed'
+    )
+    expect(departureEvents).toHaveLength(2)
+    expect(before.operationNoticeStates).toEqual(
+      Object.fromEntries(departureEvents.map((event) => [event.id, 'unread']))
+    )
+
+    const desk = renderFrontDesk()
+    const showFeed = screen.getByRole('button', { name: 'Show operations feed' })
+    showFeed.focus()
+    act(() => {
+      expect(dispatchInputAction('filters.activate')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Hide operations feed' })).toHaveFocus()
+    const markRead = screen.getByRole('button', { name: /mark as read: avery holt/i })
+    markRead.focus()
+    await user.keyboard('{Enter}')
+    const acknowledge = screen.getByRole('button', { name: /acknowledge: avery holt/i })
+    expect(acknowledge).toHaveFocus()
+    const notice = acknowledge.closest('li')!
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Read$/)
+
+    const firstEvent = departureEvents.find(
+      (event) => event.payload.candidateName === 'Avery Holt'
+    )!
+    act(() => useGameStore.getState().setOperationNoticeStatus(firstEvent.id, 'read'))
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Read$/)
+    act(() => {
+      expect(dispatchInputAction('filters.activate')).toBe(true)
+    })
+    expect(within(notice).getByRole('status')).toHaveTextContent(/^Acknowledged$/)
+    expect(acknowledge).toHaveFocus()
+    expect(dispatchInputAction('filters.activate')).toBe(false)
+    expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
+    expect(useGameStore.getState().game.events).toBe(before.events)
+
+    const store = useGameStore.getState()
+    store.setOperationNoticeStatus(firstEvent.id, 'acknowledged')
+    store.setOperationNoticeStatus('missing-event', 'read')
+    expect(useGameStore.getState().game).toBe(store.game)
+    desk.unmount()
+
+    await useGameStore.persist.rehydrate()
+    const reloaded = useGameStore.getState().game
+    expect(reloaded.operationNoticeStates).toEqual(store.game.operationNoticeStates)
+    expect(
+      reloaded.events.filter((event) => event.type === 'recruitment.candidate_departed')
+    ).toEqual(departureEvents)
+    renderFrontDesk()
+    await user.click(screen.getByRole('button', { name: 'Show operations feed' }))
+    expect(screen.getByRole('button', { name: /acknowledge: avery holt/i })).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    )
+    expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
+    const feed = screen.getByRole('region', { name: 'Operations feed' })
+    expect(
+      within(feed).getByRole('link', { name: /avery holt is no longer available/i })
+    ).toBeVisible()
+  })
+
   beforeEach(() => {
     vi.restoreAllMocks()
     useGameStore.persist.clearStorage()

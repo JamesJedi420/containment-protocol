@@ -15,6 +15,8 @@ import { getEquipmentGradeDefinition } from '../../domain/equipmentGrade'
 import { type GameState, type OperationEvent, type OperationEventType } from '../../domain/models'
 import type { ContainmentClassId } from '../../domain/containmentClassInspection'
 import { labelContainmentBarrierZone } from '../../domain/containmentBarrierIntegrity'
+import { getOperationNoticeStatus, isOperationNotice } from '../../domain/operationNoticeState'
+import type { OperationNoticeStatus } from '../../domain/operationNoticeState'
 
 export type EventFeedTone = 'neutral' | 'success' | 'warning' | 'danger'
 
@@ -28,6 +30,7 @@ export type EventFeedView = {
   timestampLabel: string
   tone: EventFeedTone
   href?: string
+  noticeStatus?: OperationNoticeStatus
   searchText: string
 }
 
@@ -1368,7 +1371,15 @@ export function getFilteredEventFeedViews(
 
   const mapped = filteredEvents
     .map(buildEventFeedView)
-    .map((view) => refineEventFeedDrillDownHref(view, game.reports))
+    .map((view) => {
+      const routedView = refineEventFeedDrillDownHref(view, game.reports)
+      if (!isOperationNotice(view.event)) return routedView
+
+      return {
+        ...routedView,
+        noticeStatus: getOperationNoticeStatus(game.operationNoticeStates, view.event.id),
+      }
+    })
     .filter((view) => {
       if (
         filters.category !== 'all' &&

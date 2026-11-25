@@ -283,6 +283,102 @@ function withRankedHubFactionSignals(game: GameState): GameState {
 }
 
 describe('FrontDeskPage', () => {
+  it('shows distinct directed changes and skips hidden, passive, stale and no-op records', () => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const game = useGameStore.getState().game
+    const [left, right, third] = Object.values(game.agents)
+    const week = game.reports[0]!.week
+    const change = (
+      sequence: number,
+      patch: Partial<
+        Extract<
+          OperationEvent,
+          {
+            type: 'agent.relationship_changed'
+          }
+        >['payload']
+      > = {}
+    ) =>
+      createOperationEvent(sequence, {
+        type: 'agent.relationship_changed',
+        sourceSystem: 'agent',
+        payload: {
+          week,
+          agentId: left!.id,
+          agentName: 'Historical name',
+          counterpartId: right!.id,
+          counterpartName: 'Historical counterpart',
+          previousValue: -0.6,
+          nextValue: -0.4,
+          delta: 0.2,
+          reason: 'reconciliation',
+          ...patch,
+        },
+      })
+    const close = game.events.find(
+      (event) => event.type === 'intel.report_generated' && event.payload.week === week
+    )!
+    const forward = change(902)
+    const reverse = change(903, {
+      agentId: right!.id,
+      counterpartId: left!.id,
+      previousValue: 0.1,
+      nextValue: 0.2,
+      delta: 0.1,
+    })
+    const namesake = change(904, { counterpartId: third!.id })
+    useGameStore.setState({
+      game: {
+        ...game,
+        agents: { ...game.agents, [third!.id]: { ...third!, name: right!.name } },
+        events: [
+          change(900, { week: week - 1 }),
+          change(901, { previousValue: -0.8, nextValue: -0.6 }),
+          forward,
+          reverse,
+          namesake,
+          change(905, { counterpartId: 'unknown', counterpartName: 'Hidden actor' }),
+          change(906, { reason: 'passive_drift' }),
+          change(907, { nextValue: -0.6, delta: 0 }),
+          close,
+          change(908, { week: week + 1 }),
+        ],
+      },
+    })
+
+    renderFrontDesk()
+    const digest = within(screen.getByRole('list', { name: 'Relationship changes' }))
+    expect(digest.getAllByText(`${left!.name} toward ${right!.name}`)).toHaveLength(2)
+    expect(digest.getByText(`${right!.name} toward ${left!.name}`)).toBeVisible()
+    expect(digest.getByText(`-0.60 → -0.40 · reconciliation · Record ${forward.id}`)).toBeVisible()
+    expect(digest.getByText(`0.10 → 0.20 · reconciliation · Record ${reverse.id}`)).toBeVisible()
+    expect(digest.getAllByRole('listitem')).toHaveLength(3)
+    expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
+  })
+
+  it.each([
+    [true, 'No qualifying staff relationship changes recorded for this week.'],
+    [false, 'Relationship comparison unavailable for this week.'],
+  ])('distinguishes a quiet close from missing event history (%s)', (hasHistory, copy) => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const game = useGameStore.getState().game
+    useGameStore.setState({
+      game: {
+        ...game,
+        events: hasHistory
+          ? game.events.filter((event) => event.type !== 'agent.relationship_changed')
+          : [],
+      },
+    })
+    renderFrontDesk()
+    expect(
+      within(screen.getByRole('region', { name: 'Latest report' })).getByText(copy)
+    ).toBeVisible()
+    expect(screen.queryByRole('list', { name: 'Relationship changes' })).toBeNull()
+  })
+
   it.each([
     [1, /Since the previous report: Time left/],
     [0, /Still unresolved\. No reported change/],

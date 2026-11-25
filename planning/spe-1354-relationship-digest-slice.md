@@ -1,0 +1,9 @@
+# SPE-1354 Weekly relationship digest
+
+[SPE-1354](https://linear.app/spectranoir/issue/SPE-1354) owns the player-facing weekly review. Lane A claim `CP-LANE-A-20261125-0015-NEXT` covers the November 20 relationship acceptance on `codex/spe-1354-relationship-digest` from MSI main `dc284d1adceda5c3a856dd24975ae18d4b40a705`. James Dye remains the issue owner. SPE-3752 returned ready with a complete empty open and draft PR inventory.
+
+Latest Report previously supplied case carryover without a relationship summary. It now shows the latest qualifying recorded change in each displayed direction, with the before and after values, cause and event reference. The reader uses the existing weekly report event and the typed events already available in the player-facing Chemistry Inspector. Current active or recovering roster identities determine who appears. Missing comparison history has its own state. A quiet week reports the absence of qualifying records. The route back to Training Division supports checking chemistry before the next team assignment.
+
+[SPE-3103](https://linear.app/spectranoir/issue/SPE-3103) owns the directional relationship substrate and [SPE-208](https://linear.app/spectranoir/issue/SPE-208) owns relationship semantics. Verify the two directions, current roster visibility, exclusion of passive drift and no-ops, quiet and unavailable history, and the difference between actual reconciliation and inaction through week close and reload. The browser scenario uses a controlled import with strained relationships and the ordinary reconciliation action.
+
+The five paths are the Front Desk projection, page and component test, `e2e/cp-smoke.spec.ts` and this record. SPE-3348 selects checks. Relationship simulation and persistence, SPE-1749 dashboard work and other SPE-1354 digest categories fall outside this slice. SPE-1354 remains In Progress and release is separately serialized.

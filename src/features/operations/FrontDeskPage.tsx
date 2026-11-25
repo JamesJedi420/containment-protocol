@@ -1555,6 +1555,54 @@ export default function FrontDeskPage() {
                 <p className="text-sm opacity-70">{view.latestReport.summary}</p>
                 <p className="text-sm opacity-60">{view.latestReport.detail}</p>
                 <div className="space-y-2 border-t border-white/10 pt-2">
+                  <h3 className="text-sm font-semibold">Relationships</h3>
+                  {view.latestReport.relationships.directionCount > 0 ? (
+                    <>
+                      <p className="text-sm opacity-70">
+                        Latest recorded change in each direction.
+                      </p>
+                      {!view.latestReport.relationships.historyAvailable && (
+                        <p className="text-sm opacity-70">
+                          Earlier relationship history is incomplete.
+                        </p>
+                      )}
+                      <ul className="space-y-2" aria-label="Relationship changes">
+                        {view.latestReport.relationships.changes.map((change) => (
+                          <li key={change.directionId} className="text-sm">
+                            <p className="font-medium">{change.label}</p>
+                            <p className="opacity-75">
+                              {change.comparison} · {change.cause} · Record {change.eventId}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                      {view.latestReport.relationships.directionCount >
+                        view.latestReport.relationships.changes.length && (
+                        <p className="text-sm opacity-70">
+                          Showing {view.latestReport.relationships.changes.length} of{' '}
+                          {view.latestReport.relationships.directionCount} recorded directions.
+                        </p>
+                      )}
+                      <p className="text-sm opacity-70">
+                        Relationship values affect team cohesion. Check chemistry before assigning
+                        staff together.
+                      </p>
+                      <Link
+                        to={`${APP_ROUTES.trainingDivision}?advanced=1`}
+                        className="text-sm underline"
+                      >
+                        Review team chemistry
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-sm opacity-70">
+                      {view.latestReport.relationships.historyAvailable
+                        ? 'No qualifying staff relationship changes recorded for this week.'
+                        : 'Relationship comparison unavailable for this week.'}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Unresolved cases</h3>
                   {view.latestReport.unresolvedCaseCount === 0 ? (
                     <p className="text-sm opacity-70">No unresolved cases on the Cases board.</p>

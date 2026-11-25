@@ -149,6 +149,17 @@ export interface FrontDeskLatestReportView {
   score: number
   summary: string
   detail: string
+  relationships: {
+    historyAvailable: boolean
+    directionCount: number
+    changes: {
+      directionId: string
+      label: string
+      comparison: string
+      cause: string
+      eventId: string
+    }[]
+  }
   unresolvedCaseCount: number
   unresolvedCases: {
     id: string
@@ -1344,6 +1355,60 @@ function describeCaseCarryover(
     : 'Still unresolved. No reported change to status, stage or open-case deadline.'
 }
 
+function buildWeeklyRelationshipDigest(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['relationships'] {
+  const closeIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week
+  )
+  const previousCloseIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week - 1
+  )
+  const changes = new Map<string, FrontDeskLatestReportView['relationships']['changes'][number]>()
+  for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
+    const event = game.events[index]!
+    if (event.type !== 'agent.relationship_changed') continue
+    const {
+      agentId,
+      counterpartId,
+      week: eventWeek,
+      previousValue,
+      nextValue,
+      reason,
+    } = event.payload
+    // Close settles the clock before applying completed team drills, which use the incoming week.
+    const belongsToReport = eventWeek === week || (reason === 'training' && eventWeek === week + 1)
+    if (!belongsToReport || previousValue === nextValue || reason === 'passive_drift') continue
+
+    const agent = game.agents[agentId]
+    const counterpart = game.agents[counterpartId]
+    if (
+      (agent?.status !== 'active' && agent?.status !== 'recovering') ||
+      (counterpart?.status !== 'active' && counterpart?.status !== 'recovering')
+    )
+      continue
+
+    const directionId = JSON.stringify([agentId, counterpartId])
+    if (changes.has(directionId)) continue
+    changes.set(directionId, {
+      directionId,
+      label: `${agent.name} toward ${counterpart.name}`,
+      comparison: `${previousValue.toFixed(2)} → ${nextValue.toFixed(2)}`,
+      cause: reason.replace(/_/g, ' '),
+      eventId: event.id,
+    })
+  }
+
+  return {
+    historyAvailable:
+      closeIndex >= 0 &&
+      (week === 1 || (previousCloseIndex >= 0 && previousCloseIndex < closeIndex)),
+    directionCount: changes.size,
+    changes: [...changes.values()].slice(0, MAX_QUEUE_DETAILS),
+  }
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1376,6 +1441,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
       report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
+    relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
     unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({
       id: currentCase.id,

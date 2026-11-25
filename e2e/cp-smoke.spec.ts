@@ -133,6 +133,66 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page.getByRole('region', { name: `Case triage detail: ${title}` })).toBeVisible()
   })
 
+  test('SPE-1354 carries a player-directed relationship change through week close and reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    const payload = page.getByRole('textbox', { name: 'Run payload' })
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(await payload.inputValue())
+    const [left, right] = Object.values(exported.game.agents).filter(
+      (agent) => agent.status === 'active' && agent.assignment?.state !== 'assigned'
+    )
+    expect(left).toBeTruthy()
+    expect(right).toBeTruthy()
+    const agents = {
+      ...exported.game.agents,
+      [left!.id]: { ...left!, relationships: { ...left!.relationships, [right!.id]: -1 } },
+      [right!.id]: { ...right!, relationships: { ...right!.relationships, [left!.id]: -0.5 } },
+    }
+    const fixture = JSON.stringify({ ...exported, game: { ...exported.game, agents } })
+    const importFixture = async () => {
+      await payload.fill(fixture)
+      await page.getByRole('button', { name: 'Import Run', exact: true }).click()
+      await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
+    }
+    await importFixture()
+    await advanceOperationalWeek(page)
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(
+      report.getByText('No qualifying staff relationship changes recorded for this week.')
+    ).toBeVisible()
+
+    await importFixture()
+    await page
+      .getByRole('navigation', { name: 'MVP systems' })
+      .getByRole('link', { name: 'Training Division', exact: true })
+      .click()
+    await page.getByRole('button', { name: 'Show advanced panels' }).click()
+    const reconciliation = page.getByRole('article').filter({
+      has: page.getByRole('heading', { name: 'Relationship Reconciliation' }),
+    })
+    const pair = reconciliation.getByRole('listitem').filter({ hasText: left!.name }).filter({
+      hasText: right!.name,
+    })
+    await pair.getByRole('button', { name: /^Reconcile/ }).click()
+    await expect(pair.getByText('Reconciled this week.')).toBeVisible()
+    await openPrimaryNav(page, 'Operations Desk')
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    const changes = report.getByRole('list', { name: 'Relationship changes' })
+    await expect(changes.getByText(`${left!.name} toward ${right!.name}`)).toBeVisible()
+    await expect(changes.getByText(`${right!.name} toward ${left!.name}`)).toBeVisible()
+    await expect(changes.getByText(/^-1\.00 → .*reconciliation · Record evt-/)).toBeVisible()
+    const summary = await changes.innerText()
+    await page.reload()
+    await expect(changes).toHaveText(summary, { useInnerText: true })
+    await report.getByRole('link', { name: 'Review team chemistry' }).click()
+    await expect(page.getByRole('heading', { name: 'Chemistry Inspector' })).toBeVisible()
+  })
+
   // SPE-3348 — expand player-path smoke for primary Agents surface (shipped roster UI).
   test('primary Agents roster path loads without page errors', async ({ page }) => {
     const probe = attachPageErrorProbe(page)

@@ -1555,6 +1555,46 @@ export default function FrontDeskPage() {
                 <p className="text-sm opacity-70">{view.latestReport.summary}</p>
                 <p className="text-sm opacity-60">{view.latestReport.detail}</p>
                 <div className="space-y-2 border-t border-white/10 pt-2">
+                  <h3 className="text-sm font-semibold">Staff training</h3>
+                  {view.latestReport.staffTraining.completionCount > 0 ? (
+                    <>
+                      <p className="text-sm opacity-70">
+                        Completed courses free their training slots.
+                      </p>
+                      <ul className="space-y-2" aria-label="Staff training completions">
+                        {view.latestReport.staffTraining.completions.map((completion) => (
+                          <li key={completion.eventId} className="text-sm">
+                            <p className="font-medium">
+                              {completion.agentName} completed {completion.trainingName}
+                            </p>
+                            <p className="opacity-75">Training record {completion.eventId}</p>
+                            {completion.agentHref ? (
+                              <Link to={completion.agentHref} className="underline">
+                                Review {completion.agentName} before assigning duties
+                              </Link>
+                            ) : (
+                              <p className="opacity-75">This agent’s record is unavailable.</p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                      {view.latestReport.staffTraining.completionCount >
+                        view.latestReport.staffTraining.completions.length && (
+                        <p className="text-sm opacity-70">
+                          Showing {view.latestReport.staffTraining.completions.length} of{' '}
+                          {view.latestReport.staffTraining.completionCount} recorded completions.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm opacity-70">
+                      {view.latestReport.staffTraining.historyAvailable
+                        ? 'No individual training completions recorded for this week.'
+                        : 'Training history is incomplete for this week.'}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Relationships</h3>
                   {view.latestReport.relationships.directionCount > 0 ? (
                     <>

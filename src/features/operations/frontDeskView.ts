@@ -1377,7 +1377,9 @@ function buildWeeklyRelationshipDigest(
       nextValue,
       reason,
     } = event.payload
-    if (eventWeek !== week || previousValue === nextValue || reason === 'passive_drift') continue
+    // Close settles the clock before applying completed team drills, which use the incoming week.
+    const belongsToReport = eventWeek === week || (reason === 'training' && eventWeek === week + 1)
+    if (!belongsToReport || previousValue === nextValue || reason === 'passive_drift') continue
 
     const agent = game.agents[agentId]
     const counterpart = game.agents[counterpartId]

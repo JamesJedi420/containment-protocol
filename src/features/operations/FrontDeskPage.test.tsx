@@ -343,6 +343,7 @@ describe('FrontDeskPage', () => {
           change(907, { nextValue: -0.6, delta: 0 }),
           close,
           change(908, { week: week + 1 }),
+          change(909, { previousValue: 1.7, nextValue: 1.9 }),
         ],
       },
     })
@@ -355,6 +356,28 @@ describe('FrontDeskPage', () => {
     expect(digest.getByText(`0.10 → 0.20 · reconciliation · Record ${reverse.id}`)).toBeVisible()
     expect(digest.getAllByRole('listitem')).toHaveLength(3)
     expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
+  })
+
+  it('includes a team drill recorded during close with the incoming week stamp', () => {
+    const game = createStartingState()
+    const team = Object.values(game.teams).find((entry) => entry.name === 'Night Watch')!
+    useGameStore.setState({ game })
+    useGameStore.getState().queueTeamTraining(team.id, 'coordination-drill')
+    useGameStore.getState().advanceWeek()
+    useGameStore.getState().advanceWeek()
+    const closed = useGameStore.getState().game
+    const trainingEvents = closed.events
+      .filter((event) => event.type === 'agent.relationship_changed')
+      .filter((event) => event.payload.reason === 'training')
+    expect(trainingEvents.length).toBeGreaterThan(0)
+    expect(trainingEvents.every((event) => event.payload.week === closed.week)).toBe(true)
+
+    renderFrontDesk()
+    const report = within(screen.getByRole('region', { name: 'Latest report' }))
+    expect(report.getByRole('link', { name: `Week ${closed.week - 1}` })).toBeVisible()
+    const digest = within(report.getByRole('list', { name: 'Relationship changes' }))
+    const row = digest.getAllByText(/· training · Record /)[0]!
+    expect(trainingEvents.some((event) => row.textContent?.endsWith(event.id))).toBe(true)
   })
 
   it.each([

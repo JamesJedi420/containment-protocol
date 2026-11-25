@@ -135,12 +135,15 @@ function WeekCloseTeamFatigue({ report }: { report: FrontDeskLatestReportView })
                   <Link to={team.currentHref} className="underline">
                     Check current roster for {team.name}
                   </Link>
-                ) : (
-                  <p className="opacity-70">This team has no current roster to review.</p>
-                )}
+                ) : null}
               </li>
             ))}
           </ul>
+          {teamFatigue.teams.some((team) => team.currentHref === null) && (
+            <Link to={APP_ROUTES.teams} className="text-sm underline">
+              Review current teams
+            </Link>
+          )}
           {teamFatigue.pressuredCount > teamFatigue.teams.length && (
             <Link to={href} className="text-sm underline">
               See all {teamFatigue.pressuredCount} affected teams in the report

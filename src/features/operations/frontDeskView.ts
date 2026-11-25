@@ -29,6 +29,7 @@ import { clamp } from '../../domain/math'
 import { getTrainingProgram } from '../../data/training'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
+import { starterTeamTemplates } from '../../domain/templates/starterRoster'
 import {
   getDashboardMetrics,
   getFieldStatusViews,
@@ -57,6 +58,7 @@ const MAX_RECENT_ITEMS = 3
 const MAX_ATTENTION_ITEMS = 4
 const MAX_TEAM_STATUS = 4
 const MAX_PRESSURE_DETAILS = 4
+const STARTER_TEAM_IDS = new Set(starterTeamTemplates.map(({ id }) => id))
 
 export interface FrontDeskNoticeView {
   id: string
@@ -1651,16 +1653,21 @@ function buildWeeklyTeamFatigue(
           right.avgFatigue - left.avgFatigue || left.teamId.localeCompare(right.teamId)
       )
       .slice(0, MAX_QUEUE_DETAILS)
-      .map((entry) => ({
-        id: entry.teamId,
-        name: entry.teamName ?? 'Unnamed team',
-        band: entry.fatigueBand === 'critical' ? 'critical' : 'strained',
-        average: entry.avgFatigue,
-        previousAverage: previous.get(entry.teamId) ?? null,
-        currentHref: Object.hasOwn(game.teams, entry.teamId)
-          ? APP_ROUTES.teamDetail(entry.teamId)
-          : null,
-      })),
+      .map((entry) => {
+        // Player-created squad IDs can be reused after deletion, even with the same name.
+        const stableIdentity = STARTER_TEAM_IDS.has(entry.teamId)
+        return {
+          id: entry.teamId,
+          name: entry.teamName ?? 'Unnamed team',
+          band: entry.fatigueBand === 'critical' ? 'critical' : 'strained',
+          average: entry.avgFatigue,
+          previousAverage: stableIdentity ? (previous.get(entry.teamId) ?? null) : null,
+          currentHref:
+            stableIdentity && Object.hasOwn(game.teams, entry.teamId)
+              ? APP_ROUTES.teamDetail(entry.teamId)
+              : null,
+        }
+      }),
   }
 }
 

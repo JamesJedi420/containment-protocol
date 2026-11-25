@@ -389,21 +389,21 @@ describe('FrontDeskPage', () => {
                       ...(scenario === 'pressure'
                         ? [
                             {
-                              teamId: 'removed',
-                              teamName: 'Former squad',
-                              avgFatigue: 41,
+                              teamId: 'z-overflow',
+                              teamName: 'Fourth squad',
+                              avgFatigue: 35,
                               fatigueBand: 'strained' as const,
                             },
                             {
-                              teamId: 'another',
+                              teamId: 'a-third',
                               teamName: 'Third squad',
                               avgFatigue: 35,
                               fatigueBand: 'strained' as const,
                             },
                             {
-                              teamId: 'overflow',
-                              teamName: 'Fourth squad',
-                              avgFatigue: 30,
+                              teamId: 'removed',
+                              teamName: 'Former squad',
+                              avgFatigue: 41,
                               fatigueBand: 'strained' as const,
                             },
                           ]
@@ -419,11 +419,16 @@ describe('FrontDeskPage', () => {
       if (scenario === 'pressure') {
         expect(cue.getByText('Week 1: 27 → Week 2: 50 average fatigue · critical')).toBeVisible()
         expect(cue.getByText('Week 2: 41 average fatigue · strained')).toBeVisible()
-        expect(cue.getAllByText('This team has no current roster to review.')).toHaveLength(2)
+        expect(cue.getByRole('link', { name: 'Review current teams' })).toHaveAttribute(
+          'href',
+          '/teams'
+        )
         expect(
           cue.getByRole('link', { name: 'Check current roster for Recorded Night Watch' })
         ).toHaveAttribute('href', '/teams/t_nightwatch')
-        expect(cue.getAllByRole('listitem')).toHaveLength(3)
+        expect(
+          cue.getAllByRole('listitem').map((row) => row.querySelector('p')?.textContent)
+        ).toEqual(['Recorded Night Watch', 'Former squad', 'Third squad'])
         expect(cue.queryByText('Fourth squad')).toBeNull()
         expect(
           cue.getByRole('link', { name: 'See all 4 affected teams in the report' })
@@ -440,6 +445,43 @@ describe('FrontDeskPage', () => {
       }
     }
   )
+
+  it('keeps report history separate when a new squad reuses an old ID and name', () => {
+    const initial = createStartingState()
+    initial.agents.a_juno!.fatigue = 100
+    initial.agents.a_eli!.fatigue = 100
+    useGameStore.setState({ game: initial })
+    const { createTeam, advanceWeek, moveAgentBetweenTeams, deleteEmptyTeam } =
+      useGameStore.getState()
+    createTeam('Echo', 'a_juno')
+    const teamId = Object.values(useGameStore.getState().game.teams).find(
+      (team) => team.name === 'Echo'
+    )!.id
+    advanceWeek()
+    moveAgentBetweenTeams('a_juno', null)
+    deleteEmptyTeam(teamId)
+    createTeam('Echo', 'a_eli')
+    expect(useGameStore.getState().game.teams[teamId]?.agentIds).toEqual(['a_eli'])
+
+    renderFrontDesk()
+    const cue = within(screen.getByRole('region', { name: 'Week-close team fatigue' }))
+    expect(cue.getByText('Echo')).toBeVisible()
+    expect(cue.queryByRole('link', { name: 'Check current roster for Echo' })).toBeNull()
+    expect(cue.getByRole('link', { name: 'Review current teams' })).toHaveAttribute(
+      'href',
+      '/teams'
+    )
+
+    act(() => advanceWeek())
+    const record = useGameStore
+      .getState()
+      .game.reports.at(-1)
+      ?.teamStatus.find((entry) => entry.teamId === teamId)
+    expect(record?.fatigueBand).toBe('critical')
+    expect(
+      cue.getByText(`Week 2: ${record?.avgFatigue} average fatigue · critical`, { exact: true })
+    ).toBeVisible()
+  })
 
   it.each(['movement', 'capped', 'funding only', 'missing previous', 'missing current'] as const)(
     'shows the realized containment result with %s evidence',

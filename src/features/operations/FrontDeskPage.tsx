@@ -1561,6 +1561,11 @@ export default function FrontDeskPage() {
                       <p className="text-sm opacity-70">
                         Latest recorded change in each direction.
                       </p>
+                      {!view.latestReport.relationships.historyAvailable && (
+                        <p className="text-sm opacity-70">
+                          Earlier relationship history is incomplete.
+                        </p>
+                      )}
                       <ul className="space-y-2" aria-label="Relationship changes">
                         {view.latestReport.relationships.changes.map((change) => (
                           <li key={change.directionId} className="text-sm">

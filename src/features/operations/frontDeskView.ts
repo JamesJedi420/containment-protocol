@@ -172,6 +172,11 @@ export interface FrontDeskLatestReportView {
       agentHref: string | null
     }[]
   }
+  coachingAssignments: {
+    historyAvailable: boolean
+    instructorCount: number
+    assignments: { eventId: string; instructorName: string; agentName: string }[]
+  }
   relationships: {
     historyAvailable: boolean
     directionCount: number
@@ -1473,6 +1478,32 @@ function buildWeeklyStaffTrainingDigest(
   }
 }
 
+function buildWeeklyCoachingAssignments(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['coachingAssignments'] {
+  const events = getCompletedReportEventWindow(game, week)
+  if (!events) return { historyAvailable: false, instructorCount: 0, assignments: [] }
+
+  const assignments = new Map<
+    string,
+    FrontDeskLatestReportView['coachingAssignments']['assignments'][number]
+  >()
+  for (const event of events) {
+    if (event.type !== 'agent.instructor_assigned' || event.payload.week !== week) continue
+    const { staffId, instructorName, agentName } = event.payload
+    if (!assignments.has(staffId)) {
+      assignments.set(staffId, { eventId: event.id, instructorName, agentName })
+    }
+  }
+
+  return {
+    historyAvailable: true,
+    instructorCount: assignments.size,
+    assignments: [...assignments.values()].slice(0, MAX_QUEUE_DETAILS),
+  }
+}
+
 function buildWeeklyRelationshipDigest(
   game: GameState,
   week: number
@@ -1609,6 +1640,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     funding: buildWeeklyFundingDigest(game, report.week),
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
+    coachingAssignments: buildWeeklyCoachingAssignments(game, report.week),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
     unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({

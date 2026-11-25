@@ -379,6 +379,48 @@ describe('FrontDeskPage', () => {
     useGameStore.setState({ game: createStartingState() })
   })
 
+  it('orders imported departure notices by instant and preserves the order of ties', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const departures = [
+      { name: 'Older notice', timestamp: '2042-01-02T10:00:00+02:00' },
+      { name: 'First at nine', timestamp: '2042-01-02T09:00:00Z' },
+      { name: 'Second at nine', timestamp: '2042-01-02T10:00:00+01:00' },
+      { name: 'Legacy notice', timestamp: 'invalid' },
+    ].map(({ name, timestamp }, index) => ({
+      ...createOperationEvent(index + 1, {
+        type: 'recruitment.candidate_departed',
+        sourceSystem: 'system',
+        payload: {
+          week: game.week,
+          candidateId: `candidate-${index}`,
+          candidateName: name,
+          reason: 'unknown_departure',
+        },
+      }),
+      timestamp,
+    }))
+    useGameStore.setState({ game: { ...game, events: departures } })
+    await useGameStore.persist.rehydrate()
+    expect(useGameStore.getState().game.events.map((event) => event.timestamp)).toEqual([
+      ...departures.slice(0, 3).map((event) => event.timestamp),
+      '2042-01-01T00:00:00.004Z',
+    ])
+
+    renderFrontDesk()
+    await user.click(screen.getByRole('button', { name: 'Show departure notices' }))
+    const feed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(
+      within(feed)
+        .getAllByRole('link')
+        .map((link) => link.textContent)
+    ).toEqual(
+      ['First at nine', 'Second at nine', 'Older notice', 'Legacy notice'].map(
+        (name) => `${name} is no longer available`
+      )
+    )
+  })
+
   it('offers an optional guide during the first campaign week', async () => {
     const user = userEvent.setup()
     renderFrontDesk()

@@ -1406,7 +1406,14 @@ export function getOperationNoticeViews(game: GameState, query: string) {
     .filter(isOperationNotice)
     .map(buildEventFeedView)
     .filter((view) => view.searchText.includes(normalizedQuery))
-    .sort((left, right) => right.event.timestamp.localeCompare(left.event.timestamp))
+    .sort((left, right) => {
+      const leftInstant = Date.parse(left.event.timestamp)
+      const rightInstant = Date.parse(right.event.timestamp)
+      // Hydration repairs invalid timestamps. Keep any remaining invalid entries last.
+      if (Number.isNaN(leftInstant)) return Number.isNaN(rightInstant) ? 0 : 1
+      if (Number.isNaN(rightInstant)) return -1
+      return rightInstant - leftInstant
+    })
     .map((view) => ({
       id: view.event.id,
       title: view.title,

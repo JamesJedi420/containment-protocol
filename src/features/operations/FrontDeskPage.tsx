@@ -20,6 +20,7 @@ import { getOperationNoticeViews } from '../dashboard/eventFeedView'
 import {
   getFrontDeskNoticeActionHref,
   getFrontDeskHubView,
+  type FrontDeskLatestReportView,
   type FrontDeskNoticeTone,
 } from './frontDeskView'
 
@@ -106,6 +107,58 @@ function choiceToneClass(tone: 'neutral' | 'success' | 'warning' | 'danger') {
   if (tone === 'warning') return 'border-amber-300/35 bg-amber-500/10 hover:bg-amber-500/16'
   if (tone === 'success') return 'border-emerald-300/35 bg-emerald-500/10 hover:bg-emerald-500/16'
   return 'border-white/15 bg-white/6 hover:bg-white/10'
+}
+
+function WeekCloseTeamFatigue({ report }: { report: FrontDeskLatestReportView }) {
+  const { teamFatigue, week, href } = report
+
+  return (
+    <section
+      aria-label="Week-close team fatigue"
+      className="space-y-2 border-t border-white/10 pt-2"
+    >
+      <h3 className="text-sm font-semibold">Week-close team fatigue</h3>
+      {teamFatigue.teams.length > 0 ? (
+        <>
+          <p className="text-sm opacity-70">
+            Averages reflect each week’s roster. Check current staffing before committing a team.
+          </p>
+          <ul className="space-y-2">
+            {teamFatigue.teams.map((team) => (
+              <li key={team.id} className="text-sm">
+                <p className="font-medium">{team.name}</p>
+                <p className="opacity-70">
+                  {team.previousAverage !== null && `Week ${week - 1}: ${team.previousAverage} → `}
+                  Week {week}: {team.average} average fatigue · {team.band}
+                </p>
+                {team.currentHref ? (
+                  <Link to={team.currentHref} className="underline">
+                    Check current roster for {team.name}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {teamFatigue.teams.some((team) => team.currentHref === null) && (
+            <Link to={APP_ROUTES.teams} className="text-sm underline">
+              Review current teams
+            </Link>
+          )}
+          {teamFatigue.pressuredCount > teamFatigue.teams.length && (
+            <Link to={href} className="text-sm underline">
+              See all {teamFatigue.pressuredCount} affected teams in the report
+            </Link>
+          )}
+        </>
+      ) : (
+        <p className="text-sm opacity-70">
+          {teamFatigue.historyAvailable
+            ? 'No strained or critical teams were recorded at week close.'
+            : 'Week-close team fatigue is unavailable for this report.'}
+        </p>
+      )}
+    </section>
+  )
 }
 
 export default function FrontDeskPage() {
@@ -1702,6 +1755,7 @@ export default function FrontDeskPage() {
                     </p>
                   )}
                 </div>
+                <WeekCloseTeamFatigue report={view.latestReport} />
                 <section
                   aria-label="Coaching assignments"
                   className="space-y-2 border-t border-white/10 pt-2"

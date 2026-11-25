@@ -360,6 +360,129 @@ describe('FrontDeskPage', () => {
     expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
   })
 
+  it.each(['pressure', 'steady', 'empty', 'current week'] as const)(
+    'shows week-close team fatigue with %s records',
+    (scenario) => {
+      useGameStore.setState({ game: createStartingState() })
+      useGameStore.getState().advanceWeek()
+      useGameStore.getState().advanceWeek()
+      const game = useGameStore.getState().game
+      const [previous, closed] = game.reports
+      const team = { teamId: 't_nightwatch', teamName: 'Recorded Night Watch' }
+      useGameStore.setState({
+        game: {
+          ...game,
+          reports: [
+            { ...previous!, teamStatus: [{ ...team, avgFatigue: 27, fatigueBand: 'strained' }] },
+            {
+              ...closed!,
+              week: scenario === 'current week' ? game.week : closed!.week,
+              teamStatus:
+                scenario === 'empty'
+                  ? []
+                  : [
+                      {
+                        ...team,
+                        avgFatigue: scenario === 'steady' ? 19 : 50,
+                        fatigueBand: scenario === 'steady' ? 'steady' : 'critical',
+                      },
+                      ...(scenario === 'pressure'
+                        ? [
+                            {
+                              teamId: 'z-overflow',
+                              teamName: 'Fourth squad',
+                              avgFatigue: 35,
+                              fatigueBand: 'strained' as const,
+                            },
+                            {
+                              teamId: 'a-third',
+                              teamName: 'Third squad',
+                              avgFatigue: 35,
+                              fatigueBand: 'strained' as const,
+                            },
+                            {
+                              teamId: 'removed',
+                              teamName: 'Former squad',
+                              avgFatigue: 41,
+                              fatigueBand: 'strained' as const,
+                            },
+                          ]
+                        : []),
+                    ],
+            },
+          ],
+        },
+      })
+
+      renderFrontDesk()
+      const cue = within(screen.getByRole('region', { name: 'Week-close team fatigue' }))
+      if (scenario === 'pressure') {
+        expect(cue.getByText('Week 1: 27 → Week 2: 50 average fatigue · critical')).toBeVisible()
+        expect(cue.getByText('Week 2: 41 average fatigue · strained')).toBeVisible()
+        expect(cue.getByRole('link', { name: 'Review current teams' })).toHaveAttribute(
+          'href',
+          '/teams'
+        )
+        expect(
+          cue.getByRole('link', { name: 'Check current roster for Recorded Night Watch' })
+        ).toHaveAttribute('href', '/teams/t_nightwatch')
+        expect(
+          cue.getAllByRole('listitem').map((row) => row.querySelector('p')?.textContent)
+        ).toEqual(['Recorded Night Watch', 'Former squad', 'Third squad'])
+        expect(cue.queryByText('Fourth squad')).toBeNull()
+        expect(
+          cue.getByRole('link', { name: 'See all 4 affected teams in the report' })
+        ).toHaveAttribute('href', '/report/2')
+      } else {
+        expect(cue.queryByRole('list')).toBeNull()
+        expect(
+          cue.getByText(
+            scenario === 'steady'
+              ? 'No strained or critical teams were recorded at week close.'
+              : 'Week-close team fatigue is unavailable for this report.'
+          )
+        ).toBeVisible()
+      }
+    }
+  )
+
+  it('keeps report history separate when a new squad reuses an old ID and name', () => {
+    const initial = createStartingState()
+    initial.agents.a_juno!.fatigue = 100
+    initial.agents.a_eli!.fatigue = 100
+    useGameStore.setState({ game: initial })
+    const { createTeam, advanceWeek, moveAgentBetweenTeams, deleteEmptyTeam } =
+      useGameStore.getState()
+    createTeam('Echo', 'a_juno')
+    const teamId = Object.values(useGameStore.getState().game.teams).find(
+      (team) => team.name === 'Echo'
+    )!.id
+    advanceWeek()
+    moveAgentBetweenTeams('a_juno', null)
+    deleteEmptyTeam(teamId)
+    createTeam('Echo', 'a_eli')
+    expect(useGameStore.getState().game.teams[teamId]?.agentIds).toEqual(['a_eli'])
+
+    renderFrontDesk()
+    const cue = within(screen.getByRole('region', { name: 'Week-close team fatigue' }))
+    expect(cue.getByText('Echo')).toBeVisible()
+    expect(cue.queryByRole('link', { name: 'Check current roster for Echo' })).toBeNull()
+    expect(cue.getByRole('link', { name: 'Review current teams' })).toHaveAttribute(
+      'href',
+      '/teams'
+    )
+
+    act(() => advanceWeek())
+    const record = useGameStore
+      .getState()
+      .game.reports.at(-1)
+      ?.teamStatus.find((entry) => entry.teamId === teamId)
+    expect(record?.fatigueBand).toBe('critical')
+    expect(
+      cue.getByText(`Week 2: ${record?.avgFatigue} average fatigue · critical`, { exact: true })
+    ).toBeVisible()
+  })
+
   it.each(['movement', 'capped', 'funding only', 'missing previous', 'missing current'] as const)(
     'shows the realized containment result with %s evidence',
     (scenario) => {

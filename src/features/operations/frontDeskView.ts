@@ -29,6 +29,7 @@ import { clamp } from '../../domain/math'
 import { getTrainingProgram } from '../../data/training'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
+import { starterTeamTemplates } from '../../domain/templates/starterRoster'
 import {
   getDashboardMetrics,
   getFieldStatusViews,
@@ -57,6 +58,7 @@ const MAX_RECENT_ITEMS = 3
 const MAX_ATTENTION_ITEMS = 4
 const MAX_TEAM_STATUS = 4
 const MAX_PRESSURE_DETAILS = 4
+const STARTER_TEAM_IDS = new Set(starterTeamTemplates.map(({ id }) => id))
 
 export interface FrontDeskNoticeView {
   id: string
@@ -176,6 +178,18 @@ export interface FrontDeskLatestReportView {
     historyAvailable: boolean
     instructorCount: number
     assignments: { eventId: string; instructorName: string; agentName: string }[]
+  }
+  teamFatigue: {
+    historyAvailable: boolean
+    pressuredCount: number
+    teams: {
+      id: string
+      name: string
+      band: 'strained' | 'critical'
+      average: number
+      previousAverage: number | null
+      currentHref: string | null
+    }[]
   }
   relationships: {
     historyAvailable: boolean
@@ -1604,6 +1618,59 @@ function buildWeeklyFundingDigest(
   return { status: 'changed', before, after, eventId: update.id }
 }
 
+function getRecordedTeamFatigue(report: WeeklyReport) {
+  return (report.teamStatus ?? []).filter(
+    ({ avgFatigue, fatigueBand }) =>
+      Number.isFinite(avgFatigue) &&
+      avgFatigue >= 0 &&
+      avgFatigue <= 100 &&
+      (fatigueBand === 'steady' || fatigueBand === 'strained' || fatigueBand === 'critical')
+  )
+}
+
+function buildWeeklyTeamFatigue(
+  game: GameState,
+  report: WeeklyReport,
+  previousReport: WeeklyReport | undefined
+): FrontDeskLatestReportView['teamFatigue'] {
+  // Import can enrich reports for the current campaign week from live teams.
+  if (report.week >= game.week) return { historyAvailable: false, pressuredCount: 0, teams: [] }
+
+  const recorded = getRecordedTeamFatigue(report)
+  const pressured = recorded.filter((entry) => entry.fatigueBand !== 'steady')
+  const previous = new Map(
+    previousReport?.week === report.week - 1
+      ? getRecordedTeamFatigue(previousReport).map((entry) => [entry.teamId, entry.avgFatigue])
+      : []
+  )
+
+  return {
+    historyAvailable: recorded.length > 0,
+    pressuredCount: pressured.length,
+    teams: pressured
+      .sort(
+        (left, right) =>
+          right.avgFatigue - left.avgFatigue || left.teamId.localeCompare(right.teamId)
+      )
+      .slice(0, MAX_QUEUE_DETAILS)
+      .map((entry) => {
+        // Player-created squad IDs can be reused after deletion, even with the same name.
+        const stableIdentity = STARTER_TEAM_IDS.has(entry.teamId)
+        return {
+          id: entry.teamId,
+          name: entry.teamName ?? 'Unnamed team',
+          band: entry.fatigueBand === 'critical' ? 'critical' : 'strained',
+          average: entry.avgFatigue,
+          previousAverage: stableIdentity ? (previous.get(entry.teamId) ?? null) : null,
+          currentHref:
+            stableIdentity && Object.hasOwn(game.teams, entry.teamId)
+              ? APP_ROUTES.teamDetail(entry.teamId)
+              : null,
+        }
+      }),
+  }
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1641,6 +1708,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     coachingAssignments: buildWeeklyCoachingAssignments(game, report.week),
+    teamFatigue: buildWeeklyTeamFatigue(game, report, previousReport),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
     unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({

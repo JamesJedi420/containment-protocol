@@ -193,6 +193,64 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page.getByRole('heading', { name: 'Chemistry Inspector' })).toBeVisible()
   })
 
+  test('SPE-1354 carries completed staff training through week close and reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await page
+      .getByRole('navigation', { name: 'MVP systems' })
+      .getByRole('link', { name: 'Training Division', exact: true })
+      .click()
+    const trainee = page
+      .locator('#training-roster')
+      .getByRole('listitem')
+      .filter({
+        has: page
+          .getByRole('button', { name: 'Analysis Lab', exact: true })
+          .and(page.locator(':enabled')),
+      })
+      .first()
+    const staffRecord = trainee.getByRole('link').first()
+    const agentName = await staffRecord.innerText()
+    const agentHref = await staffRecord.getAttribute('href')
+    await trainee.getByRole('button', { name: 'Analysis Lab', exact: true }).click()
+    await expect(
+      page.locator('#training-active-queue').getByText('Analysis Lab', { exact: true })
+    ).toBeVisible()
+
+    await openPrimaryNav(page, 'Operations Desk')
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(report.getByRole('link', { name: 'Week 1', exact: true })).toBeVisible()
+    await expect(
+      report.getByText('No individual training completions recorded for this week.')
+    ).toBeVisible()
+    await advanceOperationalWeek(page)
+    await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+    const completions = report.getByRole('list', { name: 'Staff training completions' })
+    await expect(completions.getByText(`${agentName} completed Analysis Lab`)).toBeVisible()
+    await expect(completions.getByText(/^Training record evt-/)).toBeVisible()
+    const summary = await completions.innerText()
+
+    await page.reload()
+    await expect(completions).toHaveText(summary, { useInnerText: true })
+    await completions
+      .getByRole('link', { name: `Review ${agentName} before assigning duties` })
+      .click()
+    await expect(page).toHaveURL((url) => url.pathname === agentHref)
+    await expect(page.getByRole('heading', { name: agentName, exact: true })).toBeVisible()
+
+    await openPrimaryNav(page, 'Operations Desk')
+    await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+    await advanceOperationalWeek(page)
+    await expect(report.getByRole('link', { name: 'Week 3', exact: true })).toBeVisible()
+    await expect(
+      report.getByText('No individual training completions recorded for this week.')
+    ).toBeVisible()
+  })
+
   // SPE-3348 — expand player-path smoke for primary Agents surface (shipped roster UI).
   test('primary Agents roster path loads without page errors', async ({ page }) => {
     const probe = attachPageErrorProbe(page)

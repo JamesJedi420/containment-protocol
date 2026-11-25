@@ -25,6 +25,7 @@ import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCo
 import type { GameState, WeeklyReport } from '../../domain/models'
 import { STATUS_LABELS } from '../../data/copy'
 import { getProcurementListings } from '../../domain/market'
+import { getTrainingProgram } from '../../data/training'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
 import {
@@ -149,6 +150,16 @@ export interface FrontDeskLatestReportView {
   score: number
   summary: string
   detail: string
+  staffTraining: {
+    historyAvailable: boolean
+    completionCount: number
+    completions: {
+      eventId: string
+      agentName: string
+      trainingName: string
+      agentHref: string | null
+    }[]
+  }
   relationships: {
     historyAvailable: boolean
     directionCount: number
@@ -1355,6 +1366,49 @@ function describeCaseCarryover(
     : 'Still unresolved. No reported change to status, stage or open-case deadline.'
 }
 
+function buildWeeklyStaffTrainingDigest(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['staffTraining'] {
+  const closeIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week
+  )
+  const previousCloseIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week - 1
+  )
+  if (
+    closeIndex < 0 ||
+    (week > 1 && (previousCloseIndex < 0 || previousCloseIndex >= closeIndex))
+  ) {
+    return { historyAvailable: false, completionCount: 0, completions: [] }
+  }
+
+  const completions = new Map<
+    string,
+    FrontDeskLatestReportView['staffTraining']['completions'][number]
+  >()
+  // Training can use the incoming week during close. The report markers bound the interval.
+  for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
+    const event = game.events[index]!
+    if (event.type !== 'agent.training_completed') continue
+    const { queueId, agentId, agentName, trainingId, trainingName } = event.payload
+    // Team drills emit one completion per participant using the same event type.
+    if (getTrainingProgram(trainingId)?.scope !== 'agent' || completions.has(queueId)) continue
+    completions.set(queueId, {
+      eventId: event.id,
+      agentName,
+      trainingName,
+      agentHref: game.agents[agentId] ? APP_ROUTES.agentDetail(agentId) : null,
+    })
+  }
+
+  return {
+    historyAvailable: true,
+    completionCount: completions.size,
+    completions: [...completions.values()].slice(0, MAX_QUEUE_DETAILS),
+  }
+}
+
 function buildWeeklyRelationshipDigest(
   game: GameState,
   week: number
@@ -1441,6 +1495,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
       report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
+    staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
     unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({

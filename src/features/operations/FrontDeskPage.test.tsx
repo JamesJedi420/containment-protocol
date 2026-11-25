@@ -358,6 +358,88 @@ describe('FrontDeskPage', () => {
     expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
   })
 
+  it.each(['complete', 'missing previous', 'missing current'] as const)(
+    'attributes individual training to the closing report with %s marker history',
+    (history) => {
+      const game = createStartingState()
+      const team = Object.values(game.teams).find((entry) => entry.name === 'Night Watch')!
+      const agent = Object.values(game.agents).find(
+        (entry) => entry.status === 'active' && !(team.memberIds ?? team.agentIds).includes(entry.id)
+      )!
+      useGameStore.setState({ game })
+      useGameStore.getState().queueTraining(agent.id, 'analysis-lab')
+      useGameStore.getState().queueTeamTraining(team.id, 'coordination-drill')
+      useGameStore.getState().advanceWeek()
+      useGameStore.getState().advanceWeek()
+      const closed = useGameStore.getState().game
+      const completion = closed.events
+        .filter((event) => event.type === 'agent.training_completed')
+        .find((event) => event.payload.trainingId === 'analysis-lab')
+      const drillCompletion = closed.events.findIndex(
+        (event) =>
+          event.type === 'agent.training_completed' &&
+          event.payload.trainingId === 'coordination-drill'
+      )
+      const previousClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 1
+      )
+      const currentClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 2
+      )
+      expect(completion?.payload.week).toBe(3)
+      expect(previousClose).toBeGreaterThanOrEqual(0)
+      expect(closed.events.indexOf(completion!)).toBeGreaterThan(previousClose)
+      expect(currentClose).toBeGreaterThan(closed.events.indexOf(completion!))
+      expect(drillCompletion).toBeGreaterThan(previousClose)
+      expect(drillCompletion).toBeLessThan(currentClose)
+
+      const events = closed.events.filter(
+        (_, index) =>
+          !(history === 'missing previous' && index === previousClose) &&
+          !(history === 'missing current' && index === currentClose)
+      )
+      // Adjacent closes can stamp the incoming week. Neither neighboring interval belongs here.
+      events.splice(
+        previousClose,
+        0,
+        createOperationEvent(events.length + 99, {
+          type: 'agent.training_completed',
+          sourceSystem: 'agent',
+          payload: {
+            ...completion!.payload,
+            week: 2,
+            queueId: 'earlier',
+            trainingName: 'Earlier course',
+          },
+        })
+      )
+      events.push(
+        createOperationEvent(events.length + 100, {
+          type: 'agent.training_completed',
+          sourceSystem: 'agent',
+          payload: { ...completion!.payload, queueId: 'later', trainingName: 'Later course' },
+        })
+      )
+      useGameStore.setState({ game: { ...closed, events } })
+      renderFrontDesk()
+
+      const report = within(screen.getByRole('region', { name: 'Latest report' }))
+      expect(report.queryByText(/Earlier course|Later course/)).toBeNull()
+      if (history === 'complete') {
+        const staff = within(report.getByRole('list', { name: 'Staff training completions' }))
+        expect(staff.getAllByRole('listitem')).toHaveLength(1)
+        expect(staff.getByText(`${agent.name} completed Analysis Lab`)).toBeVisible()
+        expect(staff.getByText(`Training record ${completion!.id}`)).toBeVisible()
+        expect(
+          staff.getByRole('link', { name: `Review ${agent.name} before assigning duties` })
+        ).toHaveAttribute('href', `/agents/${agent.id}`)
+      } else {
+        expect(report.getByText('Training history is incomplete for this week.')).toBeVisible()
+        expect(report.queryByRole('list', { name: 'Staff training completions' })).toBeNull()
+      }
+    }
+  )
+
   it.each([true, false])(
     'shows a drill completed during close with prior history available (%s)',
     (hasPriorClose) => {

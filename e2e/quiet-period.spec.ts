@@ -164,12 +164,23 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
     const containmentEvent = secondWeek.events.find(
       (event) => event.type === 'agency.containment_updated' && event.payload.week === 2
     )
-    if (!containmentEvent) throw new Error('Expected the Week 2 containment record.')
+    if (containmentEvent?.type !== 'agency.containment_updated') {
+      throw new Error('Expected the Week 2 agency update.')
+    }
     const containmentReference = `Week-close agency update · Record ${containmentEvent.id}`
-    await expect(latestReport.getByText(containmentReference, { exact: true })).toBeVisible()
+    const containment = latestReport.getByRole('region', { name: 'Containment rating' })
+    await expect(containment.getByText(containmentReference, { exact: true })).toBeVisible()
+    const { fundingBefore, fundingAfter } = containmentEvent.payload
+    const funding = latestReport.getByRole('region', { name: 'Week-close funding' })
+    await expect(funding.getByText(`${fundingBefore} → ${fundingAfter} funding`)).toBeVisible()
+    await expect(
+      funding.getByText(`Funding source · Record ${containmentEvent.id}`, { exact: true })
+    ).toBeVisible()
     const otherLatestReportText = await latestReport.evaluate((report, reference) => {
       const copy = report.cloneNode(true) as HTMLElement
       copy.querySelector('[aria-label="Field-agent hiring"]')?.remove()
+      // Both choices have their funding outcome checked against their own agency update above.
+      copy.querySelector('[aria-label="Week-close funding"]')?.remove()
       // The hire advances the shared event sequence. Its effect on this reference is verified above.
       return copy.textContent?.replace(reference, 'Week-close agency update')
     }, containmentReference)
@@ -199,7 +210,15 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
     }
     expectNoPageErrors(probe)
     await expectCampaignStateBudget(hire ? 'quiet-hire' : 'quiet-no-hire', initial, final)
-    return { initial, firstWeek, final, hiredIds, reportText, otherLatestReportText }
+    return {
+      initial,
+      firstWeek,
+      final,
+      hiredIds,
+      reportText,
+      otherLatestReportText,
+      fundingAtClose: { before: fundingBefore, after: fundingAfter },
+    }
   } finally {
     probe.dispose()
     await context.close()
@@ -218,6 +237,7 @@ test('a quiet campaign supports recruitment and independent weekly refresh witho
   expect(hired.firstWeek).toEqual(noHire.firstWeek)
   expect(hired.reportText).toBe(noHire.reportText)
   expect(hired.otherLatestReportText).toBe(noHire.otherLatestReportText)
+  expect(hired.fundingAtClose.before).toBeLessThan(noHire.fundingAtClose.before)
   expect(Object.keys(hired.final.agents).length).toBe(Object.keys(noHire.final.agents).length + 1)
   expect(await runQuietPath(browser, baseURL, true)).toEqual(hired)
   expect(await runQuietPath(browser, baseURL, false)).toEqual(noHire)

@@ -154,6 +154,9 @@ export interface FrontDeskLatestReportView {
   containment:
     | { status: 'incomplete' | 'quiet' }
     | { status: 'changed'; before: number; after: number; eventId: string }
+  funding:
+    | { status: 'incomplete' | 'unchanged' }
+    | { status: 'changed'; before: number; after: number; eventId: string }
   fieldAgentHires: {
     historyAvailable: boolean
     hireCount: number
@@ -1555,6 +1558,21 @@ function buildWeeklyContainmentDigest(
   return { status: 'quiet' }
 }
 
+function buildWeeklyFundingDigest(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['funding'] {
+  const update = getCompletedReportEventWindow(game, week)?.find(
+    (event) => event.type === 'agency.containment_updated' && event.payload.week === week
+  )
+  if (update?.type !== 'agency.containment_updated') return { status: 'incomplete' }
+
+  const { fundingBefore: before, fundingAfter: after } = update.payload
+  if (!Number.isFinite(before) || !Number.isFinite(after)) return { status: 'incomplete' }
+  if (before === after) return { status: 'unchanged' }
+  return { status: 'changed', before, after, eventId: update.id }
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1588,6 +1606,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
     containment: buildWeeklyContainmentDigest(game, report.week),
+    funding: buildWeeklyFundingDigest(game, report.week),
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     relationships: buildWeeklyRelationshipDigest(game, report.week),

@@ -109,6 +109,30 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     }
   })
 
+  test('SPE-1354 carries unresolved cases into the next week and through reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    await advanceOperationalWeek(page)
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+    const carryover = report.getByRole('list', { name: 'Unresolved cases' })
+    await expect(carryover.getByText(/^Since the previous report:/).first()).toBeVisible()
+    const triage = carryover.getByRole('link', { name: /^Review triage: / }).first()
+    await expect(triage).toBeVisible()
+    const name = await triage.getAttribute('aria-label')
+    expect(name).toBeTruthy()
+    const title = name!.replace('Review triage: ', '')
+    const summary = await carryover.innerText()
+
+    await page.reload()
+    await expect(carryover).toHaveText(summary, { useInnerText: true })
+    await carryover.getByRole('link', { name: `Review triage: ${title}` }).click()
+    await expect(page.getByRole('region', { name: `Case triage detail: ${title}` })).toBeVisible()
+  })
+
   // SPE-3348 — expand player-path smoke for primary Agents surface (shipped roster UI).
   test('primary Agents roster path loads without page errors', async ({ page }) => {
     const probe = attachPageErrorProbe(page)

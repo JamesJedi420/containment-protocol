@@ -22,7 +22,8 @@ import {
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
 import { generateHubState } from '../../domain/hub/hubState'
 import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
-import type { GameState } from '../../domain/models'
+import type { GameState, WeeklyReport } from '../../domain/models'
+import { STATUS_LABELS } from '../../data/copy'
 import { getProcurementListings } from '../../domain/market'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
@@ -148,6 +149,16 @@ export interface FrontDeskLatestReportView {
   score: number
   summary: string
   detail: string
+  unresolvedCaseCount: number
+  unresolvedCases: {
+    id: string
+    title: string
+    status: string
+    deadline: string | null
+    change: string
+    href: string
+    action: string
+  }[]
 }
 
 /** SPE-31a: player-facing projection of the SPE-823a courier network capacity gap (presentation only). */
@@ -1297,6 +1308,42 @@ function buildStandingSummary(game: GameState): FrontDeskStandingSummaryView {
   }
 }
 
+function describeCaseCarryover(
+  caseId: string,
+  report: WeeklyReport,
+  previousReport: WeeklyReport | undefined
+): string {
+  const closed = report.caseSnapshots?.[caseId]
+  if (closed?.status === 'resolved' || report.resolvedCases.includes(caseId)) {
+    return 'Recorded as resolved at week close.'
+  }
+  if (report.newCases.includes(caseId)) return 'Opened during this week’s close.'
+  if (!closed) {
+    return report.unresolvedTriggers.includes(caseId)
+      ? 'Listed as unresolved in this report. Snapshot details unavailable.'
+      : 'Case snapshot unavailable for this report.'
+  }
+
+  const previous = previousReport?.caseSnapshots?.[caseId]
+  if (!previous) return 'Still unresolved at week close. Earlier report comparison unavailable.'
+
+  const changes = [
+    previous.status !== closed.status
+      ? `${STATUS_LABELS[previous.status]} → ${STATUS_LABELS[closed.status]}`
+      : null,
+    previous.stage !== closed.stage ? `Stage ${previous.stage} → ${closed.stage}` : null,
+    previous.status === 'open' &&
+    closed.status === 'open' &&
+    previous.deadlineRemaining !== closed.deadlineRemaining
+      ? `Time left ${pluralize(previous.deadlineRemaining, 'week')} → ${pluralize(closed.deadlineRemaining, 'week')}`
+      : null,
+  ].filter(Boolean)
+
+  return changes.length > 0
+    ? `Since the previous report: ${changes.join(' · ')}.`
+    : 'Still unresolved. No reported change to status, stage or open-case deadline.'
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1305,6 +1352,19 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
   }
 
   const { report, score } = latest
+  const previousReport = game.reports
+    .slice()
+    .reverse()
+    .find((entry) => entry.week === report.week - 1)
+  // Use current Cases board identities and compare only their recorded report fields.
+  const unresolvedCases = Object.values(game.cases)
+    .filter((currentCase) => currentCase.status !== 'resolved')
+    .sort(
+      (left, right) =>
+        Number(right.status === 'open') - Number(left.status === 'open') ||
+        left.deadlineRemaining - right.deadlineRemaining ||
+        left.id.localeCompare(right.id)
+    )
 
   return {
     week: report.week,
@@ -1316,6 +1376,19 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
       report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
+    unresolvedCaseCount: unresolvedCases.length,
+    unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({
+      id: currentCase.id,
+      title: currentCase.title,
+      status: STATUS_LABELS[currentCase.status],
+      deadline:
+        currentCase.status === 'open'
+          ? `${pluralize(currentCase.deadlineRemaining, 'week')} remaining to act`
+          : null,
+      change: describeCaseCarryover(currentCase.id, report, previousReport),
+      href: `${APP_ROUTES.cases}?case=${encodeURIComponent(currentCase.id)}`,
+      action: currentCase.status === 'open' ? 'Review triage' : 'Review active operation',
+    })),
   }
 }
 

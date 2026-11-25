@@ -1554,6 +1554,37 @@ export default function FrontDeskPage() {
                 </div>
                 <p className="text-sm opacity-70">{view.latestReport.summary}</p>
                 <p className="text-sm opacity-60">{view.latestReport.detail}</p>
+                <div className="space-y-2 border-t border-white/10 pt-2">
+                  <h3 className="text-sm font-semibold">Unresolved cases</h3>
+                  {view.latestReport.unresolvedCaseCount === 0 ? (
+                    <p className="text-sm opacity-70">No unresolved cases on the Cases board.</p>
+                  ) : (
+                    <ul className="space-y-2" aria-label="Unresolved cases">
+                      {view.latestReport.unresolvedCases.map((currentCase) => (
+                        <li key={currentCase.id} className="text-sm">
+                          <p className="font-medium">{currentCase.title}</p>
+                          <p className="opacity-75">
+                            {[currentCase.status, currentCase.deadline].filter(Boolean).join(' · ')}
+                          </p>
+                          <p className="opacity-75">{currentCase.change}</p>
+                          <Link
+                            to={currentCase.href}
+                            className="text-sm underline"
+                            aria-label={`${currentCase.action}: ${currentCase.title}`}
+                          >
+                            {currentCase.action}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {view.latestReport.unresolvedCaseCount >
+                    view.latestReport.unresolvedCases.length && (
+                    <Link to={APP_ROUTES.cases} className="text-sm underline">
+                      Open Cases board ({view.latestReport.unresolvedCaseCount} unresolved)
+                    </Link>
+                  )}
+                </div>
               </div>
             ) : (
               <p className="text-sm opacity-60">{EMPTY_STATES.noReports}</p>

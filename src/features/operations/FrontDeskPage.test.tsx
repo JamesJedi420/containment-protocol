@@ -358,6 +358,82 @@ describe('FrontDeskPage', () => {
     expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
   })
 
+  it.each(['movement', 'capped', 'funding only', 'missing previous', 'missing current'] as const)(
+    'shows the realized containment result with %s evidence',
+    (scenario) => {
+      useGameStore.setState({ game: createStartingState() })
+      useGameStore.getState().advanceWeek()
+      useGameStore.getState().advanceWeek()
+      const closed = useGameStore.getState().game
+      const previousClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 1
+      )
+      const currentClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 2
+      )
+      const update = closed.events.find(
+        (event) => event.type === 'agency.containment_updated' && event.payload.week === 2
+      )
+      if (update?.type !== 'agency.containment_updated') throw new Error('Expected Week 2 update.')
+      const { containmentRatingBefore: before, containmentRatingAfter: after } = update.payload
+      expect(previousClose).toBeGreaterThanOrEqual(0)
+      expect(closed.events.indexOf(update)).toBeGreaterThan(previousClose)
+      expect(closed.events.indexOf(update)).toBeLessThan(currentClose)
+      expect(after).not.toBe(before)
+      const events = closed.events
+        .filter(
+          (_, index) =>
+            !(scenario === 'missing previous' && index === previousClose) &&
+            !(scenario === 'missing current' && index === currentClose)
+        )
+        .map((event) => {
+          if (event !== update || (scenario !== 'capped' && scenario !== 'funding only')) {
+            return event
+          }
+          return {
+            ...update,
+            payload: {
+              ...update.payload,
+              containmentRatingBefore: 100,
+              containmentRatingAfter: 100,
+              containmentDelta: scenario === 'capped' ? 5 : 0,
+            },
+          }
+        })
+      const outsideReport = (sequence: number) =>
+        createOperationEvent(sequence, {
+          type: 'agency.containment_updated',
+          sourceSystem: 'system',
+          payload: { ...update.payload, containmentRatingBefore: 11, containmentRatingAfter: 99 },
+        })
+      events.splice(previousClose, 0, outsideReport(closed.events.length + 99))
+      events.push(outsideReport(closed.events.length + 100))
+      useGameStore.setState({ game: { ...closed, events } })
+      renderFrontDesk()
+
+      const digest = within(screen.getByRole('region', { name: 'Containment rating' }))
+      expect(digest.queryByText('11% → 99%')).toBeNull()
+      if (scenario === 'movement') {
+        expect(digest.getByText(`${before}% → ${after}%`)).toBeVisible()
+        expect(digest.getByText(`Week-close agency update · Record ${update.id}`)).toBeVisible()
+        expect(digest.getByText(/standing when generating future candidate pools/)).toBeVisible()
+        expect(digest.getByRole('link', { name: 'Review recruitment options' })).toHaveAttribute(
+          'href',
+          '/recruitment'
+        )
+      } else {
+        expect(
+          digest.getByText(
+            scenario === 'capped' || scenario === 'funding only'
+              ? 'No containment rating change recorded for this week.'
+              : 'Containment rating history is incomplete for this week.'
+          )
+        ).toBeVisible()
+        expect(digest.queryByRole('link')).toBeNull()
+      }
+    }
+  )
+
   it.each(['complete', 'missing previous', 'missing current'] as const)(
     'attributes individual training to the closing report with %s marker history',
     (history) => {

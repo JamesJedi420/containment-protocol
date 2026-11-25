@@ -193,6 +193,41 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page.getByRole('heading', { name: 'Chemistry Inspector' })).toBeVisible()
   })
 
+  test('SPE-1354 shows realized containment movement after week close and reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    await advanceOperationalWeek(page)
+
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(
+      await page.getByRole('textbox', { name: 'Run payload' }).inputValue()
+    )
+    const update = exported.game.events.find(
+      (event) => event.type === 'agency.containment_updated' && event.payload.week === 2
+    )
+    if (update?.type !== 'agency.containment_updated') throw new Error('Expected Week 2 update.')
+    const { containmentRatingBefore: before, containmentRatingAfter: after } = update.payload
+    expect(after).not.toBe(before)
+    const digest = report.getByRole('region', { name: 'Containment rating' })
+    await expect(digest.getByText(`${before}% → ${after}%`)).toBeVisible()
+    await expect(digest.getByText(`Week-close agency update · Record ${update.id}`)).toBeVisible()
+    const summary = await digest.innerText()
+
+    await page.reload()
+    await expect(digest).toHaveText(summary, { useInnerText: true })
+    await digest.getByRole('link', { name: 'Review recruitment options' }).click()
+    await expect(page).toHaveURL(/\/recruitment$/)
+    await expect(
+      page.getByRole('heading', { name: 'Recruitment', level: 2, exact: true })
+    ).toBeVisible()
+  })
+
   test('SPE-1354 carries completed staff training through week close and reload', async ({
     page,
   }) => {

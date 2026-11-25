@@ -150,6 +150,9 @@ export interface FrontDeskLatestReportView {
   score: number
   summary: string
   detail: string
+  containment:
+    | { status: 'incomplete' | 'quiet' }
+    | { status: 'changed'; before: number; after: number; eventId: string }
   staffTraining: {
     historyAvailable: boolean
     completionCount: number
@@ -1463,6 +1466,36 @@ function buildWeeklyRelationshipDigest(
   }
 }
 
+function buildWeeklyContainmentDigest(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['containment'] {
+  const closeIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week
+  )
+  const previousCloseIndex = game.events.findIndex(
+    (event) => event.type === 'intel.report_generated' && event.payload.week === week - 1
+  )
+  if (
+    closeIndex < 0 ||
+    (week > 1 && (previousCloseIndex < 0 || previousCloseIndex >= closeIndex))
+  ) {
+    return { status: 'incomplete' }
+  }
+
+  // The week label alone cannot distinguish events recorded after the report.
+  for (let index = closeIndex - 1; index > previousCloseIndex; index--) {
+    const event = game.events[index]!
+    if (event.type !== 'agency.containment_updated' || event.payload.week !== week) continue
+    const { containmentRatingBefore: before, containmentRatingAfter: after } = event.payload
+    if (!Number.isFinite(before) || !Number.isFinite(after)) return { status: 'incomplete' }
+    // Funding and clearance share this event, and the raw delta is taken before clamping.
+    if (before !== after) return { status: 'changed', before, after, eventId: event.id }
+  }
+
+  return { status: 'quiet' }
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1495,6 +1528,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
       report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'
     }`,
     detail: `Avg Fatigue ${report.avgFatigue} / Max Stage ${report.maxStage} / RNG Before ${report.rngStateBefore} -> ${report.rngStateAfter}`,
+    containment: buildWeeklyContainmentDigest(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,

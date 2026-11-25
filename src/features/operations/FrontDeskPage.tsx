@@ -1554,6 +1554,37 @@ export default function FrontDeskPage() {
                 </div>
                 <p className="text-sm opacity-70">{view.latestReport.summary}</p>
                 <p className="text-sm opacity-60">{view.latestReport.detail}</p>
+                <section
+                  className="space-y-2 border-t border-white/10 pt-2"
+                  aria-label="Containment rating"
+                >
+                  <h3 className="text-sm font-semibold">Containment rating</h3>
+                  {view.latestReport.containment.status === 'changed' ? (
+                    <div className="space-y-1 text-sm">
+                      <p className="font-medium">
+                        {view.latestReport.containment.before}% →{' '}
+                        {view.latestReport.containment.after}%
+                      </p>
+                      <p className="opacity-75">
+                        Week-close agency update · Record {view.latestReport.containment.eventId}
+                      </p>
+                      <p className="opacity-75">
+                        {view.latestReport.containment.after > view.latestReport.containment.before
+                          ? 'A higher rating can improve the agency’s standing when generating future candidate pools.'
+                          : 'A lower rating can weaken the agency’s standing when generating future candidate pools.'}
+                      </p>
+                      <Link to={APP_ROUTES.recruitment} className="underline">
+                        Review recruitment options
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="text-sm opacity-70">
+                      {view.latestReport.containment.status === 'quiet'
+                        ? 'No containment rating change recorded for this week.'
+                        : 'Containment rating history is incomplete for this week.'}
+                    </p>
+                  )}
+                </section>
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Staff training</h3>
                   {view.latestReport.staffTraining.completionCount > 0 ? (

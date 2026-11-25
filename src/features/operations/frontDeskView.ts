@@ -1779,7 +1779,8 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const operationsReport = getOperationsReportView(game)
   const attritionPressure = assessAttritionPressure(game)
   const rulesSummary = buildCampaignRulesSummary(game)
-  const firstDossier = game.week === 1 ? selectAgencyEstablishmentFirstDossier(game) : null
+  const firstDossier =
+    game.week === 1 ? selectAgencyEstablishmentFirstDossier(game, { openOnly: true }) : null
 
   return {
     weekLabel: `Week ${game.week} / Active cap ${game.config.maxActiveCases}`,
@@ -1820,15 +1821,14 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     queueCards: buildQueueCards(game, briefing),
     recentItems: buildRecentItems(game),
     recentOutcomes: operationsReport.recentOutcomes.slice(0, 2),
-    firstDossier:
-      firstDossier?.status === 'open'
-        ? {
-            title: firstDossier.title,
-            summary: firstDossier.routingExplanation.summary,
-            intelSummary: `${pluralize(firstDossier.deadlineRemaining, 'week')} remaining · Intel confidence ${Math.round(firstDossier.intel.confidence * 100)}%`,
-            href: `${APP_ROUTES.cases}?case=${encodeURIComponent(firstDossier.caseId)}`,
-          }
-        : null,
+    firstDossier: firstDossier
+      ? {
+          title: firstDossier.title,
+          summary: firstDossier.routingExplanation.summary,
+          intelSummary: `${pluralize(firstDossier.deadlineRemaining, 'week')} remaining · Intel confidence ${Math.round(firstDossier.intel.confidence * 100)}%`,
+          href: `${APP_ROUTES.cases}?case=${encodeURIComponent(firstDossier.caseId)}`,
+        }
+      : null,
     attentionItems: buildAttentionItems(game, briefing),
     teamStatus: buildTeamStatusViews(game),
     procurementSnapshot: buildProcurementSnapshot(game),

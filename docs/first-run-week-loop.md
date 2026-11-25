@@ -8,6 +8,10 @@ This note clarifies how the first playable weekly loop should be framed so onboa
 
 In Week 1, the Front Desk offers this sequence in the optional **How the first week works** guide. Players can go directly to a visible dossier or another existing action. The guide stays available throughout Week 1 and uses the current campaign week on reload.
 
+When the Front Desk has an eligible dossier, **Needs Attention** shows the available intelligence and opens the case's triage view directly. Hiring, loadout changes, training, and the week guide are optional before review. Deployment still uses the case's existing readiness checks. When there is no available dossier, the Front Desk says so and the player can continue ordinary planning.
+
+The first dossier, first player-visible anomalous evidence, and first consequential triage or investigation decision are separate playtest observations. About five minutes to evidence and ten minutes to the decision are provisional goals for eligible starts.
+
 Linear onboarding copy (mirrored here so git stays canonical):
 
 1. **Review the week** — inspect the event feed, candidate pool, current team or company state, available knowledge, and emerging blockers.

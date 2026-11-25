@@ -15,6 +15,7 @@ import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
 import { assignTeam } from '../../domain/sim/assign'
 import { selectAgencyEstablishmentFirstDossier } from '../../domain/agencyEstablishmentProjection'
+import { buildReportCaseSnapshot } from '../../domain/sim/reportCaseSnapshot'
 import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import CasesPage from '../cases/CasesPage'
 import FrontDeskPage from './FrontDeskPage'
@@ -283,6 +284,75 @@ function withRankedHubFactionSignals(game: GameState): GameState {
 }
 
 describe('FrontDeskPage', () => {
+  it.each([
+    [1, /Since the previous report: Time left/],
+    [0, /Still unresolved\. No reported change/],
+    [null, /Earlier report comparison unavailable/],
+  ])(
+    'carries a live case forward with deadline comparison %s',
+    async (deadlineChange, copy) => {
+      const starting = createStartingState()
+      useGameStore.setState({ game: starting })
+      useGameStore.getState().advanceWeek()
+      const afterClose = useGameStore.getState().game
+      const report = afterClose.reports[0]!
+      const openCase = Object.values(afterClose.cases).find((entry) => entry.status === 'open')!
+      const closed = buildReportCaseSnapshot(openCase)
+      const previous = {
+        ...closed,
+        deadlineRemaining: closed.deadlineRemaining + (deadlineChange ?? 0),
+        revealExplanation: 'Hidden historical intel',
+      }
+      const archived = { ...closed, caseId: 'historical-only', title: 'Historical-only case' }
+      useGameStore.setState({
+        game: {
+          ...afterClose,
+          week: report.week + 2,
+          cases: { [openCase.id]: openCase },
+          reports: [
+            {
+              ...report,
+              caseSnapshots: deadlineChange === null ? undefined : { [openCase.id]: previous },
+            },
+            {
+              ...report,
+              week: report.week + 1,
+              newCases: [],
+              caseSnapshots: { [openCase.id]: closed, [archived.caseId]: archived },
+            },
+          ],
+        },
+      })
+      renderFrontDesk()
+      const carryover = within(screen.getByRole('list', { name: 'Unresolved cases' }))
+      expect(carryover.getByText(copy)).toBeVisible()
+      expect(carryover.queryByText(/Historical-only case|Hidden historical intel/)).toBeNull()
+      await userEvent.click(
+        carryover.getByRole('link', { name: `Review triage: ${openCase.title}` })
+      )
+      expect(
+        screen.getByRole('region', { name: `Case triage detail: ${openCase.title}` })
+      ).toBeVisible()
+    }
+  )
+
+  it('shows the honest empty state when only resolved cases remain after a report', () => {
+    const starting = createStartingState()
+    useGameStore.setState({ game: starting })
+    useGameStore.getState().advanceWeek()
+    const afterClose = useGameStore.getState().game
+    const cases = Object.fromEntries(
+      Object.values(afterClose.cases).map((entry) => [
+        entry.id,
+        { ...entry, status: 'resolved' as const },
+      ])
+    )
+    useGameStore.setState({ game: { ...afterClose, cases } })
+    renderFrontDesk()
+    const latest = within(screen.getByRole('region', { name: 'Latest report' }))
+    expect(latest.getByText('No unresolved cases on the Cases board.')).toBeVisible()
+    expect(latest.queryByRole('list', { name: 'Unresolved cases' })).toBeNull()
+  })
   it('keeps departure notices in the feed through acknowledgement and automatic reload', async () => {
     const user = userEvent.setup()
     const game = createStartingState()

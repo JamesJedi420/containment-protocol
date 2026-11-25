@@ -237,14 +237,29 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
 
     const report = page.getByRole('region', { name: 'Latest report' })
     await expect(report.getByRole('link', { name: 'Week 1', exact: true })).toBeVisible()
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(
+      await page.getByRole('textbox', { name: 'Run payload' }).inputValue()
+    )
+    const update = exported.game.events.find(
+      (event) => event.type === 'agency.containment_updated' && event.payload.week === 1
+    )
     const funding = report.getByRole('region', { name: 'Week-close funding' })
     // The existing fundingSnapshotRoundTrip oracle uses this same starting-state close.
+    if (update?.type !== 'agency.containment_updated') throw new Error('Expected Week 1 update.')
+    expect(update.payload).toMatchObject({
+      fundingBefore: 110,
+      fundingAfter: 53,
+      fundingDelta: -17,
+    })
+    const reference = funding.getByText(`Week-close agency update · Record ${update.id}`)
     await expect(funding.getByText('110 → 53 funding', { exact: true })).toBeVisible()
-    await expect(funding.getByText('Week-close agency update · Record evt-000011')).toBeVisible()
+    await expect(reference).toBeVisible()
 
     await page.reload()
     await expect(funding.getByText('110 → 53 funding', { exact: true })).toBeVisible()
-    await expect(funding.getByText('Week-close agency update · Record evt-000011')).toBeVisible()
+    await expect(reference).toBeVisible()
     await funding.getByRole('link', { name: 'Check procurement affordability' }).click()
     await expect(page).toHaveURL(/\/markets-suppliers$/)
     const procurement = page.getByRole('region', { name: 'Procurement overview' })

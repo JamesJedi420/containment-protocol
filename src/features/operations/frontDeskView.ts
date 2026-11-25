@@ -177,6 +177,18 @@ export interface FrontDeskLatestReportView {
     instructorCount: number
     assignments: { eventId: string; instructorName: string; agentName: string }[]
   }
+  teamFatigue: {
+    historyAvailable: boolean
+    pressuredCount: number
+    teams: {
+      id: string
+      name: string
+      band: 'strained' | 'critical'
+      average: number
+      previousAverage: number | null
+      currentHref: string | null
+    }[]
+  }
   relationships: {
     historyAvailable: boolean
     directionCount: number
@@ -1604,6 +1616,54 @@ function buildWeeklyFundingDigest(
   return { status: 'changed', before, after, eventId: update.id }
 }
 
+function getRecordedTeamFatigue(report: WeeklyReport) {
+  return (report.teamStatus ?? []).filter(
+    ({ avgFatigue, fatigueBand }) =>
+      Number.isFinite(avgFatigue) &&
+      avgFatigue >= 0 &&
+      avgFatigue <= 100 &&
+      (fatigueBand === 'steady' || fatigueBand === 'strained' || fatigueBand === 'critical')
+  )
+}
+
+function buildWeeklyTeamFatigue(
+  game: GameState,
+  report: WeeklyReport,
+  previousReport: WeeklyReport | undefined
+): FrontDeskLatestReportView['teamFatigue'] {
+  // Import can enrich reports for the current campaign week from live teams.
+  if (report.week >= game.week) return { historyAvailable: false, pressuredCount: 0, teams: [] }
+
+  const recorded = getRecordedTeamFatigue(report)
+  const pressured = recorded.filter((entry) => entry.fatigueBand !== 'steady')
+  const previous = new Map(
+    previousReport?.week === report.week - 1
+      ? getRecordedTeamFatigue(previousReport).map((entry) => [entry.teamId, entry.avgFatigue])
+      : []
+  )
+
+  return {
+    historyAvailable: recorded.length > 0,
+    pressuredCount: pressured.length,
+    teams: pressured
+      .sort(
+        (left, right) =>
+          right.avgFatigue - left.avgFatigue || left.teamId.localeCompare(right.teamId)
+      )
+      .slice(0, MAX_QUEUE_DETAILS)
+      .map((entry) => ({
+        id: entry.teamId,
+        name: entry.teamName ?? 'Unnamed team',
+        band: entry.fatigueBand === 'critical' ? 'critical' : 'strained',
+        average: entry.avgFatigue,
+        previousAverage: previous.get(entry.teamId) ?? null,
+        currentHref: Object.hasOwn(game.teams, entry.teamId)
+          ? APP_ROUTES.teamDetail(entry.teamId)
+          : null,
+      })),
+  }
+}
+
 function buildLatestReportView(game: GameState): FrontDeskLatestReportView | null {
   const latest = getLatestReportSummary(game)
 
@@ -1641,6 +1701,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     coachingAssignments: buildWeeklyCoachingAssignments(game, report.week),
+    teamFatigue: buildWeeklyTeamFatigue(game, report, previousReport),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
     unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({

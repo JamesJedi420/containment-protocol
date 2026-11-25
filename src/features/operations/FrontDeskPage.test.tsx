@@ -360,6 +360,87 @@ describe('FrontDeskPage', () => {
     expect(digest.queryByText(/Historical|Hidden|passive drift|-0.80/)).toBeNull()
   })
 
+  it.each(['pressure', 'steady', 'empty', 'current week'] as const)(
+    'shows week-close team fatigue with %s records',
+    (scenario) => {
+      useGameStore.setState({ game: createStartingState() })
+      useGameStore.getState().advanceWeek()
+      useGameStore.getState().advanceWeek()
+      const game = useGameStore.getState().game
+      const [previous, closed] = game.reports
+      const team = { teamId: 't_nightwatch', teamName: 'Recorded Night Watch' }
+      useGameStore.setState({
+        game: {
+          ...game,
+          reports: [
+            { ...previous!, teamStatus: [{ ...team, avgFatigue: 27, fatigueBand: 'strained' }] },
+            {
+              ...closed!,
+              week: scenario === 'current week' ? game.week : closed!.week,
+              teamStatus:
+                scenario === 'empty'
+                  ? []
+                  : [
+                      {
+                        ...team,
+                        avgFatigue: scenario === 'steady' ? 19 : 50,
+                        fatigueBand: scenario === 'steady' ? 'steady' : 'critical',
+                      },
+                      ...(scenario === 'pressure'
+                        ? [
+                            {
+                              teamId: 'removed',
+                              teamName: 'Former squad',
+                              avgFatigue: 41,
+                              fatigueBand: 'strained' as const,
+                            },
+                            {
+                              teamId: 'another',
+                              teamName: 'Third squad',
+                              avgFatigue: 35,
+                              fatigueBand: 'strained' as const,
+                            },
+                            {
+                              teamId: 'overflow',
+                              teamName: 'Fourth squad',
+                              avgFatigue: 30,
+                              fatigueBand: 'strained' as const,
+                            },
+                          ]
+                        : []),
+                    ],
+            },
+          ],
+        },
+      })
+
+      renderFrontDesk()
+      const cue = within(screen.getByRole('region', { name: 'Week-close team fatigue' }))
+      if (scenario === 'pressure') {
+        expect(cue.getByText('Week 1: 27 → Week 2: 50 average fatigue · critical')).toBeVisible()
+        expect(cue.getByText('Week 2: 41 average fatigue · strained')).toBeVisible()
+        expect(cue.getAllByText('This team has no current roster to review.')).toHaveLength(2)
+        expect(
+          cue.getByRole('link', { name: 'Check current roster for Recorded Night Watch' })
+        ).toHaveAttribute('href', '/teams/t_nightwatch')
+        expect(cue.getAllByRole('listitem')).toHaveLength(3)
+        expect(cue.queryByText('Fourth squad')).toBeNull()
+        expect(
+          cue.getByRole('link', { name: 'See all 4 affected teams in the report' })
+        ).toHaveAttribute('href', '/report/2')
+      } else {
+        expect(cue.queryByRole('list')).toBeNull()
+        expect(
+          cue.getByText(
+            scenario === 'steady'
+              ? 'No strained or critical teams were recorded at week close.'
+              : 'Week-close team fatigue is unavailable for this report.'
+          )
+        ).toBeVisible()
+      }
+    }
+  )
+
   it.each(['movement', 'capped', 'funding only', 'missing previous', 'missing current'] as const)(
     'shows the realized containment result with %s evidence',
     (scenario) => {

@@ -719,6 +719,83 @@ describe('FrontDeskPage', () => {
     }
   )
 
+  it.each(['bounded', 'quiet', 'incomplete'] as const)(
+    'shows coaching assignments with %s report history',
+    (history) => {
+      useGameStore.setState({ game: createStartingState() })
+      const store = useGameStore.getState()
+      store.advanceWeek()
+      store.advanceWeek()
+      const closed = useGameStore.getState().game
+      const currentClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 2
+      )
+      expect(currentClose).toBeGreaterThan(0)
+
+      const coachingRecord = (sequence: number, staffId: string, agentName: string) =>
+        createOperationEvent(closed.events.length + sequence, {
+          type: 'agent.instructor_assigned',
+          sourceSystem: 'agent',
+          payload: {
+            week: 2,
+            staffId,
+            instructorName: staffId,
+            agentId: 'trainee',
+            agentName,
+            instructorSpecialty: 'investigation',
+            bonus: 1,
+          },
+        })
+
+      const newest = coachingRecord(6, 'Coach One', 'Latest trainee')
+      const events = [
+        coachingRecord(1, 'Earlier coach', 'Earlier trainee'),
+        ...closed.events.slice(0, currentClose),
+        ...(history === 'quiet'
+          ? []
+          : [
+              coachingRecord(2, 'Coach One', 'Previous trainee'),
+              coachingRecord(3, 'Coach Two', 'Second trainee'),
+              coachingRecord(4, 'Coach Three', 'Third trainee'),
+              coachingRecord(5, 'Coach Four', 'Fourth trainee'),
+              newest,
+            ]),
+        ...closed.events.slice(currentClose),
+        coachingRecord(7, 'Later coach', 'Later trainee'),
+      ].filter(
+        (event) =>
+          history !== 'incomplete' ||
+          event.type !== 'intel.report_generated' ||
+          event.payload.week !== 1
+      )
+      useGameStore.setState({ game: { ...closed, events } })
+      renderFrontDesk()
+
+      const digest = within(screen.getByRole('region', { name: 'Coaching assignments' }))
+      expect(
+        digest.queryByText(/Earlier trainee|Later trainee|Previous trainee|Second trainee/)
+      ).toBeNull()
+      if (history === 'bounded') {
+        expect(digest.getAllByRole('listitem')).toHaveLength(3)
+        expect(digest.getByText('Coach One was assigned to coach Latest trainee')).toBeVisible()
+        expect(digest.getByText(`Coaching record ${newest.id}`)).toBeVisible()
+        expect(digest.getByText('Showing 3 of 4 instructors assigned this week.')).toBeVisible()
+        expect(
+          digest.getByRole('link', { name: 'Check current coaching assignments' })
+        ).toHaveAttribute('href', '/training-division?advanced=1')
+      } else {
+        expect(digest.queryByRole('list')).toBeNull()
+        expect(
+          digest.getByText(
+            history === 'quiet'
+              ? 'No coaching assignments recorded for this week.'
+              : 'Coaching assignment history is incomplete for this week.'
+          )
+        ).toBeVisible()
+      }
+    }
+  )
+
   it.each([true, false])(
     'shows a drill completed during close with prior history available (%s)',
     (hasPriorClose) => {

@@ -1702,6 +1702,50 @@ export default function FrontDeskPage() {
                     </p>
                   )}
                 </div>
+                <section
+                  aria-label="Coaching assignments"
+                  className="space-y-2 border-t border-white/10 pt-2"
+                >
+                  <h3 className="text-sm font-semibold">Coaching assignments</h3>
+                  {view.latestReport.coachingAssignments.instructorCount > 0 ? (
+                    <>
+                      <p className="text-sm opacity-70">
+                        Each assignment committed an instructor’s coaching slot at the time.
+                      </p>
+                      <ul className="space-y-2" aria-label="Recorded coaching assignments">
+                        {view.latestReport.coachingAssignments.assignments.map((assignment) => (
+                          <li key={assignment.eventId} className="text-sm">
+                            <p className="font-medium">
+                              {assignment.instructorName} was assigned to coach{' '}
+                              {assignment.agentName}
+                            </p>
+                            <p className="opacity-75">Coaching record {assignment.eventId}</p>
+                          </li>
+                        ))}
+                      </ul>
+                      {view.latestReport.coachingAssignments.instructorCount >
+                        view.latestReport.coachingAssignments.assignments.length && (
+                        <p className="text-sm opacity-70">
+                          Showing {view.latestReport.coachingAssignments.assignments.length} of{' '}
+                          {view.latestReport.coachingAssignments.instructorCount} instructors
+                          assigned this week.
+                        </p>
+                      )}
+                      <Link
+                        to={`${APP_ROUTES.trainingDivision}?advanced=1`}
+                        className="text-sm underline"
+                      >
+                        Check current coaching assignments
+                      </Link>
+                    </>
+                  ) : (
+                    <p className="text-sm opacity-70">
+                      {view.latestReport.coachingAssignments.historyAvailable
+                        ? 'No coaching assignments recorded for this week.'
+                        : 'Coaching assignment history is incomplete for this week.'}
+                    </p>
+                  )}
+                </section>
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Relationships</h3>
                   {view.latestReport.relationships.directionCount > 0 ? (

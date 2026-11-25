@@ -1314,8 +1314,15 @@ function describeCaseCarryover(
   previousReport: WeeklyReport | undefined
 ): string {
   const closed = report.caseSnapshots?.[caseId]
-  if (!closed || closed.status === 'resolved') return 'No unresolved entry in this report.'
+  if (closed?.status === 'resolved' || report.resolvedCases.includes(caseId)) {
+    return 'Recorded as resolved at week close.'
+  }
   if (report.newCases.includes(caseId)) return 'Opened during this week’s close.'
+  if (!closed) {
+    return report.unresolvedTriggers.includes(caseId)
+      ? 'Listed as unresolved in this report. Snapshot details unavailable.'
+      : 'Case snapshot unavailable for this report.'
+  }
 
   const previous = previousReport?.caseSnapshots?.[caseId]
   if (!previous) return 'Still unresolved at week close. Earlier report comparison unavailable.'
@@ -1345,7 +1352,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
   }
 
   const { report, score } = latest
-  const previousReport = game.reports.find((entry) => entry.week === report.week - 1)
+  const previousReport = game.reports.findLast((entry) => entry.week === report.week - 1)
   // Use current Cases board identities and compare only their recorded report fields.
   const unresolvedCases = Object.values(game.cases)
     .filter((currentCase) => currentCase.status !== 'resolved')

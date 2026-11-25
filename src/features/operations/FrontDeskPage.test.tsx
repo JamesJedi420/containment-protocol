@@ -312,6 +312,10 @@ describe('FrontDeskPage', () => {
           reports: [
             {
               ...report,
+              caseSnapshots: { [openCase.id]: { ...previous, stage: closed.stage + 2 } },
+            },
+            {
+              ...report,
               caseSnapshots: deadlineChange === null ? undefined : { [openCase.id]: previous },
             },
             {
@@ -326,6 +330,7 @@ describe('FrontDeskPage', () => {
       renderFrontDesk()
       const carryover = within(screen.getByRole('list', { name: 'Unresolved cases' }))
       expect(carryover.getByText(copy)).toBeVisible()
+      expect(carryover.queryByText(/Stage \d+ →/)).toBeNull()
       expect(carryover.queryByText(/Historical-only case|Hidden historical intel/)).toBeNull()
       await userEvent.click(
         carryover.getByRole('link', { name: `Review triage: ${openCase.title}` })
@@ -352,6 +357,34 @@ describe('FrontDeskPage', () => {
     const latest = within(screen.getByRole('region', { name: 'Latest report' }))
     expect(latest.getByText('No unresolved cases on the Cases board.')).toBeVisible()
     expect(latest.queryByRole('list', { name: 'Unresolved cases' })).toBeNull()
+  })
+
+  it('preserves the outcome recorded by a legacy report without snapshots', () => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    const game = useGameStore.getState().game
+    const openCase = Object.values(game.cases).find((entry) => entry.status === 'open')!
+    useGameStore.setState({
+      game: {
+        ...game,
+        cases: { [openCase.id]: openCase },
+        reports: [
+          {
+            ...game.reports[0]!,
+            newCases: [],
+            unresolvedTriggers: [openCase.id],
+            caseSnapshots: undefined,
+          },
+        ],
+      },
+    })
+
+    renderFrontDesk()
+    const carryover = within(screen.getByRole('list', { name: 'Unresolved cases' }))
+    expect(
+      carryover.getByText('Listed as unresolved in this report. Snapshot details unavailable.')
+    ).toBeVisible()
+    expect(carryover.getByRole('link', { name: `Review triage: ${openCase.title}` })).toBeVisible()
   })
   it('keeps departure notices in the feed through acknowledgement and automatic reload', async () => {
     const user = userEvent.setup()

@@ -4,7 +4,6 @@ import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
 import { DASHBOARD_SECTIONS, EMPTY_STATES, EVENT_FEED_TEXT } from '../../data/copy'
-import type { OperationNoticeStatus } from '../../domain/operationNoticeState'
 import {
   EVENT_CATEGORY_LABELS,
   EVENT_SOURCE_LABELS,
@@ -20,12 +19,12 @@ import {
 import { buildDrillDownHrefWithFeedContext } from '../shared/operationsRouteDrillDown'
 
 export function EventFeedPanel() {
-  const { game, setOperationNoticeStatus } = useGameStore()
+  const { game } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
   const advancedFiltersPanelId = 'operations-feed-advanced-filters'
   const filters = readEventFeedFilters(searchParams)
-  const normalizedSearchParams = writeEventFeedFilters(filters, searchParams)
+  const normalizedSearchParams = writeEventFeedFilters(filters)
   const normalizedSearch = normalizedSearchParams.toString()
   const views = getFilteredEventFeedViews(game, filters)
   const categoryOptions = getAvailableEventCategories(game.events)
@@ -39,9 +38,7 @@ export function EventFeedPanel() {
   }, [normalizedSearch, normalizedSearchParams, searchParams, setSearchParams])
 
   const updateFilters = (patch: Partial<typeof filters>) => {
-    setSearchParams(writeEventFeedFilters({ ...filters, ...patch }, searchParams), {
-      replace: true,
-    })
+    setSearchParams(writeEventFeedFilters({ ...filters, ...patch }), { replace: true })
   }
 
   const hasActiveFilters =
@@ -63,24 +60,20 @@ export function EventFeedPanel() {
   const isAdvancedFiltersVisible = showAdvancedFilters || hasAdvancedFiltersActive
 
   const resetFilters = () => {
-    setSearchParams(
-      writeEventFeedFilters(readEventFeedFilters(new URLSearchParams()), searchParams),
-      { replace: true }
-    )
+    setSearchParams(writeEventFeedFilters(readEventFeedFilters(new URLSearchParams())), {
+      replace: true,
+    })
   }
 
   const resetAdvancedFilters = () => {
     setSearchParams(
-      writeEventFeedFilters(
-        {
-          ...filters,
-          relationshipVerbosity: 'summary',
-          weekMin: undefined,
-          weekMax: undefined,
-          entityId: '',
-        },
-        searchParams
-      ),
+      writeEventFeedFilters({
+        ...filters,
+        relationshipVerbosity: 'summary',
+        weekMin: undefined,
+        weekMax: undefined,
+        entityId: '',
+      }),
       { replace: true }
     )
   }
@@ -88,7 +81,7 @@ export function EventFeedPanel() {
   return (
     <section className="panel space-y-4" aria-label="Operations feed">
       <div className="space-y-1">
-        <h3 className="text-lg font-semibold">{DASHBOARD_SECTIONS.operationsFeed}</h3>
+        <h2 className="text-lg font-semibold">{DASHBOARD_SECTIONS.operationsFeed}</h2>
         <p className="text-sm opacity-60">{EVENT_FEED_TEXT.subtitle}</p>
       </div>
 
@@ -328,13 +321,6 @@ export function EventFeedPanel() {
                 <div className="event-meta text-right text-xs">
                   <p>Week {view.week}</p>
                   <p>{view.timestampLabel}</p>
-                  {view.noticeStatus ? (
-                    <OperationNoticeControls
-                      title={view.title}
-                      status={view.noticeStatus}
-                      onChange={(status) => setOperationNoticeStatus(view.event.id, status)}
-                    />
-                  ) : null}
                 </div>
               </div>
             </li>
@@ -342,40 +328,6 @@ export function EventFeedPanel() {
         </ul>
       )}
     </section>
-  )
-}
-
-function OperationNoticeControls({
-  title,
-  status,
-  onChange,
-}: {
-  title: string
-  status: OperationNoticeStatus
-  onChange: (status: 'read' | 'acknowledged') => void
-}) {
-  const nextStatus = status === 'unread' ? 'read' : 'acknowledged'
-  const action =
-    nextStatus === 'read' ? EVENT_FEED_TEXT.markNoticeRead : EVENT_FEED_TEXT.acknowledgeNotice
-  const acknowledged = status === 'acknowledged'
-
-  return (
-    <div className="mt-2 space-y-1">
-      <p role="status">{EVENT_FEED_TEXT.noticeStatus[status]}</p>
-      <button
-        type="button"
-        className="btn btn-sm btn-ghost"
-        aria-disabled={acknowledged}
-        aria-label={EVENT_FEED_TEXT.noticeActionLabel.replace(/\{action\}|\{notice\}/g, (token) =>
-          token === '{action}' ? action : title
-        )}
-        onClick={() => {
-          if (!acknowledged) onChange(nextStatus)
-        }}
-      >
-        {action}
-      </button>
-    </div>
   )
 }
 

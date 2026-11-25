@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
-import { useFocusedControls } from '../../app/inputRuntime'
+import { Link, useSearchParams } from 'react-router'
+import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
+import { FilterInput } from '../../components/FilterInput'
 import { RunTransferPanel } from '../../components/RunTransferPanel'
 import {
   CONFIG_FIELDS,
@@ -15,7 +16,7 @@ import {
   FEEDBACK_MESSAGES,
 } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
-import { EventFeedPanel } from '../dashboard/EventFeedPanel'
+import { getOperationNoticeViews } from '../dashboard/eventFeedView'
 import {
   getFrontDeskNoticeActionHref,
   getFrontDeskHubView,
@@ -45,6 +46,8 @@ const presetConfigs = {
     raidCoordinationPenaltyPerExtraTeam: 0.12,
   },
 } as const
+
+const DEPARTURE_NOTICES_PARAM = 'departureNotices'
 
 type StatusMessage = {
   kind: 'info' | 'success' | 'error'
@@ -113,6 +116,7 @@ export default function FrontDeskPage() {
     advanceWeek,
     reset,
     setSeed,
+    setOperationNoticeStatus,
     updateConfig,
   } = useGameStore()
   const [seedFeedback, setSeedFeedback] = useState<StatusMessage>({
@@ -120,16 +124,43 @@ export default function FrontDeskPage() {
     message: FEEDBACK_MESSAGES.seedInfo,
   })
   const [showResetConfirm, setShowResetConfirm] = useState(false)
-  const [showEventFeed, setShowEventFeed] = useState(false)
-  const eventFeedControls = useRef<HTMLDivElement>(null)
-  useFocusedControls(
-    () =>
-      eventFeedControls.current?.querySelectorAll<HTMLElement>('input, select, button, a[href]') ??
-      []
+  const [searchParams, setSearchParams] = useSearchParams()
+  const savedDepartureQuery = searchParams.get(DEPARTURE_NOTICES_PARAM)
+  const [departureDraft, setDepartureDraft] = useState<{ origin: string; value: string }>()
+  const departureQuery =
+    departureDraft?.origin === savedDepartureQuery ? departureDraft.value : savedDepartureQuery
+  const showDepartureNotices = savedDepartureQuery !== null
+  const departureControls = useRef<HTMLDivElement>(null)
+  const departureToggle = useRef<HTMLButtonElement>(null)
+  const getDepartureControls = () =>
+    Array.from(departureControls.current?.querySelectorAll<HTMLElement>('button, a[href]') ?? [])
+  useFocusedControls(getDepartureControls)
+  useInputConsumer({
+    id: 'filters.next',
+    context: 'route',
+    available: () => {
+      const toggle = departureToggle.current
+      return (
+        !!toggle &&
+        !getDepartureControls().some((control) => control === toggle.ownerDocument.activeElement)
+      )
+    },
+    execute: () => departureToggle.current?.focus(),
+  })
+  const departureNotices = useMemo(
+    () => (departureQuery === null ? [] : getOperationNoticeViews(game, departureQuery)),
+    [departureQuery, game]
   )
   const feedbackTimeoutRef = useRef<number | undefined>(undefined)
   const lastRouteLogSignatureRef = useRef('')
   const view = useMemo(() => getFrontDeskHubView(game), [game])
+
+  function setDepartureQuery(query: string | null) {
+    const next = new URLSearchParams(searchParams)
+    if (query === null) next.delete(DEPARTURE_NOTICES_PARAM)
+    else next.set(DEPARTURE_NOTICES_PARAM, query)
+    setSearchParams(next, { replace: true })
+  }
 
   const routeLogSignature = useMemo(
     () =>
@@ -1041,19 +1072,100 @@ export default function FrontDeskPage() {
             {view.recentOutcomes.length === 0 && view.recentItems.length === 0 ? (
               <p className="text-sm opacity-60">No recent reports or events are available yet.</p>
             ) : null}
-            <div className="space-y-3" ref={eventFeedControls}>
+            <div className="space-y-3" ref={departureControls}>
               <button
+                ref={departureToggle}
                 type="button"
                 className="btn btn-sm btn-ghost"
-                aria-expanded={showEventFeed}
-                aria-controls="front-desk-operations-feed"
-                onClick={() => setShowEventFeed((visible) => !visible)}
+                aria-expanded={showDepartureNotices}
+                aria-controls="front-desk-departure-notices"
+                onClick={() => {
+                  setDepartureDraft(undefined)
+                  setDepartureQuery(showDepartureNotices ? null : '')
+                }}
               >
-                {showEventFeed ? EVENT_FEED_TEXT.hideFeed : EVENT_FEED_TEXT.showFeed}
+                {showDepartureNotices
+                  ? EVENT_FEED_TEXT.hideDepartureNotices
+                  : EVENT_FEED_TEXT.showDepartureNotices}
               </button>
-              <div id="front-desk-operations-feed" hidden={!showEventFeed}>
-                {showEventFeed ? <EventFeedPanel /> : null}
-              </div>
+              <section
+                id="front-desk-departure-notices"
+                aria-label={EVENT_FEED_TEXT.departureNotices}
+                hidden={!showDepartureNotices}
+              >
+                {savedDepartureQuery !== null && departureQuery !== null ? (
+                  <div className="space-y-3">
+                    <div
+                      onBlur={() => {
+                        if (departureQuery !== savedDepartureQuery)
+                          setDepartureQuery(departureQuery)
+                      }}
+                    >
+                      <FilterInput
+                        id="front-desk-departure-search"
+                        label={EVENT_FEED_TEXT.searchDepartureNotices}
+                        type="search"
+                        value={departureQuery}
+                        onChange={(value) =>
+                          setDepartureDraft({ origin: savedDepartureQuery, value })
+                        }
+                      />
+                    </div>
+                    {departureNotices.length > 0 ? (
+                      <ul className="max-h-144 space-y-2 overflow-y-auto">
+                        {departureNotices.map((notice) => {
+                          const nextStatus = notice.status === 'unread' ? 'read' : 'acknowledged'
+                          const acknowledged = notice.status === 'acknowledged'
+                          const action =
+                            nextStatus === 'read'
+                              ? EVENT_FEED_TEXT.markNoticeRead
+                              : EVENT_FEED_TEXT.acknowledgeNotice
+                          return (
+                            <li
+                              key={notice.id}
+                              className="space-y-2 rounded border border-white/10 px-3 py-2"
+                            >
+                              {notice.href ? (
+                                <Link
+                                  to={notice.href}
+                                  className="text-sm font-medium hover:underline"
+                                >
+                                  {notice.title}
+                                </Link>
+                              ) : (
+                                <p className="text-sm font-medium">{notice.title}</p>
+                              )}
+                              <p className="text-sm opacity-75">{notice.detail}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p role="status" className="text-xs">
+                                  {EVENT_FEED_TEXT.noticeStatus[notice.status]}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-ghost"
+                                  aria-disabled={acknowledged}
+                                  aria-label={EVENT_FEED_TEXT.noticeActionLabel.replace(
+                                    /\{action\}|\{notice\}/g,
+                                    (token) => (token === '{action}' ? action : notice.title)
+                                  )}
+                                  onClick={() => {
+                                    if (!acknowledged)
+                                      setOperationNoticeStatus(notice.id, nextStatus)
+                                  }}
+                                >
+                                  {action}
+                                </button>
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-sm opacity-60">{EVENT_FEED_TEXT.noDepartureNotices}</p>
+                    )}
+                  </div>
+                ) : null}
+              </section>
             </div>
           </section>
 

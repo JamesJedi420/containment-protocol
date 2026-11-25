@@ -307,14 +307,28 @@ describe('FrontDeskPage', () => {
     )
 
     const desk = renderFrontDesk()
-    const showFeed = screen.getByRole('button', { name: 'Show operations feed' })
-    showFeed.focus()
+    const showFeed = screen.getByRole('button', { name: 'Show departure notices' })
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    expect(showFeed).toHaveFocus()
     act(() => {
       expect(dispatchInputAction('filters.activate')).toBe(true)
     })
-    expect(screen.getByRole('button', { name: 'Hide operations feed' })).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Hide departure notices' })).toHaveFocus()
+    const visibleFeed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(within(visibleFeed).getAllByRole('listitem')).toHaveLength(2)
+    const search = within(visibleFeed).getByRole('searchbox', { name: 'Search departure notices' })
+    await user.type(search, 'Avery Holt')
+    expect(search).toHaveValue('Avery Holt')
+    expect(within(visibleFeed).getAllByRole('listitem')).toHaveLength(1)
+    screen.getByRole('button', { name: 'Hide departure notices' }).focus()
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
     const markRead = screen.getByRole('button', { name: /mark as read: avery holt/i })
-    markRead.focus()
+    expect(markRead).toHaveFocus()
     await user.keyboard('{Enter}')
     const acknowledge = screen.getByRole('button', { name: /acknowledge: avery holt/i })
     expect(acknowledge).toHaveFocus()
@@ -332,6 +346,7 @@ describe('FrontDeskPage', () => {
     expect(within(notice).getByRole('status')).toHaveTextContent(/^Acknowledged$/)
     expect(acknowledge).toHaveFocus()
     expect(dispatchInputAction('filters.activate')).toBe(false)
+    await user.clear(search)
     expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
     expect(useGameStore.getState().game.events).toBe(before.events)
 
@@ -348,16 +363,14 @@ describe('FrontDeskPage', () => {
       reloaded.events.filter((event) => event.type === 'recruitment.candidate_departed')
     ).toEqual(departureEvents)
     renderFrontDesk()
-    await user.click(screen.getByRole('button', { name: 'Show operations feed' }))
+    await user.click(screen.getByRole('button', { name: 'Show departure notices' }))
     expect(screen.getByRole('button', { name: /acknowledge: avery holt/i })).toHaveAttribute(
       'aria-disabled',
       'true'
     )
     expect(screen.getByRole('button', { name: /mark as read: morgan vale/i })).toBeEnabled()
-    const feed = screen.getByRole('region', { name: 'Operations feed' })
-    expect(
-      within(feed).getByRole('link', { name: /avery holt is no longer available/i })
-    ).toBeVisible()
+    const feed = screen.getByRole('region', { name: 'Departure notices' })
+    expect(within(feed).getByRole('link', { name: /avery holt is no longer available/i })).toBeVisible()
   })
 
   beforeEach(() => {

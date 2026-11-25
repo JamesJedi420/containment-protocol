@@ -2751,23 +2751,26 @@ export const useGameStore = create<GameStore>()(
                 : { ...next, operationNoticeStates },
           }
         }),
-      setOperationNoticeStatus: (eventId, nextStatus) => {
-        const { game } = get()
-        if (!game.events.some((event) => event.id === eventId && isOperationNotice(event))) return
-        const status = getOperationNoticeStatus(game.operationNoticeStates, eventId)
-        const expectedStatus = status === 'unread' ? 'read' : 'acknowledged'
-        if (status === 'acknowledged' || nextStatus !== expectedStatus) return
+      setOperationNoticeStatus: (eventId, nextStatus) =>
+        set((state) => {
+          const { game } = state
+          if (!game.events.some((event) => event.id === eventId && isOperationNotice(event))) {
+            return state
+          }
+          const status = getOperationNoticeStatus(game.operationNoticeStates, eventId)
+          const expectedStatus = status === 'unread' ? 'read' : 'acknowledged'
+          if (status === 'acknowledged' || nextStatus !== expectedStatus) return state
 
-        set({
-          game: {
-            ...game,
-            operationNoticeStates: {
-              ...game.operationNoticeStates,
-              [eventId]: nextStatus,
+          return {
+            game: {
+              ...game,
+              operationNoticeStates: {
+                ...game.operationNoticeStates,
+                [eventId]: nextStatus,
+              },
             },
-          },
-        })
-      },
+          }
+        }),
 
       setSquadMetadata: (metadata) =>
         set((s) => ({

@@ -256,8 +256,11 @@ export const EVENT_FEED_TEXT = {
   markNoticeRead: 'Mark as read',
   acknowledgeNotice: 'Acknowledge',
   noticeActionLabel: '{action}: {notice}',
-  showFeed: 'Show operations feed',
-  hideFeed: 'Hide operations feed',
+  departureNotices: 'Departure notices',
+  showDepartureNotices: 'Show departure notices',
+  hideDepartureNotices: 'Hide departure notices',
+  searchDepartureNotices: 'Search departure notices',
+  noDepartureNotices: 'No departure notices match.',
 }
 
 export const OPERATIONS_DESK_TEXT = {

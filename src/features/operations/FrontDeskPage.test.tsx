@@ -443,6 +443,75 @@ describe('FrontDeskPage', () => {
     }
   )
 
+  it.each([
+    'changed',
+    'unchanged',
+    'missing previous marker',
+    'missing current marker',
+    'missing snapshot',
+    'invalid endpoint',
+  ] as const)('shows week-close funding with %s evidence', (scenario) => {
+    useGameStore.setState({ game: createStartingState() })
+    useGameStore.getState().advanceWeek()
+    useGameStore.getState().advanceWeek()
+    const closed = useGameStore.getState().game
+    const update = closed.events.find(
+      (event) => event.type === 'agency.containment_updated' && event.payload.week === 2
+    )
+    if (update?.type !== 'agency.containment_updated') throw new Error('Expected Week 2 update.')
+    const { fundingBefore: before, fundingAfter: after } = update.payload
+    expect(before).not.toBe(after)
+    const events = closed.events
+      .filter((event) => {
+        if (event === update && scenario === 'missing snapshot') return false
+        if (event.type !== 'intel.report_generated') return true
+        return !(
+          (scenario === 'missing previous marker' && event.payload.week === 1) ||
+          (scenario === 'missing current marker' && event.payload.week === 2)
+        )
+      })
+      .map((event) => {
+        if (event !== update) return event
+        if (scenario === 'unchanged') {
+          return { ...update, payload: { ...update.payload, fundingBefore: 0, fundingAfter: 0 } }
+        }
+        if (scenario === 'invalid endpoint') {
+          return { ...update, payload: { ...update.payload, fundingAfter: NaN } }
+        }
+        return event
+      })
+    events.push(
+      createOperationEvent(closed.events.length + 100, {
+        type: 'agency.containment_updated',
+        sourceSystem: 'system',
+        payload: { ...update.payload, fundingBefore: 990, fundingAfter: 991 },
+      })
+    )
+    useGameStore.setState({ game: { ...closed, events } })
+    renderFrontDesk()
+
+    const report = within(screen.getByRole('region', { name: 'Latest report' }))
+    const digest = within(report.getByRole('region', { name: 'Week-close funding' }))
+    expect(digest.queryByText(/990|991/)).toBeNull()
+    if (scenario === 'changed') {
+      expect(digest.getByText(`${before} → ${after} funding`)).toBeVisible()
+      expect(digest.getByText(`Week-close agency update · Record ${update.id}`)).toBeVisible()
+      expect(digest.getByRole('link', { name: 'Check procurement affordability' })).toHaveAttribute(
+        'href',
+        '/markets-suppliers'
+      )
+    } else {
+      expect(
+        digest.getByText(
+          scenario === 'unchanged'
+            ? 'Funding held steady in the recorded closing update.'
+            : 'The funding comparison is unavailable for this report.'
+        )
+      ).toBeVisible()
+      expect(digest.queryByRole('link')).toBeNull()
+    }
+  })
+
   it.each(['verified', 'quiet', 'missing previous', 'missing current', 'legacy', 'mixed'] as const)(
     'shows field-agent hiring with %s evidence',
     (scenario) => {

@@ -1587,6 +1587,37 @@ export default function FrontDeskPage() {
                 </section>
                 <section
                   className="space-y-2 border-t border-white/10 pt-2"
+                  aria-label="Week-close funding"
+                >
+                  <h3 className="text-sm font-semibold">Week-close funding</h3>
+                  {view.latestReport.funding.status === 'changed' ? (
+                    <div className="space-y-1 text-sm">
+                      <p className="font-medium">
+                        {view.latestReport.funding.before} → {view.latestReport.funding.after}{' '}
+                        funding
+                      </p>
+                      <p className="opacity-75">
+                        Week-close agency update · Record {view.latestReport.funding.eventId}
+                      </p>
+                      <p className="opacity-75">
+                        {view.latestReport.funding.after < view.latestReport.funding.before
+                          ? 'The closing update left less funding. Check today’s balance and supplier prices before you order or defer a purchase.'
+                          : 'The closing update left more funding. Check today’s balance and supplier prices before you reconsider a deferred purchase.'}
+                      </p>
+                      <Link to={APP_ROUTES.marketsSuppliers} className="underline">
+                        Check procurement affordability
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="text-sm opacity-70">
+                      {view.latestReport.funding.status === 'unchanged'
+                        ? 'Funding held steady in the recorded closing update.'
+                        : 'The funding comparison is unavailable for this report.'}
+                    </p>
+                  )}
+                </section>
+                <section
+                  className="space-y-2 border-t border-white/10 pt-2"
                   aria-label="Field-agent hiring"
                 >
                   <h3 className="text-sm font-semibold">Field-agent hiring</h3>

@@ -228,6 +228,31 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     ).toBeVisible()
   })
 
+  test('SPE-1354 separates week-close funding from current procurement funds after reload', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(report.getByRole('link', { name: 'Week 1', exact: true })).toBeVisible()
+    const funding = report.getByRole('region', { name: 'Week-close funding' })
+    // The existing fundingSnapshotRoundTrip oracle uses this same starting-state close.
+    await expect(funding.getByText('110 → 53 funding', { exact: true })).toBeVisible()
+    await expect(funding.getByText('Week-close agency update · Record evt-000011')).toBeVisible()
+
+    await page.reload()
+    await expect(funding.getByText('110 → 53 funding', { exact: true })).toBeVisible()
+    await expect(funding.getByText('Week-close agency update · Record evt-000011')).toBeVisible()
+    await funding.getByRole('link', { name: 'Check procurement affordability' }).click()
+    await expect(page).toHaveURL(/\/markets-suppliers$/)
+    const procurement = page.getByRole('region', { name: 'Procurement overview' })
+    await expect(procurement.getByText('$57', { exact: true })).toBeVisible()
+    const listings = page.getByRole('list', { name: 'Market listings' })
+    await expect(listings.getByText(/^Buy: \$/).first()).toBeVisible()
+  })
+
   test('SPE-1354 preserves a containment rating floored at zero after reload', async ({ page }) => {
     await clearCampaignStorage(page)
     await openFrontDesk(page)

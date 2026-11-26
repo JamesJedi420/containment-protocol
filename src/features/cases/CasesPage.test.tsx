@@ -1,6 +1,6 @@
 // cspell:words greentape
 import '../../test/setup'
-import { render, screen, within, waitFor } from '@testing-library/react'
+import { act, render, screen, within, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import { useGameStore } from '../../app/store/gameStore'
@@ -520,6 +520,67 @@ it('sanitizes stale case query when the case is outside the filtered triage list
     const search = screen.getByTestId('location-search').textContent ?? ''
     expect(search).not.toContain('case=case-does-not-exist')
   })
+})
+
+it('keeps a pending keyboard disposition on the inspected case after deadlines reorder the list', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const target = makeCase('target', 'Archive', { deadlineRemaining: 2 })
+  const other = makeCase('other', 'Depot', { deadlineRemaining: 3 })
+  game.cases = { target, other }
+  game.missionRouting = normalizeMissionRoutingState(game)
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases?sort=deadline&case=target'])
+
+  const inspectButtons = () =>
+    within(screen.getByRole('list', { name: 'Triage list' })).getAllByRole('button')
+  expect(inspectButtons()[0]).toHaveAccessibleName('Select Archive for triage detail')
+  const defer = within(getCardByName('Archive')).getByRole('button', {
+    name: MISSION_TRIAGE_DISPOSITION_LABELS.defer,
+  })
+  defer.focus()
+  await user.keyboard('[Space>]')
+  act(() =>
+    useGameStore.setState({
+      game: {
+        ...game,
+        cases: { target, other: { ...other, deadlineRemaining: 1 } },
+      },
+    })
+  )
+  expect(inspectButtons()[0]).toHaveAccessibleName('Select Depot for triage detail')
+  expect(defer).toHaveFocus()
+  await user.keyboard('[/Space]')
+  const missions = useGameStore.getState().game.missionRouting!.missions
+  expect(missions.target.playerDisposition).toBe('defer')
+  expect(missions.other.playerDisposition).toBeUndefined()
+})
+
+it('clears an unavailable triage target without applying a pending keypress to its neighbour', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const target = makeCase('target', 'Archive')
+  const other = makeCase('other', 'Depot')
+  game.cases = { target, other }
+  game.missionRouting = normalizeMissionRoutingState(game)
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases?status=open&case=target'])
+  const defer = within(getCardByName('Archive')).getByRole('button', {
+    name: MISSION_TRIAGE_DISPOSITION_LABELS.defer,
+  })
+  defer.focus()
+  await user.keyboard('[Space>]')
+  act(() => useGameStore.setState({ game: { ...game, cases: { other } } }))
+  await user.keyboard('[/Space]')
+
+  expect(screen.queryByRole('region', { name: /case triage detail/i })).not.toBeInTheDocument()
+  expect(screen.getByTestId('location-search')).not.toHaveTextContent('case=')
+  expect(
+    screen.getByRole('button', { name: 'Select Depot for triage detail', pressed: false })
+  ).toBeVisible()
+  expect(
+    useGameStore.getState().game.missionRouting!.missions.other.playerDisposition
+  ).toBeUndefined()
 })
 
 it('renders the case assignment guidance panel', () => {

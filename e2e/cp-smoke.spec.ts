@@ -382,12 +382,15 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const rows = board.getByRole('listitem')
     const initialCount = await rows.count()
     expect(initialCount).toBeGreaterThan(1)
-    const scout = board.getByRole('button', { name: /^Scout \(\$/ }).first()
-    const candidateName = await scout
-      .locator('xpath=ancestor::li[1]')
-      .locator('p')
+    // Hold the actual button because the board can reorder and names can repeat.
+    const scout = await board
+      .getByRole('button', { name: /^Scout \(\$/ })
       .first()
-      .innerText()
+      .elementHandle()
+    const candidateName = await scout.evaluate(
+      (button) => button.closest('li')?.querySelector('p')?.innerText
+    )
+    if (!candidateName) throw new Error('Expected a candidate name in the Scout button row')
     await scout.click()
 
     const notice = page.getByRole('link', {

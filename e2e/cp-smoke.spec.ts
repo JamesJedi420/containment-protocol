@@ -382,16 +382,16 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const rows = board.getByRole('listitem')
     const initialCount = await rows.count()
     expect(initialCount).toBeGreaterThan(1)
-    const scoutButton = page.getByRole('button', { name: /^Scout \(\$/ })
-    const candidateName = await rows
-      .filter({ has: scoutButton })
+    // Hold the actual button because the board can reorder and names can repeat.
+    const scout = await board
+      .getByRole('button', { name: /^Scout \(\$/ })
       .first()
-      .locator('p')
-      .first()
-      .innerText()
-    // The board can reorder after sorting. Click the candidate we read, even if the row moves.
-    const candidateRow = rows.filter({ has: page.getByText(candidateName, { exact: true }) })
-    await candidateRow.getByRole('button', { name: /^Scout \(\$/ }).click()
+      .elementHandle()
+    const candidateName = await scout.evaluate(
+      (button) => button.closest('li')?.querySelector('p')?.innerText
+    )
+    if (!candidateName) throw new Error('Expected a candidate name in the Scout button row')
+    await scout.click()
 
     const notice = page.getByRole('link', {
       name: `View candidate: ${candidateName} scouting initiated`,

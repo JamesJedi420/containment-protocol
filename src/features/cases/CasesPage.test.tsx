@@ -540,14 +540,17 @@ it('keeps a pending keyboard disposition on the inspected case after deadlines r
   })
   defer.focus()
   await user.keyboard('[Space>]')
-  act(() =>
-    useGameStore.setState({
+  expect(
+    useGameStore.getState().game.missionRouting!.missions.target.playerDisposition
+  ).toBeUndefined()
+  await act(async () => {
+    useGameStore.setState(({ game: current }) => ({
       game: {
-        ...game,
-        cases: { target, other: { ...other, deadlineRemaining: 1 } },
+        ...current,
+        cases: { ...current.cases, other: { ...current.cases.other, deadlineRemaining: 1 } },
       },
-    })
-  )
+    }))
+  })
   expect(inspectButtons()[0]).toHaveAccessibleName('Select Depot for triage detail')
   expect(defer).toHaveFocus()
   await user.keyboard('[/Space]')
@@ -570,17 +573,20 @@ it('clears an unavailable triage target without applying a pending keypress to i
   })
   defer.focus()
   await user.keyboard('[Space>]')
-  act(() => useGameStore.setState({ game: { ...game, cases: { other } } }))
-  await user.keyboard('[/Space]')
-
+  await act(async () => {
+    useGameStore.setState(({ game: current }) => ({
+      game: { ...current, cases: { other: current.cases.other } },
+    }))
+  })
   expect(screen.queryByRole('region', { name: /case triage detail/i })).not.toBeInTheDocument()
   expect(screen.getByTestId('location-search')).not.toHaveTextContent('case=')
+  await user.keyboard('[/Space]')
   expect(
     screen.getByRole('button', { name: 'Select Depot for triage detail', pressed: false })
   ).toBeVisible()
-  expect(
-    useGameStore.getState().game.missionRouting!.missions.other.playerDisposition
-  ).toBeUndefined()
+  const missions = useGameStore.getState().game.missionRouting!.missions
+  expect(missions.other.playerDisposition).toBeUndefined()
+  expect(missions.target.playerDisposition).toBeUndefined()
 })
 
 it('renders the case assignment guidance panel', () => {

@@ -147,6 +147,13 @@ export interface FrontDeskStandingSummaryView {
   links: FrontDeskQuickLinkView[]
 }
 
+interface FrontDeskStaffInjury {
+  eventId: string
+  agentName: string
+  severity: string
+  agentHref: string | null
+}
+
 export interface FrontDeskLatestReportView {
   week: number
   href: string
@@ -163,6 +170,11 @@ export interface FrontDeskLatestReportView {
     historyAvailable: boolean
     hireCount: number
     hires: { eventId: string; agentName: string; agentHref: string }[]
+  }
+  staffInjuries: {
+    historyAvailable: boolean
+    injuries: FrontDeskStaffInjury[]
+    additionalInjuries: FrontDeskStaffInjury[]
   }
   staffTraining: {
     historyAvailable: boolean
@@ -1471,6 +1483,35 @@ function buildWeeklyFieldAgentHires(
   }
 }
 
+function buildWeeklyStaffInjuries(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['staffInjuries'] {
+  const events = getCompletedReportEventWindow(game, week)
+  if (!events) return { historyAvailable: false, injuries: [], additionalInjuries: [] }
+
+  const injuries = new Map<string, FrontDeskStaffInjury>()
+  for (const event of events) {
+    if (event.type !== 'agent.injured' || event.payload.week !== week) continue
+
+    const { agentId, agentName, severity } = event.payload
+    const agent = game.agents[agentId]
+    injuries.set(event.id, {
+      eventId: event.id,
+      agentName,
+      severity,
+      agentHref: agent?.id === agentId ? APP_ROUTES.agentDetail(agentId) : null,
+    })
+  }
+
+  const records = [...injuries.values()]
+  return {
+    historyAvailable: true,
+    injuries: records.slice(0, MAX_QUEUE_DETAILS),
+    additionalInjuries: records.slice(MAX_QUEUE_DETAILS),
+  }
+}
+
 function buildWeeklyStaffTrainingDigest(
   game: GameState,
   week: number
@@ -1717,6 +1758,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     containment: buildWeeklyContainmentDigest(game, report.week),
     funding: buildWeeklyFundingDigest(game, report.week),
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
+    staffInjuries: buildWeeklyStaffInjuries(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     coachingAssignments: buildWeeklyCoachingAssignments(game, report.week),
     teamFatigue: buildWeeklyTeamFatigue(game, report, previousReport),

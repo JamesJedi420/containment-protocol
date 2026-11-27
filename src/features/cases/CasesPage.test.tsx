@@ -580,6 +580,7 @@ it('clears an unavailable triage target without applying a pending keypress to i
   })
   expect(screen.queryByRole('region', { name: /case triage detail/i })).not.toBeInTheDocument()
   expect(screen.getByTestId('location-search')).not.toHaveTextContent('case=')
+  expect(screen.getByRole('region', { name: 'Case triage queue' })).toHaveFocus()
   await user.keyboard('[/Space]')
   expect(
     screen.getByRole('button', { name: 'Select Depot for triage detail', pressed: false })
@@ -587,6 +588,26 @@ it('clears an unavailable triage target without applying a pending keypress to i
   const missions = useGameStore.getState().game.missionRouting!.missions
   expect(missions.other.playerDisposition).toBeUndefined()
   expect(missions.target.playerDisposition).toBeUndefined()
+})
+
+it('leaves focus on the queue row when an unfocused detail disappears', async () => {
+  const game = createStartingState()
+  const target = makeCase('target', 'Archive')
+  const other = makeCase('other', 'Depot')
+  game.cases = { target, other }
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases?status=open&case=target'])
+
+  const otherRow = screen.getByRole('button', { name: 'Select Depot for triage detail' })
+  otherRow.focus()
+  await act(async () => {
+    useGameStore.setState(({ game: current }) => ({
+      game: { ...current, cases: { other: current.cases.other } },
+    }))
+  })
+
+  expect(screen.queryByRole('region', { name: /case triage detail/i })).not.toBeInTheDocument()
+  expect(otherRow).toHaveFocus()
 })
 
 it('renders the case assignment guidance panel', () => {

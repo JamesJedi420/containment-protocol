@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigationType, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
+import { APP_ROUTES, LATEST_REPORT_TEAM_ROSTER_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { type Agent, type AgentRole, type PerformanceMetricSummary } from '../../domain/models'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
@@ -29,6 +29,10 @@ import {
 export default function TeamDetailPage() {
   const { teamId } = useParams()
   const location = useLocation()
+  const { key, state } = location
+  const navigationType = useNavigationType()
+  const roster = useRef<HTMLElement>(null)
+  const emptyRosterTransfer = useRef<HTMLSelectElement>(null)
   const {
     game,
     assign,
@@ -62,6 +66,13 @@ export default function TeamDetailPage() {
     [game, teamId]
   )
 
+  useEffect(() => {
+    if (state === LATEST_REPORT_TEAM_ROSTER_NAVIGATION && navigationType === 'PUSH') {
+      const destination = emptyRosterTransfer.current ?? roster.current
+      destination?.focus()
+    }
+  }, [key, navigationType, state])
+
   if (!team) {
     return (
       <LocalNotFound
@@ -87,6 +98,8 @@ export default function TeamDetailPage() {
     transferCandidates.some((candidate) => candidate.agent.id === transferState.agentId)
       ? transferState.agentId
       : (transferCandidates[0]?.agent.id ?? '')
+  const canRestaffEmptyRoster =
+    agents.length === 0 && managementState.editable && Boolean(transferAgentId)
   const trimmedName = draftName.trim()
   const canRename =
     managementState.editable &&
@@ -419,6 +432,7 @@ export default function TeamDetailPage() {
                 </span>
                 <select
                   id="transfer-agent"
+                  ref={canRestaffEmptyRoster ? emptyRosterTransfer : undefined}
                   className="form-select"
                   value={transferAgentId}
                   onChange={(event) =>
@@ -459,7 +473,9 @@ export default function TeamDetailPage() {
           </article>
 
           <article
-            className="panel panel-support space-y-3"
+            ref={roster}
+            tabIndex={-1}
+            className="panel panel-support space-y-3 focus-ring"
             role="region"
             aria-label="Squad roster"
           >

@@ -2,10 +2,11 @@
 import '../../test/setup'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useNavigate } from 'react-router'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { APP_ROUTES, LATEST_REPORT_TEAM_ROSTER_NAVIGATION } from '../../app/routes'
 import TeamDetailPage from './TeamDetailPage'
 import { beforeEach, it, expect } from 'vitest'
 
@@ -36,6 +37,7 @@ it('renders a direct-entry team detail with roster and capability summary', () =
   expect(screen.getAllByText(/ava brooks/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/father kellan/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/avg fatigue/i).length).toBeGreaterThan(0)
+  expect(screen.getByRole('region', { name: 'Squad roster' })).not.toHaveFocus()
 })
 
 it('renders a local not-found state for an unknown team', () => {
@@ -43,6 +45,77 @@ it('renders a local not-found state for an unknown team', () => {
 
   expect(screen.getByText(/team not found/i)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /back to teams/i })).toBeInTheDocument()
+})
+
+function renderReportRosterLink() {
+  function HistoryControls() {
+    const navigate = useNavigate()
+    return (
+      <>
+        <button onClick={() => navigate(-1)}>Back</button>
+        <button onClick={() => navigate(1)}>Forward</button>
+      </>
+    )
+  }
+
+  render(
+    <MemoryRouter initialEntries={['/']}>
+      <HistoryControls />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Link
+              to={APP_ROUTES.teamDetail('t_nightwatch')}
+              state={LATEST_REPORT_TEAM_ROSTER_NAVIGATION}
+            >
+              Check current roster for Night Watch
+            </Link>
+          }
+        />
+        <Route path="/teams/:teamId" element={<TeamDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
+
+it('focuses the roster on fresh report navigation while history can return without refocusing it', async () => {
+  const user = userEvent.setup()
+  renderReportRosterLink()
+
+  const link = screen.getByRole('link', { name: 'Check current roster for Night Watch' })
+  const roster = () => screen.getByRole('region', { name: 'Squad roster' })
+  link.focus()
+  await user.keyboard('{Enter}')
+  expect(roster()).toHaveFocus()
+  await user.tab()
+  expect(within(roster()).getAllByRole('link')[0]).toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: 'Back' }))
+  expect(screen.getByRole('link', { name: 'Check current roster for Night Watch' })).toBeVisible()
+  expect(screen.queryByRole('region', { name: 'Squad roster' })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: 'Forward' }))
+  expect(roster()).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Forward' })).toHaveFocus()
+})
+
+it('focuses the available transfer selector when the reported squad is now empty', async () => {
+  const user = userEvent.setup()
+  const { game, moveAgentBetweenTeams } = useGameStore.getState()
+  for (const agentId of game.teams.t_nightwatch!.agentIds) {
+    moveAgentBetweenTeams(agentId, null)
+  }
+  renderReportRosterLink()
+
+  screen.getByRole('link', { name: 'Check current roster for Night Watch' }).focus()
+  await user.keyboard('{Enter}')
+
+  const roster = screen.getByRole('region', { name: 'Squad roster' })
+  expect(roster).toHaveTextContent('No agents are assigned')
+  expect(screen.getByRole('combobox', { name: 'Transfer agent into this squad' })).toHaveFocus()
+  await user.tab()
+  expect(screen.getByRole('button', { name: 'Transfer in' })).toHaveFocus()
 })
 
 it('supports squad management actions for editable teams', async () => {

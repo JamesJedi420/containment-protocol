@@ -1663,7 +1663,9 @@ export default function FrontDeskPage() {
                     {Math.abs(view.latestReport.score) === 1 ? 'pt' : 'pts'}
                   </p>
                 </div>
-                <p className="text-sm opacity-70">{view.latestReport.summary}</p>
+                <p className="text-sm opacity-70">
+                  Week {view.latestReport.week} totals: {view.latestReport.summary}
+                </p>
                 <p className="text-sm opacity-60">{view.latestReport.detail}</p>
                 <section
                   className="space-y-2 border-t border-white/10 pt-2"
@@ -1908,7 +1910,7 @@ export default function FrontDeskPage() {
                   )}
                 </div>
                 <div className="space-y-2 border-t border-white/10 pt-2">
-                  <h3 className="text-sm font-semibold">Unresolved cases</h3>
+                  <h3 className="text-sm font-semibold">Current unresolved cases</h3>
                   {view.latestReport.unresolvedCaseCount === 0 ? (
                     <p className="text-sm opacity-70">No unresolved cases on the Cases board.</p>
                   ) : (

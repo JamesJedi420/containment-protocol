@@ -1,0 +1,7 @@
+# SPE-16 Cases triage focus recovery
+
+[SPE-16](https://linear.app/spectranoir/issue/SPE-16) owns the Cases triage interface. Lane A claim `CP-LANE-A-AFTER-5121-E832` reserves the [recorded keyboard focus follow-up](https://linear.app/spectranoir/issue/SPE-1245#comment-9f29b4ad-d792-446d-b190-f51f00ac79c7) on `codex/cases-triage-focus-recovery`, from clean named MSI main `e83269e5d65f74e8f0d19ca4d1506e988ff9ed9e`. SPE-3752 returned ready with an empty open and draft PR inventory. SPE-16 is In Progress for this slice and its broader acceptance remains open.
+
+The Cases detail panel returns focus to the existing Case triage queue when a live refresh removes the panel while it contains focus. The next Tab resumes navigation at the first remaining row. The existing disposition, selection, filtering and ordering behavior remains authoritative. The separately claimed priority resolver and reservoir branches have no file or contract dependency on this focus behavior.
+
+The Cases page regressions exercise target removal, reordering and focus elsewhere. One Chromium scenario enters Cases through the app, opens a case with Enter and holds Space on Defer while a controlled store update removes the selected case. It checks focus after key release and resumes queue navigation via Tab. A second scenario assigns a team by keyboard from the Open filter, recovers focus when the case leaves that queue, and confirms the assignment under In Progress. Assistive technology and controller behavior are outside this verification. SPE-3348 selects repository validation.

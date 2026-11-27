@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { InPageLink } from '../../components/InPageLink'
@@ -97,6 +97,17 @@ export default function CasesPage() {
     Record<string, MajorIncidentProvisionType[]>
   >({})
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
+  const triageQueueRef = useRef<HTMLDivElement>(null)
+  const trackTriageDetail = useCallback((detail: HTMLDivElement | null) => {
+    if (!detail) return
+
+    return () => {
+      // Check before React removes the detail and the browser falls back to the body.
+      if (detail.contains(detail.ownerDocument.activeElement)) {
+        triageQueueRef.current?.focus()
+      }
+    }
+  }, [])
   const searchParamsString = searchParams.toString()
   const triageViewOptions = {
     includeCovertPrepSignals: true as const,
@@ -552,8 +563,9 @@ export default function CasesPage() {
 
       <div
         id="cases-results"
+        ref={triageQueueRef}
         tabIndex={-1}
-        className="space-y-3"
+        className="space-y-3 focus-ring"
         role="region"
         aria-label="Case triage queue"
       >
@@ -588,6 +600,7 @@ export default function CasesPage() {
 
             {selectedView ? (
               <div
+                ref={trackTriageDetail}
                 role="region"
                 aria-label={`Case triage detail: ${selectedView.currentCase.title}`}
                 className="min-w-0"

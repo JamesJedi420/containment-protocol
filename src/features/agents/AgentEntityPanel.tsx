@@ -1,5 +1,5 @@
 // cspell:words callsign
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, type Ref, useState } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { AGENTS_GUIDANCE, ROLE_LABELS, SHELL_UI_TEXT } from '../../data/copy'
@@ -21,11 +21,13 @@ export function AgentEntityPanel({
   activeTab,
   onTabChange,
   headerActions,
+  operationalSnapshotHeadingRef,
 }: {
   view: AgentView
   activeTab?: TabType
   onTabChange?: (tab: TabType) => void
   headerActions?: ReactNode
+  operationalSnapshotHeadingRef?: Ref<HTMLHeadingElement>
 }) {
   const { agent, team, assignedCase, trainingEntry, materialized, domainTags } = view
   const assignmentSummary = getAssignmentSummary(view)
@@ -194,7 +196,13 @@ export function AgentEntityPanel({
         <article className="panel space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="space-y-1">
-              <h3 className="text-base font-semibold">Operational snapshot</h3>
+              <h3
+                ref={operationalSnapshotHeadingRef}
+                tabIndex={-1}
+                className="text-base font-semibold focus-ring"
+              >
+                Operational snapshot
+              </h3>
               <p className="text-sm opacity-60">
                 Immediate deployment posture, current duty, and live case contribution model.
               </p>

@@ -8,7 +8,9 @@ This note clarifies how the first playable weekly loop should be framed so onboa
 
 In Week 1, the Front Desk offers this sequence in the optional **How the first week works** guide. Players can go directly to a visible dossier or another existing action. The guide stays available throughout Week 1 and uses the current campaign week on reload.
 
-When **Needs Attention** shows an eligible dossier, select **Review dossier and triage** on the Front Desk. Hiring, loadout changes, training, and the week guide are optional before review. In Cases, select **Open intel dossier** to inspect the available evidence. If assignment is unavailable, check **Recommended action** for the blocker. The case may require different roles or tags, or you may need an available response unit. You can still review the dossier. If **Defer** is available, read the warning and any **If deferred** comparison before choosing to wait.
+When **Needs Attention** shows an eligible dossier, select **Review dossier and triage** on the Front Desk. Hiring, loadout changes, training, and the week guide are optional before review. In Cases, select **Open intel dossier** to inspect the available evidence, then use **Back** to return to the selected case.
+
+If assignment is unavailable, check **Recommended action** for the blocker. The case may require different roles or tags, or you may need an available response unit. If **Defer** is available, read the warning and any **If deferred** comparison before choosing to wait.
 
 If the Front Desk says no anomalous dossier is available, continue ordinary weekly planning.
 

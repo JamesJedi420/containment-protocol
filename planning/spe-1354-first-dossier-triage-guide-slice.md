@@ -4,6 +4,8 @@
 
 The November 20 acceptance calls for ordinary access to visible anomalous evidence and a permitted triage decision before unrelated setup. When deployment is ineligible, the player must be able to understand the blocker and the permitted alternative. A quiet start keeps ordinary planning available.
 
-At the base revision, `FrontDeskPage.tsx:451` exposes **Review dossier and triage** and `FrontDeskPage.tsx:456` renders the quiet-start message. `CasesPage.tsx:772` exposes **Open intel dossier**, and its assignment controls at line 1050 use the required roles and tags. `MissionTriageDispositionActions` presents **Defer** when supported and exposes its stated consequence. Check the guide against those controls and run the existing eligible and quiet-start scenarios in `e2e/cp-smoke.spec.ts` plus the SPE-3348-selected validators.
+At the base revision, `FrontDeskPage.tsx:451` exposes **Review dossier and triage** and `FrontDeskPage.tsx:456` renders the quiet-start message. `CasesPage.tsx:772` exposes **Open intel dossier** and `NavigationHistoryControls.tsx:63` provides **Back**. `CasesPage.tsx:819` renders the **Recommended action** explanation and its assignment controls at line 1050 use the required roles and tags. `MissionTriageDispositionActions` presents **Defer** when supported and exposes its stated consequence.
+
+The existing eligible and quiet-start scenarios in `e2e/cp-smoke.spec.ts` verify direct triage and honest quiet planning. Separately exercise the intel link, its return path and the unavailable assignment recommendation in a controlled browser fixture. Run the SPE-3348-selected validators for the two Markdown files.
 
 The slice covers documentation of the existing Week 1 route. Gameplay rules, dossier eligibility, onboarding orchestration, weekly report guidance and deployment configuration are outside its boundary.

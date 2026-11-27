@@ -1380,6 +1380,8 @@ function describeCaseCarryover(
   const previous = previousReport?.caseSnapshots?.[caseId]
   if (!previous) return 'Still unresolved at week close. Earlier report comparison unavailable.'
 
+  const beforeRemaining = previous.weeksRemaining
+  const afterRemaining = closed.weeksRemaining
   const changes = [
     previous.status !== closed.status
       ? `${STATUS_LABELS[previous.status]} → ${STATUS_LABELS[closed.status]}`
@@ -1389,6 +1391,13 @@ function describeCaseCarryover(
     closed.status === 'open' &&
     previous.deadlineRemaining !== closed.deadlineRemaining
       ? `Time left ${pluralize(previous.deadlineRemaining, 'week')} → ${pluralize(closed.deadlineRemaining, 'week')}`
+      : null,
+    previous.status === 'in_progress' &&
+    closed.status === 'in_progress' &&
+    beforeRemaining !== undefined &&
+    afterRemaining !== undefined &&
+    beforeRemaining !== afterRemaining
+      ? `Operation time remaining ${pluralize(beforeRemaining, 'week')} → ${pluralize(afterRemaining, 'week')}`
       : null,
   ].filter(Boolean)
 

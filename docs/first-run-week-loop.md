@@ -87,6 +87,8 @@ After advancing the week, find **Latest Report** on the Front Desk. Use the four
 
 On a quiet week, a category may show no recorded change. An unavailable comparison means the summary lacks the records it needs. Relationships can still show supported comparisons when earlier history is incomplete. An unresolved case can carry forward at the same stage.
 
+The **Week N** detail page lists unresolved triggers recorded for that completed week under **Case outcomes**. If it says **No unresolved cases were recorded**, check **Unresolved cases** in the Front Desk’s **Latest Report** for cases still on the board. An open case can have time left to act even after a quiet week. Select **Review triage** to check its current options, or **Review active operation** if the case is already in progress. If there are more cases than the summary shows, select **Open Cases board** to see the rest.
+
 ## Framing rule (player role)
 
 This is a managerial, deterministic, team-first loop. The player is evaluating capacity, preparing teams, choosing commitments, and absorbing consequences rather than directly piloting tactical encounters.

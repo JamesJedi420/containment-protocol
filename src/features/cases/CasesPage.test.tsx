@@ -1,7 +1,7 @@
 // cspell:words greentape
 import '../../test/setup'
 import { act, render, screen, within, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import { LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
@@ -612,18 +612,34 @@ it('leaves focus on the queue row when an unfocused detail disappears', async ()
   expect(otherRow).toHaveFocus()
 })
 
-it('focuses the queue when a Latest Report case is no longer on the board', () => {
+it('focuses the queue when a Latest Report case is no longer on the board', async () => {
+  const user = userEvent.setup()
   render(
-    <MemoryRouter
-      initialEntries={[
-        { pathname: '/cases', search: '?case=missing', state: LATEST_REPORT_CASE_NAVIGATION },
-      ]}
-    >
-      <LocationProbe />
-      <CasesPage />
+    <MemoryRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Link to="/cases?case=missing" state={LATEST_REPORT_CASE_NAVIGATION}>
+              Review triage
+            </Link>
+          }
+        />
+        <Route
+          path="/cases"
+          element={
+            <>
+              <LocationProbe />
+              <CasesPage />
+            </>
+          }
+        />
+      </Routes>
     </MemoryRouter>
   )
 
+  screen.getByRole('link', { name: 'Review triage' }).focus()
+  await user.keyboard('{Enter}')
   expect(screen.getByRole('region', { name: 'Case triage queue' })).toHaveFocus()
   expect(screen.queryByRole('region', { name: /^Case triage detail:/ })).not.toBeInTheDocument()
   expect(screen.getByTestId('location-search')).toBeEmptyDOMElement()

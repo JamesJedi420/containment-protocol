@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { APP_ROUTES, LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
 import { InPageLink } from '../../components/InPageLink'
 import { useGameStore } from '../../app/store/gameStore'
@@ -88,6 +88,7 @@ export default function CasesPage() {
     clearMissionTriageDisposition,
   } = useGameStore()
   const { key, state } = useLocation()
+  const navigationType = useNavigationType()
   const [searchParams, setSearchParams] = useSearchParams()
   const [compareCaseState, setCompareCaseState] = useState<Record<string, boolean>>({})
   const [majorIncidentTeamState, setMajorIncidentTeamState] = useState<Record<string, string[]>>({})
@@ -114,11 +115,11 @@ export default function CasesPage() {
   }, [])
 
   useEffect(() => {
-    if (state === LATEST_REPORT_CASE_NAVIGATION) {
+    if (state === LATEST_REPORT_CASE_NAVIGATION && navigationType === 'PUSH') {
       const destination = triageDetailRef.current ?? triageQueueRef.current
       destination?.focus()
     }
-  }, [key, state])
+  }, [key, navigationType, state])
 
   const searchParamsString = searchParams.toString()
   const triageViewOptions = {

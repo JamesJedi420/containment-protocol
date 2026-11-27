@@ -70,9 +70,14 @@ test('SPE-1354 keeps recorded coaching assignments separate from current coverag
   await expect(historicalAssignment).toBeVisible()
   await expect(reference).toBeVisible()
 
-  await digest.getByRole('link', { name: 'Check current coaching assignments' }).click()
-  await expect(page.getByRole('heading', { name: 'Instructor Assignments' })).toBeVisible()
-  await instructor.getByRole('button', { name: 'Unassign', exact: true }).click()
+  const checkAssignments = digest.getByRole('link', { name: 'Check current coaching assignments' })
+  const assignments = page.getByRole('heading', { name: 'Instructor Assignments' })
+  await checkAssignments.press('Enter')
+  await expect(assignments).toBeFocused()
+  const unassign = instructor.getByRole('button', { name: 'Unassign', exact: true })
+  await page.keyboard.press('Tab')
+  await expect(unassign).toBeFocused()
+  await page.keyboard.press('Enter')
   await expect(
     instructor.getByRole('button', { name: `Assign to ${agentName}`, exact: true })
   ).toBeVisible()
@@ -81,7 +86,8 @@ test('SPE-1354 keeps recorded coaching assignments separate from current coverag
   await page.reload()
   await expect(historicalAssignment).toBeVisible()
   await expect(reference).toBeVisible()
-  await digest.getByRole('link', { name: 'Check current coaching assignments' }).click()
+  await checkAssignments.press('Enter')
+  await expect(assignments).toBeFocused()
   await expect(
     instructor.getByRole('button', { name: `Assign to ${agentName}`, exact: true })
   ).toBeVisible()

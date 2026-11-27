@@ -1,4 +1,6 @@
-import { Link, useSearchParams } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
+import { LATEST_REPORT_COACHING_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -40,7 +42,16 @@ export default function TrainingDivisionPage() {
   const assignInstructor = useGameStore((state) => state.assignInstructor)
   const unassignInstructor = useGameStore((state) => state.unassignInstructor)
   const reconcileAgents = useGameStore((state) => state.reconcileAgents)
+  const { key, state } = useLocation()
+  const navigationType = useNavigationType()
   const [searchParams, setSearchParams] = useSearchParams()
+  const instructorHeading = useRef<HTMLHeadingElement>(null)
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_COACHING_NAVIGATION && navigationType === 'PUSH') {
+      instructorHeading.current?.focus()
+    }
+  }, [key, navigationType, state])
 
   const filters = readTrainingListFilters(searchParams)
   const showAdvancedPanels = searchParams.get(ADVANCED_PARAM) === '1'
@@ -370,7 +381,13 @@ export default function TrainingDivisionPage() {
           </article>
 
           <article className="panel space-y-3">
-            <h3 className="text-base font-semibold">Instructor Assignments</h3>
+            <h3
+              ref={instructorHeading}
+              tabIndex={-1}
+              className="text-base font-semibold focus-ring"
+            >
+              Instructor Assignments
+            </h3>
 
             <ul className="space-y-3">
               {view.academyOverview.instructors.length > 0 ? (

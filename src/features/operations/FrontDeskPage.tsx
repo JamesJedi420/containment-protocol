@@ -1919,7 +1919,7 @@ export default function FrontDeskPage() {
                         <li key={currentCase.id} className="text-sm">
                           <p className="font-medium">{currentCase.title}</p>
                           <p className="opacity-75">
-                            {[currentCase.status, currentCase.deadline].filter(Boolean).join(' · ')}
+                            {[currentCase.status, currentCase.timing].filter(Boolean).join(' · ')}
                           </p>
                           <p className="opacity-75">{currentCase.change}</p>
                           <Link

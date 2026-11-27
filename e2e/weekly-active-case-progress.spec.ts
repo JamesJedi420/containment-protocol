@@ -38,14 +38,18 @@ test('SPE-1354 reports active operation progress across consecutive weeks', asyn
     .filter({ hasText: incident.title })
   await advanceOperationalWeek(page)
   await expect(entry).toContainText('Earlier report comparison unavailable.')
+  await expect(entry.getByText('Active · Current operation: 2 weeks remaining')).toBeVisible()
   await advanceOperationalWeek(page)
   const progress = entry.getByText(
     'Since the previous report: Operation time remaining 2 weeks → 1 week.'
   )
+  const currentTimer = entry.getByText('Active · Current operation: 1 week remaining')
   await expect(progress).toBeVisible()
+  await expect(currentTimer).toBeVisible()
 
   await page.reload()
   await expect(progress).toBeVisible()
+  await expect(currentTimer).toBeVisible()
   await entry
     .getByRole('link', { name: `Review active operation: ${incident.title}` })
     .press('Enter')

@@ -60,6 +60,7 @@ test('SPE-1354 reports active operation progress across consecutive weeks', asyn
 
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL(new RegExp(`/cases/${incident.id}(?:\\?|$)`))
+  await expect(page.getByRole('region', { name: 'Case dossier', exact: true })).toBeVisible()
   await page
     .getByRole('navigation', { name: 'Navigation history' })
     .getByRole('button', { name: 'Back', exact: true })

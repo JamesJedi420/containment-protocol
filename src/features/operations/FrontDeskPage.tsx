@@ -6,6 +6,7 @@ import {
   LATEST_REPORT_CASE_NAVIGATION,
   LATEST_REPORT_COACHING_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
+  LATEST_REPORT_PROCUREMENT_NAVIGATION,
 } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
@@ -1726,7 +1727,11 @@ export default function FrontDeskPage() {
                           ? 'The closing update shows less funding. Check today’s balance and supplier prices before you order or defer a purchase.'
                           : 'The closing update shows more funding. Check today’s balance and supplier prices before you reconsider a deferred purchase.'}
                       </p>
-                      <Link to={APP_ROUTES.marketsSuppliers} className="underline">
+                      <Link
+                        to={APP_ROUTES.marketsSuppliers}
+                        state={LATEST_REPORT_PROCUREMENT_NAVIGATION}
+                        className="underline"
+                      >
                         Check procurement affordability
                       </Link>
                     </div>

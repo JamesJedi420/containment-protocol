@@ -842,6 +842,69 @@ describe('FrontDeskPage', () => {
     }
   )
 
+  it.each(['recorded', 'quiet', 'incomplete'] as const)(
+    'shows staff injuries with %s report history',
+    (history) => {
+      useGameStore.setState({ game: createStartingState() })
+      useGameStore.getState().advanceWeek()
+      useGameStore.getState().advanceWeek()
+      const closed = useGameStore.getState().game
+      const agent = closed.agents.a_ava!
+      const previousClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 1
+      )
+      const currentClose = closed.events.findIndex(
+        (event) => event.type === 'intel.report_generated' && event.payload.week === 2
+      )
+      expect(previousClose).toBeGreaterThanOrEqual(0)
+      expect(currentClose).toBeGreaterThan(previousClose)
+
+      const injury = (sequence: number, agentId: string, agentName: string, week = 2) =>
+        createOperationEvent(sequence, {
+          type: 'agent.injured',
+          sourceSystem: 'agent',
+          payload: { week, agentId, agentName, severity: 'moderate' },
+        })
+      const recorded = injury(9901, agent.id, agent.name)
+      const events = [
+        ...closed.events.slice(0, previousClose),
+        injury(9902, 'earlier', 'Earlier record'),
+        ...closed.events.slice(previousClose, currentClose),
+        injury(9903, 'wrong-week', 'Wrong-week record', 3),
+        ...(history === 'quiet'
+          ? []
+          : [recorded, recorded, injury(9904, 'archived', 'Archived agent')]),
+        ...(history === 'incomplete' ? [] : closed.events.slice(currentClose)),
+        injury(9905, 'later', 'Later record'),
+      ]
+      useGameStore.setState({ game: { ...closed, events } })
+      renderFrontDesk()
+
+      const digest = within(screen.getByRole('region', { name: 'Staff injuries' }))
+      expect(digest.queryByText(/Earlier record|Wrong-week record|Later record/)).toBeNull()
+      if (history === 'recorded') {
+        expect(digest.getAllByRole('listitem')).toHaveLength(2)
+        expect(
+          digest.getByText(`Recorded severity: moderate · Injury record ${recorded.id}`)
+        ).toBeVisible()
+        expect(
+          digest.getByRole('link', { name: `Check current readiness for ${agent.name}` })
+        ).toHaveAttribute('href', `/agents/${agent.id}`)
+        expect(digest.getByText('Archived agent was injured')).toBeVisible()
+        expect(digest.getByText('Current roster record unavailable.')).toBeVisible()
+      } else {
+        expect(digest.queryByRole('list')).toBeNull()
+        expect(
+          digest.getByText(
+            history === 'quiet'
+              ? 'No staff injuries recorded for this week.'
+              : 'Staff injury history is unavailable for this week.'
+          )
+        ).toBeVisible()
+      }
+    }
+  )
+
   it.each(['bounded', 'quiet', 'incomplete'] as const)(
     'shows coaching assignments with %s report history',
     (history) => {

@@ -164,6 +164,16 @@ export interface FrontDeskLatestReportView {
     hireCount: number
     hires: { eventId: string; agentName: string; agentHref: string }[]
   }
+  staffInjuries: {
+    historyAvailable: boolean
+    injuryCount: number
+    injuries: {
+      eventId: string
+      agentName: string
+      severity: string
+      agentHref: string | null
+    }[]
+  }
   staffTraining: {
     historyAvailable: boolean
     completionCount: number
@@ -1471,6 +1481,34 @@ function buildWeeklyFieldAgentHires(
   }
 }
 
+function buildWeeklyStaffInjuries(
+  game: GameState,
+  week: number
+): FrontDeskLatestReportView['staffInjuries'] {
+  const events = getCompletedReportEventWindow(game, week)
+  if (!events) return { historyAvailable: false, injuryCount: 0, injuries: [] }
+
+  const injuries = new Map<string, FrontDeskLatestReportView['staffInjuries']['injuries'][number]>()
+  for (const event of events) {
+    if (event.type !== 'agent.injured' || event.payload.week !== week) continue
+
+    const { agentId, agentName, severity } = event.payload
+    const agent = game.agents[agentId]
+    injuries.set(event.id, {
+      eventId: event.id,
+      agentName,
+      severity,
+      agentHref: agent?.id === agentId ? APP_ROUTES.agentDetail(agentId) : null,
+    })
+  }
+
+  return {
+    historyAvailable: true,
+    injuryCount: injuries.size,
+    injuries: [...injuries.values()].slice(0, MAX_QUEUE_DETAILS),
+  }
+}
+
 function buildWeeklyStaffTrainingDigest(
   game: GameState,
   week: number
@@ -1717,6 +1755,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     containment: buildWeeklyContainmentDigest(game, report.week),
     funding: buildWeeklyFundingDigest(game, report.week),
     fieldAgentHires: buildWeeklyFieldAgentHires(game, report.week),
+    staffInjuries: buildWeeklyStaffInjuries(game, report.week),
     staffTraining: buildWeeklyStaffTrainingDigest(game, report.week),
     coachingAssignments: buildWeeklyCoachingAssignments(game, report.week),
     teamFatigue: buildWeeklyTeamFatigue(game, report, previousReport),

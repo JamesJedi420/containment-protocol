@@ -109,6 +109,64 @@ function choiceToneClass(tone: 'neutral' | 'success' | 'warning' | 'danger') {
   return 'border-white/15 bg-white/6 hover:bg-white/10'
 }
 
+function StaffInjuryList({
+  injuries,
+  label,
+}: {
+  injuries: FrontDeskLatestReportView['staffInjuries']['injuries']
+  label: string
+}) {
+  return (
+    <ul className="space-y-2" aria-label={label}>
+      {injuries.map((injury) => (
+        <li key={injury.eventId} className="text-sm">
+          <p className="font-medium">{injury.agentName} was injured</p>
+          <p className="opacity-75">
+            Recorded severity: {injury.severity} · Injury record {injury.eventId}
+          </p>
+          {injury.agentHref ? (
+            <Link to={injury.agentHref} className="underline">
+              Check current readiness for {injury.agentName}
+            </Link>
+          ) : (
+            <p className="opacity-75">Current roster record unavailable.</p>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function WeekCloseStaffInjuries({
+  staffInjuries,
+}: {
+  staffInjuries: FrontDeskLatestReportView['staffInjuries']
+}) {
+  const { injuries, additionalInjuries, historyAvailable } = staffInjuries
+  return (
+    <section className="space-y-2 border-t border-white/10 pt-2" aria-label="Staff injuries">
+      <h3 className="text-sm font-semibold">Staff injuries</h3>
+      {injuries.length > 0 ? (
+        <StaffInjuryList injuries={injuries} label="Recorded injuries" />
+      ) : (
+        <p className="text-sm opacity-70">
+          {historyAvailable
+            ? 'No staff injuries recorded for this week.'
+            : 'Staff injury history is unavailable for this week.'}
+        </p>
+      )}
+      {additionalInjuries.length > 0 && (
+        <details className="space-y-2">
+          <summary className="cursor-pointer text-sm underline">
+            More recorded injuries ({additionalInjuries.length})
+          </summary>
+          <StaffInjuryList injuries={additionalInjuries} label="Additional recorded injuries" />
+        </details>
+      )}
+    </section>
+  )
+}
+
 function WeekCloseTeamFatigue({ report }: { report: FrontDeskLatestReportView }) {
   const { teamFatigue, week, href } = report
 
@@ -1715,46 +1773,7 @@ export default function FrontDeskPage() {
                     </p>
                   ) : null}
                 </section>
-                <section
-                  className="space-y-2 border-t border-white/10 pt-2"
-                  aria-label="Staff injuries"
-                >
-                  <h3 className="text-sm font-semibold">Staff injuries</h3>
-                  {view.latestReport.staffInjuries.injuryCount > 0 ? (
-                    <>
-                      <ul className="space-y-2" aria-label="Recorded injuries">
-                        {view.latestReport.staffInjuries.injuries.map((injury) => (
-                          <li key={injury.eventId} className="text-sm">
-                            <p className="font-medium">{injury.agentName} was injured</p>
-                            <p className="opacity-75">
-                              Recorded severity: {injury.severity} · Injury record {injury.eventId}
-                            </p>
-                            {injury.agentHref ? (
-                              <Link to={injury.agentHref} className="underline">
-                                Check current readiness for {injury.agentName}
-                              </Link>
-                            ) : (
-                              <p className="opacity-75">Current roster record unavailable.</p>
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                      {view.latestReport.staffInjuries.injuryCount >
-                        view.latestReport.staffInjuries.injuries.length && (
-                        <p className="text-sm opacity-70">
-                          Showing {view.latestReport.staffInjuries.injuries.length} of{' '}
-                          {view.latestReport.staffInjuries.injuryCount} recorded injuries.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm opacity-70">
-                      {view.latestReport.staffInjuries.historyAvailable
-                        ? 'No staff injuries recorded for this week.'
-                        : 'Staff injury history is unavailable for this week.'}
-                    </p>
-                  )}
-                </section>
+                <WeekCloseStaffInjuries staffInjuries={view.latestReport.staffInjuries} />
                 <div className="space-y-2 border-t border-white/10 pt-2">
                   <h3 className="text-sm font-semibold">Staff training</h3>
                   {view.latestReport.staffTraining.completionCount > 0 ? (

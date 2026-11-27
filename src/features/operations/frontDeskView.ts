@@ -147,6 +147,13 @@ export interface FrontDeskStandingSummaryView {
   links: FrontDeskQuickLinkView[]
 }
 
+interface FrontDeskStaffInjury {
+  eventId: string
+  agentName: string
+  severity: string
+  agentHref: string | null
+}
+
 export interface FrontDeskLatestReportView {
   week: number
   href: string
@@ -166,13 +173,8 @@ export interface FrontDeskLatestReportView {
   }
   staffInjuries: {
     historyAvailable: boolean
-    injuryCount: number
-    injuries: {
-      eventId: string
-      agentName: string
-      severity: string
-      agentHref: string | null
-    }[]
+    injuries: FrontDeskStaffInjury[]
+    additionalInjuries: FrontDeskStaffInjury[]
   }
   staffTraining: {
     historyAvailable: boolean
@@ -1486,9 +1488,9 @@ function buildWeeklyStaffInjuries(
   week: number
 ): FrontDeskLatestReportView['staffInjuries'] {
   const events = getCompletedReportEventWindow(game, week)
-  if (!events) return { historyAvailable: false, injuryCount: 0, injuries: [] }
+  if (!events) return { historyAvailable: false, injuries: [], additionalInjuries: [] }
 
-  const injuries = new Map<string, FrontDeskLatestReportView['staffInjuries']['injuries'][number]>()
+  const injuries = new Map<string, FrontDeskStaffInjury>()
   for (const event of events) {
     if (event.type !== 'agent.injured' || event.payload.week !== week) continue
 
@@ -1502,10 +1504,11 @@ function buildWeeklyStaffInjuries(
     })
   }
 
+  const records = [...injuries.values()]
   return {
     historyAvailable: true,
-    injuryCount: injuries.size,
-    injuries: [...injuries.values()].slice(0, MAX_QUEUE_DETAILS),
+    injuries: records.slice(0, MAX_QUEUE_DETAILS),
+    additionalInjuries: records.slice(MAX_QUEUE_DETAILS),
   }
 }
 

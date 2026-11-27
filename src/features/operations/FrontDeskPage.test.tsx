@@ -844,7 +844,7 @@ describe('FrontDeskPage', () => {
 
   it.each(['recorded', 'quiet', 'incomplete'] as const)(
     'shows staff injuries with %s report history',
-    (history) => {
+    async (history) => {
       useGameStore.setState({ game: createStartingState() })
       useGameStore.getState().advanceWeek()
       useGameStore.getState().advanceWeek()
@@ -873,7 +873,13 @@ describe('FrontDeskPage', () => {
         injury(9903, 'wrong-week', 'Wrong-week record', 3),
         ...(history === 'quiet'
           ? []
-          : [recorded, recorded, injury(9904, 'archived', 'Archived agent')]),
+          : [
+              recorded,
+              recorded,
+              injury(9904, 'archived', 'Archived agent'),
+              injury(9906, 'second', 'Second injury'),
+              injury(9907, 'third', 'Third injury'),
+            ]),
         ...(history === 'incomplete' ? [] : closed.events.slice(currentClose)),
         injury(9905, 'later', 'Later record'),
       ]
@@ -883,15 +889,23 @@ describe('FrontDeskPage', () => {
       const digest = within(screen.getByRole('region', { name: 'Staff injuries' }))
       expect(digest.queryByText(/Earlier record|Wrong-week record|Later record/)).toBeNull()
       if (history === 'recorded') {
-        expect(digest.getAllByRole('listitem')).toHaveLength(2)
+        const preview = within(digest.getByRole('list', { name: 'Recorded injuries' }))
+        expect(preview.getAllByRole('listitem')).toHaveLength(3)
+        expect(preview.getByText('Archived agent was injured')).toBeVisible()
+        expect(preview.queryByRole('link')).toBeNull()
+        const summary = digest.getByText('More recorded injuries (1)')
+        expect(summary.closest('details')).not.toHaveAttribute('open')
+        await userEvent.click(summary)
+        expect(summary.closest('details')).toHaveAttribute('open')
+        const additional = within(digest.getByRole('list', { name: 'Additional recorded injuries' }))
+        expect(additional.getAllByRole('listitem')).toHaveLength(1)
         expect(
-          digest.getByText(`Recorded severity: moderate · Injury record ${recorded.id}`)
+          additional.getByText(`Recorded severity: moderate · Injury record ${recorded.id}`)
         ).toBeVisible()
         expect(
-          digest.getByRole('link', { name: `Check current readiness for ${agent.name}` })
+          additional.getByRole('link', { name: `Check current readiness for ${agent.name}` })
         ).toHaveAttribute('href', `/agents/${agent.id}`)
-        expect(digest.getByText('Archived agent was injured')).toBeVisible()
-        expect(digest.getByText('Current roster record unavailable.')).toBeVisible()
+        expect(preview.getAllByText('Current roster record unavailable.')).toHaveLength(3)
       } else {
         expect(digest.queryByRole('list')).toBeNull()
         expect(

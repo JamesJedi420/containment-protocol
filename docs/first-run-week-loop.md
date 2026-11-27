@@ -89,6 +89,8 @@ On a quiet week, a category may show no recorded change. An unavailable comparis
 
 The **Week N** detail page lists unresolved triggers recorded for that completed week under **Case outcomes**. If it says **No unresolved cases were recorded**, check **Current unresolved cases** in the Front Desk’s **Latest Report** for cases still on the board. An open case can have time left to act even after a quiet week. Select **Review triage** to check its current options, or **Review active operation** if the case is already in progress. If there are more cases than the summary shows, select **Open Cases board** to see the rest.
 
+For an open case, **weeks remaining to act** is its current deadline. When an operation stays active and its recorded timer changes between consecutive week closes, **Operation time remaining** shows the comparison. Select **Review active operation** and check **Remaining** in Cases for the current timer, including when the weekly comparison is unavailable.
+
 ## Framing rule (player role)
 
 This is a managerial, deterministic, team-first loop. The player is evaluating capacity, preparing teams, choosing commitments, and absorbing consequences rather than directly piloting tactical encounters.

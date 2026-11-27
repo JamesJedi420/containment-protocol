@@ -1364,7 +1364,8 @@ function buildStandingSummary(game: GameState): FrontDeskStandingSummaryView {
 function describeCaseCarryover(
   caseId: string,
   report: WeeklyReport,
-  previousReport: WeeklyReport | undefined
+  previousReport: WeeklyReport | undefined,
+  campaignWeek: number
 ): string {
   const closed = report.caseSnapshots?.[caseId]
   if (closed?.status === 'resolved' || report.resolvedCases.includes(caseId)) {
@@ -1380,6 +1381,8 @@ function describeCaseCarryover(
   const previous = previousReport?.caseSnapshots?.[caseId]
   if (!previous) return 'Still unresolved at week close. Earlier report comparison unavailable.'
 
+  const beforeRemaining = previous.weeksRemaining
+  const afterRemaining = closed.weeksRemaining
   const changes = [
     previous.status !== closed.status
       ? `${STATUS_LABELS[previous.status]} → ${STATUS_LABELS[closed.status]}`
@@ -1389,6 +1392,14 @@ function describeCaseCarryover(
     closed.status === 'open' &&
     previous.deadlineRemaining !== closed.deadlineRemaining
       ? `Time left ${pluralize(previous.deadlineRemaining, 'week')} → ${pluralize(closed.deadlineRemaining, 'week')}`
+      : null,
+    report.week < campaignWeek &&
+    previous.status === 'in_progress' &&
+    closed.status === 'in_progress' &&
+    beforeRemaining !== undefined &&
+    afterRemaining !== undefined &&
+    beforeRemaining !== afterRemaining
+      ? `Operation time remaining ${pluralize(beforeRemaining, 'week')} → ${pluralize(afterRemaining, 'week')}`
       : null,
   ].filter(Boolean)
 
@@ -1719,7 +1730,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
         currentCase.status === 'open'
           ? `${pluralize(currentCase.deadlineRemaining, 'week')} remaining to act`
           : null,
-      change: describeCaseCarryover(currentCase.id, report, previousReport),
+      change: describeCaseCarryover(currentCase.id, report, previousReport, game.week),
       href: `${APP_ROUTES.cases}?case=${encodeURIComponent(currentCase.id)}`,
       action: currentCase.status === 'open' ? 'Review triage' : 'Review active operation',
     })),

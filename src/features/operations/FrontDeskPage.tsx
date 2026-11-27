@@ -5,6 +5,7 @@ import {
   APP_ROUTES,
   LATEST_REPORT_CASE_NAVIGATION,
   LATEST_REPORT_COACHING_NAVIGATION,
+  LATEST_REPORT_INJURY_NAVIGATION,
 } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
@@ -129,7 +130,11 @@ function StaffInjuryList({
             Recorded severity: {injury.severity} · Injury record {injury.eventId}
           </p>
           {injury.agentHref ? (
-            <Link to={injury.agentHref} className="underline">
+            <Link
+              to={injury.agentHref}
+              state={LATEST_REPORT_INJURY_NAVIGATION}
+              className="underline"
+            >
               Check current readiness for {injury.agentName}
             </Link>
           ) : (

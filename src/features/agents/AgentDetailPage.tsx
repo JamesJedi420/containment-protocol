@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { Link, useLocation, useParams, useSearchParams } from 'react-router'
+import { useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigationType, useParams, useSearchParams } from 'react-router'
 import {
   cloneSearchParams,
   readEnumParam,
@@ -7,7 +7,7 @@ import {
   writeEnumParam,
 } from '../../app/searchParams'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
+import { APP_ROUTES, LATEST_REPORT_INJURY_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { NAVIGATION_ROUTES, SHELL_UI_TEXT } from '../../data/copy'
 import { AgentEntityPanel } from './AgentEntityPanel'
@@ -23,6 +23,9 @@ export default function AgentDetailPage() {
   const { agentId } = useParams()
   const location = useLocation()
   const { pathname } = location
+  const navigationType = useNavigationType()
+  const fromInjuryReport = location.state === LATEST_REPORT_INJURY_NAVIGATION
+  const operationalSnapshotHeading = useRef<HTMLHeadingElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { game } = useGameStore()
   const view = agentId ? getAgentView(game, agentId) : undefined
@@ -50,6 +53,12 @@ export default function AgentDetailPage() {
     feedBackTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', backSystemLabel)
 
   useEffect(() => {
+    if (fromInjuryReport && navigationType === 'PUSH') {
+      operationalSnapshotHeading.current?.focus()
+    }
+  }, [fromInjuryReport, location.key, navigationType])
+
+  useEffect(() => {
     const normalizedParams = cloneSearchParams(searchParams)
 
     writeEnumParam(normalizedParams, 'tab', activeTab, DEFAULT_AGENT_DETAIL_TAB)
@@ -63,7 +72,7 @@ export default function AgentDetailPage() {
     const nextParams = cloneSearchParams(searchParams)
 
     writeEnumParam(nextParams, 'tab', nextTab, DEFAULT_AGENT_DETAIL_TAB)
-    setSearchParams(nextParams, { state: location.state })
+    setSearchParams(nextParams, { state: fromInjuryReport ? null : location.state })
   }
 
   if (!view) {
@@ -82,6 +91,7 @@ export default function AgentDetailPage() {
       view={view}
       activeTab={activeTab}
       onTabChange={handleTabChange}
+      operationalSnapshotHeadingRef={operationalSnapshotHeading}
       headerActions={
         <>
           <Link to={backTo} className="btn btn-sm btn-ghost">

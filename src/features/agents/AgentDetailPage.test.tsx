@@ -2,10 +2,11 @@
 import '../../test/setup'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { LATEST_REPORT_INJURY_NAVIGATION } from '../../app/routes'
 import { getXpThresholdForLevel } from '../../domain/progression'
 import AgentDetailPage from './AgentDetailPage'
 
@@ -55,6 +56,42 @@ it('exposes the dossier as a region instead of a second main landmark', () => {
 
   expect(screen.queryByRole('main')).not.toBeInTheDocument()
   expect(screen.getByRole('region', { name: /agent detail panel/i })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Operational snapshot' })).not.toHaveFocus()
+})
+
+it('focuses current readiness on the report handoff and leaves later tab navigation alone', async () => {
+  const user = userEvent.setup()
+  render(
+    <MemoryRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Link to="/agents/a_ava" state={LATEST_REPORT_INJURY_NAVIGATION}>
+              Check current readiness
+            </Link>
+          }
+        />
+        <Route path="/agents/:agentId" element={<AgentDetailPage />} />
+      </Routes>
+      <HistoryNavControls />
+    </MemoryRouter>
+  )
+
+  screen.getByRole('link', { name: 'Check current readiness' }).focus()
+  await user.keyboard('{Enter}')
+  const snapshot = screen.getByRole('heading', { name: 'Operational snapshot' })
+  expect(snapshot).toHaveFocus()
+
+  const history = screen.getByRole('tab', { name: /^History\b/i })
+  history.focus()
+  await user.keyboard('{Enter}')
+  expect(history).toHaveAttribute('aria-selected', 'true')
+  expect(snapshot).not.toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: 'Go back' }))
+  expect(screen.getByRole('tab', { name: /^Stats\b/i })).toHaveAttribute('aria-selected', 'true')
+  expect(snapshot).not.toHaveFocus()
 })
 
 it('renders agent assignment, progression, history, and passive traits', async () => {

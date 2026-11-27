@@ -58,5 +58,6 @@ test('SPE-1354 shows a week-close injury and links to current readiness after re
     .press('Enter')
   await expect(page).toHaveURL(new RegExp(`/agents/${agent.id}$`))
   await expect(page.getByRole('heading', { name: agent.name })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Operational snapshot' })).toBeFocused()
   await expect(page.getByText('Not eligible', { exact: true })).toBeVisible()
 })

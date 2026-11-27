@@ -53,5 +53,8 @@ test('SPE-1354 reports active operation progress across consecutive weeks', asyn
   await entry
     .getByRole('link', { name: `Review active operation: ${incident.title}` })
     .press('Enter')
+  await expect(detail).toBeFocused()
   await expect(detail.getByText('Remaining: 1 week', { exact: true })).toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(detail.getByRole('link', { name: incident.title, exact: true })).toBeFocused()
 })

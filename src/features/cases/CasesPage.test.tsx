@@ -3,6 +3,7 @@ import '../../test/setup'
 import { act, render, screen, within, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import userEvent from '@testing-library/user-event'
+import { LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
@@ -598,6 +599,7 @@ it('leaves focus on the queue row when an unfocused detail disappears', async ()
   useGameStore.setState({ game })
   renderCasesPage(['/cases?status=open&case=target'])
 
+  expect(screen.getByRole('region', { name: 'Case triage detail: Archive' })).not.toHaveFocus()
   const otherRow = screen.getByRole('button', { name: 'Select Depot for triage detail' })
   otherRow.focus()
   await act(async () => {
@@ -608,6 +610,23 @@ it('leaves focus on the queue row when an unfocused detail disappears', async ()
 
   expect(screen.queryByRole('region', { name: /case triage detail/i })).not.toBeInTheDocument()
   expect(otherRow).toHaveFocus()
+})
+
+it('focuses the queue when a Latest Report case is no longer on the board', () => {
+  render(
+    <MemoryRouter
+      initialEntries={[
+        { pathname: '/cases', search: '?case=missing', state: LATEST_REPORT_CASE_NAVIGATION },
+      ]}
+    >
+      <LocationProbe />
+      <CasesPage />
+    </MemoryRouter>
+  )
+
+  expect(screen.getByRole('region', { name: 'Case triage queue' })).toHaveFocus()
+  expect(screen.queryByRole('region', { name: /^Case triage detail:/ })).not.toBeInTheDocument()
+  expect(screen.getByTestId('location-search')).toBeEmptyDOMElement()
 })
 
 it('renders the case assignment guidance panel', () => {

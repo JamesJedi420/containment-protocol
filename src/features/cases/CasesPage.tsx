@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
+import { Link, useLocation, useSearchParams } from 'react-router'
+import { APP_ROUTES, LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
 import { InPageLink } from '../../components/InPageLink'
 import { useGameStore } from '../../app/store/gameStore'
 import {
@@ -87,6 +87,7 @@ export default function CasesPage() {
     setMissionTriageDisposition,
     clearMissionTriageDisposition,
   } = useGameStore()
+  const { key, state } = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const [compareCaseState, setCompareCaseState] = useState<Record<string, boolean>>({})
   const [majorIncidentTeamState, setMajorIncidentTeamState] = useState<Record<string, string[]>>({})
@@ -98,16 +99,27 @@ export default function CasesPage() {
   >({})
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const triageQueueRef = useRef<HTMLDivElement>(null)
+  const triageDetailRef = useRef<HTMLDivElement>(null)
   const trackTriageDetail = useCallback((detail: HTMLDivElement | null) => {
     if (!detail) return
 
+    triageDetailRef.current = detail
     return () => {
+      triageDetailRef.current = null
       // Check before React removes the detail and the browser falls back to the body.
       if (detail.contains(detail.ownerDocument.activeElement)) {
         triageQueueRef.current?.focus()
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_CASE_NAVIGATION) {
+      const destination = triageDetailRef.current ?? triageQueueRef.current
+      destination?.focus()
+    }
+  }, [key, state])
+
   const searchParamsString = searchParams.toString()
   const triageViewOptions = {
     includeCovertPrepSignals: true as const,
@@ -603,7 +615,8 @@ export default function CasesPage() {
                 ref={trackTriageDetail}
                 role="region"
                 aria-label={`Case triage detail: ${selectedView.currentCase.title}`}
-                className="min-w-0"
+                tabIndex={-1}
+                className="min-w-0 focus-ring"
               >
                 {renderCaseTriageDetail({
                   view: selectedView,

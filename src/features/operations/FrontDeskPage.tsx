@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
-import { APP_ROUTES } from '../../app/routes'
+import { APP_ROUTES, LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
 import { FilterInput } from '../../components/FilterInput'
@@ -1924,6 +1924,7 @@ export default function FrontDeskPage() {
                           <p className="opacity-75">{currentCase.change}</p>
                           <Link
                             to={currentCase.href}
+                            state={LATEST_REPORT_CASE_NAVIGATION}
                             className="text-sm underline"
                             aria-label={`${currentCase.action}: ${currentCase.title}`}
                           >

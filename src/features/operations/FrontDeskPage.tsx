@@ -112,10 +112,10 @@ function choiceToneClass(tone: 'neutral' | 'success' | 'warning' | 'danger') {
 function StaffInjuryList({
   injuries,
   label,
-}: {
+}: Readonly<{
   injuries: FrontDeskLatestReportView['staffInjuries']['injuries']
   label: string
-}) {
+}>) {
   return (
     <ul className="space-y-2" aria-label={label}>
       {injuries.map((injury) => (
@@ -139,9 +139,9 @@ function StaffInjuryList({
 
 function WeekCloseStaffInjuries({
   staffInjuries,
-}: {
+}: Readonly<{
   staffInjuries: FrontDeskLatestReportView['staffInjuries']
-}) {
+}>) {
   const { injuries, additionalInjuries, historyAvailable } = staffInjuries
   return (
     <section className="space-y-2 border-t border-white/10 pt-2" aria-label="Staff injuries">

@@ -26,18 +26,24 @@ test('SPE-1354 shows a week-close injury and links to current readiness after re
   incident.weeksRemaining = 1
   incident.stage = 3
   game.cases = { [incident.id]: incident }
-  await page.getByText('Campaign import and export', { exact: true }).click()
-  await page
-    .getByRole('textbox', { name: 'Run payload' })
-    .fill(JSON.stringify(createRunExportPayload(game)))
-  await page.getByRole('button', { name: 'Import Run', exact: true }).click()
-  await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
+  await test.step('Import the controlled campaign through Operations Desk', async () => {
+    await page.getByText('Campaign import and export', { exact: true }).press('Enter')
+    const transfer = page.getByRole('region', { name: 'Run Transfer', exact: true })
+    const payload = transfer.getByRole('textbox', { name: 'Run payload' })
+    await payload.fill(JSON.stringify(createRunExportPayload(game)))
+    await transfer.getByRole('button', { name: 'Import Run', exact: true }).press('Enter')
+    await expect(transfer.getByRole('status')).toHaveText('Run imported.')
+  })
 
-  await openPrimaryNav(page, 'Cases')
-  await page.getByRole('button', { name: `Select ${incident.title} for triage detail` }).click()
-  const detail = page.getByRole('region', { name: `Case triage detail: ${incident.title}` })
-  await detail.getByRole('button', { name: 'Assign Night Watch', exact: true }).click()
-  await expect(detail.getByText('Remaining: 1 week', { exact: true })).toBeVisible()
+  await test.step('Commit Night Watch through Cases with the keyboard', async () => {
+    await openPrimaryNav(page, 'Cases')
+    const select = page.getByRole('button', { name: `Select ${incident.title} for triage detail` })
+    await select.press('Enter')
+    const detail = page.getByRole('region', { name: `Case triage detail: ${incident.title}` })
+    const assign = detail.getByRole('button', { name: 'Assign Night Watch', exact: true })
+    await assign.press('Enter')
+    await expect(detail.getByText('Remaining: 1 week', { exact: true })).toBeVisible()
+  })
 
   await openPrimaryNav(page, 'Operations Desk')
   await advanceOperationalWeek(page)
@@ -52,5 +58,5 @@ test('SPE-1354 shows a week-close injury and links to current readiness after re
     .press('Enter')
   await expect(page).toHaveURL(new RegExp(`/agents/${agent.id}$`))
   await expect(page.getByRole('heading', { name: agent.name })).toBeVisible()
-  await expect(page.getByText('Readiness state', { exact: true })).toBeVisible()
+  await expect(page.getByText('Not eligible', { exact: true })).toBeVisible()
 })

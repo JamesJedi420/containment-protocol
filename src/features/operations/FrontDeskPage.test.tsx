@@ -1121,16 +1121,17 @@ describe('FrontDeskPage', () => {
       1,
       'in_progress',
       1,
+      7,
       'Since the previous report: Operation time remaining 2 weeks → 1 week.',
     ],
-    [undefined, 1, 'in_progress', 1, 'Still unresolved. No reported change'],
-    [2, undefined, 'in_progress', 1, 'Still unresolved. No reported change'],
-    [2, 2, 'in_progress', 1, 'Still unresolved. No reported change'],
-    [2, 1, 'open', 1, 'Since the previous report: Open → Active.'],
-    [2, 7, 'in_progress', 0, 'Still unresolved. No reported change'],
+    [undefined, 1, 'in_progress', 1, 1, 'Still unresolved. No reported change'],
+    [2, undefined, 'in_progress', 1, undefined, 'Still unresolved. No reported change'],
+    [2, 2, 'in_progress', 1, 0, 'Still unresolved. No reported change'],
+    [2, 1, 'open', 1, 1, 'Since the previous report: Open → Active.'],
+    [2, 7, 'in_progress', 0, 7, 'Still unresolved. No reported change'],
   ] as const)(
     'compares operation time (%s → %s, previous status %s, latest report age %s)',
-    (before, after, previousStatus, reportAge, copy) => {
+    (before, after, previousStatus, reportAge, liveWeeks, copy) => {
       useGameStore.setState({ game: createStartingState() })
       useGameStore.getState().advanceWeek()
       const game = useGameStore.getState().game
@@ -1140,7 +1141,7 @@ describe('FrontDeskPage', () => {
       const activeCase = {
         ...game.cases[caseId]!,
         status: 'in_progress' as const,
-        weeksRemaining: 7,
+        weeksRemaining: liveWeeks,
       }
 
       useGameStore.setState({
@@ -1171,7 +1172,16 @@ describe('FrontDeskPage', () => {
       renderFrontDesk()
       const carryover = within(screen.getByRole('list', { name: 'Unresolved cases' }))
       expect(carryover.getByText(copy, { exact: false })).toBeVisible()
-      expect(carryover.queryByText(/7 weeks/)).toBeNull()
+      if (liveWeeks === undefined) {
+        expect(carryover.queryByText(/Current operation:/)).toBeNull()
+      } else {
+        expect(
+          carryover.getByText(
+            `Active · Current operation: ${liveWeeks} ${liveWeeks === 1 ? 'week' : 'weeks'} remaining`
+          )
+        ).toBeVisible()
+      }
+      expect(carryover.queryByText(/remaining to act/)).toBeNull()
       if (!copy.includes('Operation time remaining')) {
         expect(carryover.queryByText(/Operation time remaining/)).toBeNull()
       }

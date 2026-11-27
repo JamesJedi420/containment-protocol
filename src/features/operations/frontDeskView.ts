@@ -219,7 +219,7 @@ export interface FrontDeskLatestReportView {
     id: string
     title: string
     status: string
-    deadline: string | null
+    timing: string | null
     change: string
     href: string
     action: string
@@ -1764,18 +1764,24 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
     teamFatigue: buildWeeklyTeamFatigue(game, report, previousReport),
     relationships: buildWeeklyRelationshipDigest(game, report.week),
     unresolvedCaseCount: unresolvedCases.length,
-    unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => ({
-      id: currentCase.id,
-      title: currentCase.title,
-      status: STATUS_LABELS[currentCase.status],
-      deadline:
-        currentCase.status === 'open'
-          ? `${pluralize(currentCase.deadlineRemaining, 'week')} remaining to act`
-          : null,
-      change: describeCaseCarryover(currentCase.id, report, previousReport, game.week),
-      href: `${APP_ROUTES.cases}?case=${encodeURIComponent(currentCase.id)}`,
-      action: currentCase.status === 'open' ? 'Review triage' : 'Review active operation',
-    })),
+    unresolvedCases: unresolvedCases.slice(0, MAX_QUEUE_DETAILS).map((currentCase) => {
+      const isOpen = currentCase.status === 'open'
+      let timing: string | null = null
+      if (isOpen) {
+        timing = `${pluralize(currentCase.deadlineRemaining, 'week')} remaining to act`
+      } else if (currentCase.weeksRemaining !== undefined) {
+        timing = `Current operation: ${pluralize(currentCase.weeksRemaining, 'week')} remaining`
+      }
+      return {
+        id: currentCase.id,
+        title: currentCase.title,
+        status: STATUS_LABELS[currentCase.status],
+        timing,
+        change: describeCaseCarryover(currentCase.id, report, previousReport, game.week),
+        href: `${APP_ROUTES.cases}?case=${encodeURIComponent(currentCase.id)}`,
+        action: isOpen ? 'Review triage' : 'Review active operation',
+      }
+    }),
   }
 }
 

@@ -1106,12 +1106,11 @@ describe('FrontDeskPage', () => {
       expect(carryover.getByText(copy)).toBeVisible()
       expect(carryover.queryByText(/Stage \d+ →/)).toBeNull()
       expect(carryover.queryByText(/Historical-only case|Hidden historical intel/)).toBeNull()
-      await userEvent.click(
-        carryover.getByRole('link', { name: `Review triage: ${openCase.title}` })
-      )
-      expect(
-        screen.getByRole('region', { name: `Case triage detail: ${openCase.title}` })
-      ).toBeVisible()
+      carryover.getByRole('link', { name: `Review triage: ${openCase.title}` }).focus()
+      await userEvent.keyboard('{Enter}')
+      const detail = screen.getByRole('region', { name: `Case triage detail: ${openCase.title}` })
+      expect(detail).toBeVisible()
+      expect(detail).toHaveFocus()
     }
   )
 

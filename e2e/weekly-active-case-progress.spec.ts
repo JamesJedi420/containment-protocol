@@ -53,5 +53,18 @@ test('SPE-1354 reports active operation progress across consecutive weeks', asyn
   await entry
     .getByRole('link', { name: `Review active operation: ${incident.title}` })
     .press('Enter')
+  await expect(detail).toBeFocused()
   await expect(detail.getByText('Remaining: 1 week', { exact: true })).toBeVisible()
+  await page.keyboard.press('Tab')
+  await expect(detail.getByRole('link', { name: incident.title, exact: true })).toBeFocused()
+
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(new RegExp(`/cases/${incident.id}(?:\\?|$)`))
+  await expect(page.getByRole('region', { name: 'Case dossier', exact: true })).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Navigation history' })
+    .getByRole('button', { name: 'Back', exact: true })
+    .press('Enter')
+  await expect(detail).toBeVisible()
+  await expect(page.getByRole('main')).toBeFocused()
 })

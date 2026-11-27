@@ -355,17 +355,12 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
       .getByRole('navigation', { name: 'MVP systems' })
       .getByRole('link', { name: 'Training Division', exact: true })
       .click()
+    const agentName = 'Ava Brooks'
     const trainee = page
       .locator('#training-roster')
       .getByRole('listitem')
-      .filter({
-        has: page
-          .getByRole('button', { name: 'Analysis Lab', exact: true })
-          .and(page.locator(':enabled')),
-      })
-      .first()
-    const staffRecord = trainee.getByRole('link').first()
-    const agentName = await staffRecord.innerText()
+      .filter({ has: page.getByRole('link', { name: agentName, exact: true }) })
+    const staffRecord = trainee.getByRole('link', { name: agentName, exact: true })
     const agentHref = await staffRecord.getAttribute('href')
     await trainee.getByRole('button', { name: 'Analysis Lab', exact: true }).click()
     await expect(
@@ -395,7 +390,11 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(page).toHaveURL((url) => url.pathname === agentHref)
     await expect(page.getByRole('heading', { name: agentName, exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Operational snapshot' })).toBeFocused()
-    await expect(page.getByText('Current assignment', { exact: true })).toBeVisible()
+    const assignment = page.getByText('Current assignment', { exact: true }).locator('..')
+    await expect(
+      assignment.getByText('Attached to Response Unit Night Watch', { exact: true })
+    ).toBeVisible()
+    await expect(assignment.getByText('Analysis Lab in progress', { exact: true })).toHaveCount(0)
 
     await openPrimaryNav(page, 'Operations Desk')
     await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()

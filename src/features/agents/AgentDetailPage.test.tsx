@@ -6,7 +6,10 @@ import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'rea
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
-import { LATEST_REPORT_INJURY_NAVIGATION } from '../../app/routes'
+import {
+  LATEST_REPORT_INJURY_NAVIGATION,
+  LATEST_REPORT_TRAINING_NAVIGATION,
+} from '../../app/routes'
 import { getXpThresholdForLevel } from '../../domain/progression'
 import AgentDetailPage from './AgentDetailPage'
 
@@ -59,7 +62,10 @@ it('exposes the dossier as a region instead of a second main landmark', () => {
   expect(screen.getByRole('heading', { name: 'Operational snapshot' })).not.toHaveFocus()
 })
 
-it('focuses current readiness on the report handoff and leaves later tab navigation alone', async () => {
+it.each([
+  { source: 'injury', state: LATEST_REPORT_INJURY_NAVIGATION },
+  { source: 'training completion', state: LATEST_REPORT_TRAINING_NAVIGATION },
+])('focuses current readiness from $source and preserves tab history', async ({ state }) => {
   const user = userEvent.setup()
   render(
     <MemoryRouter>
@@ -67,7 +73,7 @@ it('focuses current readiness on the report handoff and leaves later tab navigat
         <Route
           path="/"
           element={
-            <Link to="/agents/a_ava" state={LATEST_REPORT_INJURY_NAVIGATION}>
+            <Link to="/agents/a_ava" state={state}>
               Check current readiness
             </Link>
           }
@@ -91,6 +97,10 @@ it('focuses current readiness on the report handoff and leaves later tab navigat
 
   await user.click(screen.getByRole('button', { name: 'Go back' }))
   expect(screen.getByRole('tab', { name: /^Stats\b/i })).toHaveAttribute('aria-selected', 'true')
+  expect(snapshot).not.toHaveFocus()
+
+  await user.click(screen.getByRole('button', { name: 'Go forward' }))
+  expect(history).toHaveAttribute('aria-selected', 'true')
   expect(snapshot).not.toHaveFocus()
 })
 

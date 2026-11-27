@@ -8,6 +8,7 @@ import {
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_PROCUREMENT_NAVIGATION,
   LATEST_REPORT_TEAM_ROSTER_NAVIGATION,
+  LATEST_REPORT_TRAINING_NAVIGATION,
 } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
@@ -1810,7 +1811,11 @@ export default function FrontDeskPage() {
                             </p>
                             <p className="opacity-75">Training record {completion.eventId}</p>
                             {completion.agentHref ? (
-                              <Link to={completion.agentHref} className="underline">
+                              <Link
+                                to={completion.agentHref}
+                                state={LATEST_REPORT_TRAINING_NAVIGATION}
+                                className="underline"
+                              >
                                 Review {completion.agentName} before assigning duties
                               </Link>
                             ) : (

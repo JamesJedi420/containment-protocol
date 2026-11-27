@@ -2,12 +2,13 @@
 import '../../test/setup'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
 import { queueFabrication } from '../../domain/sim/production'
 import { useGameStore } from '../../app/store/gameStore'
+import { APP_ROUTES, LATEST_REPORT_PROCUREMENT_NAVIGATION } from '../../app/routes'
 import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings, getMarketListings } from './marketView'
 import MarketPage from './MarketPage'
 
@@ -109,8 +110,42 @@ beforeEach(() => {
 })
 
 describe('MarketPage', () => {
+  it('focuses Procurement overview on new report navigation and preserves history focus', async () => {
+    const user = userEvent.setup()
+    const game = useGameStore.getState().game
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Link to={APP_ROUTES.marketsSuppliers} state={LATEST_REPORT_PROCUREMENT_NAVIGATION}>
+                Check procurement affordability
+              </Link>
+            }
+          />
+          <Route path={APP_ROUTES.marketsSuppliers} element={<MarketPage />} />
+        </Routes>
+        <HistoryNavControls />
+      </MemoryRouter>
+    )
+
+    screen.getByRole('link', { name: 'Check procurement affordability' }).focus()
+    await user.keyboard('{Enter}')
+    const overview = () => screen.getByRole('region', { name: 'Procurement overview' })
+    expect(overview()).toHaveFocus()
+    expect(within(overview()).getByText(`$${game.funding}`, { exact: true })).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }))
+    await user.click(screen.getByRole('button', { name: 'Go forward' }))
+    expect(overview()).not.toHaveFocus()
+    expect(useGameStore.getState().game).toBe(game)
+  })
+
   it('renders listings, filters, and current week transaction history', () => {
     renderMarketPage()
+
+    expect(screen.getByRole('region', { name: 'Procurement overview' })).not.toHaveFocus()
 
     expect(screen.getByRole('heading', { name: /^market$/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /procurement model/i })).toBeInTheDocument()

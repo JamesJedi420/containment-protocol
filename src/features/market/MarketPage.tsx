@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
+import { useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
+import { APP_ROUTES, LATEST_REPORT_PROCUREMENT_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -51,7 +51,10 @@ export default function MarketPage() {
     acknowledgeLicensedHandlingDoctrine,
     invokeEmergencyGrayMarketWaiver,
   } = useGameStore()
+  const { key, state } = useLocation()
+  const navigationType = useNavigationType()
   const [searchParams, setSearchParams] = useSearchParams()
+  const procurementOverview = useRef<HTMLElement>(null)
   const filters = readMarketFilters(searchParams)
   const normalizedSearchParams = writeMarketFilters(filters)
   const normalizedSearch = normalizedSearchParams.toString()
@@ -59,6 +62,12 @@ export default function MarketPage() {
   const featuredListing = getFeaturedMarketListing(game)
   const transactions = getCurrentWeekMarketTransactions(game)
   const economy = buildEconomyLoopOverview(game)
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_PROCUREMENT_NAVIGATION && navigationType === 'PUSH') {
+      procurementOverview.current?.focus()
+    }
+  }, [key, navigationType, state])
 
   useEffect(() => {
     if (searchParams.toString() !== normalizedSearch) {
@@ -76,7 +85,9 @@ export default function MarketPage() {
   return (
     <section className="space-y-4">
       <article
-        className="panel panel-primary space-y-3"
+        ref={procurementOverview}
+        tabIndex={-1}
+        className="panel panel-primary space-y-3 focus-ring"
         role="region"
         aria-label="Procurement overview"
       >

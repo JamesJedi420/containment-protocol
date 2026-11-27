@@ -1,4 +1,3 @@
-import { clamp } from './math'
 import { sanitizeCampaignCommandIdentity } from './campaignCommandIdentity'
 import {
   resolveDifficultyRunConfiguration,
@@ -258,17 +257,16 @@ function sanitizeSettingHistory(
     return []
   }
 
-  const deduped = dedupeSettingHistoryEntries(next).map((entry) => ({
-    ...entry,
-    effectiveFromWeek:
-      cappedCampaignWeek !== undefined && entry.effectiveFromWeek > cappedCampaignWeek
-        ? cappedCampaignWeek
-        : entry.effectiveFromWeek,
-    changedAtWeek:
-      cappedCampaignWeek !== undefined
-        ? clamp(entry.changedAtWeek, 0, cappedCampaignWeek)
-        : entry.changedAtWeek,
-  }))
+  const deduped = dedupeSettingHistoryEntries(next).map((entry) => {
+    // A decision already recorded by the saved week can take effect in a later week.
+    if (cappedCampaignWeek === undefined || entry.changedAtWeek <= cappedCampaignWeek) return entry
+
+    return {
+      ...entry,
+      effectiveFromWeek: Math.min(entry.effectiveFromWeek, cappedCampaignWeek),
+      changedAtWeek: cappedCampaignWeek,
+    }
+  })
 
   const sorted = [...deduped].sort((left, right) => {
     if (left.effectiveFromWeek !== right.effectiveFromWeek) {

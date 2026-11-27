@@ -1364,7 +1364,8 @@ function buildStandingSummary(game: GameState): FrontDeskStandingSummaryView {
 function describeCaseCarryover(
   caseId: string,
   report: WeeklyReport,
-  previousReport: WeeklyReport | undefined
+  previousReport: WeeklyReport | undefined,
+  campaignWeek: number
 ): string {
   const closed = report.caseSnapshots?.[caseId]
   if (closed?.status === 'resolved' || report.resolvedCases.includes(caseId)) {
@@ -1392,6 +1393,7 @@ function describeCaseCarryover(
     previous.deadlineRemaining !== closed.deadlineRemaining
       ? `Time left ${pluralize(previous.deadlineRemaining, 'week')} → ${pluralize(closed.deadlineRemaining, 'week')}`
       : null,
+    report.week < campaignWeek &&
     previous.status === 'in_progress' &&
     closed.status === 'in_progress' &&
     beforeRemaining !== undefined &&
@@ -1728,7 +1730,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
         currentCase.status === 'open'
           ? `${pluralize(currentCase.deadlineRemaining, 'week')} remaining to act`
           : null,
-      change: describeCaseCarryover(currentCase.id, report, previousReport),
+      change: describeCaseCarryover(currentCase.id, report, previousReport, game.week),
       href: `${APP_ROUTES.cases}?case=${encodeURIComponent(currentCase.id)}`,
       action: currentCase.status === 'open' ? 'Review triage' : 'Review active operation',
     })),

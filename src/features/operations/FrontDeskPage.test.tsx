@@ -1039,14 +1039,21 @@ describe('FrontDeskPage', () => {
   )
 
   it.each([
-    [2, 1, 'in_progress', 'Since the previous report: Operation time remaining 2 weeks → 1 week.'],
-    [undefined, 1, 'in_progress', 'Still unresolved. No reported change'],
-    [2, undefined, 'in_progress', 'Still unresolved. No reported change'],
-    [2, 2, 'in_progress', 'Still unresolved. No reported change'],
-    [2, 1, 'open', 'Since the previous report: Open → Active.'],
+    [
+      2,
+      1,
+      'in_progress',
+      1,
+      'Since the previous report: Operation time remaining 2 weeks → 1 week.',
+    ],
+    [undefined, 1, 'in_progress', 1, 'Still unresolved. No reported change'],
+    [2, undefined, 'in_progress', 1, 'Still unresolved. No reported change'],
+    [2, 2, 'in_progress', 1, 'Still unresolved. No reported change'],
+    [2, 1, 'open', 1, 'Since the previous report: Open → Active.'],
+    [2, 7, 'in_progress', 0, 'Still unresolved. No reported change'],
   ] as const)(
-    'compares recorded operation time (%s → %s, previous status %s)',
-    (before, after, previousStatus, copy) => {
+    'compares operation time (%s → %s, previous status %s, latest report age %s)',
+    (before, after, previousStatus, reportAge, copy) => {
       useGameStore.setState({ game: createStartingState() })
       useGameStore.getState().advanceWeek()
       const game = useGameStore.getState().game
@@ -1062,7 +1069,7 @@ describe('FrontDeskPage', () => {
       useGameStore.setState({
         game: {
           ...game,
-          week: report.week + 2,
+          week: report.week + 1 + reportAge,
           cases: { [caseId]: activeCase },
           reports: [
             {

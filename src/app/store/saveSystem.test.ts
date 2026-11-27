@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { getCampaignSettingEffectiveAt } from '../../domain/campaignLedger'
 import {
   advanceContainmentRequirementWindow,
   attemptContainmentRequirementFulfillment,
@@ -32,6 +33,24 @@ import {
 } from '../../features/operations/frontDeskTriggers'
 
 describe('saveSystem', () => {
+  it('preserves the authored tone history and its effective weeks across import and repeated saves', () => {
+    const game = createStartingState()
+    const history = game.campaignLedger!.settingHistory
+    expect(history.map(({ id, effectiveFromWeek }) => [id, effectiveFromWeek])).toEqual([
+      ['hist_tone_scope_w1', 1],
+      ['hist_tone_scope_w2', 2],
+    ])
+
+    let loaded = loadGameSave(JSON.stringify(createRunExportPayload(game)))
+    for (let loads = 0; loads <= 3; loads++) {
+      expect(loaded.week).toBe(1)
+      expect(loaded.campaignLedger?.settingHistory).toEqual(history)
+      expect(getCampaignSettingEffectiveAt(loaded, 'toneScopeLabel', 1)).toBe(history[0]!.value)
+      expect(getCampaignSettingEffectiveAt(loaded, 'toneScopeLabel', 2)).toBe(history[1]!.value)
+      if (loads < 3) loaded = loadGameSave(serializeGameSave(loaded))
+    }
+  })
+
   it('round-trips two distinct subject requirements through canonical GameState save/load', () => {
     const game = createStartingState()
     game.week = 16

@@ -4,6 +4,7 @@ export const LATEST_REPORT_CASE_NAVIGATION = 'latest-report-case'
 export const LATEST_REPORT_COACHING_NAVIGATION = 'latest-report-coaching'
 export const LATEST_REPORT_INJURY_NAVIGATION = 'latest-report-injury'
 export const LATEST_REPORT_PROCUREMENT_NAVIGATION = 'latest-report-procurement'
+export const LATEST_REPORT_TEAM_ROSTER_NAVIGATION = 'latest-report-team-roster'
 
 export const APP_ROUTES = {
   mainMenu: '/main-menu',

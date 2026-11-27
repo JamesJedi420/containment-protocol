@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation, useNavigationType, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
+import { APP_ROUTES, LATEST_REPORT_TEAM_ROSTER_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { type Agent, type AgentRole, type PerformanceMetricSummary } from '../../domain/models'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
@@ -29,6 +29,9 @@ import {
 export default function TeamDetailPage() {
   const { teamId } = useParams()
   const location = useLocation()
+  const { key, state } = location
+  const navigationType = useNavigationType()
+  const roster = useRef<HTMLElement>(null)
   const {
     game,
     assign,
@@ -61,6 +64,12 @@ export default function TeamDetailPage() {
     () => (teamId ? selectSquadConfigurationSummary(game, teamId) : null),
     [game, teamId]
   )
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_TEAM_ROSTER_NAVIGATION && navigationType === 'PUSH') {
+      roster.current?.focus()
+    }
+  }, [key, navigationType, state])
 
   if (!team) {
     return (
@@ -459,7 +468,9 @@ export default function TeamDetailPage() {
           </article>
 
           <article
-            className="panel panel-support space-y-3"
+            ref={roster}
+            tabIndex={-1}
+            className="panel panel-support space-y-3 focus-ring"
             role="region"
             aria-label="Squad roster"
           >

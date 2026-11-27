@@ -7,6 +7,7 @@ import {
   LATEST_REPORT_COACHING_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_PROCUREMENT_NAVIGATION,
+  LATEST_REPORT_TEAM_ROSTER_NAVIGATION,
 } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
@@ -200,7 +201,11 @@ function WeekCloseTeamFatigue({ report }: { report: FrontDeskLatestReportView })
                   Week {week}: {team.average} average fatigue · {team.band}
                 </p>
                 {team.currentHref ? (
-                  <Link to={team.currentHref} className="underline">
+                  <Link
+                    to={team.currentHref}
+                    state={LATEST_REPORT_TEAM_ROSTER_NAVIGATION}
+                    className="underline"
+                  >
                     Check current roster for {team.name}
                   </Link>
                 ) : null}

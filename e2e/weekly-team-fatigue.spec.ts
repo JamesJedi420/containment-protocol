@@ -53,8 +53,11 @@ test('SPE-1354 keeps week-close fatigue separate from a changed current roster',
   )
   await expect(historical).toBeVisible()
   const currentRoster = entry.getByRole('link', { name: `Check current roster for ${team.name}` })
-  await currentRoster.click()
+  await currentRoster.press('Enter')
   const roster = page.getByRole('region', { name: 'Squad roster' })
+  await expect(roster).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(roster.getByRole('link').first()).toBeFocused()
   const agentRow = roster.getByRole('listitem').filter({
     has: page.getByRole('link', { name: reserveCandidate.name, exact: true }),
   })
@@ -67,7 +70,7 @@ test('SPE-1354 keeps week-close fatigue separate from a changed current roster',
   await openPrimaryNav(page, 'Operations Desk')
   await page.reload()
   await expect(historical).toBeVisible()
-  await currentRoster.click()
-  await expect(roster).toBeVisible()
+  await currentRoster.press('Enter')
+  await expect(roster).toBeFocused()
   await expect(agentRow).toHaveCount(0)
 })

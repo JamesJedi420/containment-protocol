@@ -78,16 +78,16 @@ This note does not change, add, or remove any campaign-end, defeat, or retiremen
 
 ## Review the completed week
 
-After advancing the week, find **Latest Report** on the Front Desk. Use the four sections below in that summary. Select **Week N** to open the separate report detail page or **All reports** to browse previous reports.
+After advancing the week, find **Latest Report** on the Front Desk. **Week N totals** summarize the completed week. Select **Week N** to open the report detail page or **All reports** to browse previous reports.
 
 - **Staff.** Check **Field-agent hiring**, **Staff injuries**, **Staff training**, **Coaching assignments**, and **Week-close team fatigue** for staffing changes. Use the available roster or readiness links to check who can take the next assignment.
 - **Risks.** Read **Containment rating** and **Week-close funding** for recorded before-and-after comparisons. When funding changed, use **Check procurement affordability** to check today's balance and prices before committing to a purchase.
 - **Relationships.** If qualifying changes are recorded, this section shows the latest change in each shown direction, its source record, and a **Review team chemistry** shortcut to use before assigning the affected staff together.
-- **Unresolved cases.** Read the current status, any known deadline, and what changed or carried forward. Open the linked case or operation to review its next available action.
+- **Current unresolved cases.** Read the current status, any known deadline, and what changed or carried forward. Open the linked case or operation to review its next available action.
 
 On a quiet week, a category may show no recorded change. An unavailable comparison means the summary lacks the records it needs. Relationships can still show supported comparisons when earlier history is incomplete. An unresolved case can carry forward at the same stage.
 
-The **Week N** detail page lists unresolved triggers recorded for that completed week under **Case outcomes**. If it says **No unresolved cases were recorded**, check **Unresolved cases** in the Front Desk’s **Latest Report** for cases still on the board. An open case can have time left to act even after a quiet week. Select **Review triage** to check its current options, or **Review active operation** if the case is already in progress. If there are more cases than the summary shows, select **Open Cases board** to see the rest.
+The **Week N** detail page lists unresolved triggers recorded for that completed week under **Case outcomes**. If it says **No unresolved cases were recorded**, check **Current unresolved cases** in the Front Desk’s **Latest Report** for cases still on the board. An open case can have time left to act even after a quiet week. Select **Review triage** to check its current options, or **Review active operation** if the case is already in progress. If there are more cases than the summary shows, select **Open Cases board** to see the rest.
 
 ## Framing rule (player role)
 

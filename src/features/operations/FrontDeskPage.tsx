@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
-import { APP_ROUTES, LATEST_REPORT_CASE_NAVIGATION } from '../../app/routes'
+import {
+  APP_ROUTES,
+  LATEST_REPORT_CASE_NAVIGATION,
+  LATEST_REPORT_COACHING_NAVIGATION,
+} from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconAdvance, IconCopy, IconReset } from '../../components/icons'
 import { FilterInput } from '../../components/FilterInput'
@@ -1848,6 +1852,7 @@ export default function FrontDeskPage() {
                       )}
                       <Link
                         to={`${APP_ROUTES.trainingDivision}?advanced=1`}
+                        state={LATEST_REPORT_COACHING_NAVIGATION}
                         className="text-sm underline"
                       >
                         Check current coaching assignments

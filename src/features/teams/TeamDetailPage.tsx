@@ -32,6 +32,7 @@ export default function TeamDetailPage() {
   const { key, state } = location
   const navigationType = useNavigationType()
   const roster = useRef<HTMLElement>(null)
+  const emptyRosterTransfer = useRef<HTMLSelectElement>(null)
   const {
     game,
     assign,
@@ -67,7 +68,8 @@ export default function TeamDetailPage() {
 
   useEffect(() => {
     if (state === LATEST_REPORT_TEAM_ROSTER_NAVIGATION && navigationType === 'PUSH') {
-      roster.current?.focus()
+      const destination = emptyRosterTransfer.current ?? roster.current
+      destination?.focus()
     }
   }, [key, navigationType, state])
 
@@ -96,6 +98,8 @@ export default function TeamDetailPage() {
     transferCandidates.some((candidate) => candidate.agent.id === transferState.agentId)
       ? transferState.agentId
       : (transferCandidates[0]?.agent.id ?? '')
+  const canRestaffEmptyRoster =
+    agents.length === 0 && managementState.editable && Boolean(transferAgentId)
   const trimmedName = draftName.trim()
   const canRename =
     managementState.editable &&
@@ -428,6 +432,7 @@ export default function TeamDetailPage() {
                 </span>
                 <select
                   id="transfer-agent"
+                  ref={canRestaffEmptyRoster ? emptyRosterTransfer : undefined}
                   className="form-select"
                   value={transferAgentId}
                   onChange={(event) =>

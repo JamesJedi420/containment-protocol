@@ -73,4 +73,21 @@ test('SPE-1354 keeps week-close fatigue separate from a changed current roster',
   await currentRoster.press('Enter')
   await expect(roster).toBeFocused()
   await expect(agentRow).toHaveCount(0)
+
+  const reserveButtons = roster.getByRole('button', { name: 'Send to reserve' })
+  const remaining = await reserveButtons.count()
+  for (let count = remaining; count > 0; count -= 1) {
+    await reserveButtons.first().click()
+    await expect(reserveButtons).toHaveCount(count - 1)
+  }
+
+  await openPrimaryNav(page, 'Operations Desk')
+  await expect(historical).toBeVisible()
+  await currentRoster.press('Enter')
+  const transfer = page.getByRole('combobox', { name: 'Transfer agent into this squad' })
+  await expect(transfer).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(page.getByRole('button', { name: 'Transfer in' })).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(roster.getByRole('link')).toHaveCount(1)
 })

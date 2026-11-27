@@ -47,9 +47,7 @@ it('renders a local not-found state for an unknown team', () => {
   expect(screen.getByRole('link', { name: /back to teams/i })).toBeInTheDocument()
 })
 
-it('focuses the roster on fresh report navigation while history can return without refocusing it', async () => {
-  const user = userEvent.setup()
-
+function renderReportRosterLink() {
   function HistoryControls() {
     const navigate = useNavigate()
     return (
@@ -79,6 +77,11 @@ it('focuses the roster on fresh report navigation while history can return witho
       </Routes>
     </MemoryRouter>
   )
+}
+
+it('focuses the roster on fresh report navigation while history can return without refocusing it', async () => {
+  const user = userEvent.setup()
+  renderReportRosterLink()
 
   const link = screen.getByRole('link', { name: 'Check current roster for Night Watch' })
   const roster = () => screen.getByRole('region', { name: 'Squad roster' })
@@ -95,6 +98,24 @@ it('focuses the roster on fresh report navigation while history can return witho
   await user.click(screen.getByRole('button', { name: 'Forward' }))
   expect(roster()).toBeVisible()
   expect(screen.getByRole('button', { name: 'Forward' })).toHaveFocus()
+})
+
+it('focuses the available transfer selector when the reported squad is now empty', async () => {
+  const user = userEvent.setup()
+  const { game, moveAgentBetweenTeams } = useGameStore.getState()
+  for (const agentId of game.teams.t_nightwatch!.agentIds) {
+    moveAgentBetweenTeams(agentId, null)
+  }
+  renderReportRosterLink()
+
+  screen.getByRole('link', { name: 'Check current roster for Night Watch' }).focus()
+  await user.keyboard('{Enter}')
+
+  const roster = screen.getByRole('region', { name: 'Squad roster' })
+  expect(roster).toHaveTextContent('No agents are assigned')
+  expect(screen.getByRole('combobox', { name: 'Transfer agent into this squad' })).toHaveFocus()
+  await user.tab()
+  expect(screen.getByRole('button', { name: 'Transfer in' })).toHaveFocus()
 })
 
 it('supports squad management actions for editable teams', async () => {

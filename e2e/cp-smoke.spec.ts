@@ -391,9 +391,11 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(completions).toHaveText(summary, { useInnerText: true })
     await completions
       .getByRole('link', { name: `Review ${agentName} before assigning duties` })
-      .click()
+      .press('Enter')
     await expect(page).toHaveURL((url) => url.pathname === agentHref)
     await expect(page.getByRole('heading', { name: agentName, exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Operational snapshot' })).toBeFocused()
+    await expect(page.getByText('Current assignment', { exact: true })).toBeVisible()
 
     await openPrimaryNav(page, 'Operations Desk')
     await expect(report.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()

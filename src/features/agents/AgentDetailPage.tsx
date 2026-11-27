@@ -7,7 +7,11 @@ import {
   writeEnumParam,
 } from '../../app/searchParams'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES, LATEST_REPORT_INJURY_NAVIGATION } from '../../app/routes'
+import {
+  APP_ROUTES,
+  LATEST_REPORT_INJURY_NAVIGATION,
+  LATEST_REPORT_TRAINING_NAVIGATION,
+} from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { NAVIGATION_ROUTES, SHELL_UI_TEXT } from '../../data/copy'
 import { AgentEntityPanel } from './AgentEntityPanel'
@@ -24,7 +28,9 @@ export default function AgentDetailPage() {
   const location = useLocation()
   const { pathname } = location
   const navigationType = useNavigationType()
-  const fromInjuryReport = location.state === LATEST_REPORT_INJURY_NAVIGATION
+  const fromReportReadinessLink =
+    location.state === LATEST_REPORT_INJURY_NAVIGATION ||
+    location.state === LATEST_REPORT_TRAINING_NAVIGATION
   const operationalSnapshotHeading = useRef<HTMLHeadingElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
   const { game } = useGameStore()
@@ -53,10 +59,10 @@ export default function AgentDetailPage() {
     feedBackTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', backSystemLabel)
 
   useEffect(() => {
-    if (fromInjuryReport && navigationType === 'PUSH') {
+    if (fromReportReadinessLink && navigationType === 'PUSH') {
       operationalSnapshotHeading.current?.focus()
     }
-  }, [fromInjuryReport, location.key, navigationType])
+  }, [fromReportReadinessLink, location.key, navigationType])
 
   useEffect(() => {
     const normalizedParams = cloneSearchParams(searchParams)
@@ -72,7 +78,7 @@ export default function AgentDetailPage() {
     const nextParams = cloneSearchParams(searchParams)
 
     writeEnumParam(nextParams, 'tab', nextTab, DEFAULT_AGENT_DETAIL_TAB)
-    setSearchParams(nextParams, { state: fromInjuryReport ? null : location.state })
+    setSearchParams(nextParams, { state: fromReportReadinessLink ? null : location.state })
   }
 
   if (!view) {

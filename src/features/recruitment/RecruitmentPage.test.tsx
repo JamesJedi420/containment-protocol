@@ -686,6 +686,34 @@ describe('RecruitmentPage', () => {
     expect(board.getByText('Briar Lane')).toBeInTheDocument()
   })
 
+  it('returns focus to the board after a keyboard hire consumes the scouting notice target', async () => {
+    const user = userEvent.setup()
+    const game = buildRecruitmentGame()
+    const candidateId = game.candidates[0]!.id
+    game.funding = 1000
+    useGameStore.setState({ game })
+    renderRecruitmentPage('/recruitment?sort=name')
+
+    const board = within(screen.getByRole('article', { name: 'Candidate board' }))
+    await user.click(board.getByRole('button', { name: /^scout/i }))
+    await user.click(
+      screen.getByRole('link', { name: 'View candidate: Avery Holt scouting initiated' })
+    )
+    const hire = board.getByRole('button', { name: 'Hire' })
+    expect(hire).toBeEnabled()
+    hire.focus()
+    await user.keyboard('{Enter}')
+
+    expect(useGameStore.getState().game.agents[candidateId]?.name).toBe('Avery Holt')
+    expect(screen.getByTestId('location-search')).toBeEmptyDOMElement()
+    expect(board.queryByText('Avery Holt')).not.toBeInTheDocument()
+    expect(board.getByText('Briar Lane')).toBeVisible()
+    expect(board.getByRole('heading', { name: 'Candidate board' })).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }))
+    expect(screen.getByTestId('location-search')).toHaveTextContent('?sort=name')
+  })
+
   it.each([
     { saved: null, priorSort: 'expiry' },
     { saved: 'sort=wage', priorSort: 'wage' },

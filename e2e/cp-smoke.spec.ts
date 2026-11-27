@@ -15,6 +15,49 @@ import {
 } from './support/cpApp'
 
 test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smokes', () => {
+  test('SPE-2711 restores Main Menu keyboard focus when Continue rejects a changed save', async ({
+    page,
+    context,
+  }) => {
+    await clearCampaignStorage(page)
+    await advanceOperationalWeek(page)
+    const originalSave = await page.evaluate(
+      (key) => localStorage.getItem(key),
+      CP_GAME_STORAGE_KEY
+    )
+    expect(originalSave).not.toBeNull()
+
+    await page.getByRole('link', { name: 'Main Menu' }).click()
+    const heading = page.getByRole('heading', { name: 'Main Menu' })
+    const continueButton = page.getByRole('button', { name: 'Continue' })
+    await expect(heading).toBeFocused()
+    await expect(continueButton).toBeEnabled()
+
+    const otherTab = await context.newPage()
+    await otherTab.goto('/')
+    await advanceOperationalWeek(otherTab)
+    const changedSave = await otherTab.evaluate(
+      (key) => localStorage.getItem(key),
+      CP_GAME_STORAGE_KEY
+    )
+    expect(changedSave).not.toBeNull()
+    expect(changedSave).not.toBe(originalSave)
+    await otherTab.close()
+
+    await page.keyboard.press('Tab')
+    await expect(continueButton).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/main-menu$/)
+    await expect(continueButton).toBeDisabled()
+    await expect(page.getByText('A saved campaign could not be confirmed.')).toBeVisible()
+    await expect(heading).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('button', { name: 'Settings' })).toBeFocused()
+    expect(await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)).toBe(
+      changedSave
+    )
+  })
+
   test('SPE-1354 opens eligible first-campaign evidence and triage from Needs Attention', async ({
     page,
   }) => {

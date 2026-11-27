@@ -2,7 +2,7 @@
 import '../../test/setup'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, useLocation } from 'react-router'
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { LATEST_REPORT_COACHING_NAVIGATION } from '../../app/routes'
 import { assignTeam } from '../../domain/sim/assign'
@@ -57,6 +57,30 @@ describe('TrainingDivisionPage', () => {
     expect(
       screen.queryByRole('heading', { name: /recent training events/i })
     ).not.toBeInTheDocument()
+  })
+
+  it('focuses Instructor Assignments on new navigation from the report', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Link to="/training-division?advanced=1" state={LATEST_REPORT_COACHING_NAVIGATION}>
+                Check current coaching assignments
+              </Link>
+            }
+          />
+          <Route path="/training-division" element={<TrainingDivisionPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    screen.getByRole('link', { name: 'Check current coaching assignments' }).focus()
+    await user.keyboard('{Enter}')
+
+    expect(screen.getByRole('heading', { name: 'Instructor Assignments' })).toHaveFocus()
   })
 
   it('does not replay report focus on a restored history entry', () => {

@@ -137,6 +137,8 @@ describe('MarketPage', () => {
     expect(within(overview()).getByText(`$${game.funding}`, { exact: true })).toBeVisible()
 
     await user.click(screen.getByRole('button', { name: 'Go back' }))
+    expect(screen.getByRole('link', { name: 'Check procurement affordability' })).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Procurement overview' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Go forward' }))
     expect(overview()).not.toHaveFocus()
     expect(useGameStore.getState().game).toBe(game)

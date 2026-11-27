@@ -621,7 +621,19 @@ export default function RecruitmentPage() {
                       type="button"
                       className="btn btn-sm btn-primary"
                       disabled={!view.preview.canHire}
-                      onClick={() => hireCandidate(candidate.id, view.offeredRole)}
+                      onClick={({ currentTarget }) => {
+                        const restoreBoardFocus =
+                          candidate.id === activeCandidateId &&
+                          currentTarget === currentTarget.ownerDocument.activeElement
+
+                        hireCandidate(candidate.id, view.offeredRole)
+
+                        if (!restoreBoardFocus) return
+                        const candidateRemains = useGameStore
+                          .getState()
+                          .game.candidates.some(({ id }) => id === candidate.id)
+                        if (!candidateRemains) boardHeading.current?.focus()
+                      }}
                     >
                       Hire
                     </button>

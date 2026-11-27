@@ -432,7 +432,11 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const initialCount = await rows.count()
     expect(initialCount).toBeGreaterThan(1)
     // Hold the actual button because the board can reorder and names can repeat.
-    const scout = await board
+    const enabledHire = page
+      .getByRole('button', { name: 'Hire', exact: true })
+      .and(page.locator(':enabled'))
+    const scout = await rows
+      .filter({ has: enabledHire })
       .getByRole('button', { name: /^Scout \(\$/ })
       .first()
       .elementHandle()
@@ -455,6 +459,20 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await page.goBack()
     await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
     await expect(rows).toHaveCount(initialCount)
+
+    await page.goForward()
+    await expect(page).toHaveURL(/\/recruitment\?candidate=/)
+    const hire = board.getByRole('button', { name: 'Hire', exact: true })
+    await expect(hire).toBeEnabled()
+    await hire.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/recruitment$/)
+    await expect(rows).toHaveCount(initialCount - 1)
+    await expect(board.getByRole('heading', { name: 'Candidate board' })).toBeFocused()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
+    await expect(rows).toHaveCount(initialCount - 1)
   })
 
   test('SPE-3130 / SPE-3137 restore recruitment filters and support keyboard and controller reset', async ({

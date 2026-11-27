@@ -70,6 +70,7 @@ export function MainMenu() {
   function continueCampaign() {
     if (!canContinueCampaign()) {
       setContinueStatus('unconfirmed')
+      heading.current?.focus()
       return
     }
 

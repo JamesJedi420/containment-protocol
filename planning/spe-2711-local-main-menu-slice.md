@@ -14,3 +14,9 @@
 The current persistence API can normalize or substitute fields during hydration. Hydration alone does not prove that an on-disk snapshot identifies the live campaign. A cold menu entry stays unavailable when the already-hydrated projection differs from storage. [SPE-3403](https://linear.app/spectranoir/issue/SPE-3403/contradiction-check-cp-core-save-version-compatibility-and-load-policy) owns authoritative corruption, compatibility and storage outcomes.
 
 The existing [parent hold](https://linear.app/spectranoir/issue/SPE-2711/main-menu-and-campaign-entry-navigation#comment-3f97d77a-1c93-41d8-ba06-dea8e0e962e7) remains active. [SPE-3064](https://linear.app/spectranoir/issue/SPE-3064/main-menu-transition-through-deferred-report-and-notice-state) owns the report and notice transition. The rest of SPE-2711 remains open, including broader campaign actions, shared sessions, release information and destructive replacement. The coordinator owns merge release after independent review and CI on the exact PR head.
+
+## Failed Continue focus recovery
+
+Lane A claim `CP-LANE-A-AFTER-5118-27E2` covers predictable focus after a failed Continue recheck on `codex/main-menu-continue-focus`, based on clean named MSI `main` at `27e2b6ed243b39bcfd3d014400d505d4dc33de5c`. SPE-3752 returned ready with zero open or draft PRs. SPE-2711 remains In Progress.
+
+`src/app/MainMenu.tsx` returns focus to the Main Menu heading when a save no longer matches on activation. The existing status message explains the rejection, and the next Tab reaches Settings. `src/app/MainMenu.test.tsx` verifies the keyboard sequence and save preservation. The Chromium smoke in `e2e/cp-smoke.spec.ts` enters from Operations Desk, advances the campaign in a second tab, and checks keyboard focus, the unchanged route, and preservation of the newer save.

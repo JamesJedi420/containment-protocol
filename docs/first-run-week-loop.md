@@ -72,6 +72,17 @@ This note does not change, add, or remove any campaign-end, defeat, or retiremen
 
 **A degraded week** leaves the agency narrower and more brittle: readiness drops, injuries or blockers accumulate, support erodes, pressure escalates faster than capacity, and the next week starts from a weaker position.
 
+### Review the completed week
+
+After advancing the week, open **Latest Report** on the Front Desk. Select **Week N** to open that week's full report or **All reports** to browse earlier reports.
+
+- **Staff.** Check **Field-agent hiring**, **Staff injuries**, **Staff training**, **Coaching assignments**, and **Week-close team fatigue** for staffing changes. Use the available roster or readiness links to check who can take the next assignment.
+- **Risks.** Read **Containment rating** and **Week-close funding** for recorded before-and-after comparisons. Use **Check procurement affordability** to check today's balance and prices before committing to a purchase.
+- **Relationships.** Read the latest qualifying change in each recorded direction and its source record. Use **Review team chemistry** before assigning the affected staff together.
+- **Unresolved cases.** Read the current status, any known deadline, and what changed or carried forward. Open the linked case or operation to review its next available action.
+
+On a quiet week, the report may show no recorded change in a category. An unavailable or incomplete history message means that the report cannot establish the comparison. An unresolved case can carry forward at the same stage.
+
 ## Framing rule (player role)
 
 This is a managerial, deterministic, team-first loop. The player is evaluating capacity, preparing teams, choosing commitments, and absorbing consequences rather than directly piloting tactical encounters.

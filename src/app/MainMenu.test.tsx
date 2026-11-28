@@ -48,6 +48,45 @@ describe('local Main Menu', () => {
     expect(useGameStore.getState().gameReplacementRevision).toBe(gameReplacementRevision)
   })
 
+  it('moves from the heading and activates Continue through the shared input actions', async () => {
+    useGameStore.getState().setSeed(415)
+    useGameStore.getState().advanceWeek()
+    const { game, gameReplacementRevision } = useGameStore.getState()
+    renderApp(APP_ROUTES.mainMenu)
+
+    expect(screen.getByRole('heading', { name: 'Main Menu' })).toHaveFocus()
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
+    act(() => {
+      expect(dispatchInputAction('filters.previous')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+    act(() => {
+      expect(dispatchInputAction('filters.activate')).toBe(true)
+    })
+
+    expect(await findOperationsDesk()).toBeVisible()
+    expect(useGameStore.getState().game).toMatchObject({ week: game.week, rngSeed: game.rngSeed })
+    expect(useGameStore.getState().game.reports).toBe(game.reports)
+    expect(useGameStore.getState().gameReplacementRevision).toBe(gameReplacementRevision)
+  })
+
+  it('skips a disabled Continue when traversing the menu with shared input actions', () => {
+    renderApp(APP_ROUTES.mainMenu)
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    act(() => {
+      expect(dispatchInputAction('filters.next')).toBe(true)
+    })
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
+  })
+
   it('preserves a loaded campaign when hydration changed its persisted projection', async () => {
     useGameStore.getState().setSeed(415)
     useGameStore.getState().advanceWeek()

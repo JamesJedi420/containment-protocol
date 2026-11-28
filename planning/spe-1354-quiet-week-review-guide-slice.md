@@ -29,3 +29,11 @@ The focused `FrontDeskPage` component test follows the overflow link into the re
 The November 20 acceptance asks the weekly review to carry unresolved risks forward and offer a valid next decision. At the base, the dossier's **Case outcomes** showed the completed week's records without a way to check current cases from that section. The dossier now explains how the cases are grouped by recorded outcomes for that week and links to the live Cases board using the existing route. Existing details can still use live case metadata when a report has no snapshot for that entry.
 
 The quiet-period Chromium scenario uses an authored starting fixture and real week-close actions. After reloading an empty historical outcome, the player can open the live Cases board with Enter, see the carried case, and return to the dossier with Back. The guide describes both entry points. The grouped-report Vitest case verifies the link destination when there are recorded outcomes. SPE-3348 selects validators for the five reserved paths after the review follow-up preflight. Acceptance and documentation comparison were checked directly because the change is small.
+
+## Keyboard focus from the dossier to current cases
+
+[Lane A reservation CP-LANE-A-AFTER-5144-67AD92FC](https://linear.app/spectranoir/issue/SPE-1354#comment-00f9fbfb-30cc-418a-b3ae-738fadad70dc) uses `codex/dossier-case-queue-focus` from clean MSI main `67ad92fc2363a94711be983fac76a8b03c9ce610`. SPE-3752 returned ready with the independent Agent P hold on #5128. SPE-1354 remains In Progress.
+
+The November 20 acceptance asks the weekly review to offer a valid next decision for unresolved cases. The dossier’s **Check current cases** link now passes the same focus intent as the Front Desk’s board link. On fresh navigation, **Case triage queue** receives focus and the next Tab reaches the first case when one is available. Back and Forward use the shell’s ordinary focus behavior. The existing report and case data stay authoritative.
+
+The strict-console report test covers the actual Cases destination. The quiet-campaign Chromium scenario covers week close, reload, keyboard activation, the carried case, and browser history. The feature needs no saved focus state. The broader weekly-review acceptance remains open.

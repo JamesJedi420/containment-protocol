@@ -1,7 +1,11 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigationType, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES, LATEST_REPORT_DOSSIER_NAVIGATION } from '../../app/routes'
+import {
+  APP_ROUTES,
+  LATEST_REPORT_CASE_NAVIGATION,
+  LATEST_REPORT_DOSSIER_NAVIGATION,
+} from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   REPORT_KNOWLEDGE_PREVIEW_TEXT,
@@ -357,7 +361,11 @@ export default function ReportDetailPage() {
           >
             <p className="text-sm text-text-soft">
               Cases are grouped by the outcomes recorded that week.{' '}
-              <Link to={APP_ROUTES.cases} className="focus-ring underline">
+              <Link
+                to={APP_ROUTES.cases}
+                state={LATEST_REPORT_CASE_NAVIGATION}
+                className="focus-ring underline"
+              >
                 Check current cases
               </Link>
               .

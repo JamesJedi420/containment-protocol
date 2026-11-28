@@ -13,6 +13,7 @@ import {
 } from '../../app/routes'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { calcWeekScore } from '../../domain/sim/scoring'
+import CasesPage from '../cases/CasesPage'
 import ReportPage from './ReportPage'
 import ReportDetailPage from './ReportDetailPage'
 
@@ -39,6 +40,24 @@ function renderReportDetail(path: string) {
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
+})
+
+it('focuses the live triage queue from the weekly dossier', async () => {
+  const user = userEvent.setup()
+  useGameStore.setState({ game: advanceWeek(advanceWeek(createStartingState())) })
+  render(
+    <MemoryRouter initialEntries={['/report/2']}>
+      <Routes>
+        <Route path="/report/:week" element={<ReportDetailPage />} />
+        <Route path={APP_ROUTES.cases} element={<CasesPage />} />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  const link = screen.getByRole('link', { name: 'Check current cases' })
+  link.focus()
+  await user.keyboard('{Enter}')
+  expect(screen.getByRole('region', { name: 'Case triage queue' })).toHaveFocus()
 })
 
 it('links report list entries into detail routes', () => {

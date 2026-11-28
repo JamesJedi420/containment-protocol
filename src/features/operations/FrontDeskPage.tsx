@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router'
 import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import {
   APP_ROUTES,
+  LATEST_REPORT_ARCHIVE_NAVIGATION,
   LATEST_REPORT_CASE_NAVIGATION,
   LATEST_REPORT_CHEMISTRY_NAVIGATION,
   LATEST_REPORT_DOSSIER_NAVIGATION,
@@ -1665,7 +1666,11 @@ export default function FrontDeskPage() {
           <section className="panel space-y-3" aria-label="Latest report">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold">Latest Report</h2>
-              <Link to={APP_ROUTES.report} className="text-sm opacity-60 hover:opacity-100">
+              <Link
+                to={APP_ROUTES.report}
+                state={LATEST_REPORT_ARCHIVE_NAVIGATION}
+                className="text-sm opacity-60 hover:opacity-100"
+              >
                 All reports
               </Link>
             </div>

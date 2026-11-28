@@ -4,6 +4,7 @@ import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import {
   APP_ROUTES,
   LATEST_REPORT_CASE_NAVIGATION,
+  LATEST_REPORT_CHEMISTRY_NAVIGATION,
   LATEST_REPORT_DOSSIER_NAVIGATION,
   LATEST_REPORT_COACHING_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
@@ -1926,6 +1927,7 @@ export default function FrontDeskPage() {
                       </p>
                       <Link
                         to={`${APP_ROUTES.trainingDivision}?advanced=1`}
+                        state={LATEST_REPORT_CHEMISTRY_NAVIGATION}
                         className="text-sm underline"
                       >
                         Review team chemistry

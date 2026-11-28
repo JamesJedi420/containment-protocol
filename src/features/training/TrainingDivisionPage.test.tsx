@@ -4,7 +4,10 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { LATEST_REPORT_COACHING_NAVIGATION } from '../../app/routes'
+import {
+  LATEST_REPORT_CHEMISTRY_NAVIGATION,
+  LATEST_REPORT_COACHING_NAVIGATION,
+} from '../../app/routes'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
@@ -48,6 +51,7 @@ describe('TrainingDivisionPage', () => {
     expect(screen.getByRole('heading', { name: /academy analysis/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /recent training events/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Instructor Assignments' })).not.toHaveFocus()
+    expect(screen.getByRole('heading', { name: 'Chemistry Inspector' })).not.toHaveFocus()
 
     await user.click(screen.getByRole('button', { name: /hide advanced panels/i }))
     await user.click(screen.getByRole('button', { name: /hide history panels/i }))
@@ -59,7 +63,14 @@ describe('TrainingDivisionPage', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('focuses Instructor Assignments on new navigation from the report', async () => {
+  it.each([
+    [
+      'Instructor Assignments',
+      'Check current coaching assignments',
+      LATEST_REPORT_COACHING_NAVIGATION,
+    ],
+    ['Chemistry Inspector', 'Review team chemistry', LATEST_REPORT_CHEMISTRY_NAVIGATION],
+  ])('focuses %s on new navigation from the report', async (heading, link, state) => {
     const user = userEvent.setup()
     render(
       <MemoryRouter>
@@ -67,8 +78,8 @@ describe('TrainingDivisionPage', () => {
           <Route
             path="/"
             element={
-              <Link to="/training-division?advanced=1" state={LATEST_REPORT_COACHING_NAVIGATION}>
-                Check current coaching assignments
+              <Link to="/training-division?advanced=1" state={state}>
+                {link}
               </Link>
             }
           />
@@ -77,28 +88,25 @@ describe('TrainingDivisionPage', () => {
       </MemoryRouter>
     )
 
-    screen.getByRole('link', { name: 'Check current coaching assignments' }).focus()
+    screen.getByRole('link', { name: link }).focus()
     await user.keyboard('{Enter}')
 
-    expect(screen.getByRole('heading', { name: 'Instructor Assignments' })).toHaveFocus()
+    expect(screen.getByRole('heading', { name: heading })).toHaveFocus()
   })
 
-  it('does not replay report focus on a restored history entry', () => {
+  it.each([
+    ['Instructor Assignments', LATEST_REPORT_COACHING_NAVIGATION],
+    ['Chemistry Inspector', LATEST_REPORT_CHEMISTRY_NAVIGATION],
+  ])('does not replay %s focus on a restored history entry', (heading, state) => {
     render(
       <MemoryRouter
-        initialEntries={[
-          {
-            pathname: '/training-division',
-            search: '?advanced=1',
-            state: LATEST_REPORT_COACHING_NAVIGATION,
-          },
-        ]}
+        initialEntries={[{ pathname: '/training-division', search: '?advanced=1', state }]}
       >
         <TrainingDivisionPage />
       </MemoryRouter>
     )
 
-    expect(screen.getByRole('heading', { name: 'Instructor Assignments' })).not.toHaveFocus()
+    expect(screen.getByRole('heading', { name: heading })).not.toHaveFocus()
   })
 
   it('renders keyboard skip links for summary, queue, and roster sections', () => {

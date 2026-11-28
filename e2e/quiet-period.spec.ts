@@ -206,12 +206,22 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
     await currentCasesLink.press('Enter')
     await expect(page).toHaveURL(/\/cases$/)
     const queue = page.getByRole('region', { name: 'Case triage queue' })
-    await expect(
-      queue.getByRole('link', { name: final.cases[quietCaseId].title, exact: true })
-    ).toBeVisible()
+    const carriedCase = queue.getByRole('link', {
+      name: final.cases[quietCaseId].title,
+      exact: true,
+    })
+    await expect(queue).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(carriedCase).toBeFocused()
     await page.goBack()
     await expect(page).toHaveURL(/\/report\/2$/)
     await expect(outcomes).toContainText('No unresolved cases were recorded.')
+    await page.goForward()
+    await expect(page).toHaveURL(/\/cases$/)
+    await expect(carriedCase).toBeVisible()
+    await expect(page.getByRole('main')).toBeFocused()
+    await page.goBack()
+    await expect(page).toHaveURL(/\/report\/2$/)
 
     if (hireRecord) {
       const { agentId, agentName } = hireRecord.payload

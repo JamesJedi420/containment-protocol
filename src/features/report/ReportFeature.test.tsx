@@ -2,13 +2,14 @@ import '../../test/setup'
 import { beforeEach, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Link, MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, Link, MemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { createNote, EMPTY_STATES } from '../../data/copy'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   APP_ROUTES,
   LATEST_REPORT_ARCHIVE_NAVIGATION,
+  LATEST_REPORT_CASE_NAVIGATION,
   LATEST_REPORT_DOSSIER_NAVIGATION,
 } from '../../app/routes'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
@@ -39,6 +40,27 @@ function renderReportDetail(path: string) {
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
+})
+
+it('requests live triage focus when the dossier link is activated', async () => {
+  const user = userEvent.setup()
+  useGameStore.setState({ game: advanceWeek(advanceWeek(createStartingState())) })
+  const router = createMemoryRouter(
+    [
+      { path: '/report/:week', element: <ReportDetailPage /> },
+      { path: APP_ROUTES.cases, element: <h1>Cases</h1> },
+    ],
+    { initialEntries: ['/report/2'] }
+  )
+  render(<RouterProvider router={router} />)
+
+  const link = screen.getByRole('link', { name: 'Check current cases' })
+  link.focus()
+  await user.keyboard('{Enter}')
+  expect(router.state.location).toMatchObject({
+    pathname: APP_ROUTES.cases,
+    state: LATEST_REPORT_CASE_NAVIGATION,
+  })
 })
 
 it('links report list entries into detail routes', () => {

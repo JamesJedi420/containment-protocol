@@ -17,6 +17,7 @@ import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
 import { assignTeam } from '../../domain/sim/assign'
 import { selectAgencyEstablishmentFirstDossier } from '../../domain/agencyEstablishmentProjection'
+import { createStarterCase } from '../../domain/templates/startingCases'
 import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import CasesPage from '../cases/CasesPage'
 import FrontDeskPage from './FrontDeskPage'
@@ -1113,6 +1114,27 @@ describe('FrontDeskPage', () => {
       expect(detail).toHaveFocus()
     }
   )
+
+  it('focuses the full triage queue when opening the Cases board from Latest Report', async () => {
+    const cases = Object.fromEntries(
+      [1, 2, 3, 4].map((number) => {
+        const id = `case-report-overflow-${number}`
+        return [id, createStarterCase({ id, templateId: 'ops-001' })]
+      })
+    )
+    useGameStore.setState({ game: { ...createStartingState(), cases } })
+    useGameStore.getState().advanceWeek()
+    renderFrontDesk()
+
+    const report = within(screen.getByRole('region', { name: 'Latest report' }))
+    report.getByRole('link', { name: 'Open Cases board (4 unresolved)' }).focus()
+    await userEvent.keyboard('{Enter}')
+
+    const queue = screen.getByRole('region', { name: 'Case triage queue' })
+    expect(queue).toHaveFocus()
+    const triageList = within(queue).getByRole('list', { name: 'Triage list' })
+    expect(within(triageList).getAllByRole('listitem')).toHaveLength(4)
+  })
 
   it.each([
     [

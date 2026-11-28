@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import type { RunExportPayload } from '../src/app/store/runTransfer'
+import { createStarterCase } from '../src/domain/templates/startingCases'
 import {
   advanceOperationalWeek,
   assignFirstOpenTriageCase,
@@ -180,6 +181,54 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(carryover).toHaveText(summary, { useInnerText: true })
     await carryover.getByRole('link', { name: `Review triage: ${title}` }).click()
     await expect(page.getByRole('region', { name: `Case triage detail: ${title}` })).toBeVisible()
+  })
+
+  test('SPE-1354 focuses the case queue from the report overflow link', async ({ page }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await page.getByText('Campaign import and export', { exact: true }).click()
+    const payload = page.getByRole('textbox', { name: 'Run payload' })
+    await page.getByRole('button', { name: 'Export Run', exact: true }).click()
+    const exported: RunExportPayload = JSON.parse(await payload.inputValue())
+    const cases = Object.fromEntries(
+      [1, 2, 3, 4].map((number) => {
+        const id = `case-report-overflow-${number}`
+        return [
+          id,
+          { ...createStarterCase({ id, templateId: 'ops-001' }), title: `Relay ${number}` },
+        ]
+      })
+    )
+    await payload.fill(JSON.stringify({ ...exported, game: { ...exported.game, cases } }))
+    await page.getByRole('button', { name: 'Import Run', exact: true }).click()
+    await expect(page.getByText('Run imported.', { exact: true })).toBeVisible()
+    await advanceOperationalWeek(page)
+    await page.reload()
+    await expect(page.getByText(/Week 2\s*\/\s*Active cap/i).first()).toBeVisible()
+
+    const report = page.getByRole('region', { name: 'Latest report' })
+    await expect(
+      report.getByRole('list', { name: 'Unresolved cases' }).getByRole('listitem')
+    ).toHaveCount(3)
+    const openBoard = report.getByRole('link', { name: 'Open Cases board (4 unresolved)' })
+    await openBoard.press('Enter')
+    await expect(page).toHaveURL(/\/cases$/)
+    const queue = page.getByRole('region', { name: 'Case triage queue' })
+    await expect(queue).toBeFocused()
+    const rows = queue.getByRole('list', { name: 'Triage list' })
+    for (const entry of Object.values(cases)) {
+      await expect(rows.getByRole('link', { name: entry.title, exact: true })).toBeVisible()
+    }
+    await page.keyboard.press('Tab')
+    await expect(rows.getByRole('link').first()).toBeFocused()
+
+    // History traversal uses route focus. The queue handoff applies to a fresh link activation.
+    await page.goBack()
+    await expect(openBoard).toBeVisible()
+    await expect(page.getByRole('main')).toBeFocused()
+    await page.goForward()
+    await expect(queue).toBeVisible()
+    await expect(page.getByRole('main')).toBeFocused()
   })
 
   test('SPE-1354 carries a player-directed relationship change through week close and reload', async ({

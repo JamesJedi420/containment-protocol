@@ -183,6 +183,7 @@ export default function RecruitmentPage() {
   useEffect(() => {
     if (
       fromLatestReport ||
+      (fromScoutingNotice && navigationType === 'PUSH') ||
       (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice))
     ) {
       boardHeading.current?.focus()

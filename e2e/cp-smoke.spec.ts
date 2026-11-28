@@ -222,6 +222,7 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await page.keyboard.press('Tab')
     await expect(rows.getByRole('link').first()).toBeFocused()
 
+    // History traversal uses route focus. The queue handoff applies to a fresh link activation.
     await page.goBack()
     await expect(openBoard).toBeVisible()
     await expect(page.getByRole('main')).toBeFocused()

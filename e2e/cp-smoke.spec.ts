@@ -16,6 +16,55 @@ import {
 } from './support/cpApp'
 
 test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smokes', () => {
+  test('SPE-2711 opens and dismisses Main Menu Credits with focus return', async ({ page }) => {
+    await clearCampaignStorage(page)
+    await advanceOperationalWeek(page)
+    const campaign = await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)
+    expect(campaign).not.toBeNull()
+
+    await page.getByRole('link', { name: 'Main Menu' }).click()
+    await expect(page.getByRole('heading', { name: 'Main Menu' })).toBeFocused()
+    const continueButton = page.getByRole('button', { name: 'Continue' })
+    const creditsButton = page.getByRole('button', { name: 'Credits', exact: true })
+    const credits = page.getByRole('dialog', { name: 'Credits' })
+    const closeCredits = credits.getByRole('button', { name: 'Close credits' })
+
+    await page.keyboard.press('Tab')
+    await expect(continueButton).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(page.getByRole('button', { name: 'Settings' })).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(creditsButton).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(credits).toBeVisible()
+    await expect(
+      credits.getByText('Copyright © 2026 JamesJedi420. All rights reserved.')
+    ).toBeVisible()
+    await expect(closeCredits).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(credits).toBeHidden()
+    await expect(creditsButton).toBeFocused()
+
+    await page.keyboard.press('Enter')
+    await expect(closeCredits).toBeFocused()
+    await page.keyboard.press('Alt+Shift+KeyX')
+    await expect(credits).toBeHidden()
+    await expect(creditsButton).toBeFocused()
+
+    await creditsButton.click()
+    await expect(closeCredits).toBeFocused()
+    await closeCredits.click()
+    await expect(credits).toBeHidden()
+    await expect(creditsButton).toBeFocused()
+    await expect(page).toHaveURL(/\/main-menu$/)
+    expect(await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)).toBe(
+      campaign
+    )
+
+    await continueButton.click()
+    await expect(page.getByRole('region', { name: 'Operations hub overview' })).toBeVisible()
+  })
+
   test('SPE-2711 restores Main Menu keyboard focus when Continue rejects a changed save', async ({
     page,
     context,

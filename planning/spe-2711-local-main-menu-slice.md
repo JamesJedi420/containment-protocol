@@ -20,3 +20,9 @@ The existing [parent hold](https://linear.app/spectranoir/issue/SPE-2711/main-me
 Lane A claim `CP-LANE-A-AFTER-5118-27E2` covers predictable focus after a failed Continue recheck on `codex/main-menu-continue-focus`, based on clean named MSI `main` at `27e2b6ed243b39bcfd3d014400d505d4dc33de5c`. SPE-3752 returned ready with zero open or draft PRs. SPE-2711 remains In Progress.
 
 `src/app/MainMenu.tsx` returns focus to the Main Menu heading when a save no longer matches on activation. The existing status message explains the rejection, and the next Tab reaches Settings. `src/app/MainMenu.test.tsx` verifies the keyboard sequence and save preservation. The Chromium smoke in `e2e/cp-smoke.spec.ts` enters from Operations Desk, advances the campaign in a second tab, and checks keyboard focus, the unchanged route, and preservation of the newer save.
+
+## Credits action
+
+[Lane A reservation `CP-LANE-A-AFTER-5146-601489D6`](https://linear.app/spectranoir/issue/SPE-2711#comment-771a2f96-9bc8-40fe-9b90-ffed83d3d428) covers `codex/main-menu-credits` from clean MSI main `601489d6183b0be7ce2200f5076dba0bdf125388`. SPE-3752 returned ready with the separate Agent P hold on #5128.
+
+SPE-2711 requires a working Credits action and predictable focus and return behavior. The compiled baseline opened Main Menu from Operations Desk and focused its heading, but Chromium found no Credits button. `MainMenu` adds a named native dialog with the project attribution in `LICENSE` and the existing modal-dismiss action. The Chromium smoke opens it by keyboard and pointer, verifies dismissal and focus return, checks that the same URL and campaign bytes are preserved, and continues to Operations Desk. SPE-2711 remains In Progress for its other acceptance criteria.

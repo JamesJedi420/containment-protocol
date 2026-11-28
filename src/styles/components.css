@@ -191,7 +191,8 @@
     align-self: flex-start;
   }
 
-  .settings-dialog {
+  .settings-dialog,
+  .credits-dialog {
     margin: auto;
     width: min(30rem, calc(100% - 2rem));
     max-height: calc(100% - 2rem);
@@ -203,11 +204,13 @@
     overflow: auto;
   }
 
-  .settings-dialog:modal {
+  .settings-dialog:modal,
+  .credits-dialog:modal {
     overscroll-behavior: contain;
   }
 
-  .settings-dialog::backdrop {
+  .settings-dialog::backdrop,
+  .credits-dialog::backdrop {
     background: rgba(0, 0, 0, 0.65);
     overflow: hidden;
     overscroll-behavior: contain;

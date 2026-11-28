@@ -355,6 +355,13 @@ export default function ReportDetailPage() {
             role="region"
             aria-label="Case outcomes"
           >
+            <p className="text-sm text-text-soft">
+              These outcomes cover the completed week.{' '}
+              <Link to={APP_ROUTES.cases} className="focus-ring underline">
+                Check current cases
+              </Link>
+              .
+            </p>
             <ReportCaseGroup
               title={REPORT_UI_TEXT.newCasesHeader}
               emptyLabel={REPORT_UI_TEXT.noNewCases}

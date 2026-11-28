@@ -61,6 +61,37 @@ test.describe('SPE-1080 keyboard bypass, landmarks, and week-close announcement'
     }
   })
 
+  test('Latest Report hands off keyboard focus to the selected completed week', async ({
+    page,
+  }) => {
+    await clearCampaignStorage(page)
+    await openFrontDesk(page)
+    await advanceOperationalWeek(page)
+    await advanceOperationalWeek(page)
+    await page.reload()
+
+    const latestReport = page.getByRole('region', { name: 'Latest report' })
+    await latestReport.getByRole('link', { name: 'Week 2', exact: true }).press('Enter')
+    await expect(page).toHaveURL(/\/report\/2$/)
+    const dossier = page.getByRole('region', { name: 'Weekly report dossier' })
+    await expect(dossier).toBeFocused()
+    await expect(dossier).toHaveAccessibleDescription('Week 2')
+    await page.keyboard.press('Tab')
+    await expect(dossier.getByRole('radio', { checked: true })).toBeFocused()
+
+    await dossier.getByRole('link', { name: 'Previous week (1)' }).press('Enter')
+    await expect(page).toHaveURL(/\/report\/1$/)
+    await expect(dossier).toHaveAccessibleDescription('Week 1')
+    await expect(dossier).not.toBeFocused()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/report\/2$/)
+    await expect(dossier).toHaveAccessibleDescription('Week 2')
+    await expect(dossier).not.toBeFocused()
+    await page.goBack()
+    await expect(latestReport.getByRole('link', { name: 'Week 2', exact: true })).toBeVisible()
+  })
+
   test('advancing a week announces the close once and updates the same region in place', async ({
     page,
   }) => {

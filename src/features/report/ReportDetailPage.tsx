@@ -1,7 +1,7 @@
-import { useId, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router'
+import { useEffect, useId, useRef, useState } from 'react'
+import { Link, useLocation, useNavigationType, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
+import { APP_ROUTES, LATEST_REPORT_DOSSIER_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   REPORT_KNOWLEDGE_PREVIEW_TEXT,
@@ -34,18 +34,27 @@ import { buildOperationalCertaintyView } from '../../domain/operationalCertainty
 
 export default function ReportDetailPage() {
   const { week } = useParams()
-  const location = useLocation()
+  const { key, search, state } = useLocation()
+  const navigationType = useNavigationType()
+  const dossier = useRef<HTMLElement>(null)
   const { game } = useGameStore()
   const [knowledgeAudience, setKnowledgeAudience] = useState<ReportKnowledgeAudience>('public')
   const audienceId = useId()
+  const weekLabelId = useId()
   const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
     'all'
   )
-  const locationSearch = new URLSearchParams(location.search)
+  const locationSearch = new URLSearchParams(search)
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
     : undefined
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_DOSSIER_NAVIGATION && navigationType === 'PUSH') {
+      dossier.current?.focus()
+    }
+  }, [key, navigationType, state])
 
   if (!report) {
     const backTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
@@ -84,9 +93,12 @@ export default function ReportDetailPage() {
         </Link>
       ) : null}
       <article
-        className="panel panel-primary space-y-4"
+        ref={dossier}
+        tabIndex={-1}
+        className="panel panel-primary space-y-4 focus-ring"
         role="region"
         aria-label="Weekly report dossier"
+        aria-describedby={weekLabelId}
       >
         <section
           aria-labelledby={audienceId + '-heading'}
@@ -154,7 +166,7 @@ export default function ReportDetailPage() {
         </section>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
-            <p className="text-sm font-medium">
+            <p id={weekLabelId} className="text-sm font-medium">
               {REPORT_LABELS.week} {report.week}
             </p>
             {weekNavigation.previousWeek !== undefined || weekNavigation.nextWeek !== undefined ? (

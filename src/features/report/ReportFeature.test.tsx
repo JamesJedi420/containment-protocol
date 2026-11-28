@@ -2,10 +2,12 @@ import '../../test/setup'
 import { beforeEach, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { createNote } from '../../data/copy'
 import { useGameStore } from '../../app/store/gameStore'
+import { APP_ROUTES, LATEST_REPORT_DOSSIER_NAVIGATION } from '../../app/routes'
+import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import ReportPage from './ReportPage'
 import ReportDetailPage from './ReportDetailPage'
@@ -64,6 +66,36 @@ it('links report list entries into detail routes', () => {
     screen.getByRole('region', { name: /weekly report timeline summary/i })
   ).toBeInTheDocument()
   expect(screen.getByText(/status cue:/i)).toBeInTheDocument()
+})
+
+it('focuses and describes the selected week on arrival from Latest Report', async () => {
+  const user = userEvent.setup()
+  useGameStore.setState({ game: advanceWeek(advanceWeek(createStartingState())) })
+  render(
+    <MemoryRouter>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Link to={APP_ROUTES.reportDetail(2)} state={LATEST_REPORT_DOSSIER_NAVIGATION}>
+              Week 2
+            </Link>
+          }
+        />
+        <Route path="/report/:week" element={<ReportDetailPage />} />
+      </Routes>
+    </MemoryRouter>
+  )
+
+  await user.tab()
+  await user.keyboard('{Enter}')
+  const dossier = screen.getByRole('region', { name: 'Weekly report dossier' })
+  expect(dossier).toHaveFocus()
+  expect(dossier).toHaveAccessibleDescription('Week 2')
+
+  await user.click(within(dossier).getByRole('link', { name: 'Previous week (1)' }))
+  expect(dossier).toHaveAccessibleDescription('Week 1')
+  expect(dossier).not.toHaveFocus()
 })
 
 it('shows correct positive, negative, and neutral counts and best/worst week rollup in timeline summary', () => {

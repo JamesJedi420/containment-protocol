@@ -1978,7 +1978,11 @@ export default function FrontDeskPage() {
                   )}
                   {view.latestReport.unresolvedCaseCount >
                     view.latestReport.unresolvedCases.length && (
-                    <Link to={APP_ROUTES.cases} className="text-sm underline">
+                    <Link
+                      to={APP_ROUTES.cases}
+                      state={LATEST_REPORT_CASE_NAVIGATION}
+                      className="text-sm underline"
+                    >
                       Open Cases board ({view.latestReport.unresolvedCaseCount} unresolved)
                     </Link>
                   )}

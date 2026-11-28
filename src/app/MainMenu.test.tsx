@@ -162,6 +162,36 @@ describe('local Main Menu', () => {
     expect(localStorage.getItem(storageKey)).toBeNull()
   })
 
+  it('opens Credits and only accepts the dismiss action while its dialog has focus', async () => {
+    useGameStore.getState().setSeed(415)
+    const state = useGameStore.getState()
+    const persisted = localStorage.getItem(storageKey)
+    const user = userEvent.setup()
+    renderApp(APP_ROUTES.mainMenu)
+
+    const credits = screen.getByRole('button', { name: 'Credits' })
+    const closeCredits = screen.getByText('Close credits')
+    const dialog = closeCredits.closest('dialog')!
+    const open = vi.fn(() => dialog.setAttribute('open', ''))
+    const close = vi.fn(() => dialog.removeAttribute('open'))
+    Object.defineProperty(dialog, 'showModal', { value: open })
+    Object.defineProperty(dialog, 'close', { value: close })
+
+    expect(dispatchInputAction('modal.dismiss')).toBe(false)
+    await user.click(credits)
+    expect(open).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog', { name: 'Credits' })).toBeVisible()
+    expect(dispatchInputAction('modal.dismiss')).toBe(false)
+    expect(close).not.toHaveBeenCalled()
+
+    closeCredits.focus()
+    expect(dispatchInputAction('modal.dismiss')).toBe(true)
+    expect(close).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('dialog', { name: 'Credits' })).not.toBeInTheDocument()
+    expect(useGameStore.getState()).toBe(state)
+    expect(localStorage.getItem(storageKey)).toBe(persisted)
+  })
+
   it('keeps the existing recovery screen ahead of the menu', async () => {
     const { game } = useGameStore.getState()
     const [caseId, currentCase] = Object.entries(game.cases)[0]

@@ -201,6 +201,18 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
     )
     expect(final.reports).toEqual(secondWeek.reports)
     for (const id of hiredIds) expect(final.agents[id]).toEqual(secondWeek.agents[id])
+
+    const currentCasesLink = outcomes.getByRole('link', { name: 'Check current cases' })
+    await currentCasesLink.press('Enter')
+    await expect(page).toHaveURL(/\/cases$/)
+    const queue = page.getByRole('region', { name: 'Case triage queue' })
+    await expect(
+      queue.getByRole('link', { name: final.cases[quietCaseId].title, exact: true })
+    ).toBeVisible()
+    await page.goBack()
+    await expect(page).toHaveURL(/\/report\/2$/)
+    await expect(outcomes).toContainText('No unresolved cases were recorded.')
+
     if (hireRecord) {
       const { agentId, agentName } = hireRecord.payload
       await openPrimaryNav(page, 'Operations Desk')

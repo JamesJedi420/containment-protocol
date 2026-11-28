@@ -4,9 +4,13 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
-import { createNote } from '../../data/copy'
+import { createNote, EMPTY_STATES } from '../../data/copy'
 import { useGameStore } from '../../app/store/gameStore'
-import { APP_ROUTES, LATEST_REPORT_DOSSIER_NAVIGATION } from '../../app/routes'
+import {
+  APP_ROUTES,
+  LATEST_REPORT_ARCHIVE_NAVIGATION,
+  LATEST_REPORT_DOSSIER_NAVIGATION,
+} from '../../app/routes'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import ReportPage from './ReportPage'
@@ -62,11 +66,50 @@ it('links report list entries into detail routes', () => {
   renderReportList()
 
   expect(screen.getByRole('link', { name: /^week 1$/i })).toHaveAttribute('href', '/report/1')
+  expect(screen.getByRole('list', { name: 'Weekly reports' })).not.toHaveFocus()
   expect(
     screen.getByRole('region', { name: /weekly report timeline summary/i })
   ).toBeInTheDocument()
   expect(screen.getByText(/status cue:/i)).toBeInTheDocument()
 })
+
+it.each(['populated', 'empty'] as const)(
+  'focuses the %s archive on arrival from Latest Report',
+  async (archive) => {
+    const user = userEvent.setup()
+    if (archive === 'populated') {
+      useGameStore.setState({ game: advanceWeek(advanceWeek(createStartingState())) })
+    }
+
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Link to={APP_ROUTES.report} state={LATEST_REPORT_ARCHIVE_NAVIGATION}>
+                All reports
+              </Link>
+            }
+          />
+          <Route path="/report" element={<ReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    await user.tab()
+    await user.keyboard('{Enter}')
+    if (archive === 'empty') {
+      expect(screen.getByText(EMPTY_STATES.noReports)).toHaveFocus()
+    } else {
+      const reports = screen.getByRole('list', { name: 'Weekly reports' })
+      expect(reports).toHaveAttribute('role', 'list')
+      expect(reports).toHaveFocus()
+      await user.tab()
+      expect(within(reports).getByRole('link', { name: 'Week 2' })).toHaveFocus()
+    }
+  }
+)
 
 it('focuses and describes the selected week on arrival from Latest Report', async () => {
   const user = userEvent.setup()

@@ -1,5 +1,6 @@
-import { Link } from 'react-router'
-import { APP_ROUTES } from '../../app/routes'
+import { useEffect, useRef } from 'react'
+import { Link, useLocation, useNavigationType } from 'react-router'
+import { APP_ROUTES, LATEST_REPORT_ARCHIVE_NAVIGATION } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { REPORT_LABELS, EMPTY_STATES, REPORT_UI_TEXT, TOOLTIPS } from '../../data/copy'
 import { TrendSummaryPanel } from '../../components/TrendSummaryPanel'
@@ -7,14 +8,27 @@ import { getRunTrendSummary } from './reportTrendView'
 import { getReportPageView } from './reportView'
 
 export default function ReportPage() {
+  const { key, state } = useLocation()
+  const navigationType = useNavigationType()
+  const weeklyReports = useRef<HTMLUListElement>(null)
+  const emptyMessage = useRef<HTMLParagraphElement>(null)
   const { game } = useGameStore()
   const view = getReportPageView(game)
+
+  useEffect(() => {
+    if (state === LATEST_REPORT_ARCHIVE_NAVIGATION && navigationType === 'PUSH') {
+      const target = weeklyReports.current ?? emptyMessage.current
+      target?.focus()
+    }
+  }, [key, navigationType, state])
 
   if (view.isEmpty) {
     return (
       <section className="space-y-4">
         <div className="panel panel-support">
-          <p className="opacity-50">{EMPTY_STATES.noReports}</p>
+          <p ref={emptyMessage} tabIndex={-1} className="focus-ring opacity-50">
+            {EMPTY_STATES.noReports}
+          </p>
         </div>
       </section>
     )
@@ -81,7 +95,14 @@ export default function ReportPage() {
         summary={trendSummary}
       />
 
-      <ul className="space-y-3" aria-label="Weekly reports">
+      {/* WebKit can treat lists without visible markers as presentational. */}
+      <ul
+        ref={weeklyReports}
+        tabIndex={-1}
+        className="focus-ring space-y-3"
+        role="list"
+        aria-label="Weekly reports"
+      >
         {view.weeklyReports.map(({ report, weekScore }) => {
           return (
             <li key={report.week} className="panel panel-support space-y-2">

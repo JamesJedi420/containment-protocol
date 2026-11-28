@@ -2,8 +2,14 @@
   "schemaVersion": 1,
   "owner": "SPE-3427",
   "discovery": {
-    "include": ["src/**/*.test.{ts,tsx}", "test/**/*.test.{ts,tsx}"],
-    "exclude": ["docs/**", "**/docs/**"]
+    "include": [
+      "src/**/*.test.{ts,tsx}",
+      "test/**/*.test.{ts,tsx}"
+    ],
+    "exclude": [
+      "docs/**",
+      "**/docs/**"
+    ]
   },
   "files": [
     "src/app/App.affiliationPersonStatus.route.test.tsx",
@@ -987,6 +993,7 @@
     "src/test/starterContent.test.ts",
     "src/test/starterPacing.smoke.test.ts",
     "src/test/statDomains.helpers.contract.test.ts",
+    "src/test/statusEffectRegistry.test.ts",
     "src/test/statusUpkeepDisplayCost.test.ts",
     "src/test/stealthLeaveBehindMission.test.ts",
     "src/test/stealthLeaveBehindRegistry.test.ts",

@@ -571,6 +571,16 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await page.goBack()
     await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
     await expect(rows).toHaveCount(initialCount - 1)
+
+    // The recorded notice still exists after the candidate has been hired.
+    await notice.focus()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/recruitment$/)
+    await expect(rows).toHaveCount(initialCount - 1)
+    await expect(board.getByRole('heading', { name: 'Candidate board' })).toBeFocused()
+
+    await page.goBack()
+    await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
   })
 
   test('SPE-3130 / SPE-3137 restore recruitment filters and support keyboard and controller reset', async ({

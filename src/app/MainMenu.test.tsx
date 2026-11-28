@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { createStartingState } from '../data/startingState'
 import App from './App'
+import type { InputActionId } from './inputActions'
 import { dispatchInputAction } from './inputRuntime'
 import { APP_ROUTES } from './routes'
 import { useGameStore } from './store/gameStore'
@@ -20,6 +21,12 @@ function renderApp(path: string) {
 
 function findOperationsDesk() {
   return screen.findByRole('region', { name: 'Operations hub overview' }, { timeout: 5000 })
+}
+
+function dispatchMenuAction(action: InputActionId) {
+  act(() => {
+    expect(dispatchInputAction(action)).toBe(true)
+  })
 }
 
 beforeEach(() => {
@@ -46,6 +53,35 @@ describe('local Main Menu', () => {
     expect(useGameStore.getState().game).toMatchObject({ week: game.week, rngSeed: 415 })
     expect(useGameStore.getState().game.reports).toBe(game.reports)
     expect(useGameStore.getState().gameReplacementRevision).toBe(gameReplacementRevision)
+  })
+
+  it('moves from the heading and activates Continue through the shared input actions', async () => {
+    useGameStore.getState().setSeed(415)
+    useGameStore.getState().advanceWeek()
+    const { game, gameReplacementRevision } = useGameStore.getState()
+    renderApp(APP_ROUTES.mainMenu)
+
+    expect(screen.getByRole('heading', { name: 'Main Menu' })).toHaveFocus()
+    dispatchMenuAction('filters.next')
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+    dispatchMenuAction('filters.next')
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
+    dispatchMenuAction('filters.previous')
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+    dispatchMenuAction('filters.activate')
+
+    expect(await findOperationsDesk()).toBeVisible()
+    expect(useGameStore.getState().game).toMatchObject({ week: game.week, rngSeed: game.rngSeed })
+    expect(useGameStore.getState().game.reports).toBe(game.reports)
+    expect(useGameStore.getState().gameReplacementRevision).toBe(gameReplacementRevision)
+  })
+
+  it('skips a disabled Continue when traversing the menu with shared input actions', () => {
+    renderApp(APP_ROUTES.mainMenu)
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
+    dispatchMenuAction('filters.next')
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
   })
 
   it('preserves a loaded campaign when hydration changed its persisted projection', async () => {

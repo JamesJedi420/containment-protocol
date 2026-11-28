@@ -7,6 +7,7 @@ import {
   LATEST_REPORT_CHEMISTRY_NAVIGATION,
   LATEST_REPORT_DOSSIER_NAVIGATION,
   LATEST_REPORT_COACHING_NAVIGATION,
+  LATEST_REPORT_HIRE_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_PROCUREMENT_NAVIGATION,
   LATEST_REPORT_RECRUITMENT_NAVIGATION,
@@ -1781,7 +1782,11 @@ export default function FrontDeskPage() {
                           <li key={hire.eventId} className="text-sm">
                             <p className="font-medium">{hire.agentName} joined the field roster</p>
                             <p className="opacity-75">Hire record {hire.eventId}</p>
-                            <Link to={hire.agentHref} className="underline">
+                            <Link
+                              to={hire.agentHref}
+                              state={LATEST_REPORT_HIRE_NAVIGATION}
+                              className="underline"
+                            >
                               Review {hire.agentName} in Roster
                             </Link>
                           </li>

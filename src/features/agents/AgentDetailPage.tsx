@@ -9,6 +9,7 @@ import {
 import LocalNotFound from '../../app/LocalNotFound'
 import {
   APP_ROUTES,
+  LATEST_REPORT_HIRE_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_TRAINING_NAVIGATION,
 } from '../../app/routes'
@@ -29,6 +30,7 @@ export default function AgentDetailPage() {
   const { pathname } = location
   const navigationType = useNavigationType()
   const fromReportReadinessLink =
+    location.state === LATEST_REPORT_HIRE_NAVIGATION ||
     location.state === LATEST_REPORT_INJURY_NAVIGATION ||
     location.state === LATEST_REPORT_TRAINING_NAVIGATION
   const operationalSnapshotHeading = useRef<HTMLHeadingElement>(null)

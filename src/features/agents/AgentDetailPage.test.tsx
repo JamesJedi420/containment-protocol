@@ -7,6 +7,7 @@ import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
 import {
+  LATEST_REPORT_HIRE_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_TRAINING_NAVIGATION,
 } from '../../app/routes'
@@ -63,6 +64,7 @@ it('exposes the dossier as a region instead of a second main landmark', () => {
 })
 
 it.each([
+  { source: 'field-agent hire', state: LATEST_REPORT_HIRE_NAVIGATION },
   { source: 'injury', state: LATEST_REPORT_INJURY_NAVIGATION },
   { source: 'training completion', state: LATEST_REPORT_TRAINING_NAVIGATION },
 ])('focuses current readiness from $source and preserves tab history', async ({ state }) => {

@@ -204,9 +204,20 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
     if (hireRecord) {
       const { agentId, agentName } = hireRecord.payload
       await openPrimaryNav(page, 'Operations Desk')
-      await hiring.getByRole('link', { name: `Review ${agentName} in Roster` }).click()
-      await expect(page).toHaveURL(`/agents/${encodeURIComponent(agentId)}`)
+      const rosterLink = hiring.getByRole('link', { name: `Review ${agentName} in Roster` })
+      const agentPath = `/agents/${encodeURIComponent(agentId)}`
+      await rosterLink.press('Enter')
+      await expect(page).toHaveURL(agentPath)
       await expect(page.getByRole('heading', { name: agentName, exact: true })).toBeVisible()
+      const snapshot = page.getByRole('heading', { name: 'Operational snapshot' })
+      await expect(snapshot).toBeFocused()
+
+      await page.goBack()
+      await expect(rosterLink).toBeVisible()
+      await page.goForward()
+      await expect(page).toHaveURL(agentPath)
+      await expect(snapshot).toBeVisible()
+      await expect(snapshot).not.toBeFocused()
     }
     expectNoPageErrors(probe)
     await expectCampaignStateBudget(hire ? 'quiet-hire' : 'quiet-no-hire', initial, final)

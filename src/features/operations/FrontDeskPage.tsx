@@ -4,6 +4,7 @@ import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
 import {
   APP_ROUTES,
   LATEST_REPORT_CASE_NAVIGATION,
+  LATEST_REPORT_DOSSIER_NAVIGATION,
   LATEST_REPORT_COACHING_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_PROCUREMENT_NAVIGATION,
@@ -1669,7 +1670,11 @@ export default function FrontDeskPage() {
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium">
-                    <Link to={view.latestReport.href} className="hover:underline">
+                    <Link
+                      to={view.latestReport.href}
+                      state={LATEST_REPORT_DOSSIER_NAVIGATION}
+                      className="hover:underline"
+                    >
                       Week {view.latestReport.week}
                     </Link>
                   </p>

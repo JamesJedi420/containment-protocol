@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
-import { LATEST_REPORT_COACHING_NAVIGATION } from '../../app/routes'
+import {
+  LATEST_REPORT_CHEMISTRY_NAVIGATION,
+  LATEST_REPORT_COACHING_NAVIGATION,
+} from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -46,10 +49,15 @@ export default function TrainingDivisionPage() {
   const navigationType = useNavigationType()
   const [searchParams, setSearchParams] = useSearchParams()
   const instructorHeading = useRef<HTMLHeadingElement>(null)
+  const chemistryHeading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
-    if (state === LATEST_REPORT_COACHING_NAVIGATION && navigationType === 'PUSH') {
+    if (navigationType !== 'PUSH') return
+
+    if (state === LATEST_REPORT_COACHING_NAVIGATION) {
       instructorHeading.current?.focus()
+    } else if (state === LATEST_REPORT_CHEMISTRY_NAVIGATION) {
+      chemistryHeading.current?.focus()
     }
   }, [key, navigationType, state])
 
@@ -471,7 +479,9 @@ export default function TrainingDivisionPage() {
           </article>
 
           <article className="panel space-y-3">
-            <h3 className="text-base font-semibold">Chemistry Inspector</h3>
+            <h3 ref={chemistryHeading} tabIndex={-1} className="text-base font-semibold focus-ring">
+              Chemistry Inspector
+            </h3>
             {view.chemistryInspectorPairs.length > 0 ? (
               <ul className="space-y-3">
                 {view.chemistryInspectorPairs.map((pair) => (

@@ -238,8 +238,29 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     const summary = await changes.innerText()
     await page.reload()
     await expect(changes).toHaveText(summary, { useInnerText: true })
-    await report.getByRole('link', { name: 'Review team chemistry' }).click()
-    await expect(page.getByRole('heading', { name: 'Chemistry Inspector' })).toBeVisible()
+    const chemistryLink = report.getByRole('link', { name: 'Review team chemistry' })
+    const probe = attachPageErrorProbe(page)
+    try {
+      await chemistryLink.focus()
+      await page.keyboard.press('Enter')
+      const inspector = page.getByRole('heading', { name: 'Chemistry Inspector' })
+      await expect(inspector).toBeFocused()
+      const recordedPair = page
+        .getByRole('article')
+        .filter({ has: inspector })
+        .getByRole('listitem')
+        .filter({ hasText: left!.name })
+        .filter({ hasText: right!.name })
+      await expect(recordedPair.getByText(/reconciliation.*-1\.00 to/)).toBeVisible()
+      await page.goBack()
+      await expect(chemistryLink).toBeVisible()
+      await page.goForward()
+      await expect(inspector).toBeVisible()
+      await expect(inspector).not.toBeFocused()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
   })
 
   test('SPE-1354 shows realized containment movement after week close and reload', async ({

@@ -1,6 +1,7 @@
 const RECRUITMENT_PATH = '/recruitment'
 export const RECRUITMENT_CANDIDATE_PARAM = 'candidate'
 export const LATEST_REPORT_CASE_NAVIGATION = 'latest-report-case'
+export const LATEST_REPORT_CHEMISTRY_NAVIGATION = 'latest-report-chemistry'
 export const LATEST_REPORT_DOSSIER_NAVIGATION = 'latest-report-dossier'
 export const LATEST_REPORT_COACHING_NAVIGATION = 'latest-report-coaching'
 export const LATEST_REPORT_INJURY_NAVIGATION = 'latest-report-injury'

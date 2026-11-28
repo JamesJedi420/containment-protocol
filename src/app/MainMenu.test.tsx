@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { createStartingState } from '../data/startingState'
 import App from './App'
+import type { InputActionId } from './inputActions'
 import { dispatchInputAction } from './inputRuntime'
 import { APP_ROUTES } from './routes'
 import { useGameStore } from './store/gameStore'
@@ -20,6 +21,12 @@ function renderApp(path: string) {
 
 function findOperationsDesk() {
   return screen.findByRole('region', { name: 'Operations hub overview' }, { timeout: 5000 })
+}
+
+function dispatchMenuAction(action: InputActionId) {
+  act(() => {
+    expect(dispatchInputAction(action)).toBe(true)
+  })
 }
 
 beforeEach(() => {
@@ -55,21 +62,13 @@ describe('local Main Menu', () => {
     renderApp(APP_ROUTES.mainMenu)
 
     expect(screen.getByRole('heading', { name: 'Main Menu' })).toHaveFocus()
-    act(() => {
-      expect(dispatchInputAction('filters.next')).toBe(true)
-    })
+    dispatchMenuAction('filters.next')
     expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
-    act(() => {
-      expect(dispatchInputAction('filters.next')).toBe(true)
-    })
+    dispatchMenuAction('filters.next')
     expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
-    act(() => {
-      expect(dispatchInputAction('filters.previous')).toBe(true)
-    })
+    dispatchMenuAction('filters.previous')
     expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
-    act(() => {
-      expect(dispatchInputAction('filters.activate')).toBe(true)
-    })
+    dispatchMenuAction('filters.activate')
 
     expect(await findOperationsDesk()).toBeVisible()
     expect(useGameStore.getState().game).toMatchObject({ week: game.week, rngSeed: game.rngSeed })
@@ -81,9 +80,7 @@ describe('local Main Menu', () => {
     renderApp(APP_ROUTES.mainMenu)
 
     expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled()
-    act(() => {
-      expect(dispatchInputAction('filters.next')).toBe(true)
-    })
+    dispatchMenuAction('filters.next')
     expect(screen.getByRole('button', { name: 'Settings' })).toHaveFocus()
   })
 

@@ -299,6 +299,12 @@ it('renders snapshot-driven grouped sections and falls back to archived snapshot
   expect(screen.getByText(/spawned cases/i)).toBeInTheDocument()
   expect(screen.getByText(/team status/i)).toBeInTheDocument()
 
+  const outcomes = screen.getByRole('region', { name: 'Case outcomes' })
+  expect(within(outcomes).getByRole('link', { name: 'Check current cases' })).toHaveAttribute(
+    'href',
+    '/cases'
+  )
+
   const newSection = screen.getByText('New cases').closest('section')
   expect(newSection).not.toBeNull()
   expect(

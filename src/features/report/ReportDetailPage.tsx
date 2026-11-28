@@ -356,7 +356,7 @@ export default function ReportDetailPage() {
             aria-label="Case outcomes"
           >
             <p className="text-sm text-text-soft">
-              These outcomes cover the completed week.{' '}
+              Cases are grouped by the outcomes recorded that week.{' '}
               <Link to={APP_ROUTES.cases} className="focus-ring underline">
                 Check current cases
               </Link>

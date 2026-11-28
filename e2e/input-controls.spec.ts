@@ -42,10 +42,11 @@ test('standard controller navigates the Main Menu and resumes the current campai
 
   await clearCampaignStorage(page)
   await advanceOperationalWeek(page)
-  const campaign = await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)
-  expect(campaign).not.toBeNull()
+  const readCampaign = () => page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)
   await page.getByRole('link', { name: 'Main Menu' }).click()
   await expect(page.getByRole('heading', { name: 'Main Menu' })).toBeFocused()
+  const campaign = await readCampaign()
+  expect(campaign).not.toBeNull()
   const continueButton = page.getByRole('button', { name: 'Continue', exact: true })
   const settingsButton = page.getByRole('button', { name: 'Settings', exact: true })
   const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
@@ -82,11 +83,21 @@ test('standard controller navigates the Main Menu and resumes the current campai
   await expect(settingsButton).toBeFocused()
   await press(14)
   await expect(continueButton).toBeFocused()
+  expect(await readCampaign()).toBe(campaign)
   await press(0)
   await expect(page.getByRole('region', { name: 'Operations hub overview' })).toBeVisible()
-  expect(await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)).toBe(
-    campaign
-  )
+  const resumedCampaign = await readCampaign()
+  expect(resumedCampaign).not.toBeNull()
+
+  // Operations Desk can append its route-selection log as it mounts.
+  const withoutRouteLog = (stored: string | null) => {
+    if (stored === null) return null
+    const save = JSON.parse(stored)
+    delete save.state.game.runtimeState.ui.debug.eventLog
+    delete save.state.game.runtimeState.ui.debug.nextEventSequence
+    return save
+  }
+  expect(withoutRouteLog(resumedCampaign)).toEqual(withoutRouteLog(campaign))
 
   await page.getByRole('link', { name: 'Main Menu' }).click()
   await page.evaluate((key) => localStorage.removeItem(key), CP_GAME_STORAGE_KEY)

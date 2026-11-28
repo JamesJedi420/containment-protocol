@@ -1,7 +1,11 @@
 import { type ReactNode, useEffect, useMemo, useRef } from 'react'
 import { Link, useLocation, useNavigationType, useSearchParams } from 'react-router'
 import { useFocusedControls, useInputConsumer } from '../../app/inputRuntime'
-import { APP_ROUTES, RECRUITMENT_CANDIDATE_PARAM } from '../../app/routes'
+import {
+  APP_ROUTES,
+  LATEST_REPORT_RECRUITMENT_NAVIGATION,
+  RECRUITMENT_CANDIDATE_PARAM,
+} from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -71,6 +75,8 @@ export default function RecruitmentPage() {
   const { key, state } = useLocation()
   const navigationType = useNavigationType()
   const fromScoutingNotice = state === SCOUTING_NOTICE_NAVIGATION
+  const fromLatestReport =
+    navigationType === 'PUSH' && state === LATEST_REPORT_RECRUITMENT_NAVIGATION
   const entryState = isBoardEntryState(state) ? state : undefined
   const snapshot = entryState?.type === BOARD_SNAPSHOT ? entryState : undefined
   const replacement = entryState?.type === BOARD_REPLACEMENT ? entryState : undefined
@@ -175,10 +181,13 @@ export default function RecruitmentPage() {
   }, [snapshot])
 
   useEffect(() => {
-    if (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice)) {
+    if (
+      fromLatestReport ||
+      (activeCandidateId && (navigationType !== 'REPLACE' || fromScoutingNotice))
+    ) {
       boardHeading.current?.focus()
     }
-  }, [activeCandidateId, fromScoutingNotice, key, navigationType])
+  }, [activeCandidateId, fromLatestReport, fromScoutingNotice, key, navigationType])
 
   const getPendingFilters = () => {
     const pending = pendingFilters.current

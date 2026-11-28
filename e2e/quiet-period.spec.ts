@@ -214,10 +214,12 @@ async function runQuietPath(browser: Browser, baseURL: string, hire: boolean) {
 
       await page.goBack()
       await expect(rosterLink).toBeVisible()
+      const main = page.getByRole('main')
+      await expect(main).toBeFocused()
       await page.goForward()
       await expect(page).toHaveURL(agentPath)
       await expect(snapshot).toBeVisible()
-      await expect(snapshot).not.toBeFocused()
+      await expect(main).toBeFocused()
     }
     expectNoPageErrors(probe)
     await expectCampaignStateBudget(hire ? 'quiet-hire' : 'quiet-no-hire', initial, final)

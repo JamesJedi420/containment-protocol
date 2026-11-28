@@ -289,13 +289,39 @@ test.describe('SPE-3458 / SPE-3481 / SPE-3482 / SPE-3483 CP Chromium player smok
     await expect(digest.getByText(`Week-close agency update · Record ${update.id}`)).toBeVisible()
     const summary = await digest.innerText()
 
+    const sort = page
+      .getByRole('region', { name: 'Recruitment filters' })
+      .getByRole('combobox', { name: 'Sort' })
+    await openPrimaryNav(page, 'Recruitment')
+    await sort.selectOption('name')
+    await expect(page).toHaveURL(/\/recruitment\?sort=name$/)
+    await openPrimaryNav(page, 'Operations Desk')
+
+    await expect(digest).toBeVisible()
     await page.reload()
     await expect(digest).toHaveText(summary, { useInnerText: true })
-    await digest.getByRole('link', { name: 'Review recruitment options' }).click()
-    await expect(page).toHaveURL(/\/recruitment$/)
-    await expect(
-      page.getByRole('heading', { name: 'Recruitment', level: 2, exact: true })
-    ).toBeVisible()
+    const recruitmentLink = digest.getByRole('link', { name: 'Review recruitment options' })
+    const boardHeading = page.getByRole('heading', { name: 'Candidate board', exact: true })
+    const probe = attachPageErrorProbe(page)
+    try {
+      await recruitmentLink.press('Enter')
+      await expect(page).toHaveURL(/\/recruitment$/)
+      await expect(sort).toHaveValue('name')
+      await expect(boardHeading).toBeFocused()
+      await expect(
+        page.getByRole('article', { name: 'Candidate board' }).getByRole('listitem').first()
+      ).toBeVisible()
+
+      await page.goBack()
+      await expect(recruitmentLink).toBeVisible()
+      await page.goForward()
+      await expect(sort).toHaveValue('name')
+      await expect(boardHeading).toBeVisible()
+      await expect(boardHeading).not.toBeFocused()
+      expectNoPageErrors(probe)
+    } finally {
+      probe.dispose()
+    }
   })
 
   test('SPE-1354 separates week-close funding from current procurement funds after reload', async ({

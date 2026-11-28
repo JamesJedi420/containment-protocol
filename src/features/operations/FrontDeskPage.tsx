@@ -9,6 +9,7 @@ import {
   LATEST_REPORT_COACHING_NAVIGATION,
   LATEST_REPORT_INJURY_NAVIGATION,
   LATEST_REPORT_PROCUREMENT_NAVIGATION,
+  LATEST_REPORT_RECRUITMENT_NAVIGATION,
   LATEST_REPORT_TEAM_ROSTER_NAVIGATION,
   LATEST_REPORT_TRAINING_NAVIGATION,
 } from '../../app/routes'
@@ -1708,7 +1709,11 @@ export default function FrontDeskPage() {
                           ? 'A higher rating can improve the agency’s standing when generating future candidate pools.'
                           : 'A lower rating can weaken the agency’s standing when generating future candidate pools.'}
                       </p>
-                      <Link to={APP_ROUTES.recruitment} className="underline">
+                      <Link
+                        to={APP_ROUTES.recruitment}
+                        state={LATEST_REPORT_RECRUITMENT_NAVIGATION}
+                        className="underline"
+                      >
                         Review recruitment options
                       </Link>
                     </div>

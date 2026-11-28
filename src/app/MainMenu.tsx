@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import Logo from '../components/Logo'
 import { SettingsAccess } from '../components/layout/SettingsAccess'
+import { useInputConsumer } from './inputRuntime'
 import { APP_ROUTES } from './routes'
 import { useGameStore } from './store/gameStore'
 
@@ -59,6 +60,8 @@ function canContinueCampaign(): boolean {
 export function MainMenu() {
   const navigate = useNavigate()
   const heading = useRef<HTMLHeadingElement>(null)
+  const credits = useRef<HTMLDialogElement>(null)
+  const creditsTitleId = useId()
   const [continueStatus, setContinueStatus] = useState<'unavailable' | 'ready' | 'unconfirmed'>(
     () => (canContinueCampaign() ? 'ready' : 'unavailable')
   )
@@ -66,6 +69,13 @@ export function MainMenu() {
   useLayoutEffect(() => {
     heading.current?.focus()
   }, [])
+
+  useInputConsumer({
+    id: 'modal.dismiss',
+    context: 'modal',
+    available: () => !!credits.current?.open && credits.current.contains(document.activeElement),
+    execute: () => credits.current?.close(),
+  })
 
   function continueCampaign() {
     if (!canContinueCampaign()) {
@@ -99,7 +109,31 @@ export function MainMenu() {
           Continue
         </button>
         <SettingsAccess />
+        <button
+          type="button"
+          className="btn btn-ghost settings-control"
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            event.currentTarget.focus()
+            credits.current?.showModal()
+          }}
+        >
+          Credits
+        </button>
+        <dialog ref={credits} aria-labelledby={creditsTitleId} className="credits-dialog space-y-4">
+          <h2 id={creditsTitleId} className="text-xl font-semibold">
+            Credits
+          </h2>
+          <p>Containment Protocol</p>
+          <p>Copyright © 2026 JamesJedi420. All rights reserved.</p>
+          <form method="dialog">
+            <button type="submit" className="btn settings-control" autoFocus>
+              Close credits
+            </button>
+          </form>
+        </dialog>
       </div>
+
       <output className="block text-sm text-text-soft empty:m-0">
         {continueStatus === 'unavailable' && 'No campaign is ready to continue.'}
         {continueStatus === 'unconfirmed' && 'A saved campaign could not be confirmed.'}

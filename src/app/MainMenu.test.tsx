@@ -147,7 +147,7 @@ describe('local Main Menu', () => {
     const user = userEvent.setup()
     renderApp(APP_ROUTES.mainMenu)
     const settings = screen.getByRole('button', { name: 'Settings' })
-    const dialog = within(screen.getByRole('main')).getByRole('dialog', { hidden: true })
+    const dialog = screen.getByText('Close settings').closest('dialog')!
     const open = vi.fn(() => dialog.setAttribute('open', ''))
     Object.defineProperty(dialog, 'showModal', { value: open })
     const state = useGameStore.getState()

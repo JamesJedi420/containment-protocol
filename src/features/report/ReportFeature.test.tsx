@@ -2,18 +2,18 @@ import '../../test/setup'
 import { beforeEach, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Link, MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, Link, MemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { createNote, EMPTY_STATES } from '../../data/copy'
 import { useGameStore } from '../../app/store/gameStore'
 import {
   APP_ROUTES,
   LATEST_REPORT_ARCHIVE_NAVIGATION,
+  LATEST_REPORT_CASE_NAVIGATION,
   LATEST_REPORT_DOSSIER_NAVIGATION,
 } from '../../app/routes'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { calcWeekScore } from '../../domain/sim/scoring'
-import CasesPage from '../cases/CasesPage'
 import ReportPage from './ReportPage'
 import ReportDetailPage from './ReportDetailPage'
 
@@ -42,22 +42,25 @@ beforeEach(() => {
   useGameStore.setState({ game: createStartingState() })
 })
 
-it('focuses the live triage queue from the weekly dossier', async () => {
+it('requests live triage focus when the dossier link is activated', async () => {
   const user = userEvent.setup()
   useGameStore.setState({ game: advanceWeek(advanceWeek(createStartingState())) })
-  render(
-    <MemoryRouter initialEntries={['/report/2']}>
-      <Routes>
-        <Route path="/report/:week" element={<ReportDetailPage />} />
-        <Route path={APP_ROUTES.cases} element={<CasesPage />} />
-      </Routes>
-    </MemoryRouter>
+  const router = createMemoryRouter(
+    [
+      { path: '/report/:week', element: <ReportDetailPage /> },
+      { path: APP_ROUTES.cases, element: <h1>Cases</h1> },
+    ],
+    { initialEntries: ['/report/2'] }
   )
+  render(<RouterProvider router={router} />)
 
   const link = screen.getByRole('link', { name: 'Check current cases' })
   link.focus()
   await user.keyboard('{Enter}')
-  expect(screen.getByRole('region', { name: 'Case triage queue' })).toHaveFocus()
+  expect(router.state.location).toMatchObject({
+    pathname: APP_ROUTES.cases,
+    state: LATEST_REPORT_CASE_NAVIGATION,
+  })
 })
 
 it('links report list entries into detail routes', () => {

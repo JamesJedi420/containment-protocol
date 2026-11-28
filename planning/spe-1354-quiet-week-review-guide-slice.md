@@ -36,4 +36,4 @@ The quiet-period Chromium scenario uses an authored starting fixture and real we
 
 The November 20 acceptance asks the weekly review to offer a valid next decision for unresolved cases. The dossier’s **Check current cases** link now passes the same focus intent as the Front Desk’s board link. On fresh navigation, **Case triage queue** receives focus and the next Tab reaches the first case when one is available. Back and Forward use the shell’s ordinary focus behavior. The existing report and case data stay authoritative.
 
-The strict-console report test covers the actual Cases destination. The quiet-campaign Chromium scenario covers week close, reload, keyboard activation, the carried case, and browser history. The feature needs no saved focus state. The broader weekly-review acceptance remains open.
+The strict-console report test checks the Cases URL and focus intent through the router. The quiet-campaign Chromium scenario verifies actual focus after week close and reload, the carried case, and browser history. The feature needs no saved focus state. The broader weekly-review acceptance remains open.

@@ -95,10 +95,12 @@ export default function ReportPage() {
         summary={trendSummary}
       />
 
+      {/* WebKit can treat lists without visible markers as presentational. */}
       <ul
         ref={weeklyReports}
         tabIndex={-1}
         className="focus-ring space-y-3"
+        role="list"
         aria-label="Weekly reports"
       >
         {view.weeklyReports.map(({ report, weekScore }) => {

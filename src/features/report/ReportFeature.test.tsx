@@ -103,6 +103,7 @@ it.each(['populated', 'empty'] as const)(
       expect(screen.getByText(EMPTY_STATES.noReports)).toHaveFocus()
     } else {
       const reports = screen.getByRole('list', { name: 'Weekly reports' })
+      expect(reports).toHaveAttribute('role', 'list')
       expect(reports).toHaveFocus()
       await user.tab()
       expect(within(reports).getByRole('link', { name: 'Week 2' })).toHaveFocus()

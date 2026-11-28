@@ -4,6 +4,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import {
   createPath,
+  Link,
   MemoryRouter,
   NavigationType,
   parsePath,
@@ -19,6 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { type Candidate } from '../../domain/models'
 import { useGameStore } from '../../app/store/gameStore'
+import { APP_ROUTES, LATEST_REPORT_RECRUITMENT_NAVIGATION } from '../../app/routes'
 import RecruitmentPage from './RecruitmentPage'
 import { RECRUITMENT_LIST_PREFERENCES_KEY } from './recruitmentListPreferences'
 
@@ -461,6 +463,34 @@ describe('RecruitmentPage', () => {
     expect(status).toHaveAttribute('aria-atomic', 'true')
     expect(observer.takeRecords().some((record) => record.target === status)).toBe(true)
     observer.disconnect()
+  })
+
+  it('focuses the candidate board when the weekly report opens it with saved filters', async () => {
+    const user = userEvent.setup()
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    localStorage.setItem(RECRUITMENT_LIST_PREFERENCES_KEY, 'category=agent')
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <Link to={APP_ROUTES.recruitment} state={LATEST_REPORT_RECRUITMENT_NAVIGATION}>
+                Review recruitment options
+              </Link>
+            }
+          />
+          <Route path={APP_ROUTES.recruitment} element={<RecruitmentPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    screen.getByRole('link', { name: 'Review recruitment options' }).focus()
+    await user.keyboard('{Enter}')
+
+    expect(screen.getByText('Saved filters restored')).toHaveRole('status')
+    expect(screen.getByLabelText('Category')).toHaveValue('agent')
+    expect(screen.getByRole('heading', { name: 'Candidate board' })).toHaveFocus()
   })
 
   it('opens an explicit candidate excluded by saved filters and keeps the saved filters intact', async () => {

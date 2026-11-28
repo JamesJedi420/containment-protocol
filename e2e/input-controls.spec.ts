@@ -1,5 +1,83 @@
 import { test, expect } from '@playwright/test'
-import { clearCampaignStorage, openFrontDesk, CP_GAME_STORAGE_KEY } from './support/cpApp'
+import {
+  advanceOperationalWeek,
+  clearCampaignStorage,
+  openFrontDesk,
+  CP_GAME_STORAGE_KEY,
+} from './support/cpApp'
+
+test('standard controller navigates the Main Menu and resumes the current campaign', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const state = { pressed: -1 }
+    Object.assign(window, { menuTestPad: state })
+    Object.defineProperty(navigator, 'getGamepads', {
+      value: () => [
+        {
+          index: 0,
+          connected: true,
+          mapping: 'standard',
+          buttons: Array.from({ length: 17 }, (_, index) => ({
+            pressed: state.pressed === index,
+            value: state.pressed === index ? 1 : 0,
+          })),
+        },
+      ],
+    })
+  })
+
+  const press = (button: number) =>
+    page.evaluate(async (pressed) => {
+      const state = (window as unknown as { menuTestPad: { pressed: number } }).menuTestPad
+      const waitForPoll = () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+        )
+      state.pressed = -1
+      await waitForPoll()
+      state.pressed = pressed
+      await waitForPoll()
+    }, button)
+
+  await clearCampaignStorage(page)
+  await advanceOperationalWeek(page)
+  const campaign = await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)
+  expect(campaign).not.toBeNull()
+  await page.getByRole('link', { name: 'Main Menu' }).click()
+  await expect(page.getByRole('heading', { name: 'Main Menu' })).toBeFocused()
+  const continueButton = page.getByRole('button', { name: 'Continue', exact: true })
+  const settingsButton = page.getByRole('button', { name: 'Settings', exact: true })
+  const settings = page.getByRole('dialog', { name: 'Settings', exact: true })
+  await expect(continueButton).toBeEnabled()
+
+  await press(15)
+  await expect(continueButton).toBeFocused({ timeout: 5000 })
+  await press(15)
+  await expect(settingsButton).toBeFocused()
+  await press(0)
+  await expect(settings.getByRole('button', { name: 'Close settings' })).toBeFocused()
+  await press(15)
+  await expect(settings.getByRole('button', { name: 'Close settings' })).toBeFocused()
+  await press(1)
+  await expect(settings).toBeHidden()
+  await expect(settingsButton).toBeFocused()
+  await press(14)
+  await expect(continueButton).toBeFocused()
+  await press(0)
+  await expect(page.getByRole('region', { name: 'Operations hub overview' })).toBeVisible()
+  expect(await page.evaluate((key) => localStorage.getItem(key), CP_GAME_STORAGE_KEY)).toBe(
+    campaign
+  )
+
+  await page.getByRole('link', { name: 'Main Menu' }).click()
+  await page.evaluate((key) => localStorage.removeItem(key), CP_GAME_STORAGE_KEY)
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Main Menu' })).toBeFocused()
+  await expect(continueButton).toBeDisabled()
+  await press(15)
+  await expect(settingsButton).toBeFocused()
+})
 
 test('invalid saved controls and denied writes retain usable native controls with visible feedback', async ({
   page,

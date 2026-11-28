@@ -2,7 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import Logo from '../components/Logo'
 import { SettingsAccess } from '../components/layout/SettingsAccess'
-import { useInputConsumer } from './inputRuntime'
+import { useFocusedControls, useInputConsumer } from './inputRuntime'
 import { APP_ROUTES } from './routes'
 import { useGameStore } from './store/gameStore'
 
@@ -60,6 +60,7 @@ function canContinueCampaign(): boolean {
 export function MainMenu() {
   const navigate = useNavigate()
   const heading = useRef<HTMLHeadingElement>(null)
+  const actions = useRef<HTMLDivElement>(null)
   const credits = useRef<HTMLDialogElement>(null)
   const creditsTitleId = useId()
   const [continueStatus, setContinueStatus] = useState<'unavailable' | 'ready' | 'unconfirmed'>(
@@ -69,6 +70,14 @@ export function MainMenu() {
   useLayoutEffect(() => {
     heading.current?.focus()
   }, [])
+
+  useFocusedControls(() => {
+    if (!heading.current || !actions.current) return []
+    return [
+      heading.current,
+      ...actions.current.querySelectorAll<HTMLButtonElement>(':scope > button:enabled'),
+    ]
+  })
 
   useInputConsumer({
     id: 'modal.dismiss',
@@ -99,7 +108,7 @@ export function MainMenu() {
         </div>
       </header>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div ref={actions} className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           className="btn btn-primary min-h-11"
